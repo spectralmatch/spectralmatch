@@ -1,0 +1,17 @@
+FROM mambaorg/micromamba:latest
+
+ENV MAMBA_DOCKERFILE_ACTIVATE=1
+
+RUN micromamba create -y -n spectralmatch -c conda-forge \
+    python=3.10 \
+    gdal>=3.6 \
+    rasterio \
+    numpy \
+    scipy \
+    pip
+
+SHELL ["micromamba", "run", "-n", "spectralmatch", "/bin/bash", "-c"]
+
+RUN pip install spectralmatch
+
+CMD ["python"]
