@@ -801,54 +801,27 @@
 
     <div class="doc doc-contents ">
 
-        <p>Matches multiple input raster images to a common global statistical range using overlapping areas
-for deriving statistical adjustments. Adjustments include mean and standard deviation factors, ensuring
-the images are globally consistent in derived values.</p>
-<p>This function processes pairs of overlapping raster images to compute statistical parameters, combines
-global statistics for the entire collection of raster images, and generates output raster images with
-adjusted pixel values. Additional features such as custom nodata values, vector mask usage, and tiling
-are supported. The function allows parallel processing to optimize performance.</p>
+        <p>Performs global radiometric normalization across overlapping images using least squares regression.</p>
 <p>Args:
-input_image_paths (List[str]): Paths to input raster images.
-output_image_folder (str): Directory where adjusted images will be saved.
-custom_mean_factor (float): Scale factor for mean adjustment, default is 1.0.
-custom_std_factor (float): Scale factor for standard deviation adjustment, default is 1.0.
-output_global_basename (str): Global basename suffix added to output image filenames, default is "_global".
-vector_mask_path (Optional[str]): Path to a vector mask file used to limit processing, optional.
-tile_width_and_height_tuple (Optional[Tuple[int, int]]): Tuple specifying tile width and height for tiled processing, optional.
-debug_mode (bool): Enables debug mode when set to True, default is False.
-custom_nodata_value (float | None): Override nodata value for rasters, optional.
-parallel (bool): Enables parallel processing when set to True, default is False.
-max_workers (int | None): Maximum number of workers for parallel processing, default is None.
-calc_dtype (str): Data type used for intermediate calculations, default is "float32".</p>
+input_image_paths (List[str]): List of input raster image paths.
+output_image_folder (str): Folder to save normalized output images.
+custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
+custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
+output_global_basename (str, optional): Suffix for output filenames. Defaults to "_global".
+vector_mask_path (Optional[str], optional): Optional mask to limit stats to specific areas. Defaults to None.
+tile_width_and_height_tuple (Optional[Tuple[int, int]], optional): Tile size for block-wise processing. Defaults to None.
+debug_mode (bool, optional): If True, prints debug information and constraint matrices. Defaults to False.
+custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.
+parallel (bool, optional): Enables parallel tile processing. Defaults to False.
+max_workers (int | None, optional): Number of worker processes. Defaults to CPU count.
+calc_dtype (str, optional): Data type used for internal calculations. Defaults to "float32".</p>
 <p>Returns:
-List[str]: Paths to the output adjusted raster images.</p>
+List[str]: Paths to the globally adjusted output raster images.</p>
 
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/match/global_regression.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 19</span>
-<span class="normal"> 20</span>
-<span class="normal"> 21</span>
-<span class="normal"> 22</span>
-<span class="normal"> 23</span>
-<span class="normal"> 24</span>
-<span class="normal"> 25</span>
-<span class="normal"> 26</span>
-<span class="normal"> 27</span>
-<span class="normal"> 28</span>
-<span class="normal"> 29</span>
-<span class="normal"> 30</span>
-<span class="normal"> 31</span>
-<span class="normal"> 32</span>
-<span class="normal"> 33</span>
-<span class="normal"> 34</span>
-<span class="normal"> 35</span>
-<span class="normal"> 36</span>
-<span class="normal"> 37</span>
-<span class="normal"> 38</span>
-<span class="normal"> 39</span>
-<span class="normal"> 40</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 40</span>
 <span class="normal"> 41</span>
 <span class="normal"> 42</span>
 <span class="normal"> 43</span>
@@ -1053,7 +1026,21 @@ List[str]: Paths to the output adjusted raster images.</p>
 <span class="normal">242</span>
 <span class="normal">243</span>
 <span class="normal">244</span>
-<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">global_regression</span><span class="p">(</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">global_regression</span><span class="p">(</span>
     <span class="n">input_image_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">output_image_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1068,34 +1055,27 @@ List[str]: Paths to the output adjusted raster images.</p>
     <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">calc_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Matches multiple input raster images to a common global statistical range using overlapping areas</span>
-<span class="sd">    for deriving statistical adjustments. Adjustments include mean and standard deviation factors, ensuring</span>
-<span class="sd">    the images are globally consistent in derived values.</span>
-
-<span class="sd">    This function processes pairs of overlapping raster images to compute statistical parameters, combines</span>
-<span class="sd">    global statistics for the entire collection of raster images, and generates output raster images with</span>
-<span class="sd">    adjusted pixel values. Additional features such as custom nodata values, vector mask usage, and tiling</span>
-<span class="sd">    are supported. The function allows parallel processing to optimize performance.</span>
+<span class="sd">    Performs global radiometric normalization across overlapping images using least squares regression.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_paths (List[str]): Paths to input raster images.</span>
-<span class="sd">    output_image_folder (str): Directory where adjusted images will be saved.</span>
-<span class="sd">    custom_mean_factor (float): Scale factor for mean adjustment, default is 1.0.</span>
-<span class="sd">    custom_std_factor (float): Scale factor for standard deviation adjustment, default is 1.0.</span>
-<span class="sd">    output_global_basename (str): Global basename suffix added to output image filenames, default is &quot;_global&quot;.</span>
-<span class="sd">    vector_mask_path (Optional[str]): Path to a vector mask file used to limit processing, optional.</span>
-<span class="sd">    tile_width_and_height_tuple (Optional[Tuple[int, int]]): Tuple specifying tile width and height for tiled processing, optional.</span>
-<span class="sd">    debug_mode (bool): Enables debug mode when set to True, default is False.</span>
-<span class="sd">    custom_nodata_value (float | None): Override nodata value for rasters, optional.</span>
-<span class="sd">    parallel (bool): Enables parallel processing when set to True, default is False.</span>
-<span class="sd">    max_workers (int | None): Maximum number of workers for parallel processing, default is None.</span>
-<span class="sd">    calc_dtype (str): Data type used for intermediate calculations, default is &quot;float32&quot;.</span>
+<span class="sd">    input_image_paths (List[str]): List of input raster image paths.</span>
+<span class="sd">    output_image_folder (str): Folder to save normalized output images.</span>
+<span class="sd">    custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.</span>
+<span class="sd">    custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.</span>
+<span class="sd">    output_global_basename (str, optional): Suffix for output filenames. Defaults to &quot;_global&quot;.</span>
+<span class="sd">    vector_mask_path (Optional[str], optional): Optional mask to limit stats to specific areas. Defaults to None.</span>
+<span class="sd">    tile_width_and_height_tuple (Optional[Tuple[int, int]], optional): Tile size for block-wise processing. Defaults to None.</span>
+<span class="sd">    debug_mode (bool, optional): If True, prints debug information and constraint matrices. Defaults to False.</span>
+<span class="sd">    custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.</span>
+<span class="sd">    parallel (bool, optional): Enables parallel tile processing. Defaults to False.</span>
+<span class="sd">    max_workers (int | None, optional): Number of worker processes. Defaults to CPU count.</span>
+<span class="sd">    calc_dtype (str, optional): Data type used for internal calculations. Defaults to &quot;float32&quot;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    List[str]: Paths to the output adjusted raster images.</span>
+<span class="sd">    List[str]: Paths to the globally adjusted output raster images.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start global matching&quot;</span><span class="p">)</span>
 
     <span class="n">_check_raster_requirements</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">debug_mode</span><span class="p">)</span>
@@ -1330,41 +1310,24 @@ List[str]: Paths to the output adjusted raster images.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Matches histograms of input raster images using local histogram matching approach.
-This function processes raster images, adjusts their histograms locally based on
-reference blocks, and saves the corrected images to the specified output directory.
-The procedure operates block-wise on the raster images for local corrections and
-supports parallel execution for performance optimization.</p>
+        <p>Performs local radiometric adjustment on a set of raster images using block-based statistics.</p>
 <p>Args:
-input_image_paths (List[str]): A list of paths to input raster image files.
-output_image_folder (str): Directory path where the output images will be saved.
-output_local_basename (str): Suffix for the output filenames indicating local
-histogram matching, default is "_local".
-custom_nodata_value (float | None): Custom value to represent no data areas;
-if None, it is auto-detected from input rasters.
-target_blocks_per_image (int): Approximate number of blocks to divide each
-raster for local histogram matching, default is 100.
-alpha (float): Scaling factor for adjustment when applying histogram corrections,
-default is 1.0 (no scaling).
-calculation_dtype_precision (str): The data type precision used internally
-for corrections, default is "float32".
-output_dtype (str): Data type of the output images, default is "float32".
-projection (str): Coordinate reference system for the output rasters,
-default is "EPSG:4326".
-debug_mode (bool): Flag to enable saving intermediate block map for debugging,
-default is False.
-tile_width_and_height_tuple (Optional[Tuple[int, int]]): Optional tuple
-specifying the width and height of tiles for processing input raster,
-default is None.
-correction_method (Literal["gamma", "linear"]): Method for histogram correction,
-either "gamma" or "linear." Default is "gamma".
-parallel (bool): If True, enables parallel processing for higher efficiency,
-default is False.
-max_workers (int | None): Limits the number of parallel workers, default is
-None (uses system CPU count if parallel is True).</p>
+input_image_paths (List[str]): List of raster image paths to adjust.
+output_image_folder (str): Folder to save corrected output rasters.
+output_local_basename (str, optional): Suffix for output filenames. Defaults to "_local".
+custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.
+target_blocks_per_image (int, optional): Approximate number of blocks per image. Defaults to 100.
+alpha (float, optional): Blending factor between global and local means. Defaults to 1.0.
+calculation_dtype_precision (str, optional): Precision for internal calculations. Defaults to "float32".
+output_dtype (str, optional): Data type for output rasters. Defaults to "float32".
+projection (str, optional): CRS projection string for output block maps. Defaults to "EPSG:4326".
+debug_mode (bool, optional): If True, saves intermediate block maps and prints progress. Defaults to False.
+tile_width_and_height_tuple (Tuple[int, int], optional): Tile size for block-wise correction. Defaults to None.
+correction_method (Literal["gamma", "linear"], optional): Local correction method. Defaults to "gamma".
+parallel (bool, optional): If True, enables multiprocessing. Defaults to False.
+max_workers (int | None, optional): Max number of parallel workers. Defaults to number of CPUs.</p>
 <p>Returns:
-List[str]: List of file paths to the output raster images that have been
-locally histogram-matched.</p>
+List[str]: Paths to the locally adjusted output raster images.</p>
 
 
             <details class="quote">
@@ -1550,24 +1513,7 @@ locally histogram-matched.</p>
 <span class="normal">198</span>
 <span class="normal">199</span>
 <span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
+<span class="normal">201</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
     <span class="n">input_image_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">output_image_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1584,46 +1530,29 @@ locally histogram-matched.</p>
     <span class="n">parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Matches histograms of input raster images using local histogram matching approach.</span>
-<span class="sd">    This function processes raster images, adjusts their histograms locally based on</span>
-<span class="sd">    reference blocks, and saves the corrected images to the specified output directory.</span>
-<span class="sd">    The procedure operates block-wise on the raster images for local corrections and</span>
-<span class="sd">    supports parallel execution for performance optimization.</span>
+<span class="sd">    Performs local radiometric adjustment on a set of raster images using block-based statistics.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_paths (List[str]): A list of paths to input raster image files.</span>
-<span class="sd">    output_image_folder (str): Directory path where the output images will be saved.</span>
-<span class="sd">    output_local_basename (str): Suffix for the output filenames indicating local</span>
-<span class="sd">    histogram matching, default is &quot;_local&quot;.</span>
-<span class="sd">    custom_nodata_value (float | None): Custom value to represent no data areas;</span>
-<span class="sd">    if None, it is auto-detected from input rasters.</span>
-<span class="sd">    target_blocks_per_image (int): Approximate number of blocks to divide each</span>
-<span class="sd">    raster for local histogram matching, default is 100.</span>
-<span class="sd">    alpha (float): Scaling factor for adjustment when applying histogram corrections,</span>
-<span class="sd">    default is 1.0 (no scaling).</span>
-<span class="sd">    calculation_dtype_precision (str): The data type precision used internally</span>
-<span class="sd">    for corrections, default is &quot;float32&quot;.</span>
-<span class="sd">    output_dtype (str): Data type of the output images, default is &quot;float32&quot;.</span>
-<span class="sd">    projection (str): Coordinate reference system for the output rasters,</span>
-<span class="sd">    default is &quot;EPSG:4326&quot;.</span>
-<span class="sd">    debug_mode (bool): Flag to enable saving intermediate block map for debugging,</span>
-<span class="sd">    default is False.</span>
-<span class="sd">    tile_width_and_height_tuple (Optional[Tuple[int, int]]): Optional tuple</span>
-<span class="sd">    specifying the width and height of tiles for processing input raster,</span>
-<span class="sd">    default is None.</span>
-<span class="sd">    correction_method (Literal[&quot;gamma&quot;, &quot;linear&quot;]): Method for histogram correction,</span>
-<span class="sd">    either &quot;gamma&quot; or &quot;linear.&quot; Default is &quot;gamma&quot;.</span>
-<span class="sd">    parallel (bool): If True, enables parallel processing for higher efficiency,</span>
-<span class="sd">    default is False.</span>
-<span class="sd">    max_workers (int | None): Limits the number of parallel workers, default is</span>
-<span class="sd">    None (uses system CPU count if parallel is True).</span>
+<span class="sd">    input_image_paths (List[str]): List of raster image paths to adjust.</span>
+<span class="sd">    output_image_folder (str): Folder to save corrected output rasters.</span>
+<span class="sd">    output_local_basename (str, optional): Suffix for output filenames. Defaults to &quot;_local&quot;.</span>
+<span class="sd">    custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.</span>
+<span class="sd">    target_blocks_per_image (int, optional): Approximate number of blocks per image. Defaults to 100.</span>
+<span class="sd">    alpha (float, optional): Blending factor between global and local means. Defaults to 1.0.</span>
+<span class="sd">    calculation_dtype_precision (str, optional): Precision for internal calculations. Defaults to &quot;float32&quot;.</span>
+<span class="sd">    output_dtype (str, optional): Data type for output rasters. Defaults to &quot;float32&quot;.</span>
+<span class="sd">    projection (str, optional): CRS projection string for output block maps. Defaults to &quot;EPSG:4326&quot;.</span>
+<span class="sd">    debug_mode (bool, optional): If True, saves intermediate block maps and prints progress. Defaults to False.</span>
+<span class="sd">    tile_width_and_height_tuple (Tuple[int, int], optional): Tile size for block-wise correction. Defaults to None.</span>
+<span class="sd">    correction_method (Literal[&quot;gamma&quot;, &quot;linear&quot;], optional): Local correction method. Defaults to &quot;gamma&quot;.</span>
+<span class="sd">    parallel (bool, optional): If True, enables multiprocessing. Defaults to False.</span>
+<span class="sd">    max_workers (int | None, optional): Max number of parallel workers. Defaults to number of CPUs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    List[str]: List of file paths to the output raster images that have been</span>
-<span class="sd">    locally histogram-matched.</span>
+<span class="sd">    List[str]: Paths to the locally adjusted output raster images.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start local matching&quot;</span><span class="p">)</span>
     <span class="n">_check_raster_requirements</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">debug_mode</span><span class="p">)</span>
 

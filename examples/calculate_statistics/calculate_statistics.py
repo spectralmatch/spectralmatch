@@ -5,9 +5,9 @@ from spectralmatch import (
     compare_spatial_spectral_difference_average)
 
 compare_spatial_spectral_difference_individual_bands(
-    ('/image/a.tif',
-     '/image/b.tif'
-     ),
+    (
+    '/image/a.tif',
+    '/image/b.tif'),
     '/output.png'
 )
 
@@ -28,14 +28,15 @@ compare_image_spectral_profiles_pairs(
 
 
 compare_image_spectral_profiles(
-    "Digital Number Spectral Profile Comparison",
-    'Band',
-    'Digital Number(0-2,047)',
     {
         'Image A': 'image/a.tif',
         'Image B': '/image/b.tif'
     },
     "/output.png",
+    "Digital Number Spectral Profile Comparison",
+    'Band',
+    'Digital Number(0-2,047)',
+
 )
 
 

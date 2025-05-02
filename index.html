@@ -881,8 +881,8 @@
 <p>[!IMPORTANT]
 This library is experimental and still under heavy development.</p>
 </blockquote>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <hr />
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p><img alt="Global and Local Matching" src="images/spectralmatch.png" /></p>
 <p><em>spectralmatch</em> provides a Python library and QGIS plugin with multiple algorythms to perform Relative Radiometric Normalization (RRN). It also includes utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, statistics, preprocessing, and more.</p>
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
@@ -916,8 +916,8 @@ This library is experimental and still under heavy development.</p>
 </li>
 <li><strong>Time Series</strong>: Normalize images across time with to compare spectral changes.</li>
 </ul>
-<h2 id="current-matching-algorithms">Current Matching Algorithms<a class="headerlink" href="#current-matching-algorithms" title="Permanent link">&para;</a></h2>
 <hr />
+<h2 id="current-matching-algorithms">Current Matching Algorithms<a class="headerlink" href="#current-matching-algorithms" title="Permanent link">&para;</a></h2>
 <h3 id="global-to-local-matching">Global to local matching<a class="headerlink" href="#global-to-local-matching" title="Permanent link">&para;</a></h3>
 <p>This technique is derived from 'An auto-adapting global-to-local color balancing method for optical imagery mosaic' by Yu et al., 2017 (DOI: 10.1016/j.isprsjprs.2017.08.002). It is particularly useful for very high-resolution imagery (satellite or otherwise) and works in a two phase process.
 First, this method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
@@ -948,8 +948,8 @@ However, global correction alone cannot capture intra-image variability so a sec
 <p><strong>Local Adjustments:</strong> Block-level color differences result from the global application of adjustments.</p>
 </li>
 </ul>
-<h2 id="installation-with-pypi-and-use-as-a-python-library">Installation with Pypi and use as a Python Library<a class="headerlink" href="#installation-with-pypi-and-use-as-a-python-library" title="Permanent link">&para;</a></h2>
 <hr />
+<h2 id="installation-with-pypi-and-use-as-a-python-library">Installation with Pypi and use as a Python Library<a class="headerlink" href="#installation-with-pypi-and-use-as-a-python-library" title="Permanent link">&para;</a></h2>
 <h3 id="1-system-requirements">1. System requirements<a class="headerlink" href="#1-system-requirements" title="Permanent link">&para;</a></h3>
 <p>Before installing, ensure you have the following system-level prerequisites:</p>
 <ul>
@@ -978,25 +978,25 @@ pip<span class="w"> </span>install<span class="w"> </span>.
 <ul>
 <li>Global to local: <a href="docs/examples/example_global_to_local.py"><code>docs/examples/example_global_to_local.py</code></a></li>
 </ul>
-<h2 id="install-and-use-as-a-qgis-plugin">Install and use as a QGIS Plugin<a class="headerlink" href="#install-and-use-as-a-qgis-plugin" title="Permanent link">&para;</a></h2>
 <hr />
+<h2 id="install-and-use-as-a-qgis-plugin">Install and use as a QGIS Plugin<a class="headerlink" href="#install-and-use-as-a-qgis-plugin" title="Permanent link">&para;</a></h2>
 <h3 id="1-download-and-install-qgis">1. <a href="https://qgis.org/download/">Download</a> and install QGIS<a class="headerlink" href="#1-download-and-install-qgis" title="Permanent link">&para;</a></h3>
 <h3 id="2-open-qgis">2.  Open QGIS<a class="headerlink" href="#2-open-qgis" title="Permanent link">&para;</a></h3>
 <h3 id="3-go-to-plugins-manage-and-install-plugins">3.  Go to Plugins → Manage and Install Plugins…<a class="headerlink" href="#3-go-to-plugins-manage-and-install-plugins" title="Permanent link">&para;</a></h3>
 <h3 id="4-find-spectralmatch-in-the-list-install-and-enable-it">4.  Find spectralmatch in the list, install, and enable it<a class="headerlink" href="#4-find-spectralmatch-in-the-list-install-and-enable-it" title="Permanent link">&para;</a></h3>
 <h3 id="5-find-the-plugin-in-the-processing-toolbox">5.  Find the plugin in the Processing Toolbox<a class="headerlink" href="#5-find-the-plugin-in-the-processing-toolbox" title="Permanent link">&para;</a></h3>
+<hr />
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
-<hr />
 <p>Documentation is available at <a href="https://spectralmatch.github.io/spectralmatch/">spectralmatch.github.io/spectralmatch/</a>.</p>
-<h2 id="contributing-guide">Contributing Guide<a class="headerlink" href="#contributing-guide" title="Permanent link">&para;</a></h2>
 <hr />
+<h2 id="contributing-guide">Contributing Guide<a class="headerlink" href="#contributing-guide" title="Permanent link">&para;</a></h2>
 <p>We welcome all contributions the project! To get started:
 1. <a href="https://github.com/spectralmatch/spectralmatch/issues/new">Create an issue</a> with the appropriate label describing the feature or improvement. Provide relevant context, desired timeline, any assistance needed, who will be responsible for the work, anticipated results, and any other details.
 2. <a href="https://github.com/spectralmatch/spectralmatch/fork">Fork the repository</a> and create a new feature branch.
 3. Make your changes and add any necessary tests.
 4. Open a Pull Request against the main repository.</p>
-<h2 id="developer-guide">Developer Guide<a class="headerlink" href="#developer-guide" title="Permanent link">&para;</a></h2>
 <hr />
+<h2 id="developer-guide">Developer Guide<a class="headerlink" href="#developer-guide" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
 <p><strong>Clone the Repository</strong><br />
@@ -1022,6 +1022,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>pre-commit<span class="w"> </span>install
 pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 </code></pre></div></td></tr></table></div>
+<hr />
 <h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
 <p><a href="https://docs.pytest.org/">pytest</a> is used for testing. Tests will automatically be run when merging into main but they can also be run locally via:</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pytest
