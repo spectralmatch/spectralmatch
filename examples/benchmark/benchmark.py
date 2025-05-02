@@ -1,11 +1,3 @@
-"""
-Benchmark full pipeline  (global_match + local_match)
-
-• Synthetic 8-band rasters, 2 overlapping tiles
-• Tile size = 1024 × 1024 for both steps
-• Serial vs parallel (32 workers)
-"""
-
 import os, shutil, tempfile, time
 from pathlib import Path
 
@@ -14,10 +6,10 @@ import numpy as np
 import rasterio
 from rasterio.transform import from_origin
 
-from spectralmatch.process import global_match, local_match
+from spectralmatch import global_regression, local_block_adjustment
 
 
-# ───────────────────── synthetic raster helper ─────────────────────────────
+
 def make_fake_rasters(out_dir, n_images, width, height, nodata=0):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -67,7 +59,7 @@ for sz in SIZES:
     g_dir = tmp / "serial_g"
     l_dir = tmp / "serial_l"
 
-    global_match(
+    global_regression(
         imgs,
         g_dir,
         custom_mean_factor=3,
@@ -78,7 +70,7 @@ for sz in SIZES:
     )
     glob_imgs = sorted((g_dir / "Images").glob("*.tif"))
 
-    local_match(
+    local_block_adjustment(
         [str(p) for p in glob_imgs],
         l_dir,
         target_blocks_per_image=100,
@@ -94,7 +86,7 @@ for sz in SIZES:
     g_dir = tmp / "parallel_g"
     l_dir = tmp / "parallel_l"
 
-    global_match(
+    global_regression(
         imgs,
         g_dir,
         custom_mean_factor=3,
@@ -106,7 +98,7 @@ for sz in SIZES:
     )
     glob_imgs = sorted((g_dir / "Images").glob("*.tif"))
 
-    local_match(
+    local_block_adjustment(
         [str(p) for p in glob_imgs],
         l_dir,
         target_blocks_per_image=100,

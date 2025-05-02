@@ -22,9 +22,10 @@ matched_global_images_paths = global_regression(
     custom_mean_factor = 3, # Defualt 1; 3 often works better to 'move' the spectral mean of images closer together
     custom_std_factor = 1,
     # vector_mask_path=vector_mask_path,
-    debug_mode=True,
+    debug_mode=False,
     tile_width_and_height_tuple=(512, 512),
     parallel=True,
+    custom_nodata_value=-9999,
     )
 
 merge_rasters(
@@ -41,10 +42,10 @@ matched_local_images_paths = local_block_adjustment(
     local_folder,
     target_blocks_per_image=100,
     projection="EPSG:6635",
-    debug_mode=True,
-    # custom_nodata_value=-9999,
+    debug_mode=False,
     tile_width_and_height_tuple=(512, 512),
     parallel=True,
+    custom_nodata_value=-9999,
     )
 
 merge_rasters(
