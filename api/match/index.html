@@ -518,6 +518,24 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#spectralmatch.match.local_block_adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      local_block_adjustment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spectralmatch.match.local_block_adjustment.local_block_adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      local_block_adjustment
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -596,6 +614,24 @@
   <a href="#spectralmatch.match.global_regression.global_regression" class="md-nav__link">
     <span class="md-ellipsis">
       global_regression
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spectralmatch.match.local_block_adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      local_block_adjustment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spectralmatch.match.local_block_adjustment.local_block_adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      local_block_adjustment
     </span>
   </a>
   
@@ -1137,6 +1173,492 @@ List[str]: Paths to the output adjusted raster images.</p>
                     <span class="n">pool</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Finished global matching&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out_paths</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="spectralmatch.match.local_block_adjustment"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="spectralmatch.match.local_block_adjustment.local_block_adjustment" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">local_block_adjustment</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">output_image_folder</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">output_local_basename</span><span class="o">=</span><span class="s1">&#39;_local&#39;</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_blocks_per_image</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">calculation_dtype_precision</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s1">&#39;EPSG:4326&#39;</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">tile_width_and_height_tuple</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">correction_method</span><span class="o">=</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#spectralmatch.match.local_block_adjustment.local_block_adjustment" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Matches histograms of input raster images using local histogram matching approach.
+This function processes raster images, adjusts their histograms locally based on
+reference blocks, and saves the corrected images to the specified output directory.
+The procedure operates block-wise on the raster images for local corrections and
+supports parallel execution for performance optimization.</p>
+<p>Args:
+input_image_paths (List[str]): A list of paths to input raster image files.
+output_image_folder (str): Directory path where the output images will be saved.
+output_local_basename (str): Suffix for the output filenames indicating local
+histogram matching, default is "_local".
+custom_nodata_value (float | None): Custom value to represent no data areas;
+if None, it is auto-detected from input rasters.
+target_blocks_per_image (int): Approximate number of blocks to divide each
+raster for local histogram matching, default is 100.
+alpha (float): Scaling factor for adjustment when applying histogram corrections,
+default is 1.0 (no scaling).
+calculation_dtype_precision (str): The data type precision used internally
+for corrections, default is "float32".
+output_dtype (str): Data type of the output images, default is "float32".
+projection (str): Coordinate reference system for the output rasters,
+default is "EPSG:4326".
+debug_mode (bool): Flag to enable saving intermediate block map for debugging,
+default is False.
+tile_width_and_height_tuple (Optional[Tuple[int, int]]): Optional tuple
+specifying the width and height of tiles for processing input raster,
+default is None.
+correction_method (Literal["gamma", "linear"]): Method for histogram correction,
+either "gamma" or "linear." Default is "gamma".
+parallel (bool): If True, enables parallel processing for higher efficiency,
+default is False.
+max_workers (int | None): Limits the number of parallel workers, default is
+None (uses system CPU count if parallel is True).</p>
+<p>Returns:
+List[str]: List of file paths to the output raster images that have been
+locally histogram-matched.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>spectralmatch/match/local_block_adjustment.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
+    <span class="n">input_image_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">output_image_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">output_local_basename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;_local&quot;</span><span class="p">,</span>
+    <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_blocks_per_image</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">calculation_dtype_precision</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="n">output_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="n">projection</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;EPSG:4326&quot;</span><span class="p">,</span>
+    <span class="n">debug_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">tile_width_and_height_tuple</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">correction_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;gamma&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;gamma&quot;</span><span class="p">,</span>
+    <span class="n">parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Matches histograms of input raster images using local histogram matching approach.</span>
+<span class="sd">    This function processes raster images, adjusts their histograms locally based on</span>
+<span class="sd">    reference blocks, and saves the corrected images to the specified output directory.</span>
+<span class="sd">    The procedure operates block-wise on the raster images for local corrections and</span>
+<span class="sd">    supports parallel execution for performance optimization.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">    input_image_paths (List[str]): A list of paths to input raster image files.</span>
+<span class="sd">    output_image_folder (str): Directory path where the output images will be saved.</span>
+<span class="sd">    output_local_basename (str): Suffix for the output filenames indicating local</span>
+<span class="sd">    histogram matching, default is &quot;_local&quot;.</span>
+<span class="sd">    custom_nodata_value (float | None): Custom value to represent no data areas;</span>
+<span class="sd">    if None, it is auto-detected from input rasters.</span>
+<span class="sd">    target_blocks_per_image (int): Approximate number of blocks to divide each</span>
+<span class="sd">    raster for local histogram matching, default is 100.</span>
+<span class="sd">    alpha (float): Scaling factor for adjustment when applying histogram corrections,</span>
+<span class="sd">    default is 1.0 (no scaling).</span>
+<span class="sd">    calculation_dtype_precision (str): The data type precision used internally</span>
+<span class="sd">    for corrections, default is &quot;float32&quot;.</span>
+<span class="sd">    output_dtype (str): Data type of the output images, default is &quot;float32&quot;.</span>
+<span class="sd">    projection (str): Coordinate reference system for the output rasters,</span>
+<span class="sd">    default is &quot;EPSG:4326&quot;.</span>
+<span class="sd">    debug_mode (bool): Flag to enable saving intermediate block map for debugging,</span>
+<span class="sd">    default is False.</span>
+<span class="sd">    tile_width_and_height_tuple (Optional[Tuple[int, int]]): Optional tuple</span>
+<span class="sd">    specifying the width and height of tiles for processing input raster,</span>
+<span class="sd">    default is None.</span>
+<span class="sd">    correction_method (Literal[&quot;gamma&quot;, &quot;linear&quot;]): Method for histogram correction,</span>
+<span class="sd">    either &quot;gamma&quot; or &quot;linear.&quot; Default is &quot;gamma&quot;.</span>
+<span class="sd">    parallel (bool): If True, enables parallel processing for higher efficiency,</span>
+<span class="sd">    default is False.</span>
+<span class="sd">    max_workers (int | None): Limits the number of parallel workers, default is</span>
+<span class="sd">    None (uses system CPU count if parallel is True).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    List[str]: List of file paths to the output raster images that have been</span>
+<span class="sd">    locally histogram-matched.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start local matching&quot;</span><span class="p">)</span>
+    <span class="n">_check_raster_requirements</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">debug_mode</span><span class="p">)</span>
+
+    <span class="n">nodata_val</span> <span class="o">=</span> <span class="n">_get_nodata_value</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">debug_mode</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Global nodata value: </span><span class="si">{</span><span class="n">nodata_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">out_img_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_image_folder</span><span class="p">,</span> <span class="s2">&quot;Images&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">out_img_dir</span><span class="p">):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">out_img_dir</span><span class="p">)</span>
+
+    <span class="n">bounding_rect</span> <span class="o">=</span> <span class="n">_get_bounding_rectangle</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">)</span>
+    <span class="n">M</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">_compute_block_size</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">target_blocks_per_image</span><span class="p">,</span> <span class="n">bounding_rect</span><span class="p">)</span>
+    <span class="c1"># M, N = _compute_mosaic_coefficient_of_variation(input_image_paths, global_nodata_value) # Aproach from the paper to compute bock size</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="n">num_bands</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">count</span>
+
+    <span class="k">if</span> <span class="n">debug_mode</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Computing global reference block map&quot;</span><span class="p">)</span>
+    <span class="n">block_ref_mean</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_compute_blocks</span><span class="p">(</span>
+        <span class="n">input_image_paths</span><span class="p">,</span>
+        <span class="n">bounding_rect</span><span class="p">,</span>
+        <span class="n">M</span><span class="p">,</span>
+        <span class="n">N</span><span class="p">,</span>
+        <span class="n">num_bands</span><span class="p">,</span>
+        <span class="n">nodata_value</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">,</span>
+        <span class="n">tile_width_and_height_tuple</span><span class="o">=</span><span class="n">tile_width_and_height_tuple</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">debug_mode</span><span class="p">:</span>
+        <span class="n">_download_block_map</span><span class="p">(</span>
+            <span class="n">block_map</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">block_ref_mean</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">),</span>
+            <span class="n">bounding_rect</span><span class="o">=</span><span class="n">bounding_rect</span><span class="p">,</span>
+            <span class="n">output_image_path</span><span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_image_folder</span><span class="p">,</span> <span class="s2">&quot;BlockReferenceMean&quot;</span><span class="p">,</span> <span class="s2">&quot;BlockReferenceMean.tif&quot;</span><span class="p">),</span>
+            <span class="n">nodata_value</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="n">projection</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">parallel</span> <span class="ow">and</span> <span class="n">max_workers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_workers</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+
+    <span class="n">out_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">img_path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
+        <span class="n">in_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">img_path</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">img_path</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">output_local_basename</span>
+        <span class="n">out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_img_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_name</span><span class="si">}</span><span class="s2">.tif&quot;</span><span class="p">)</span>
+        <span class="n">out_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">out_path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">debug_mode</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing </span><span class="si">{</span><span class="n">in_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug_mode</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Computing local block map&quot;</span><span class="p">)</span>
+        <span class="n">block_loc_mean</span><span class="p">,</span> <span class="n">block_loc_count</span> <span class="o">=</span> <span class="n">_compute_blocks</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">img_path</span><span class="p">],</span>
+            <span class="n">bounding_rect</span><span class="p">,</span>
+            <span class="n">M</span><span class="p">,</span>
+            <span class="n">N</span><span class="p">,</span>
+            <span class="n">num_bands</span><span class="p">,</span>
+            <span class="n">nodata_value</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">,</span>
+            <span class="n">tile_width_and_height_tuple</span><span class="o">=</span><span class="n">tile_width_and_height_tuple</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># block_local_mean = _smooth_array(block_local_mean, nodata_value=global_nodata_value)</span>
+
+        <span class="k">if</span> <span class="n">debug_mode</span><span class="p">:</span>
+            <span class="n">_download_block_map</span><span class="p">(</span>
+                <span class="n">block_map</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">block_loc_mean</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">),</span>
+                <span class="n">bounding_rect</span><span class="o">=</span><span class="n">bounding_rect</span><span class="p">,</span>
+                <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_image_folder</span><span class="p">,</span> <span class="s2">&quot;BlockLocalMean&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_name</span><span class="si">}</span><span class="s2">_BlockLocalMean.tif&quot;</span><span class="p">),</span>
+                <span class="n">nodata_value</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">,</span>
+                <span class="n">projection</span><span class="o">=</span><span class="n">projection</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">_download_block_map</span><span class="p">(</span>
+                <span class="n">block_map</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">block_loc_count</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">),</span>
+                <span class="n">bounding_rect</span><span class="o">=</span><span class="n">bounding_rect</span><span class="p">,</span>
+                <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_image_folder</span><span class="p">,</span> <span class="s2">&quot;BlockLocalCount&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_name</span><span class="si">}</span><span class="s2">_BlockLocalCount.tif&quot;</span><span class="p">),</span>
+                <span class="n">nodata_value</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">,</span>
+                <span class="n">projection</span><span class="o">=</span><span class="n">projection</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">debug_mode</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Computing local correction, applying, and saving&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="n">num_bands</span><span class="p">,</span> <span class="s2">&quot;dtype&quot;</span><span class="p">:</span> <span class="n">output_dtype</span><span class="p">,</span> <span class="s2">&quot;nodata&quot;</span><span class="p">:</span> <span class="n">nodata_val</span><span class="p">})</span>
+            <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">tile_width_and_height_tuple</span><span class="p">:</span>
+                    <span class="n">tw</span><span class="p">,</span> <span class="n">th</span> <span class="o">=</span> <span class="n">tile_width_and_height_tuple</span>
+                    <span class="n">windows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_create_windows</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">src</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">tw</span><span class="p">,</span> <span class="n">th</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">windows</span> <span class="o">=</span> <span class="p">[</span><span class="n">Window</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">src</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">src</span><span class="o">.</span><span class="n">height</span><span class="p">)]</span>
+
+                <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+                    <span class="n">ctx</span> <span class="o">=</span> <span class="n">_choose_context</span><span class="p">(</span><span class="n">prefer_fork</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                    <span class="n">pool</span> <span class="o">=</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span>
+                        <span class="n">max_workers</span><span class="o">=</span><span class="n">max_workers</span><span class="p">,</span>
+                        <span class="n">mp_context</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+                        <span class="n">initializer</span><span class="o">=</span><span class="n">_init_worker</span><span class="p">,</span>
+                        <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">img_path</span><span class="p">,),</span>
+                    <span class="p">)</span>
+
+                    <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_compute_tile_local</span><span class="p">,</span>
+                                    <span class="n">w</span><span class="p">,</span>
+                                    <span class="n">b</span><span class="p">,</span>
+                                    <span class="n">M</span><span class="p">,</span>
+                                    <span class="n">N</span><span class="p">,</span>
+                                    <span class="n">bounding_rect</span><span class="p">,</span>
+                                    <span class="n">block_ref_mean</span><span class="p">,</span>
+                                    <span class="n">block_loc_mean</span><span class="p">,</span>
+                                    <span class="n">nodata_val</span><span class="p">,</span>
+                                    <span class="n">alpha</span><span class="p">,</span>
+                                    <span class="n">correction_method</span><span class="p">,</span>
+                                    <span class="n">calculation_dtype_precision</span><span class="p">,</span>
+                                    <span class="n">debug_mode</span><span class="p">,</span>
+                                    <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bands</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">windows</span>
+                    <span class="p">]</span>
+                    <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                        <span class="n">win</span><span class="p">,</span> <span class="n">b_idx</span><span class="p">,</span> <span class="n">buf</span> <span class="o">=</span> <span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                        <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">buf</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">output_dtype</span><span class="p">),</span> <span class="n">b_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">win</span><span class="p">)</span>
+                    <span class="n">pool</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_init_worker</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bands</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">win</span> <span class="ow">in</span> <span class="n">windows</span><span class="p">:</span>
+                            <span class="n">win_</span><span class="p">,</span> <span class="n">b_idx</span><span class="p">,</span> <span class="n">buf</span> <span class="o">=</span> <span class="n">_compute_tile_local</span><span class="p">(</span>
+                                <span class="n">win</span><span class="p">,</span>
+                                <span class="n">b</span><span class="p">,</span>
+                                <span class="n">M</span><span class="p">,</span>
+                                <span class="n">N</span><span class="p">,</span>
+                                <span class="n">bounding_rect</span><span class="p">,</span>
+                                <span class="n">block_ref_mean</span><span class="p">,</span>
+                                <span class="n">block_loc_mean</span><span class="p">,</span>
+                                <span class="n">nodata_val</span><span class="p">,</span>
+                                <span class="n">alpha</span><span class="p">,</span>
+                                <span class="n">correction_method</span><span class="p">,</span>
+                                <span class="n">calculation_dtype_precision</span><span class="p">,</span>
+                                <span class="n">debug_mode</span>
+                            <span class="p">)</span>
+                            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">buf</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">output_dtype</span><span class="p">),</span> <span class="n">b_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">win_</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Finished local matching&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out_paths</span>
 </code></pre></div></td></tr></table></div>
             </details>
