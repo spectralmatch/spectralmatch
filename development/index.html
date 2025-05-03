@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/installation/">
+        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/development/">
       
       
-        <link rel="prev" href="..">
-      
-      
-        <link rel="next" href="../examples/example_global_to_local/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -22,7 +18,7 @@
     
     
       
-        <title>Installation - spectralmatch</title>
+        <title>Development Guide - spectralmatch</title>
       
     
     
@@ -76,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#installation-methods" class="md-skip">
+        <a href="#development-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Development Guide
             
           </span>
         </div>
@@ -249,32 +245,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Installation
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -285,44 +259,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#install-and-use-as-a-qgis-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      Install and use as a QGIS Plugin
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-with-pypi-and-use-as-a-python-library" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation with Pypi and use as a Python Library
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -695,18 +631,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#install-and-use-as-a-qgis-plugin" class="md-nav__link">
+  <a href="#docs" class="md-nav__link">
     <span class="md-ellipsis">
-      Install and use as a QGIS Plugin
+      Docs
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-with-pypi-and-use-as-a-python-library" class="md-nav__link">
+  <a href="#versioning" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation with Pypi and use as a Python Library
+      Versioning
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Code Formatting
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing
     </span>
   </a>
   
@@ -731,39 +685,46 @@
   
 
 
-<h1 id="installation-methods">Installation Methods<a class="headerlink" href="#installation-methods" title="Permanent link">&para;</a></h1>
-<h2 id="install-and-use-as-a-qgis-plugin">Install and use as a QGIS Plugin<a class="headerlink" href="#install-and-use-as-a-qgis-plugin" title="Permanent link">&para;</a></h2>
-<h3 id="1-download-and-install-qgis">1. <a href="https://qgis.org/download/">Download</a> and install QGIS<a class="headerlink" href="#1-download-and-install-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="2-open-qgis">2.  Open QGIS<a class="headerlink" href="#2-open-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="3-go-to-plugins-manage-and-install-plugins">3.  Go to Plugins → Manage and Install Plugins…<a class="headerlink" href="#3-go-to-plugins-manage-and-install-plugins" title="Permanent link">&para;</a></h3>
-<h3 id="4-find-spectralmatch-in-the-list-install-and-enable-it">4.  Find spectralmatch in the list, install, and enable it<a class="headerlink" href="#4-find-spectralmatch-in-the-list-install-and-enable-it" title="Permanent link">&para;</a></h3>
-<h3 id="5-find-the-plugin-in-the-processing-toolbox">5.  Find the plugin in the Processing Toolbox<a class="headerlink" href="#5-find-the-plugin-in-the-processing-toolbox" title="Permanent link">&para;</a></h3>
-<h2 id="installation-with-pypi-and-use-as-a-python-library">Installation with Pypi and use as a Python Library<a class="headerlink" href="#installation-with-pypi-and-use-as-a-python-library" title="Permanent link">&para;</a></h2>
-<h3 id="1-system-requirements">1. System requirements<a class="headerlink" href="#1-system-requirements" title="Permanent link">&para;</a></h3>
-<p>Before installing, ensure you have the following system-level prerequisites:</p>
-<ul>
-<li>Python ≥ 3.10</li>
-<li>PROJ ≥ 9.3</li>
-<li>GDAL ≥ 3.6</li>
-</ul>
-<p>An easy way to install these dependancies is to use <a href="https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions">Miniconda</a>:
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span>python&gt;<span class="o">=</span><span class="m">3</span>.10<span class="w"> </span>gdal&gt;<span class="o">=</span><span class="m">3</span>.6<span class="w"> </span>proj&gt;<span class="o">=</span><span class="m">9</span>.3<span class="w"> </span>-c<span class="w"> </span>conda-forge
-conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
+<h1 id="development-guide">Development Guide<a class="headerlink" href="#development-guide" title="Permanent link">&para;</a></h1>
+<p>This project provides this <a href="https://github.com/spectralmatch/spectralmatch/blob/main/Makefile">Makefile</a> to streamline development tasks. Makefiles allow you to automate and organize common tasks, in this case to help you serve and deploy documentation, manage version tags, format and lint code, and run tests.</p>
+<blockquote>
+<p><strong>Installation instructions are on their own <a href="../installation/">page</a></strong></p>
+</blockquote>
+<h2 id="docs">Docs<a class="headerlink" href="#docs" title="Permanent link">&para;</a></h2>
+<h3 id="serve-docs-locally">Serve docs locally<a class="headerlink" href="#serve-docs-locally" title="Permanent link">&para;</a></h3>
+<p>Runs a local dev server at http://localhost:8000.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>docs-serve
 </code></pre></div></td></tr></table></div></p>
-<h3 id="2-install-spectralmatch-via-pypi-or-source">2. Install spectralmatch (via PyPI or Source)<a class="headerlink" href="#2-install-spectralmatch-via-pypi-or-source" title="Permanent link">&para;</a></h3>
-<p>The recommended way to install is via <a href="https://pypi.org/">PyPI</a>. (this method installs only the core code as a library):</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
+<h3 id="build-static-site">Build static site<a class="headerlink" href="#build-static-site" title="Permanent link">&para;</a></h3>
+<p>Generates the static site into the site/ folder.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>docs-build
 </code></pre></div></td></tr></table></div>
-<p>Another install method is to clone the repository and confugure the dependancies with <code>pyproject.toml</code>. (this method installs the whole repository for development or customization):</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
-<span class="nb">cd</span><span class="w"> </span>spectralmatch
-pip<span class="w"> </span>install<span class="w"> </span>.
-</code></pre></div></td></tr></table></div>
-<h3 id="3-run-example-code-and-modify-for-use-optional">3. Run example code and modify for use (optional)<a class="headerlink" href="#3-run-example-code-and-modify-for-use-optional" title="Permanent link">&para;</a></h3>
-<p>Example scripts are provided to verify a successful installation and help you get started quickly at <a href="https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/"><code>/docs/examples</code></a></p>
+<h3 id="deploy-to-github-pages">Deploy to GitHub Pages<a class="headerlink" href="#deploy-to-github-pages" title="Permanent link">&para;</a></h3>
+<p>Deploys built site using mkdocs gh-deploy.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>docs-deploy
+</code></pre></div></td></tr></table></div></p>
+<h2 id="versioning">Versioning<a class="headerlink" href="#versioning" title="Permanent link">&para;</a></h2>
+<p>Uses git tag to create annotated version tags and push them.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>tag<span class="w"> </span><span class="nv">version</span><span class="o">=</span><span class="m">1</span>.2.3
+</code></pre></div></td></tr></table></div></p>
+<h2 id="code-formatting">Code Formatting<a class="headerlink" href="#code-formatting" title="Permanent link">&para;</a></h2>
+<p>Uses black for code formatting and ruff for linting.</p>
+<h3 id="format-code">Format code<a class="headerlink" href="#format-code" title="Permanent link">&para;</a></h3>
+<p>Automatically formats all Python files with black.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>format
+</code></pre></div></td></tr></table></div></p>
+<h3 id="check-formatting">Check formatting<a class="headerlink" href="#check-formatting" title="Permanent link">&para;</a></h3>
+<p>Checks that all code is formatted (non-zero exit code if not).
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>check-format
+</code></pre></div></td></tr></table></div></p>
+<h3 id="lint-code">Lint code<a class="headerlink" href="#lint-code" title="Permanent link">&para;</a></h3>
+<p>Runs ruff to catch style and quality issues.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>lint
+</code></pre></div></td></tr></table></div></p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<p>Uses <a href="https://docs.pytest.org/">pytest</a> to run the test suite.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span><span class="nb">test</span>
+</code></pre></div></td></tr></table></div></p>
 
 
 
