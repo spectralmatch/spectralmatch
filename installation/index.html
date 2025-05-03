@@ -302,18 +302,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-python-library" class="md-nav__link">
+  <a href="#installation-as-qgis-plugin-for-easy-gui-interface" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a Python Library
+      Installation as QGIS Plugin for Easy GUI Interface
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
+  <a href="#installation-as-a-python-library-for-use-in-code" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a QGIS Plugin
+      Installation as a Python Library for use in Code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-as-python-code-for-development-and-customization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation as Python Code for Development and Customization
     </span>
   </a>
   
@@ -717,18 +726,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-python-library" class="md-nav__link">
+  <a href="#installation-as-qgis-plugin-for-easy-gui-interface" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a Python Library
+      Installation as QGIS Plugin for Easy GUI Interface
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
+  <a href="#installation-as-a-python-library-for-use-in-code" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a QGIS Plugin
+      Installation as a Python Library for use in Code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-as-python-code-for-development-and-customization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation as Python Code for Development and Customization
     </span>
   </a>
   
@@ -754,7 +772,15 @@
 
 
 <h1 id="installation-methods">Installation Methods<a class="headerlink" href="#installation-methods" title="Permanent link">&para;</a></h1>
-<h2 id="installation-as-a-python-library">Installation as a Python Library<a class="headerlink" href="#installation-as-a-python-library" title="Permanent link">&para;</a></h2>
+<hr />
+<h2 id="installation-as-qgis-plugin-for-easy-gui-interface">Installation as QGIS Plugin for Easy GUI Interface<a class="headerlink" href="#installation-as-qgis-plugin-for-easy-gui-interface" title="Permanent link">&para;</a></h2>
+<h3 id="1-download-and-install-qgis">1. <a href="https://qgis.org/download/">Download</a> and install QGIS<a class="headerlink" href="#1-download-and-install-qgis" title="Permanent link">&para;</a></h3>
+<h3 id="2-open-qgis">2.  Open QGIS<a class="headerlink" href="#2-open-qgis" title="Permanent link">&para;</a></h3>
+<h3 id="3-go-to-plugins-manage-and-install-plugins">3.  Go to Plugins → Manage and Install Plugins…<a class="headerlink" href="#3-go-to-plugins-manage-and-install-plugins" title="Permanent link">&para;</a></h3>
+<h3 id="4-find-spectralmatch-in-the-list-install-and-enable-it">4.  Find spectralmatch in the list, install, and enable it<a class="headerlink" href="#4-find-spectralmatch-in-the-list-install-and-enable-it" title="Permanent link">&para;</a></h3>
+<h3 id="5-find-the-plugin-in-the-processing-toolbox">5.  Find the plugin in the Processing Toolbox<a class="headerlink" href="#5-find-the-plugin-in-the-processing-toolbox" title="Permanent link">&para;</a></h3>
+<hr />
+<h2 id="installation-as-a-python-library-for-use-in-code">Installation as a Python Library for use in Code<a class="headerlink" href="#installation-as-a-python-library-for-use-in-code" title="Permanent link">&para;</a></h2>
 <h3 id="1-system-requirements">1. System requirements<a class="headerlink" href="#1-system-requirements" title="Permanent link">&para;</a></h3>
 <p>Before installing, ensure you have the following system-level prerequisites:</p>
 <ul>
@@ -767,26 +793,43 @@
 <span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span>python&gt;<span class="o">=</span><span class="m">3</span>.10<span class="w"> </span>gdal&gt;<span class="o">=</span><span class="m">3</span>.6<span class="w"> </span>proj&gt;<span class="o">=</span><span class="m">9</span>.3<span class="w"> </span>-c<span class="w"> </span>conda-forge
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div></p>
-<h3 id="2-install-spectralmatch-via-pypi-or-source">2. Install spectralmatch (via PyPI or Source)<a class="headerlink" href="#2-install-spectralmatch-via-pypi-or-source" title="Permanent link">&para;</a></h3>
+<h3 id="2-install-spectralmatch">2. Install spectralmatch<a class="headerlink" href="#2-install-spectralmatch" title="Permanent link">&para;</a></h3>
 <p>The recommended way to install is via <a href="https://pypi.org/">PyPI</a>. (this method installs only the core code as a library):</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
-</code></pre></div></td></tr></table></div>
-<p>Another install method is to clone the repository and confugure the dependancies with <code>pyproject.toml</code>. (this method installs the whole repository for development or customization):</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
-<span class="nb">cd</span><span class="w"> </span>spectralmatch
-pip<span class="w"> </span>install<span class="w"> </span>.
 </code></pre></div></td></tr></table></div>
 <h3 id="3-run-example-code-and-modify-for-use-optional">3. Run example code and modify for use (optional)<a class="headerlink" href="#3-run-example-code-and-modify-for-use-optional" title="Permanent link">&para;</a></h3>
 <p>Example scripts are provided to verify a successful installation and help you get started quickly at <a href="https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/"><code>/docs/examples</code></a></p>
 <hr />
-<h2 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h2>
-<h3 id="1-download-and-install-qgis">1. <a href="https://qgis.org/download/">Download</a> and install QGIS<a class="headerlink" href="#1-download-and-install-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="2-open-qgis">2.  Open QGIS<a class="headerlink" href="#2-open-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="3-go-to-plugins-manage-and-install-plugins">3.  Go to Plugins → Manage and Install Plugins…<a class="headerlink" href="#3-go-to-plugins-manage-and-install-plugins" title="Permanent link">&para;</a></h3>
-<h3 id="4-find-spectralmatch-in-the-list-install-and-enable-it">4.  Find spectralmatch in the list, install, and enable it<a class="headerlink" href="#4-find-spectralmatch-in-the-list-install-and-enable-it" title="Permanent link">&para;</a></h3>
-<h3 id="5-find-the-plugin-in-the-processing-toolbox">5.  Find the plugin in the Processing Toolbox<a class="headerlink" href="#5-find-the-plugin-in-the-processing-toolbox" title="Permanent link">&para;</a></h3>
+<h2 id="installation-as-python-code-for-development-and-customization">Installation as Python Code for Development and Customization<a class="headerlink" href="#installation-as-python-code-for-development-and-customization" title="Permanent link">&para;</a></h2>
+<h3 id="1-clone-the-repository">1. Clone the Repository<a class="headerlink" href="#1-clone-the-repository" title="Permanent link">&para;</a></h3>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
+<span class="nb">cd</span><span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div>
+<blockquote>
+<p>After this, assuming you hame Makefile installed, you can use <code>make install-setup</code> to try to do the rest of the setup automatically</p>
+</blockquote>
+<h3 id="2-system-requirements">2. System requirements<a class="headerlink" href="#2-system-requirements" title="Permanent link">&para;</a></h3>
+<p>Before installing, ensure you have the following system-level prerequisites:</p>
+<ul>
+<li>Python ≥ 3.10</li>
+<li>PROJ ≥ 9.3</li>
+<li>GDAL ≥ 3.6</li>
+</ul>
+<p>An easy way to install these dependancies is to use <a href="https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions">Miniconda</a>:
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span>python&gt;<span class="o">=</span><span class="m">3</span>.10<span class="w"> </span>gdal&gt;<span class="o">=</span><span class="m">3</span>.6<span class="w"> </span>proj&gt;<span class="o">=</span><span class="m">9</span>.3<span class="w"> </span>-c<span class="w"> </span>conda-forge
+conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div></p>
+<h3 id="3-install-dependancies-optional-dev-and-docs-dependancies">3. Install Dependancies (Optional Dev and Docs Dependancies)<a class="headerlink" href="#3-install-dependancies-optional-dev-and-docs-dependancies" title="Permanent link">&para;</a></h3>
+<p>The <code>pyproject.toml</code> defines <strong>core</strong> dependancies to run the library and optional <strong>dev</strong>, and <strong>docs</strong> dependancies.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span><span class="c1"># code dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span><span class="w">   </span><span class="c1"># developer dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span><span class="w">  </span><span class="c1"># documentation dependencies</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="3-read-the-development-guide-if-you-with-to-contribute">3. Read the <a href="https://spectralmatch.github.io/spectralmatch/development/">Development Guide</a> if you with to Contribute<a class="headerlink" href="#3-read-the-development-guide-if-you-with-to-contribute" title="Permanent link">&para;</a></h3>
 
 
 

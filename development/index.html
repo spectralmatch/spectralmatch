@@ -368,6 +368,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#contributing-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing Instructions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#docs" class="md-nav__link">
     <span class="md-ellipsis">
       Docs
@@ -735,6 +744,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#contributing-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing Instructions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#docs" class="md-nav__link">
     <span class="md-ellipsis">
       Docs
@@ -794,6 +812,22 @@
 <blockquote>
 <p><strong>Installation instructions are on their own <a href="../installation/">page</a></strong></p>
 </blockquote>
+<hr />
+<h2 id="contributing-instructions">Contributing Instructions<a class="headerlink" href="#contributing-instructions" title="Permanent link">&para;</a></h2>
+<p>We welcome all contributions the project! To get started:
+1. <a href="https://github.com/spectralmatch/spectralmatch/issues/new">Create an issue</a> with the appropriate label describing the feature or improvement. Provide relevant context, desired timeline, any assistance needed, who will be responsible for the work, anticipated results, and any other details.</p>
+<ol>
+<li>
+<p><a href="https://github.com/spectralmatch/spectralmatch/fork">Fork the repository</a> and create a new feature branch.</p>
+</li>
+<li>
+<p>Make your changes and add any necessary tests.</p>
+</li>
+<li>
+<p>Open a Pull Request against the main repository.</p>
+</li>
+</ol>
+<hr />
 <h2 id="docs">Docs<a class="headerlink" href="#docs" title="Permanent link">&para;</a></h2>
 <h3 id="serve-docs-locally">Serve docs locally<a class="headerlink" href="#serve-docs-locally" title="Permanent link">&para;</a></h3>
 <p>Runs a local dev server at http://localhost:8000.
@@ -807,27 +841,37 @@
 <p>Deploys built site using mkdocs gh-deploy.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>docs-deploy
 </code></pre></div></td></tr></table></div></p>
+<hr />
 <h2 id="versioning">Versioning<a class="headerlink" href="#versioning" title="Permanent link">&para;</a></h2>
-<p>Uses git tag to create annotated version tags and push them.
+<p>Uses git tag to create annotated version tags and push them. This also syncs to Pypi.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>tag<span class="w"> </span><span class="nv">version</span><span class="o">=</span><span class="m">1</span>.2.3
 </code></pre></div></td></tr></table></div></p>
+<hr />
 <h2 id="code-formatting">Code Formatting<a class="headerlink" href="#code-formatting" title="Permanent link">&para;</a></h2>
-<p>Uses black for code formatting and ruff for linting.</p>
-<h3 id="format-code">Format code<a class="headerlink" href="#format-code" title="Permanent link">&para;</a></h3>
-<p>Automatically formats all Python files with black.
+<p>This project uses <a href="https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html">black</a> for code formatting and ruff for linting.</p>
+<h3 id="set-up-pre-commit-hooks-recommended">Set Up Pre-commit Hooks (Recommended)<a class="headerlink" href="#set-up-pre-commit-hooks-recommended" title="Permanent link">&para;</a></h3>
+<p>To maintain code consistency use this hook to check and correct code formatting automatically:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>pre-commit<span class="w"> </span>install
+pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</code></pre></div></td></tr></table></div>
+<h3 id="manual-formatting">Manual Formatting<a class="headerlink" href="#manual-formatting" title="Permanent link">&para;</a></h3>
+<p><strong>Format code:</strong> Automatically formats all Python files with black.</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>format
-</code></pre></div></td></tr></table></div></p>
-<h3 id="check-formatting">Check formatting<a class="headerlink" href="#check-formatting" title="Permanent link">&para;</a></h3>
-<p>Checks that all code is formatted (non-zero exit code if not).
+</code></pre></div></td></tr></table></div>
+<p><strong>Check formatting:</strong> Checks that all code is formatted (non-zero exit code if not).
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>check-format
 </code></pre></div></td></tr></table></div></p>
-<h3 id="lint-code">Lint code<a class="headerlink" href="#lint-code" title="Permanent link">&para;</a></h3>
-<p>Runs ruff to catch style and quality issues.
+<p><strong>Lint code:</strong> Runs ruff to catch style and quality issues.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>lint
 </code></pre></div></td></tr></table></div></p>
+<hr />
 <h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
-<p>Uses <a href="https://docs.pytest.org/">pytest</a> to run the test suite.
+<p><a href="https://docs.pytest.org/">pytest</a> is used for testing. Tests will automatically be run when merging into main but they can also be run locally via:
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span><span class="nb">test</span>
+</code></pre></div></td></tr></table></div></p>
+<p>To test a individual folder file:
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>test-file<span class="w"> </span><span class="nv">path</span><span class="o">=</span>path/to/folder_or_file
 </code></pre></div></td></tr></table></div></p>
 
 

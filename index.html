@@ -305,18 +305,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-python-library" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a Python Library
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation as a QGIS Plugin
+      Installation
     </span>
   </a>
   
@@ -332,27 +323,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#contributing-guide" class="md-nav__link">
+  <a href="#development-guide" class="md-nav__link">
     <span class="md-ellipsis">
-      Contributing Guide
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#developer-guide" class="md-nav__link">
-    <span class="md-ellipsis">
-      Developer Guide
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#testing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Testing
+      Development Guide
     </span>
   </a>
   
@@ -814,18 +787,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-python-library" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a Python Library
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation as a QGIS Plugin
+      Installation
     </span>
   </a>
   
@@ -841,27 +805,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#contributing-guide" class="md-nav__link">
+  <a href="#development-guide" class="md-nav__link">
     <span class="md-ellipsis">
-      Contributing Guide
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#developer-guide" class="md-nav__link">
-    <span class="md-ellipsis">
-      Developer Guide
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#testing" class="md-nav__link">
-    <span class="md-ellipsis">
-      Testing
+      Development Guide
     </span>
   </a>
   
@@ -971,8 +917,12 @@ However, global correction alone cannot capture intra-image variability so a sec
 </li>
 </ul>
 <hr />
-<h2 id="installation-as-a-python-library">Installation as a Python Library<a class="headerlink" href="#installation-as-a-python-library" title="Permanent link">&para;</a></h2>
-<h3 id="1-system-requirements">1. System requirements<a class="headerlink" href="#1-system-requirements" title="Permanent link">&para;</a></h3>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>Other installation instructions are available in the docs <a href="https://spectralmatch.github.io/spectralmatch/installation/">here</a>.</p>
+</blockquote>
+<h3 id="installation-as-a-python-library">Installation as a Python Library<a class="headerlink" href="#installation-as-a-python-library" title="Permanent link">&para;</a></h3>
+<h4 id="1-system-requirements">1. System requirements<a class="headerlink" href="#1-system-requirements" title="Permanent link">&para;</a></h4>
 <p>Before installing, ensure you have the following system-level prerequisites:</p>
 <ul>
 <li>Python ≥ 3.10</li>
@@ -984,71 +934,24 @@ However, global correction alone cannot capture intra-image variability so a sec
 <span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span>python&gt;<span class="o">=</span><span class="m">3</span>.10<span class="w"> </span>gdal&gt;<span class="o">=</span><span class="m">3</span>.6<span class="w"> </span>proj&gt;<span class="o">=</span><span class="m">9</span>.3<span class="w"> </span>-c<span class="w"> </span>conda-forge
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div></p>
-<h3 id="2-install-spectralmatch-via-pypi-or-source">2. Install spectralmatch (via PyPI or Source)<a class="headerlink" href="#2-install-spectralmatch-via-pypi-or-source" title="Permanent link">&para;</a></h3>
+<h4 id="2-install-spectralmatch">2. Install spectralmatch<a class="headerlink" href="#2-install-spectralmatch" title="Permanent link">&para;</a></h4>
 <p>The recommended way to install is via <a href="https://pypi.org/">PyPI</a>. (this method installs only the core code as a library):</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
-<p>Another install method is to clone the repository and confugure the dependancies with <code>pyproject.toml</code>. (this method installs the whole repository for development or customization):</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
-<span class="nb">cd</span><span class="w"> </span>spectralmatch
-pip<span class="w"> </span>install<span class="w"> </span>.
-</code></pre></div></td></tr></table></div>
-<h3 id="3-run-example-code-and-modify-for-use-optional">3. Run example code and modify for use (optional)<a class="headerlink" href="#3-run-example-code-and-modify-for-use-optional" title="Permanent link">&para;</a></h3>
+<h4 id="3-run-example-code-and-modify-for-use-optional">3. Run example code and modify for use (optional)<a class="headerlink" href="#3-run-example-code-and-modify-for-use-optional" title="Permanent link">&para;</a></h4>
 <p>Example scripts are provided to verify a successful installation and help you get started quickly at <a href="https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/"><code>/docs/examples</code></a></p>
-<hr />
-<h2 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h2>
-<h3 id="1-download-and-install-qgis">1. <a href="https://qgis.org/download/">Download</a> and install QGIS<a class="headerlink" href="#1-download-and-install-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="2-open-qgis">2.  Open QGIS<a class="headerlink" href="#2-open-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="3-go-to-plugins-manage-and-install-plugins">3.  Go to Plugins → Manage and Install Plugins…<a class="headerlink" href="#3-go-to-plugins-manage-and-install-plugins" title="Permanent link">&para;</a></h3>
-<h3 id="4-find-spectralmatch-in-the-list-install-and-enable-it">4.  Find spectralmatch in the list, install, and enable it<a class="headerlink" href="#4-find-spectralmatch-in-the-list-install-and-enable-it" title="Permanent link">&para;</a></h3>
-<h3 id="5-find-the-plugin-in-the-processing-toolbox">5.  Find the plugin in the Processing Toolbox<a class="headerlink" href="#5-find-the-plugin-in-the-processing-toolbox" title="Permanent link">&para;</a></h3>
+<h3 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h3>
+<h4 id="1-download-and-install-qgis">1. <a href="https://qgis.org/download/">Download</a> and install QGIS<a class="headerlink" href="#1-download-and-install-qgis" title="Permanent link">&para;</a></h4>
+<h4 id="2-open-qgis">2. Open QGIS<a class="headerlink" href="#2-open-qgis" title="Permanent link">&para;</a></h4>
+<h4 id="3-go-to-plugins-manage-and-install-plugins">3. Go to Plugins → Manage and Install Plugins…<a class="headerlink" href="#3-go-to-plugins-manage-and-install-plugins" title="Permanent link">&para;</a></h4>
+<h4 id="4-find-spectralmatch-in-the-list-install-and-enable-it">4. Find spectralmatch in the list, install, and enable it<a class="headerlink" href="#4-find-spectralmatch-in-the-list-install-and-enable-it" title="Permanent link">&para;</a></h4>
+<h4 id="5-find-the-plugin-in-the-processing-toolbox">5. Find the plugin in the Processing Toolbox<a class="headerlink" href="#5-find-the-plugin-in-the-processing-toolbox" title="Permanent link">&para;</a></h4>
 <hr />
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <p>Documentation is available at <a href="https://spectralmatch.github.io/spectralmatch/">spectralmatch.github.io/spectralmatch/</a>.</p>
 <hr />
-<h2 id="contributing-guide">Contributing Guide<a class="headerlink" href="#contributing-guide" title="Permanent link">&para;</a></h2>
-<p>We welcome all contributions the project! To get started:
-1. <a href="https://github.com/spectralmatch/spectralmatch/issues/new">Create an issue</a> with the appropriate label describing the feature or improvement. Provide relevant context, desired timeline, any assistance needed, who will be responsible for the work, anticipated results, and any other details.
-2. <a href="https://github.com/spectralmatch/spectralmatch/fork">Fork the repository</a> and create a new feature branch.
-3. Make your changes and add any necessary tests.
-4. Open a Pull Request against the main repository.</p>
-<hr />
-<h2 id="developer-guide">Developer Guide<a class="headerlink" href="#developer-guide" title="Permanent link">&para;</a></h2>
-<ol>
-<li>
-<p><strong>Clone the Repository</strong><br />
-   <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
-<span class="nb">cd</span><span class="w"> </span>spectralmatch
-</code></pre></div></td></tr></table></div></p>
-</li>
-<li>
-<p><strong>Install with Dev andor Docs Extras</strong></p>
-</li>
-</ol>
-<p>There are additional <code>[dev]</code> and <code>[docs]</code> dependancies specified in <code>pyproject.toml</code>:</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span><span class="w">   </span><span class="c1"># for developer dependencies</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span><span class="w">  </span><span class="c1"># for documentation dependencies</span>
-</code></pre></div></td></tr></table></div>
-<ol>
-<li><strong>Set Up Pre-commit Hooks</strong></li>
-</ol>
-<p>To maintain code consistency before each commit install these hooks:</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>pre-commit<span class="w"> </span>install
-pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
-</code></pre></div></td></tr></table></div>
-<hr />
-<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
-<p><a href="https://docs.pytest.org/">pytest</a> is used for testing. Tests will automatically be run when merging into main but they can also be run locally via:</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pytest
-</code></pre></div></td></tr></table></div>
-<p>Run tests for a specific file or function:</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pytest<span class="w"> </span>folder/file.py
-</code></pre></div></td></tr></table></div>
+<h2 id="development-guide">Development Guide<a class="headerlink" href="#development-guide" title="Permanent link">&para;</a></h2>
+<p>Development Guide is available at <a href="https://spectralmatch.github.io/spectralmatch/development/">spectralmatch.github.io/spectralmatch/development</a></p>
 <hr />
 <h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
 <p>This project is licensed under the MIT License. See <a href="LICENSE.md">LICENSE</a> for details.</p>
