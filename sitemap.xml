@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/</loc>
+         <loc>https://spectralmatch.github.io/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/installation/</loc>
+         <loc>https://spectralmatch.github.io/installation/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/api/handlers/</loc>
+         <loc>https://spectralmatch.github.io/api/handlers/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/api/mask/</loc>
+         <loc>https://spectralmatch.github.io/api/mask/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/api/match/</loc>
+         <loc>https://spectralmatch.github.io/api/match/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/api/statistics/</loc>
+         <loc>https://spectralmatch.github.io/api/statistics/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/examples/benchmark/</loc>
+         <loc>https://spectralmatch.github.io/examples/benchmark/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/examples/calculate_statistics/</loc>
+         <loc>https://spectralmatch.github.io/examples/calculate_statistics/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/examples/example_global_to_local/</loc>
+         <loc>https://spectralmatch.github.io/examples/example_global_to_local/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/examples/mask_cloud/</loc>
+         <loc>https://spectralmatch.github.io/examples/mask_cloud/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
     <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/examples/mask_ndvi/</loc>
+         <loc>https://spectralmatch.github.io/examples/mask_ndvi/</loc>
          <lastmod>2025-05-03</lastmod>
     </url>
 </urlset>

@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/handlers/">
+        <link rel="canonical" href="https://spectralmatch.github.io/api/handlers/">
       
       
         <link rel="prev" href="../statistics/">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Handlers - spectralmatch</title>
+        <title>Data Handlers for IO - spectralmatch</title>
       
     
     
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Handlers
+              Data Handlers for IO
             
           </span>
         </div>
@@ -359,7 +359,76 @@
   
   
   <span class="md-ellipsis">
-    Global to Local
+    Match: Global to Local
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/mask_cloud/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Cloud Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example/mask_ndvi.py" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Vegetation Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/calculate_statistics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Calculate Statistics for Figures
     
   </span>
   
@@ -383,75 +452,6 @@
   
   <span class="md-ellipsis">
     Benchmark Mulithreading
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/calculate_statistics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Calculate Statistics
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/mask_cloud/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Cloud Masking
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../example/mask_ndvi.py" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Vegetation Masking
     
   </span>
   
@@ -544,7 +544,7 @@
   
   
   <span class="md-ellipsis">
-    Masking
+    Create Mask and Pseudo-Invariant Features
     
   </span>
   
@@ -567,7 +567,7 @@
   
   
   <span class="md-ellipsis">
-    Statistics
+    Creating Statistical Figures
     
   </span>
   
@@ -597,7 +597,7 @@
   
   
   <span class="md-ellipsis">
-    Handlers
+    Data Handlers for IO
     
   </span>
   
@@ -610,7 +610,7 @@
   
   
   <span class="md-ellipsis">
-    Handlers
+    Data Handlers for IO
     
   </span>
   
@@ -761,7 +761,7 @@
   
 
 
-  <h1>Handlers</h1>
+  <h1>Data Handlers for IO</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -800,12 +800,92 @@
     <div class="doc doc-contents ">
 
         <p>Aligns a list of rasters to a common grid using the highest input resolution.</p>
-<p>Args:
-input_image_paths (list[str]): List of input raster file paths.
-resample_method (str, optional): Resampling method (e.g., "bilinear", "nearest", "average"). Defaults to "bilinear".
-tap (bool, optional): Align to target-aligned pixels (TAP). Defaults to True.</p>
-<p>Returns:
-list[str]: List of file paths to the aligned raster outputs (in a temporary directory).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_paths</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of input raster file paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>resample_method</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Resampling method (e.g., "bilinear", "nearest", "average"). Defaults to "bilinear".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;bilinear&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tap</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Align to target-aligned pixels (TAP). Defaults to True.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list[str]: List of file paths to the aligned raster outputs (in a temporary directory).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -888,12 +968,12 @@ list[str]: List of file paths to the aligned raster outputs (in a temporary dire
 <span class="sd">    Aligns a list of rasters to a common grid using the highest input resolution.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_paths (list[str]): List of input raster file paths.</span>
-<span class="sd">    resample_method (str, optional): Resampling method (e.g., &quot;bilinear&quot;, &quot;nearest&quot;, &quot;average&quot;). Defaults to &quot;bilinear&quot;.</span>
-<span class="sd">    tap (bool, optional): Align to target-aligned pixels (TAP). Defaults to True.</span>
+<span class="sd">        input_image_paths (list[str]): List of input raster file paths.</span>
+<span class="sd">        resample_method (str, optional): Resampling method (e.g., &quot;bilinear&quot;, &quot;nearest&quot;, &quot;average&quot;). Defaults to &quot;bilinear&quot;.</span>
+<span class="sd">        tap (bool, optional): Align to target-aligned pixels (TAP). Defaults to True.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    list[str]: List of file paths to the aligned raster outputs (in a temporary directory).</span>
+<span class="sd">        list[str]: List of file paths to the aligned raster outputs (in a temporary directory).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>  <span class="c1"># Persistent temp directory</span>
@@ -967,19 +1047,161 @@ list[str]: List of file paths to the aligned raster outputs (in a temporary dire
     <div class="doc doc-contents ">
 
         <p>Merges multiple raster files into a single output mosaic with optional resampling and tiling.</p>
-<p>Args:
-data_in (list): List of input raster file paths.
-data_out (str): Output raster file path.
-resampling_method (Literal["nearest", "bilinear", "cubic"], optional): Resampling method. Defaults to "nearest".
-tap (bool, optional): Align output bounds to target-aligned pixels. Defaults to False.
-resolution (Literal["highest", "lowest"], optional): Use resolution of highest or lowest input. Defaults to "highest".
-tile_width_and_height_tuple (tuple[int, int], optional): Tile size for block-wise processing. Defaults to None.
-debug_mode (bool, optional): If True, prints debug messages. Defaults to False.</p>
-<p>Returns:
-None</p>
-<p>Outputs:
-Saves a merged GeoTIFF raster to the specified path.</p>
 
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>data_in</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of input raster file paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>data_out</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output raster file path.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>resampling_method</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;nearest&#39;, &#39;bilinear&#39;, &#39;cubic&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Resampling method. Defaults to "nearest".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;nearest&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tap</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Align output bounds to target-aligned pixels. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>resolution</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;highest&#39;, &#39;lowest&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Use resolution of highest or lowest input. Defaults to "highest".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;highest&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tile_width_and_height_tuple</code>
+            </td>
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tile size for block-wise processing. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>debug_mode</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, prints debug messages. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="outputs" open>
+  <summary>Outputs</summary>
+  <p>Saves a merged GeoTIFF raster to the specified path.</p>
+</details>
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/handlers.py</code></summary>
@@ -1098,19 +1320,19 @@ Saves a merged GeoTIFF raster to the specified path.</p>
 <span class="sd">    Merges multiple raster files into a single output mosaic with optional resampling and tiling.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    data_in (list): List of input raster file paths.</span>
-<span class="sd">    data_out (str): Output raster file path.</span>
-<span class="sd">    resampling_method (Literal[&quot;nearest&quot;, &quot;bilinear&quot;, &quot;cubic&quot;], optional): Resampling method. Defaults to &quot;nearest&quot;.</span>
-<span class="sd">    tap (bool, optional): Align output bounds to target-aligned pixels. Defaults to False.</span>
-<span class="sd">    resolution (Literal[&quot;highest&quot;, &quot;lowest&quot;], optional): Use resolution of highest or lowest input. Defaults to &quot;highest&quot;.</span>
-<span class="sd">    tile_width_and_height_tuple (tuple[int, int], optional): Tile size for block-wise processing. Defaults to None.</span>
-<span class="sd">    debug_mode (bool, optional): If True, prints debug messages. Defaults to False.</span>
+<span class="sd">        data_in (list): List of input raster file paths.</span>
+<span class="sd">        data_out (str): Output raster file path.</span>
+<span class="sd">        resampling_method (Literal[&quot;nearest&quot;, &quot;bilinear&quot;, &quot;cubic&quot;], optional): Resampling method. Defaults to &quot;nearest&quot;.</span>
+<span class="sd">        tap (bool, optional): Align output bounds to target-aligned pixels. Defaults to False.</span>
+<span class="sd">        resolution (Literal[&quot;highest&quot;, &quot;lowest&quot;], optional): Use resolution of highest or lowest input. Defaults to &quot;highest&quot;.</span>
+<span class="sd">        tile_width_and_height_tuple (tuple[int, int], optional): Tile size for block-wise processing. Defaults to None.</span>
+<span class="sd">        debug_mode (bool, optional): If True, prints debug messages. Defaults to False.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    None</span>
+<span class="sd">        None</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">    Saves a merged GeoTIFF raster to the specified path.</span>
+<span class="sd">        Saves a merged GeoTIFF raster to the specified path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">data_out</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">data_out</span><span class="p">))</span>
@@ -1206,13 +1428,99 @@ Saves a merged GeoTIFF raster to the specified path.</p>
     <div class="doc doc-contents ">
 
         <p>Writes an in-memory OGR DataSource to disk in a supported vector format.</p>
-<p>Args:
-mem_ds (ogr.DataSource): In-memory vector data source.
-output_vector_path (str): Output file path (.shp, .geojson, or .gpkg).</p>
-<p>Returns:
-None</p>
-<p>Raises:
-RuntimeError: If no suitable driver is found or output creation fails.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>mem_ds</code>
+            </td>
+            <td>
+                  <code><span title="osgeo.ogr.DataSource">DataSource</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>In-memory vector data source.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_vector_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output file path (.shp, .geojson, or .gpkg).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If no suitable driver is found or output creation fails.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -1288,14 +1596,14 @@ RuntimeError: If no suitable driver is found or output creation fails.</p>
 <span class="sd">    Writes an in-memory OGR DataSource to disk in a supported vector format.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    mem_ds (ogr.DataSource): In-memory vector data source.</span>
-<span class="sd">    output_vector_path (str): Output file path (.shp, .geojson, or .gpkg).</span>
+<span class="sd">        mem_ds (ogr.DataSource): In-memory vector data source.</span>
+<span class="sd">        output_vector_path (str): Output file path (.shp, .geojson, or .gpkg).</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    None</span>
+<span class="sd">        None</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">    RuntimeError: If no suitable driver is found or output creation fails.</span>
+<span class="sd">        RuntimeError: If no suitable driver is found or output creation fails.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">driver_mapping</span> <span class="o">=</span> <span class="p">{</span>

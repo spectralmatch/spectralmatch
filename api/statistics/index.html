@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/statistics/">
+        <link rel="canonical" href="https://spectralmatch.github.io/api/statistics/">
       
       
         <link rel="prev" href="../mask/">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Statistics - spectralmatch</title>
+        <title>Creating Statistical Figures - spectralmatch</title>
       
     
     
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Statistics
+              Creating Statistical Figures
             
           </span>
         </div>
@@ -361,7 +361,76 @@
   
   
   <span class="md-ellipsis">
-    Global to Local
+    Match: Global to Local
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/mask_cloud/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Cloud Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example/mask_ndvi.py" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Vegetation Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/calculate_statistics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Calculate Statistics for Figures
     
   </span>
   
@@ -385,75 +454,6 @@
   
   <span class="md-ellipsis">
     Benchmark Mulithreading
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/calculate_statistics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Calculate Statistics
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/mask_cloud/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Cloud Masking
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../example/mask_ndvi.py" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Vegetation Masking
     
   </span>
   
@@ -546,7 +546,7 @@
   
   
   <span class="md-ellipsis">
-    Masking
+    Create Mask and Pseudo-Invariant Features
     
   </span>
   
@@ -576,7 +576,7 @@
   
   
   <span class="md-ellipsis">
-    Statistics
+    Creating Statistical Figures
     
   </span>
   
@@ -589,7 +589,7 @@
   
   
   <span class="md-ellipsis">
-    Statistics
+    Creating Statistical Figures
     
   </span>
   
@@ -675,7 +675,7 @@
   
   
   <span class="md-ellipsis">
-    Handlers
+    Data Handlers for IO
     
   </span>
   
@@ -781,7 +781,7 @@
   
 
 
-  <h1>Statistics</h1>
+  <h1>Creating Statistical Figures</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -820,15 +820,107 @@
     <div class="doc doc-contents ">
 
         <p>Compares spectral profiles of multiple images by plotting median and interquartile ranges.</p>
-<p>Args:
-input_image_dict (dict): Mapping of labels to image file paths.
-output_figure_path (str): Path to save the output plot.
-title (str): Title of the plot.
-xlabel (str): Label for the x-axis.
-ylabel (str): Label for the y-axis.</p>
-<p>Outputs:
-Saves a spectral profile comparison figure to the specified path.</p>
 
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_dict</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mapping of labels to image file paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_figure_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the output plot.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>title</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Title of the plot.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>xlabel</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Label for the x-axis.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ylabel</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Label for the y-axis.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="outputs" open>
+  <summary>Outputs</summary>
+  <p>Saves a spectral profile comparison figure to the specified path.</p>
+</details>
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/statistics.py</code></summary>
@@ -900,14 +992,14 @@ Saves a spectral profile comparison figure to the specified path.</p>
 <span class="sd">    Compares spectral profiles of multiple images by plotting median and interquartile ranges.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_dict (dict): Mapping of labels to image file paths.</span>
-<span class="sd">    output_figure_path (str): Path to save the output plot.</span>
-<span class="sd">    title (str): Title of the plot.</span>
-<span class="sd">    xlabel (str): Label for the x-axis.</span>
-<span class="sd">    ylabel (str): Label for the y-axis.</span>
+<span class="sd">        input_image_dict (dict): Mapping of labels to image file paths.</span>
+<span class="sd">        output_figure_path (str): Path to save the output plot.</span>
+<span class="sd">        title (str): Title of the plot.</span>
+<span class="sd">        xlabel (str): Label for the x-axis.</span>
+<span class="sd">        ylabel (str): Label for the y-axis.</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">    Saves a spectral profile comparison figure to the specified path.</span>
+<span class="sd">        Saves a spectral profile comparison figure to the specified path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
@@ -965,12 +1057,59 @@ Saves a spectral profile comparison figure to the specified path.</p>
     <div class="doc doc-contents ">
 
         <p>Plots paired spectral profiles for before-and-after image comparisons.</p>
-<p>Args:
-image_groups_dict (dict): Mapping of labels to image path pairs (before, after).
-output_figure_path (str): Path to save the resulting comparison figure.</p>
-<p>Outputs:
-Saves a spectral comparison plot showing pre- and post-processing profiles.</p>
 
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>image_groups_dict</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mapping of labels to image path pairs (before, after).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_figure_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the resulting comparison figure.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="outputs" open>
+  <summary>Outputs</summary>
+  <p>Saves a spectral comparison plot showing pre- and post-processing profiles.</p>
+</details>
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/statistics.py</code></summary>
@@ -1025,11 +1164,11 @@ Saves a spectral comparison plot showing pre- and post-processing profiles.</p>
 <span class="sd">    Plots paired spectral profiles for before-and-after image comparisons.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    image_groups_dict (dict): Mapping of labels to image path pairs (before, after).</span>
-<span class="sd">    output_figure_path (str): Path to save the resulting comparison figure.</span>
+<span class="sd">        image_groups_dict (dict): Mapping of labels to image path pairs (before, after).</span>
+<span class="sd">        output_figure_path (str): Path to save the resulting comparison figure.</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">    Saves a spectral comparison plot showing pre- and post-processing profiles.</span>
+<span class="sd">        Saves a spectral comparison plot showing pre- and post-processing profiles.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
@@ -1079,13 +1218,81 @@ Saves a spectral comparison plot showing pre- and post-processing profiles.</p>
     <div class="doc doc-contents ">
 
         <p>Generates a heatmap of the average spectral difference between two overlapping images.</p>
-<p>Args:
-input_overlapping_image_pair_path (list): List containing exactly two image paths (pre and post).
-output_image_path (str): Path to save the resulting difference visualization.</p>
-<p>Outputs:
-Saves a heatmap image illustrating spatial spectral differences.</p>
-<p>Raises:
-ValueError: If the list does not contain exactly two images or if image dimensions differ.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_overlapping_image_pair_path</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List containing exactly two image paths (pre and post).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the resulting difference visualization.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="outputs" open>
+  <summary>Outputs</summary>
+  <p>Saves a heatmap image illustrating spatial spectral differences.</p>
+</details>
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the list does not contain exactly two images or if image dimensions differ.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -1141,14 +1348,14 @@ ValueError: If the list does not contain exactly two images or if image dimensio
 <span class="sd">    Generates a heatmap of the average spectral difference between two overlapping images.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_overlapping_image_pair_path (list): List containing exactly two image paths (pre and post).</span>
-<span class="sd">    output_image_path (str): Path to save the resulting difference visualization.</span>
+<span class="sd">        input_overlapping_image_pair_path (list): List containing exactly two image paths (pre and post).</span>
+<span class="sd">        output_image_path (str): Path to save the resulting difference visualization.</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">    Saves a heatmap image illustrating spatial spectral differences.</span>
+<span class="sd">        Saves a heatmap image illustrating spatial spectral differences.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">    ValueError: If the list does not contain exactly two images or if image dimensions differ.</span>
+<span class="sd">        ValueError: If the list does not contain exactly two images or if image dimensions differ.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_overlapping_image_pair_path</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
@@ -1195,13 +1402,81 @@ ValueError: If the list does not contain exactly two images or if image dimensio
     <div class="doc doc-contents ">
 
         <p>Creates a color-coded visualization of spectral differences per band between two overlapping images.</p>
-<p>Args:
-input_overlapping_image_pair_paths (tuple): Tuple of two image paths (before, after).
-output_image_path (str): Path to save the RGB difference visualization as a PNG.</p>
-<p>Outputs:
-Saves a PNG image where color represents the dominant band of spectral difference and brightness indicates magnitude.</p>
-<p>Raises:
-ValueError: If input images differ in shape.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_overlapping_image_pair_paths</code>
+            </td>
+            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tuple of two image paths (before, after).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the RGB difference visualization as a PNG.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="outputs" open>
+  <summary>Outputs</summary>
+  <p>Saves a PNG image where color represents the dominant band of spectral difference and brightness indicates magnitude.</p>
+</details>
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If input images differ in shape.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -1294,14 +1569,14 @@ ValueError: If input images differ in shape.</p>
 <span class="sd">    Creates a color-coded visualization of spectral differences per band between two overlapping images.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_overlapping_image_pair_paths (tuple): Tuple of two image paths (before, after).</span>
-<span class="sd">    output_image_path (str): Path to save the RGB difference visualization as a PNG.</span>
+<span class="sd">        input_overlapping_image_pair_paths (tuple): Tuple of two image paths (before, after).</span>
+<span class="sd">        output_image_path (str): Path to save the RGB difference visualization as a PNG.</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">    Saves a PNG image where color represents the dominant band of spectral difference and brightness indicates magnitude.</span>
+<span class="sd">        Saves a PNG image where color represents the dominant band of spectral difference and brightness indicates magnitude.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">    ValueError: If input images differ in shape.</span>
+<span class="sd">        ValueError: If input images differ in shape.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">path1</span><span class="p">,</span> <span class="n">path2</span> <span class="o">=</span> <span class="n">input_overlapping_image_pair_paths</span>

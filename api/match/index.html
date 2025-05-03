@@ -8,10 +8,10 @@
       
       
       
-        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/match/">
+        <link rel="canonical" href="https://spectralmatch.github.io/api/match/">
       
       
-        <link rel="prev" href="../../examples/mask_cloud/">
+        <link rel="prev" href="../../examples/benchmark/">
       
       
         <link rel="next" href="../mask/">
@@ -361,7 +361,76 @@
   
   
   <span class="md-ellipsis">
-    Global to Local
+    Match: Global to Local
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/mask_cloud/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Cloud Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example/mask_ndvi.py" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Vegetation Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/calculate_statistics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Calculate Statistics for Figures
     
   </span>
   
@@ -385,75 +454,6 @@
   
   <span class="md-ellipsis">
     Benchmark Mulithreading
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/calculate_statistics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Calculate Statistics
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/mask_cloud/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Cloud Masking
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../example/mask_ndvi.py" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Vegetation Masking
     
   </span>
   
@@ -620,7 +620,7 @@
   
   
   <span class="md-ellipsis">
-    Masking
+    Create Mask and Pseudo-Invariant Features
     
   </span>
   
@@ -643,7 +643,7 @@
   
   
   <span class="md-ellipsis">
-    Statistics
+    Creating Statistical Figures
     
   </span>
   
@@ -666,7 +666,7 @@
   
   
   <span class="md-ellipsis">
-    Handlers
+    Data Handlers for IO
     
   </span>
   
@@ -802,21 +802,235 @@
     <div class="doc doc-contents ">
 
         <p>Performs global radiometric normalization across overlapping images using least squares regression.</p>
-<p>Args:
-input_image_paths (List[str]): List of input raster image paths.
-output_image_folder (str): Folder to save normalized output images.
-custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
-custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
-output_global_basename (str, optional): Suffix for output filenames. Defaults to "_global".
-vector_mask_path (Optional[str], optional): Optional mask to limit stats to specific areas. Defaults to None.
-tile_width_and_height_tuple (Optional[Tuple[int, int]], optional): Tile size for block-wise processing. Defaults to None.
-debug_mode (bool, optional): If True, prints debug information and constraint matrices. Defaults to False.
-custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.
-parallel (bool, optional): Enables parallel tile processing. Defaults to False.
-max_workers (int | None, optional): Number of worker processes. Defaults to CPU count.
-calc_dtype (str, optional): Data type used for internal calculations. Defaults to "float32".</p>
-<p>Returns:
-List[str]: Paths to the globally adjusted output raster images.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_paths</code>
+            </td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of input raster image paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_image_folder</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Folder to save normalized output images.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_mean_factor</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Weight for mean constraints in regression. Defaults to 1.0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_std_factor</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Weight for standard deviation constraints in regression. Defaults to 1.0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_global_basename</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Suffix for output filenames. Defaults to "_global".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;_global&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>vector_mask_path</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional mask to limit stats to specific areas. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tile_width_and_height_tuple</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tile size for block-wise processing. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>debug_mode</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, prints debug information and constraint matrices. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_nodata_value</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overrides detected NoData value. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>parallel</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Enables parallel tile processing. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_workers</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of worker processes. Defaults to CPU count.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>calc_dtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Data type used for internal calculations. Defaults to "float32".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;float32&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List[str]: Paths to the globally adjusted output raster images.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -1059,21 +1273,21 @@ List[str]: Paths to the globally adjusted output raster images.</p>
 <span class="sd">    Performs global radiometric normalization across overlapping images using least squares regression.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_paths (List[str]): List of input raster image paths.</span>
-<span class="sd">    output_image_folder (str): Folder to save normalized output images.</span>
-<span class="sd">    custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.</span>
-<span class="sd">    custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.</span>
-<span class="sd">    output_global_basename (str, optional): Suffix for output filenames. Defaults to &quot;_global&quot;.</span>
-<span class="sd">    vector_mask_path (Optional[str], optional): Optional mask to limit stats to specific areas. Defaults to None.</span>
-<span class="sd">    tile_width_and_height_tuple (Optional[Tuple[int, int]], optional): Tile size for block-wise processing. Defaults to None.</span>
-<span class="sd">    debug_mode (bool, optional): If True, prints debug information and constraint matrices. Defaults to False.</span>
-<span class="sd">    custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.</span>
-<span class="sd">    parallel (bool, optional): Enables parallel tile processing. Defaults to False.</span>
-<span class="sd">    max_workers (int | None, optional): Number of worker processes. Defaults to CPU count.</span>
-<span class="sd">    calc_dtype (str, optional): Data type used for internal calculations. Defaults to &quot;float32&quot;.</span>
+<span class="sd">        input_image_paths (List[str]): List of input raster image paths.</span>
+<span class="sd">        output_image_folder (str): Folder to save normalized output images.</span>
+<span class="sd">        custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.</span>
+<span class="sd">        custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.</span>
+<span class="sd">        output_global_basename (str, optional): Suffix for output filenames. Defaults to &quot;_global&quot;.</span>
+<span class="sd">        vector_mask_path (Optional[str], optional): Optional mask to limit stats to specific areas. Defaults to None.</span>
+<span class="sd">        tile_width_and_height_tuple (Optional[Tuple[int, int]], optional): Tile size for block-wise processing. Defaults to None.</span>
+<span class="sd">        debug_mode (bool, optional): If True, prints debug information and constraint matrices. Defaults to False.</span>
+<span class="sd">        custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.</span>
+<span class="sd">        parallel (bool, optional): Enables parallel tile processing. Defaults to False.</span>
+<span class="sd">        max_workers (int | None, optional): Number of worker processes. Defaults to CPU count.</span>
+<span class="sd">        calc_dtype (str, optional): Data type used for internal calculations. Defaults to &quot;float32&quot;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    List[str]: Paths to the globally adjusted output raster images.</span>
+<span class="sd">        List[str]: Paths to the globally adjusted output raster images.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start global matching&quot;</span><span class="p">)</span>
@@ -1311,23 +1525,267 @@ List[str]: Paths to the globally adjusted output raster images.</p>
     <div class="doc doc-contents ">
 
         <p>Performs local radiometric adjustment on a set of raster images using block-based statistics.</p>
-<p>Args:
-input_image_paths (List[str]): List of raster image paths to adjust.
-output_image_folder (str): Folder to save corrected output rasters.
-output_local_basename (str, optional): Suffix for output filenames. Defaults to "_local".
-custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.
-target_blocks_per_image (int, optional): Approximate number of blocks per image. Defaults to 100.
-alpha (float, optional): Blending factor between global and local means. Defaults to 1.0.
-calculation_dtype_precision (str, optional): Precision for internal calculations. Defaults to "float32".
-output_dtype (str, optional): Data type for output rasters. Defaults to "float32".
-projection (str, optional): CRS projection string for output block maps. Defaults to "EPSG:4326".
-debug_mode (bool, optional): If True, saves intermediate block maps and prints progress. Defaults to False.
-tile_width_and_height_tuple (Tuple[int, int], optional): Tile size for block-wise correction. Defaults to None.
-correction_method (Literal["gamma", "linear"], optional): Local correction method. Defaults to "gamma".
-parallel (bool, optional): If True, enables multiprocessing. Defaults to False.
-max_workers (int | None, optional): Max number of parallel workers. Defaults to number of CPUs.</p>
-<p>Returns:
-List[str]: Paths to the locally adjusted output raster images.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_paths</code>
+            </td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of raster image paths to adjust.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_image_folder</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Folder to save corrected output rasters.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_local_basename</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Suffix for output filenames. Defaults to "_local".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;_local&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_nodata_value</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overrides detected NoData value. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>target_blocks_per_image</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Approximate number of blocks per image. Defaults to 100.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Blending factor between global and local means. Defaults to 1.0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>calculation_dtype_precision</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Precision for internal calculations. Defaults to "float32".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;float32&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_dtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Data type for output rasters. Defaults to "float32".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;float32&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>projection</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>CRS projection string for output block maps. Defaults to "EPSG:4326".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;EPSG:4326&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>debug_mode</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, saves intermediate block maps and prints progress. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tile_width_and_height_tuple</code>
+            </td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tile size for block-wise correction. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>correction_method</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;gamma&#39;, &#39;linear&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Local correction method. Defaults to "gamma".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;gamma&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>parallel</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, enables multiprocessing. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_workers</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Max number of parallel workers. Defaults to number of CPUs.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List[str]: Paths to the locally adjusted output raster images.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -1534,23 +1992,23 @@ List[str]: Paths to the locally adjusted output raster images.</p>
 <span class="sd">    Performs local radiometric adjustment on a set of raster images using block-based statistics.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_paths (List[str]): List of raster image paths to adjust.</span>
-<span class="sd">    output_image_folder (str): Folder to save corrected output rasters.</span>
-<span class="sd">    output_local_basename (str, optional): Suffix for output filenames. Defaults to &quot;_local&quot;.</span>
-<span class="sd">    custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.</span>
-<span class="sd">    target_blocks_per_image (int, optional): Approximate number of blocks per image. Defaults to 100.</span>
-<span class="sd">    alpha (float, optional): Blending factor between global and local means. Defaults to 1.0.</span>
-<span class="sd">    calculation_dtype_precision (str, optional): Precision for internal calculations. Defaults to &quot;float32&quot;.</span>
-<span class="sd">    output_dtype (str, optional): Data type for output rasters. Defaults to &quot;float32&quot;.</span>
-<span class="sd">    projection (str, optional): CRS projection string for output block maps. Defaults to &quot;EPSG:4326&quot;.</span>
-<span class="sd">    debug_mode (bool, optional): If True, saves intermediate block maps and prints progress. Defaults to False.</span>
-<span class="sd">    tile_width_and_height_tuple (Tuple[int, int], optional): Tile size for block-wise correction. Defaults to None.</span>
-<span class="sd">    correction_method (Literal[&quot;gamma&quot;, &quot;linear&quot;], optional): Local correction method. Defaults to &quot;gamma&quot;.</span>
-<span class="sd">    parallel (bool, optional): If True, enables multiprocessing. Defaults to False.</span>
-<span class="sd">    max_workers (int | None, optional): Max number of parallel workers. Defaults to number of CPUs.</span>
+<span class="sd">        input_image_paths (List[str]): List of raster image paths to adjust.</span>
+<span class="sd">        output_image_folder (str): Folder to save corrected output rasters.</span>
+<span class="sd">        output_local_basename (str, optional): Suffix for output filenames. Defaults to &quot;_local&quot;.</span>
+<span class="sd">        custom_nodata_value (float | None, optional): Overrides detected NoData value. Defaults to None.</span>
+<span class="sd">        target_blocks_per_image (int, optional): Approximate number of blocks per image. Defaults to 100.</span>
+<span class="sd">        alpha (float, optional): Blending factor between global and local means. Defaults to 1.0.</span>
+<span class="sd">        calculation_dtype_precision (str, optional): Precision for internal calculations. Defaults to &quot;float32&quot;.</span>
+<span class="sd">        output_dtype (str, optional): Data type for output rasters. Defaults to &quot;float32&quot;.</span>
+<span class="sd">        projection (str, optional): CRS projection string for output block maps. Defaults to &quot;EPSG:4326&quot;.</span>
+<span class="sd">        debug_mode (bool, optional): If True, saves intermediate block maps and prints progress. Defaults to False.</span>
+<span class="sd">        tile_width_and_height_tuple (Tuple[int, int], optional): Tile size for block-wise correction. Defaults to None.</span>
+<span class="sd">        correction_method (Literal[&quot;gamma&quot;, &quot;linear&quot;], optional): Local correction method. Defaults to &quot;gamma&quot;.</span>
+<span class="sd">        parallel (bool, optional): If True, enables multiprocessing. Defaults to False.</span>
+<span class="sd">        max_workers (int | None, optional): Max number of parallel workers. Defaults to number of CPUs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    List[str]: Paths to the locally adjusted output raster images.</span>
+<span class="sd">        List[str]: Paths to the locally adjusted output raster images.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start local matching&quot;</span><span class="p">)</span>

@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/mask/">
+        <link rel="canonical" href="https://spectralmatch.github.io/api/mask/">
       
       
         <link rel="prev" href="../match/">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Masking - spectralmatch</title>
+        <title>Create Mask and Pseudo-Invariant Features - spectralmatch</title>
       
     
     
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Masking
+              Create Mask and Pseudo-Invariant Features
             
           </span>
         </div>
@@ -361,7 +361,76 @@
   
   
   <span class="md-ellipsis">
-    Global to Local
+    Match: Global to Local
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/mask_cloud/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Cloud Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example/mask_ndvi.py" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Vegetation Mask
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/calculate_statistics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Calculate Statistics for Figures
     
   </span>
   
@@ -385,75 +454,6 @@
   
   <span class="md-ellipsis">
     Benchmark Mulithreading
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/calculate_statistics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Calculate Statistics
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/mask_cloud/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Cloud Masking
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../example/mask_ndvi.py" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Vegetation Masking
     
   </span>
   
@@ -553,7 +553,7 @@
   
   
   <span class="md-ellipsis">
-    Masking
+    Create Mask and Pseudo-Invariant Features
     
   </span>
   
@@ -566,7 +566,7 @@
   
   
   <span class="md-ellipsis">
-    Masking
+    Create Mask and Pseudo-Invariant Features
     
   </span>
   
@@ -652,7 +652,7 @@
   
   
   <span class="md-ellipsis">
-    Statistics
+    Creating Statistical Figures
     
   </span>
   
@@ -675,7 +675,7 @@
   
   
   <span class="md-ellipsis">
-    Handlers
+    Data Handlers for IO
     
   </span>
   
@@ -781,7 +781,7 @@
   
 
 
-  <h1>Masking</h1>
+  <h1>Create Mask and Pseudo-Invariant Features</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -820,16 +820,123 @@
     <div class="doc doc-contents ">
 
         <p>Generates a cloud mask using OmniCloudMask from a multi-band image.</p>
-<p>Args:
-input_image_path (str): Path to the input image.
-red_band_index (int): Index of the red band.
-green_band_index (int): Index of the green band.
-nir_band_index (int): Index of the NIR (or substitute blue) band.
-output_mask_path (str): Path to save the output cloud mask GeoTIFF.
-down_sample_m (float, optional): Target resolution (in meters) to downsample the input before processing.</p>
-<p>Outputs:
-Saves a single-band cloud mask GeoTIFF at the specified path.</p>
 
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the input image.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>red_band_index</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Index of the red band.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>green_band_index</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Index of the green band.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>nir_band_index</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Index of the NIR (or substitute blue) band.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_mask_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the output cloud mask GeoTIFF.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>down_sample_m</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target resolution (in meters) to downsample the input before processing.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="outputs" open>
+  <summary>Outputs</summary>
+  <p>Saves a single-band cloud mask GeoTIFF at the specified path.</p>
+</details>
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
@@ -912,15 +1019,15 @@ Saves a single-band cloud mask GeoTIFF at the specified path.</p>
 <span class="sd">    Generates a cloud mask using OmniCloudMask from a multi-band image.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_path (str): Path to the input image.</span>
-<span class="sd">    red_band_index (int): Index of the red band.</span>
-<span class="sd">    green_band_index (int): Index of the green band.</span>
-<span class="sd">    nir_band_index (int): Index of the NIR (or substitute blue) band.</span>
-<span class="sd">    output_mask_path (str): Path to save the output cloud mask GeoTIFF.</span>
-<span class="sd">    down_sample_m (float, optional): Target resolution (in meters) to downsample the input before processing.</span>
+<span class="sd">        input_image_path (str): Path to the input image.</span>
+<span class="sd">        red_band_index (int): Index of the red band.</span>
+<span class="sd">        green_band_index (int): Index of the green band.</span>
+<span class="sd">        nir_band_index (int): Index of the NIR (or substitute blue) band.</span>
+<span class="sd">        output_mask_path (str): Path to save the output cloud mask GeoTIFF.</span>
+<span class="sd">        down_sample_m (float, optional): Target resolution (in meters) to downsample the input before processing.</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">    Saves a single-band cloud mask GeoTIFF at the specified path.</span>
+<span class="sd">        Saves a single-band cloud mask GeoTIFF at the specified path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
@@ -986,13 +1093,107 @@ Saves a single-band cloud mask GeoTIFF at the specified path.</p>
     <div class="doc doc-contents ">
 
         <p>Computes NDVI from a multi-band image and saves the result as a VRT raster.</p>
-<p>Args:
-input_image_path (str): Path to the input image with NIR and red bands.
-output_image_path (str): Path to save the NDVI output as a VRT file.
-nir_band (int, optional): Band index for NIR. Defaults to 4.
-red_band (int, optional): Band index for red. Defaults to 3.</p>
-<p>Returns:
-str: Path to the saved NDVI output.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the input image with NIR and red bands.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the NDVI output as a VRT file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>nir_band</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Band index for NIR. Defaults to 4.</p>
+              </div>
+            </td>
+            <td>
+                  <code>4</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>red_band</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Band index for red. Defaults to 3.</p>
+              </div>
+            </td>
+            <td>
+                  <code>3</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the saved NDVI output.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -1039,13 +1240,13 @@ str: Path to the saved NDVI output.</p>
 <span class="sd">    Computes NDVI from a multi-band image and saves the result as a VRT raster.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_path (str): Path to the input image with NIR and red bands.</span>
-<span class="sd">    output_image_path (str): Path to save the NDVI output as a VRT file.</span>
-<span class="sd">    nir_band (int, optional): Band index for NIR. Defaults to 4.</span>
-<span class="sd">    red_band (int, optional): Band index for red. Defaults to 3.</span>
+<span class="sd">        input_image_path (str): Path to the input image with NIR and red bands.</span>
+<span class="sd">        output_image_path (str): Path to save the NDVI output as a VRT file.</span>
+<span class="sd">        nir_band (int, optional): Band index for NIR. Defaults to 4.</span>
+<span class="sd">        red_band (int, optional): Band index for red. Defaults to 3.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    str: Path to the saved NDVI output.</span>
+<span class="sd">        str: Path to the saved NDVI output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span>
@@ -1080,16 +1281,114 @@ str: Path to the saved NDVI output.</p>
     <div class="doc doc-contents ">
 
         <p>Converts a raster cloud mask to a vector layer with optional filtering, buffering, and merging.</p>
-<p>Args:
-input_image_path (str): Path to the input cloud mask raster.
-minimum_mask_size_percentile (float, optional): Percentile threshold to filter small polygons by area.
-polygon_buffering_in_map_units (dict, optional): Mapping of raster values to buffer distances.
-value_mapping (dict, optional): Mapping of original raster values to new values before vectorization.</p>
-<p>Returns:
-ogr.DataSource: In-memory vector layer with merged and filtered polygons.</p>
-<p>Outputs:
-Returns an OGR DataSource containing post-processed vector features.</p>
 
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the input cloud mask raster.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>minimum_mask_size_percentile</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Percentile threshold to filter small polygons by area.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>polygon_buffering_in_map_units</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mapping of raster values to buffer distances.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>value_mapping</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mapping of original raster values to new values before vectorization.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="osgeo.ogr.DataSource">DataSource</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ogr.DataSource: In-memory vector layer with merged and filtered polygons.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="outputs" open>
+  <summary>Outputs</summary>
+  <p>Returns an OGR DataSource containing post-processed vector features.</p>
+</details>
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
@@ -1215,16 +1514,16 @@ Returns an OGR DataSource containing post-processed vector features.</p>
 <span class="sd">    Converts a raster cloud mask to a vector layer with optional filtering, buffering, and merging.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_path (str): Path to the input cloud mask raster.</span>
-<span class="sd">    minimum_mask_size_percentile (float, optional): Percentile threshold to filter small polygons by area.</span>
-<span class="sd">    polygon_buffering_in_map_units (dict, optional): Mapping of raster values to buffer distances.</span>
-<span class="sd">    value_mapping (dict, optional): Mapping of original raster values to new values before vectorization.</span>
+<span class="sd">        input_image_path (str): Path to the input cloud mask raster.</span>
+<span class="sd">        minimum_mask_size_percentile (float, optional): Percentile threshold to filter small polygons by area.</span>
+<span class="sd">        polygon_buffering_in_map_units (dict, optional): Mapping of raster values to buffer distances.</span>
+<span class="sd">        value_mapping (dict, optional): Mapping of original raster values to new values before vectorization.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    ogr.DataSource: In-memory vector layer with merged and filtered polygons.</span>
+<span class="sd">        ogr.DataSource: In-memory vector layer with merged and filtered polygons.</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">    Returns an OGR DataSource containing post-processed vector features.</span>
+<span class="sd">        Returns an OGR DataSource containing post-processed vector features.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
@@ -1336,15 +1635,130 @@ Returns an OGR DataSource containing post-processed vector features.</p>
     <div class="doc doc-contents ">
 
         <p>Converts a thresholded raster mask to a vector layer based on a comparison operator.</p>
-<p>Args:
-input_image_path (str): Path to the input single-band raster.
-output_vector_path (str): Path to save the output vector file (GeoPackage).
-threshold_val (float | int): Threshold value to apply.
-operator_str (str, optional): Comparison operator ('&lt;=', '&gt;=', '&lt;', '&gt;', '=='). Defaults to '&lt;='.</p>
-<p>Returns:
-str: Path to the saved vector file.</p>
-<p>Raises:
-ValueError: If an unsupported comparison operator is provided.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the input single-band raster.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_vector_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the output vector file (GeoPackage).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>threshold_val</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | <span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Threshold value to apply.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>operator_str</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Comparison operator ('&lt;=', '&gt;=', '&lt;', '&gt;', '=='). Defaults to '&lt;='.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&lt;=&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the saved vector file.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If an unsupported comparison operator is provided.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
@@ -1414,16 +1828,16 @@ ValueError: If an unsupported comparison operator is provided.</p>
 <span class="sd">    Converts a thresholded raster mask to a vector layer based on a comparison operator.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">    input_image_path (str): Path to the input single-band raster.</span>
-<span class="sd">    output_vector_path (str): Path to save the output vector file (GeoPackage).</span>
-<span class="sd">    threshold_val (float | int): Threshold value to apply.</span>
-<span class="sd">    operator_str (str, optional): Comparison operator (&#39;&lt;=&#39;, &#39;&gt;=&#39;, &#39;&lt;&#39;, &#39;&gt;&#39;, &#39;==&#39;). Defaults to &#39;&lt;=&#39;.</span>
+<span class="sd">        input_image_path (str): Path to the input single-band raster.</span>
+<span class="sd">        output_vector_path (str): Path to save the output vector file (GeoPackage).</span>
+<span class="sd">        threshold_val (float | int): Threshold value to apply.</span>
+<span class="sd">        operator_str (str, optional): Comparison operator (&#39;&lt;=&#39;, &#39;&gt;=&#39;, &#39;&lt;&#39;, &#39;&gt;&#39;, &#39;==&#39;). Defaults to &#39;&lt;=&#39;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">    str: Path to the saved vector file.</span>
+<span class="sd">        str: Path to the saved vector file.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">    ValueError: If an unsupported comparison operator is provided.</span>
+<span class="sd">        ValueError: If an unsupported comparison operator is provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span>
