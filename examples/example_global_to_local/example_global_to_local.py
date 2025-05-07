@@ -25,7 +25,6 @@ matched_global_images_paths = global_regression(
     debug_mode=False,
     tile_width_and_height_tuple=(512, 512),
     parallel=True,
-    custom_nodata_value=-9999,
     )
 
 merge_rasters(
@@ -45,7 +44,6 @@ matched_local_images_paths = local_block_adjustment(
     debug_mode=False,
     tile_width_and_height_tuple=(512, 512),
     parallel=True,
-    custom_nodata_value=-9999,
     )
 
 merge_rasters(
