@@ -64,9 +64,9 @@ for sz in SIZES:
         g_dir,
         custom_mean_factor=3,
         custom_std_factor=1,
-        tile_width_and_height_tuple=TILE_SIZE,
+        window_size=TILE_SIZE,
         parallel=False,
-        debug_mode=False,
+        debug_logs=False,
     )
     glob_imgs = sorted((g_dir / "Images").glob("*.tif"))
 
@@ -74,10 +74,10 @@ for sz in SIZES:
         [str(p) for p in glob_imgs],
         l_dir,
         target_blocks_per_image=100,
-        tile_width_and_height_tuple=TILE_SIZE,
+        window_size=TILE_SIZE,
         custom_nodata_value=-9999,
         parallel=False,
-        debug_mode=False,
+        debug_logs=False,
     )
     SERIAL.append(time.time() - t0)
     print(f"serial   : {SERIAL[-1]:.1f} s")
@@ -91,10 +91,10 @@ for sz in SIZES:
         g_dir,
         custom_mean_factor=3,
         custom_std_factor=1,
-        tile_width_and_height_tuple=TILE_SIZE,
+        window_size=TILE_SIZE,
         parallel=True,
         max_workers=MAX_WORKERS,
-        debug_mode=False,
+        debug_logs=False,
     )
     glob_imgs = sorted((g_dir / "Images").glob("*.tif"))
 
@@ -102,11 +102,11 @@ for sz in SIZES:
         [str(p) for p in glob_imgs],
         l_dir,
         target_blocks_per_image=100,
-        tile_width_and_height_tuple=TILE_SIZE,
+        window_size=TILE_SIZE,
         custom_nodata_value=-9999,
         parallel=True,
         max_workers=MAX_WORKERS,
-        debug_mode=False,
+        debug_logs=False,
     )
     PARALLEL.append(time.time() - t0)
     print(f"parallel : {PARALLEL[-1]:.1f} s")

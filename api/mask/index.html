@@ -339,6 +339,28 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../formats_and_requirements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File Formats and Input Requirements
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -348,10 +370,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -364,8 +386,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             Examples
           </label>
@@ -378,12 +400,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/example_global_to_local/" class="md-nav__link">
+      <a href="../../examples/example_worldview_mosaic/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Match: Global to Local
+    WorldView Mosaic
     
   </span>
   
@@ -401,58 +423,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/mask_cloud/" class="md-nav__link">
+      <a href="../../examples/example_landsat_time_series/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Create Cloud Mask
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/mask_ndvi/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Create Vegetation Mask
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../examples/calculate_statistics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Calculate Statistics for Figures
+    Landsat Time Series
     
   </span>
   
@@ -475,7 +451,7 @@
   
   
   <span class="md-ellipsis">
-    Benchmark Mulithreading
+    Benchmark Multithreading
     
   </span>
   
@@ -510,10 +486,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
   
   
@@ -526,8 +502,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             API Reference
           </label>
@@ -621,6 +597,15 @@
   <a href="#spectralmatch.mask.create_ndvi_mask" class="md-nav__link">
     <span class="md-ellipsis">
       create_ndvi_mask
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spectralmatch.mask.mask_image_with_vector" class="md-nav__link">
+    <span class="md-ellipsis">
+      mask_image_with_vector
     </span>
   </a>
   
@@ -743,6 +728,15 @@
   <a href="#spectralmatch.mask.create_ndvi_mask" class="md-nav__link">
     <span class="md-ellipsis">
       create_ndvi_mask
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spectralmatch.mask.mask_image_with_vector" class="md-nav__link">
+    <span class="md-ellipsis">
+      mask_image_with_vector
     </span>
   </a>
   
@@ -944,12 +938,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">17</span>
 <span class="normal">18</span>
 <span class="normal">19</span>
 <span class="normal">20</span>
@@ -1011,7 +1000,12 @@
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">,</span>
     <span class="n">red_band_index</span><span class="p">,</span>
     <span class="n">green_band_index</span><span class="p">,</span>
@@ -1089,14 +1083,14 @@
 
 
 <h2 id="spectralmatch.mask.create_ndvi_mask" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_ndvi_mask</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="n">nir_band</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">red_band</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">create_ndvi_mask</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="n">nir_band</span><span class="p">,</span> <span class="n">red_band</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.create_ndvi_mask" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Computes NDVI from a multi-band image and saves the result as a VRT raster.</p>
+        <p>Computes NDVI from a multi-band image and saves the result as a GeoTIFF.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1135,7 +1129,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to save the NDVI output as a VRT file.</p>
+                <p>Path to save the NDVI output GeoTIFF.</p>
               </div>
             </td>
             <td>
@@ -1151,11 +1145,11 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Band index for NIR. Defaults to 4.</p>
+                <p>Band index for NIR (1-based).</p>
               </div>
             </td>
             <td>
-                  <code>4</code>
+                <em>required</em>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -1167,11 +1161,11 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Band index for red. Defaults to 3.</p>
+                <p>Band index for red (1-based).</p>
               </div>
             </td>
             <td>
-                  <code>3</code>
+                <em>required</em>
             </td>
           </tr>
       </tbody>
@@ -1203,13 +1197,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">203</span>
 <span class="normal">204</span>
 <span class="normal">205</span>
 <span class="normal">206</span>
@@ -1235,38 +1223,309 @@
 <span class="normal">226</span>
 <span class="normal">227</span>
 <span class="normal">228</span>
-<span class="normal">229</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_mask</span><span class="p">(</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_mask</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">nir_band</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-    <span class="n">red_band</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="p">)</span><span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">nir_band</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">red_band</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Computes NDVI from a multi-band image and saves the result as a VRT raster.</span>
+<span class="sd">    Computes NDVI from a multi-band image and saves the result as a GeoTIFF.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_image_path (str): Path to the input image with NIR and red bands.</span>
-<span class="sd">        output_image_path (str): Path to save the NDVI output as a VRT file.</span>
-<span class="sd">        nir_band (int, optional): Band index for NIR. Defaults to 4.</span>
-<span class="sd">        red_band (int, optional): Band index for red. Defaults to 3.</span>
+<span class="sd">        output_image_path (str): Path to save the NDVI output GeoTIFF.</span>
+<span class="sd">        nir_band (int): Band index for NIR (1-based).</span>
+<span class="sd">        red_band (int): Band index for red (1-based).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: Path to the saved NDVI output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span>
-    <span class="n">nir</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">nir_band</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">red</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">red_band</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">ndvi</span> <span class="o">=</span> <span class="p">(</span><span class="n">nir</span> <span class="o">-</span> <span class="n">red</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">nir</span> <span class="o">+</span> <span class="n">red</span> <span class="o">+</span> <span class="mf">1e-9</span><span class="p">)</span>  <span class="c1"># avoid division by zero</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">nir</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">nir_band</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">red</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">red_band</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">ndvi</span> <span class="o">=</span> <span class="p">(</span><span class="n">nir</span> <span class="o">-</span> <span class="n">red</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">nir</span> <span class="o">+</span> <span class="n">red</span> <span class="o">+</span> <span class="mf">1e-9</span><span class="p">)</span>
 
-    <span class="n">mem_drv</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">&quot;MEM&quot;</span><span class="p">)</span>
-    <span class="n">mem_ds</span> <span class="o">=</span> <span class="n">mem_drv</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">RasterXSize</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">RasterYSize</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GDT_Float32</span><span class="p">)</span>
-    <span class="n">mem_ds</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">())</span>
-    <span class="n">mem_ds</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">GetProjection</span><span class="p">())</span>
-    <span class="n">mem_ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">WriteArray</span><span class="p">(</span><span class="n">ndvi</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NIR min/max:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">nir</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">nir</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Red min/max:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">red</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">red</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NDVI min/max:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">ndvi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">ndvi</span><span class="p">))</span>
 
-    <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">&quot;VRT&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">CreateCopy</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="n">mem_ds</span><span class="p">)</span>
-    <span class="n">ds</span><span class="p">,</span> <span class="n">mem_ds</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+        <span class="n">profile</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">rasterio</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ndvi</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output_image_path</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="spectralmatch.mask.mask_image_with_vector" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">mask_image_with_vector</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">input_vector_path</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="n">exclude_features</span><span class="o">=</span><span class="p">{},</span> <span class="n">invert_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+<a href="#spectralmatch.mask.mask_image_with_vector" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Masks a raster using vector geometries within the raster's bounds.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to input raster.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_vector_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to vector file (e.g., .shp, .gpkg).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save masked raster.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>exclude_features</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="any">any</span>, <span title="any">any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dict of attribute filters to exclude (e.g., {"class": "water"}).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>invert_mask</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, keeps only areas inside vector geometries.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the masked raster file.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>spectralmatch/mask.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span>
+<span class="normal">337</span>
+<span class="normal">338</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span>
+<span class="normal">343</span>
+<span class="normal">344</span>
+<span class="normal">345</span>
+<span class="normal">346</span>
+<span class="normal">347</span>
+<span class="normal">348</span>
+<span class="normal">349</span>
+<span class="normal">350</span>
+<span class="normal">351</span>
+<span class="normal">352</span>
+<span class="normal">353</span>
+<span class="normal">354</span>
+<span class="normal">355</span>
+<span class="normal">356</span>
+<span class="normal">357</span>
+<span class="normal">358</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_image_with_vector</span><span class="p">(</span>
+    <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">input_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">exclude_features</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">any</span><span class="p">,</span> <span class="nb">any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
+    <span class="n">invert_mask</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Masks a raster using vector geometries within the raster&#39;s bounds.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_image_path: Path to input raster.</span>
+<span class="sd">        input_vector_path: Path to vector file (e.g., .shp, .gpkg).</span>
+<span class="sd">        output_image_path: Path to save masked raster.</span>
+<span class="sd">        exclude_features: Dict of attribute filters to exclude (e.g., {&quot;class&quot;: &quot;water&quot;}).</span>
+<span class="sd">        invert_mask: If True, keeps only areas inside vector geometries.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path to the masked raster file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">image_crs</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">crs</span>
+
+        <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_vector_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">vector</span><span class="p">:</span>
+            <span class="n">filtered_geoms</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">vector</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">exclude_features</span><span class="p">:</span>
+                    <span class="n">match</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">!=</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">exclude_features</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">match</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                    <span class="n">geom</span> <span class="o">=</span> <span class="n">shape</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">])</span>
+                    <span class="n">filtered_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">filtered_geoms</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">output_image_path</span>
+
+        <span class="n">geom_union</span> <span class="o">=</span> <span class="n">unary_union</span><span class="p">(</span><span class="n">filtered_geoms</span><span class="p">)</span>
+        <span class="n">geometries</span> <span class="o">=</span> <span class="p">[</span><span class="n">geom_union</span><span class="o">.</span><span class="n">__geo_interface__</span><span class="p">]</span>
+
+        <span class="n">mask</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">window</span> <span class="o">=</span> <span class="n">raster_geometry_mask</span><span class="p">(</span>
+            <span class="n">src</span><span class="p">,</span>
+            <span class="n">geometries</span><span class="p">,</span>
+            <span class="n">invert</span><span class="o">=</span><span class="n">invert_mask</span><span class="p">,</span>
+            <span class="n">crop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">all_touched</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">[:,</span> <span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">nodata</span> <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">nodata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+
+        <span class="n">out_meta</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">out_meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">output_image_path</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -1278,7 +1537,7 @@
 
 
 <h2 id="spectralmatch.mask.post_process_raster_cloud_mask_to_vector" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">minimum_mask_size_percentile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polygon_buffering_in_map_units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">output_vector_path</span><span class="p">,</span> <span class="n">minimum_mask_size_percentile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polygon_buffering_in_map_units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.post_process_raster_cloud_mask_to_vector" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1309,6 +1568,22 @@
             <td>
               <div class="doc-md-description">
                 <p>Path to the input cloud mask raster.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_vector_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the output vector layer.</p>
               </div>
             </td>
             <td>
@@ -1367,42 +1642,14 @@
     </table>
 
 
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="osgeo.ogr.DataSource">DataSource</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>ogr.DataSource: In-memory vector layer with merged and filtered polygons.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
 <details class="outputs" open>
   <summary>Outputs</summary>
-  <p>Returns an OGR DataSource containing post-processed vector features.</p>
+  <p>Saves a vector layer to the output path.</p>
 </details>
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 82</span>
-<span class="normal"> 83</span>
-<span class="normal"> 84</span>
-<span class="normal"> 85</span>
-<span class="normal"> 86</span>
-<span class="normal"> 87</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 87</span>
 <span class="normal"> 88</span>
 <span class="normal"> 89</span>
 <span class="normal"> 90</span>
@@ -1509,8 +1756,15 @@
 <span class="normal">191</span>
 <span class="normal">192</span>
 <span class="normal">193</span>
-<span class="normal">194</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">output_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">minimum_mask_size_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">polygon_buffering_in_map_units</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">value_mapping</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1520,15 +1774,13 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_image_path (str): Path to the input cloud mask raster.</span>
+<span class="sd">        output_vector_path (str): Path to the output vector layer.</span>
 <span class="sd">        minimum_mask_size_percentile (float, optional): Percentile threshold to filter small polygons by area.</span>
 <span class="sd">        polygon_buffering_in_map_units (dict, optional): Mapping of raster values to buffer distances.</span>
 <span class="sd">        value_mapping (dict, optional): Mapping of original raster values to new values before vectorization.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        ogr.DataSource: In-memory vector layer with merged and filtered polygons.</span>
-
 <span class="sd">    Outputs:</span>
-<span class="sd">        Returns an OGR DataSource containing post-processed vector features.</span>
+<span class="sd">        Saves a vector layer to the output path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
@@ -1621,7 +1873,9 @@
         <span class="n">mem_layer</span><span class="o">.</span><span class="n">CreateFeature</span><span class="p">(</span><span class="n">feat</span><span class="p">)</span>
         <span class="n">feat</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">return</span> <span class="n">mem_ds</span>
+    <span class="n">_write_vector</span><span class="p">(</span><span class="n">mem_ds</span><span class="p">,</span> <span class="n">output_vector_path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output_vector_path</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1769,16 +2023,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">241</span>
 <span class="normal">242</span>
 <span class="normal">243</span>
 <span class="normal">244</span>
@@ -1824,7 +2069,16 @@
 <span class="normal">284</span>
 <span class="normal">285</span>
 <span class="normal">286</span>
-<span class="normal">287</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_threshold_to_vector</span><span class="p">(</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_threshold_to_vector</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">output_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">threshold_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
