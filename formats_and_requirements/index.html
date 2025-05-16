@@ -749,14 +749,18 @@
 
 <h1 id="file-formats-and-input-requirements">File Formats and Input Requirements<a class="headerlink" href="#file-formats-and-input-requirements" title="Permanent link">&para;</a></h1>
 <h2 id="input-raster-requirements">Input Raster Requirements<a class="headerlink" href="#input-raster-requirements" title="Permanent link">&para;</a></h2>
-<p>Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():
-- Have a valid geotransform
-- Share the same coordinate reference system (CRS)
-- Have an identical number of bands
-- Use consistent nodata values</p>
-<p>Additionally, all rasters should:
- - Have overlap which represents the same data in each raster
- - Have a consistant spectral profile </p>
+<p>Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():</p>
+<ul>
+<li>Have a valid geotransform</li>
+<li>Share the same coordinate reference system (CRS)</li>
+<li>Have an identical number of bands</li>
+<li>Use consistent nodata values</li>
+</ul>
+<p>Additionally, all rasters should:</p>
+<ul>
+<li>Have overlap which represents the same data in each raster</li>
+<li>Have a consistent spectral profile </li>
+</ul>
 <h2 id="regression-parameters-file">Regression Parameters File<a class="headerlink" href="#regression-parameters-file" title="Permanent link">&para;</a></h2>
 <p>Regression parameters can be stored in a <code>json</code> file which includes:</p>
 <ul>
