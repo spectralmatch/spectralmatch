@@ -274,6 +274,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../../rrn_methods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    RRN Methods
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="https://github.com/spectralmatch/spectralmatch/releases" class="md-nav__link">
         
   
@@ -370,10 +392,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
   
   
@@ -386,8 +408,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             Examples
           </label>
@@ -486,10 +508,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -502,8 +524,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             API Reference
           </label>
@@ -810,7 +832,7 @@
 
 
 <h2 id="spectralmatch.mask.create_cloud_mask_with_omnicloudmask" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="n">output_mask_path</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="n">output_mask_path</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.create_cloud_mask_with_omnicloudmask" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -927,6 +949,37 @@
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>debug_logs</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Debug logs to console.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>omnicloud_kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Forwards key word args to OmniCloudMask predict_from_array() function. Repo here: https://github.com/DPIRD-DMA/OmniCloudMask.</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -938,10 +991,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
 <span class="normal">21</span>
 <span class="normal">22</span>
 <span class="normal">23</span>
@@ -1005,13 +1055,24 @@
 <span class="normal">81</span>
 <span class="normal">82</span>
 <span class="normal">83</span>
-<span class="normal">84</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">,</span>
     <span class="n">red_band_index</span><span class="p">,</span>
     <span class="n">green_band_index</span><span class="p">,</span>
     <span class="n">nir_band_index</span><span class="p">,</span> <span class="c1"># Blue band can work if nir isnt available</span>
     <span class="n">output_mask_path</span><span class="p">,</span>
     <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="c1"># Down sample to 10 m if imagery has a spatial resolution &lt; 10 m</span>
+    <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generates a cloud mask using OmniCloudMask from a multi-band image.</span>
@@ -1023,11 +1084,15 @@
 <span class="sd">        nir_band_index (int): Index of the NIR (or substitute blue) band.</span>
 <span class="sd">        output_mask_path (str): Path to save the output cloud mask GeoTIFF.</span>
 <span class="sd">        down_sample_m (float, optional): Target resolution (in meters) to downsample the input before processing.</span>
+<span class="sd">        debug_logs (bool, optional): Debug logs to console.</span>
+<span class="sd">        omnicloud_kwargs: Forwards key word args to OmniCloudMask predict_from_array() function. Repo here: https://github.com/DPIRD-DMA/OmniCloudMask.</span>
 
 <span class="sd">    Outputs:</span>
 <span class="sd">        Saves a single-band cloud mask GeoTIFF at the specified path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start create omnicloudmask&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask_path</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">down_sample_m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Compute new dimensions based on the image bounds and the desired resolution.</span>
@@ -1059,7 +1124,7 @@
         <span class="n">band_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">red</span><span class="p">,</span> <span class="n">green</span><span class="p">,</span> <span class="n">nir</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="c1"># Predict the mask (expected shape: (1, height, width))</span>
-    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">predict_from_array</span><span class="p">(</span><span class="n">band_array</span><span class="p">)</span>
+    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">predict_from_array</span><span class="p">(</span><span class="n">band_array</span><span class="p">,</span> <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">)</span>
     <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">pred_mask</span><span class="p">)</span>
 
     <span class="c1"># Update metadata for a single-band output.</span>
@@ -1197,23 +1262,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">219</span>
 <span class="normal">220</span>
 <span class="normal">221</span>
 <span class="normal">222</span>
@@ -1232,7 +1281,25 @@
 <span class="normal">235</span>
 <span class="normal">236</span>
 <span class="normal">237</span>
-<span class="normal">238</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_mask</span><span class="p">(</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_mask</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">nir_band</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1250,6 +1317,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        str: Path to the saved NDVI output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start ndvi computation&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
@@ -1278,14 +1347,14 @@
 
 
 <h2 id="spectralmatch.mask.mask_image_with_vector" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">mask_image_with_vector</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">input_vector_path</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="n">exclude_features</span><span class="o">=</span><span class="p">{},</span> <span class="n">invert_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">mask_image_with_vector</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">input_vector_path</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="n">select_features</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.mask_image_with_vector" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Masks a raster using vector geometries within the raster's bounds.</p>
+        <p>Masks a raster using vector geometries that match a specific filter.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1320,11 +1389,11 @@
                 <code>input_vector_path</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="str">str</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to vector file (e.g., .shp, .gpkg).</p>
+                <p>Path to vector file (e.g., .shp, .gpkg), or None to skip masking.</p>
               </div>
             </td>
             <td>
@@ -1349,34 +1418,21 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>exclude_features</code>
+                <code>select_features</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="any">any</span>, <span title="any">any</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Dict of attribute filters to exclude (e.g., {"class": "water"}).</p>
-              </div>
-            </td>
-            <td>
-                  <code>{}</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>invert_mask</code>
-            </td>
-            <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="typing.Literal">Literal</span>[&#39;include&#39;, &#39;exclude&#39;], <span title="str">str</span>, <span title="any">any</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, keeps only areas inside vector geometries.</p>
+                <p>Optional tuple:
+- ("include", field, value): Keep only pixels covered by features where field == value.
+- ("exclude", field, value): Mask out pixels covered by features where field == value.
+- None: Use all features and mask out covered pixels.</p>
               </div>
             </td>
             <td>
-                  <code>False</code>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -1408,41 +1464,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">299</span>
-<span class="normal">300</span>
-<span class="normal">301</span>
-<span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span>
-<span class="normal">305</span>
-<span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
-<span class="normal">310</span>
-<span class="normal">311</span>
-<span class="normal">312</span>
-<span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span>
-<span class="normal">316</span>
-<span class="normal">317</span>
-<span class="normal">318</span>
-<span class="normal">319</span>
-<span class="normal">320</span>
-<span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">333</span>
 <span class="normal">334</span>
 <span class="normal">335</span>
 <span class="normal">336</span>
@@ -1467,63 +1489,121 @@
 <span class="normal">355</span>
 <span class="normal">356</span>
 <span class="normal">357</span>
-<span class="normal">358</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_image_with_vector</span><span class="p">(</span>
+<span class="normal">358</span>
+<span class="normal">359</span>
+<span class="normal">360</span>
+<span class="normal">361</span>
+<span class="normal">362</span>
+<span class="normal">363</span>
+<span class="normal">364</span>
+<span class="normal">365</span>
+<span class="normal">366</span>
+<span class="normal">367</span>
+<span class="normal">368</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span>
+<span class="normal">384</span>
+<span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span>
+<span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span>
+<span class="normal">391</span>
+<span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_image_with_vector</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">input_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">input_vector_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">exclude_features</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">any</span><span class="p">,</span> <span class="nb">any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
-    <span class="n">invert_mask</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">select_features</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">,</span> <span class="s2">&quot;exclude&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Masks a raster using vector geometries within the raster&#39;s bounds.</span>
+<span class="sd">    Masks a raster using vector geometries that match a specific filter.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_image_path: Path to input raster.</span>
-<span class="sd">        input_vector_path: Path to vector file (e.g., .shp, .gpkg).</span>
+<span class="sd">        input_vector_path: Path to vector file (e.g., .shp, .gpkg), or None to skip masking.</span>
 <span class="sd">        output_image_path: Path to save masked raster.</span>
-<span class="sd">        exclude_features: Dict of attribute filters to exclude (e.g., {&quot;class&quot;: &quot;water&quot;}).</span>
-<span class="sd">        invert_mask: If True, keeps only areas inside vector geometries.</span>
+<span class="sd">        select_features: Optional tuple:</span>
+<span class="sd">            - (&quot;include&quot;, field, value): Keep only pixels covered by features where field == value.</span>
+<span class="sd">            - (&quot;exclude&quot;, field, value): Mask out pixels covered by features where field == value.</span>
+<span class="sd">            - None: Use all features and mask out covered pixels.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Path to the masked raster file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start mask image with vector&quot;</span><span class="p">)</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
-        <span class="n">image_crs</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">crs</span>
-
-        <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_vector_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">vector</span><span class="p">:</span>
-            <span class="n">filtered_geoms</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">vector</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">exclude_features</span><span class="p">:</span>
-                    <span class="n">match</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">!=</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">exclude_features</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">match</span> <span class="o">=</span> <span class="kc">True</span>
-
-                <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
-                    <span class="n">geom</span> <span class="o">=</span> <span class="n">shape</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">])</span>
-                    <span class="n">filtered_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">filtered_geoms</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">input_vector_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No vector path provided — writing unmasked copy.&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+                <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
             <span class="k">return</span> <span class="n">output_image_path</span>
 
-        <span class="n">geom_union</span> <span class="o">=</span> <span class="n">unary_union</span><span class="p">(</span><span class="n">filtered_geoms</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_vector_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">vector</span><span class="p">:</span>
+            <span class="n">selected_geoms</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">vector</span><span class="p">:</span>
+                <span class="n">include</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">select_features</span><span class="p">:</span>
+                    <span class="n">mode</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">select_features</span>
+                    <span class="n">attr_val</span> <span class="o">=</span> <span class="n">feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                    <span class="n">include</span> <span class="o">=</span> <span class="n">attr_val</span> <span class="o">==</span> <span class="n">value</span>
+
+                <span class="k">if</span> <span class="n">include</span><span class="p">:</span>
+                    <span class="n">selected_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shape</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s2">&quot;geometry&quot;</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_geoms</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No matching geometries found — writing unmasked copy.&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+                <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">output_image_path</span>
+
+        <span class="n">invert</span> <span class="o">=</span> <span class="n">select_features</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;include&quot;</span> <span class="k">if</span> <span class="n">select_features</span> <span class="k">else</span> <span class="kc">False</span>
+
+        <span class="n">geom_union</span> <span class="o">=</span> <span class="n">unary_union</span><span class="p">(</span><span class="n">selected_geoms</span><span class="p">)</span>
         <span class="n">geometries</span> <span class="o">=</span> <span class="p">[</span><span class="n">geom_union</span><span class="o">.</span><span class="n">__geo_interface__</span><span class="p">]</span>
 
         <span class="n">mask</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">window</span> <span class="o">=</span> <span class="n">raster_geometry_mask</span><span class="p">(</span>
             <span class="n">src</span><span class="p">,</span>
             <span class="n">geometries</span><span class="p">,</span>
-            <span class="n">invert</span><span class="o">=</span><span class="n">invert_mask</span><span class="p">,</span>
+            <span class="n">invert</span><span class="o">=</span><span class="n">invert</span><span class="p">,</span>
             <span class="n">crop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">all_touched</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">all_touched</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">data</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
         <span class="n">data</span><span class="p">[:,</span> <span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">nodata</span> <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">nodata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
 
-        <span class="n">out_meta</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">out_meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
             <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">output_image_path</span>
@@ -1649,16 +1729,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 87</span>
-<span class="normal"> 88</span>
-<span class="normal"> 89</span>
-<span class="normal"> 90</span>
-<span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 96</span>
 <span class="normal"> 97</span>
 <span class="normal"> 98</span>
 <span class="normal"> 99</span>
@@ -1762,7 +1833,23 @@
 <span class="normal">197</span>
 <span class="normal">198</span>
 <span class="normal">199</span>
-<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">output_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">minimum_mask_size_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1783,20 +1870,27 @@
 <span class="sd">        Saves a vector layer to the output path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start post-processing raster cloud mask&quot;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
         <span class="n">raster_data</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">transform</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">transform</span>
         <span class="n">crs</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">crs</span>
 
     <span class="k">if</span> <span class="n">value_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">include_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">raster_data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
         <span class="n">mapped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">raster_data</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">orig_value</span><span class="p">,</span> <span class="n">new_value</span> <span class="ow">in</span> <span class="n">value_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">mapped</span><span class="p">[</span><span class="n">raster_data</span> <span class="o">==</span> <span class="n">orig_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_value</span>
+            <span class="k">if</span> <span class="n">new_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">include_mask</span> <span class="o">&amp;=</span> <span class="n">raster_data</span> <span class="o">!=</span> <span class="n">orig_value</span>  <span class="c1"># Exclude from processing</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mapped</span><span class="p">[</span><span class="n">raster_data</span> <span class="o">==</span> <span class="n">orig_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_value</span>
         <span class="n">raster_data</span> <span class="o">=</span> <span class="n">mapped</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">include_mask</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
         <span class="p">{</span><span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">v</span><span class="p">},</span> <span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">s</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">(</span><span class="n">raster_data</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">(</span><span class="n">raster_data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">include_mask</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">features</span><span class="p">:</span>
@@ -1893,7 +1987,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>Converts a thresholded raster mask to a vector layer based on a comparison operator.</p>
+        <p>Converts a thresholded raster mask to a vector layer using Rasterio and Fiona.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1964,7 +2058,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Comparison operator ('&lt;=', '&gt;=', '&lt;', '&gt;', '=='). Defaults to '&lt;='.</p>
+                <p>One of the comparison operators.</p>
               </div>
             </td>
             <td>
@@ -1998,50 +2092,9 @@
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If an unsupported comparison operator is provided.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span>
-<span class="normal">246</span>
-<span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">259</span>
 <span class="normal">260</span>
 <span class="normal">261</span>
 <span class="normal">262</span>
@@ -2078,61 +2131,111 @@
 <span class="normal">293</span>
 <span class="normal">294</span>
 <span class="normal">295</span>
-<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_threshold_to_vector</span><span class="p">(</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_threshold_to_vector</span><span class="p">(</span>
     <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">output_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">threshold_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">operator_str</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&quot;&lt;=&quot;</span><span class="p">,</span>
+    <span class="n">operator_str</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;=&quot;</span><span class="p">,</span> <span class="s2">&quot;==&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts a thresholded raster mask to a vector layer based on a comparison operator.</span>
+<span class="sd">    Converts a thresholded raster mask to a vector layer using Rasterio and Fiona.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_image_path (str): Path to the input single-band raster.</span>
 <span class="sd">        output_vector_path (str): Path to save the output vector file (GeoPackage).</span>
 <span class="sd">        threshold_val (float | int): Threshold value to apply.</span>
-<span class="sd">        operator_str (str, optional): Comparison operator (&#39;&lt;=&#39;, &#39;&gt;=&#39;, &#39;&lt;&#39;, &#39;&gt;&#39;, &#39;==&#39;). Defaults to &#39;&lt;=&#39;.</span>
+<span class="sd">        operator_str (str): One of the comparison operators.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: Path to the saved vector file.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If an unsupported comparison operator is provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start post process threshold&quot;</span><span class="p">)</span>
 
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span>
-    <span class="n">band</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">arr</span> <span class="o">=</span> <span class="n">band</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">transform</span>
+        <span class="n">crs</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">crs</span>
 
-    <span class="k">if</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">:</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">arr</span> <span class="o">&lt;=</span> <span class="n">threshold_val</span>
-    <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&gt;=&quot;</span><span class="p">:</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">arr</span> <span class="o">&gt;=</span> <span class="n">threshold_val</span>
-    <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">arr</span> <span class="o">&lt;</span> <span class="n">threshold_val</span>
-    <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">:</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">arr</span> <span class="o">&gt;</span> <span class="n">threshold_val</span>
-    <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;==&quot;</span><span class="p">:</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">arr</span> <span class="o">==</span> <span class="n">threshold_val</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported operator&quot;</span><span class="p">)</span>
+        <span class="c1"># Apply threshold</span>
+        <span class="k">if</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&lt;</span> <span class="n">threshold_val</span>
+        <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&lt;=</span> <span class="n">threshold_val</span>
+        <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;</span> <span class="n">threshold_val</span>
+        <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;&gt;=&quot;</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">threshold_val</span>
+        <span class="k">elif</span> <span class="n">operator_str</span> <span class="o">==</span> <span class="s2">&quot;==&quot;</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">image</span> <span class="o">==</span> <span class="n">threshold_val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported operator_str&quot;</span><span class="p">)</span>
 
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
 
-    <span class="n">mem_ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">&quot;MEM&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">RasterXSize</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">RasterYSize</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GDT_Byte</span><span class="p">)</span>
-    <span class="n">mem_ds</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">())</span>
-    <span class="n">mem_ds</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">GetProjection</span><span class="p">())</span>
-    <span class="n">mem_ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">WriteArray</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+        <span class="c1"># Generate vector shapes</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">geom</span> <span class="o">=</span> <span class="n">shape</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">Polygon</span><span class="p">):</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;DN&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)},</span> <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">geom</span><span class="p">)})</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">MultiPolygon</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">geom</span><span class="o">.</span><span class="n">geoms</span><span class="p">:</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;DN&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)},</span> <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">part</span><span class="p">)})</span>
 
-    <span class="n">drv</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">&quot;GPKG&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">):</span>
-        <span class="n">drv</span><span class="o">.</span><span class="n">DeleteDataSource</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">)</span>
-    <span class="n">out_ds</span> <span class="o">=</span> <span class="n">drv</span><span class="o">.</span><span class="n">CreateDataSource</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">)</span>
-    <span class="n">out_lyr</span> <span class="o">=</span> <span class="n">out_ds</span><span class="o">.</span><span class="n">CreateLayer</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="n">srs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="n">out_lyr</span><span class="o">.</span><span class="n">CreateField</span><span class="p">(</span><span class="n">ogr</span><span class="o">.</span><span class="n">FieldDefn</span><span class="p">(</span><span class="s2">&quot;DN&quot;</span><span class="p">,</span> <span class="n">ogr</span><span class="o">.</span><span class="n">OFTInteger</span><span class="p">))</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;DN&quot;</span><span class="p">:</span> <span class="s2">&quot;int&quot;</span><span class="p">},</span>
+        <span class="p">}</span>
 
-    <span class="n">gdal</span><span class="o">.</span><span class="n">Polygonize</span><span class="p">(</span><span class="n">mem_ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">mem_ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">out_lyr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[])</span>
-    <span class="n">ds</span><span class="p">,</span> <span class="n">mem_ds</span><span class="p">,</span> <span class="n">out_ds</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+            <span class="n">output_vector_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span>
+            <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">,</span>
+            <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;mask&quot;</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">feat</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">output_vector_path</span>
 </code></pre></div></td></tr></table></div>
             </details>

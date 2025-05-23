@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/formats_and_requirements/">
+        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/rrn_methods/">
       
       
-        <link rel="prev" href="../contributing/">
+        <link rel="prev" href="../installation/">
       
       
-        <link rel="next" href="../examples/example_worldview_mosaic/">
+        <link rel="next" href="../contributing/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>File Formats and Input Requirements - spectralmatch</title>
+        <title>RRN Methods - spectralmatch</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#file-formats-and-input-requirements" class="md-skip">
+        <a href="#dimensions-of-relative-radiometric-normalization-rrn-methods" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              File Formats and Input Requirements
+              RRN Methods
             
           </span>
         </div>
@@ -271,10 +271,32 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../rrn_methods/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    RRN Methods
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -285,6 +307,35 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      The dimensions
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -359,32 +410,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    File Formats and Input Requirements
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../formats_and_requirements/" class="md-nav__link">
         
   
   
@@ -395,53 +424,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#input-raster-requirements" class="md-nav__link">
-    <span class="md-ellipsis">
-      Input Raster Requirements
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#regression-parameters-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      Regression Parameters File
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#block-maps-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      Block Maps File
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -724,27 +706,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#input-raster-requirements" class="md-nav__link">
+  <a href="#the-dimensions" class="md-nav__link">
     <span class="md-ellipsis">
-      Input Raster Requirements
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#regression-parameters-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      Regression Parameters File
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#block-maps-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      Block Maps File
+      The dimensions
     </span>
   </a>
   
@@ -769,79 +733,89 @@
   
 
 
-<h1 id="file-formats-and-input-requirements">File Formats and Input Requirements<a class="headerlink" href="#file-formats-and-input-requirements" title="Permanent link">&para;</a></h1>
-<h2 id="input-raster-requirements">Input Raster Requirements<a class="headerlink" href="#input-raster-requirements" title="Permanent link">&para;</a></h2>
-<p>Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():</p>
+<h1 id="dimensions-of-relative-radiometric-normalization-rrn-methods">Dimensions of Relative Radiometric Normalization (RRN) Methods<a class="headerlink" href="#dimensions-of-relative-radiometric-normalization-rrn-methods" title="Permanent link">&para;</a></h1>
+<p>RRN methods differ not only in the algorithms used to adjust image values but also in the requirements images must have and other techniques that can be used in conjunction. The following taxonomy summarizes the core dimensions along which RRN techniques vary:</p>
 <ul>
-<li>Have a valid geotransform</li>
-<li>Share the same coordinate reference system (CRS)</li>
-<li>Have an identical number of bands</li>
-<li>Use consistent nodata values</li>
+<li><strong>Matching algorithm:</strong> The core transformation applied to align radiometry between images.</li>
+<li><strong>Geometric alignment required:</strong> The level of spatial alignment necessary for the method.</li>
+<li><strong>PIF/RCS selection strategies:</strong> How pseudo-invariant features/control sets are identified.</li>
+<li><strong>Adjustment scope:</strong> How corrections are applied to the images.</li>
+<li><strong>Overlap:</strong> Whether the method requires overlapping pixels.</li>
+<li><strong>Pixel units:</strong> The radiometric units the method is able to operate on.</li>
+<li><strong>Bands:</strong> Whether bands relationships are preserved.</li>
+<li><strong>Target reference:</strong> What the target image is normalized to.</li>
 </ul>
-<p>Additionally, all rasters should:</p>
+<h2 id="the-dimensions">The dimensions<a class="headerlink" href="#the-dimensions" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Be a <code>.tif</code> file</li>
-<li>Have overlap which represents the same data in each raster</li>
-<li>Have a consistent spectral profile </li>
+<li>Matching algorithm:<ul>
+<li>Histogram Matching (HM) (lookup table)</li>
+<li>Minimum–Maximum (Min–Max) Normalization (min-max)</li>
+<li>Mean–Standard Deviation (Mean–Std) Normalization (gain-offset)</li>
+<li>CCA/KCCA-Based Normalization (matrix)</li>
+<li>Global Linear Regression (gain-offset)</li>
+<li>Gamma correction (power function)</li>
+<li>Dodging (low-pass brightness correction)</li>
+<li>Illumination Equalization (modeled lighting correction)</li>
+<li>Affine Transformation</li>
 </ul>
-<h2 id="regression-parameters-file">Regression Parameters File<a class="headerlink" href="#regression-parameters-file" title="Permanent link">&para;</a></h2>
-<p>Regression parameters can be stored in a <code>json</code> file which includes:</p>
-<ul>
-<li>Adjustments: Per-band scale and offset values applied to each image.</li>
-<li>Whole Stats: Per-band mean, std, and size representing overall image statistics.</li>
-<li>Overlap Stats: Per-image pair mean, std, and size for overlapping geometry regions.</li>
+</li>
+<li>Minimum geometric alignment:<ul>
+<li>None (no spatial info)</li>
+<li>Moderate (A few pixels)</li>
+<li>Co-registration (pixel-wise)</li>
 </ul>
-<p>The structure is a dictionary keyed by images basenames (no extension) with the following format:</p>
-<p><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
-<span class="normal"> 2</span>
-<span class="normal"> 3</span>
-<span class="normal"> 4</span>
-<span class="normal"> 5</span>
-<span class="normal"> 6</span>
-<span class="normal"> 7</span>
-<span class="normal"> 8</span>
-<span class="normal"> 9</span>
-<span class="normal">10</span>
-<span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;image_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;adjustments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;scale&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">},</span>
-<span class="w">      </span><span class="err">...</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;whole_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
-<span class="w">      </span><span class="err">...</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;overlap_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;other_image&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
-<span class="w">        </span><span class="err">...</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="err">...</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="err">...</span>
-<span class="p">}</span>
-</code></pre></div></td></tr></table></div>
-This format represents the following: For each image_name there are adjustment, whole_stats and overlap_stats. For each adjustments, for each band, there is scale and offset. For each whole_stats and overlap_stats, for each band, there is mean, std, and size (number of pixels). Each band key follows the format band_0, band_1, etc. Mean and std are floats and size is an integer.</p>
-<p>This structure is validated by <code>_validate_adjustment_model_structure()</code> before use to ensure consistency and completeness across images and bands. Global regression does not actually use 'adjustments' field because they are recalculated every run.</p>
-<h2 id="block-maps-file">Block Maps File<a class="headerlink" href="#block-maps-file" title="Permanent link">&para;</a></h2>
-<p>Block maps are spatial summaries of raster data, where each block represents the mean values of a group of pixels over a fixed region. They are used to reduce image resolution while preserving local radiometric characteristics, enabling efficient comparison and adjustment across images. Each map is structured as a grid of blocks with values for each spectral band. They can be saved as regular <code>geotif</code> files and together store this information: block_local_means, block_reference_mean, num_row, num_col, bounds_canvas_coords. </p>
-<p>There are two types of block maps, although their format is exactly the same:</p>
-<ul>
-<li><strong>Local Block Map:</strong> Each block stores the mean value of all pixels within its boundary for a single image.</li>
-<li><strong>Reference Block Map:</strong> Each block is the mean of all images means for its boundary; simply the mean of all local block maps.</li>
+</li>
+<li>Pseudo-Invariant Feature (PIFs)/Radiometric Control Sets (RCS) selection strategies:<ul>
+<li>None</li>
+<li>Whole image</li>
+<li>Overlapping area</li>
+<li>Manual</li>
+<li>Manual polygons or pixels</li>
+<li>Manual threshold</li>
+<li>Statistical</li>
+<li>Dark/Bright Set (DB)</li>
+<li>Band indexes</li>
+<li>No-change  Scattergrams (NC)</li>
+<li>Multivariate Alteration Detection (MAD)</li>
+<li>Iteratively Reweighted MAD (IR-MAD)</li>
+<li>Multi-Rule-Based Normalization</li>
+<li>Geometric</li>
+<li>Feature-Based (Keypoint) RRN</li>
+<li>Location-Independent RRN (LIRRN)</li>
 </ul>
-<p>Both block maps have the shape: <code>num_row, num_col, num_bands</code>, however, there are multiple (one for each image) local block maps and only one reference block map. Once a reference block map is created it is unique to its input images and cannot be accurately modified to add additional images. However, images can be 'brought' to a reference block map even if they were not involved in its creation as long as it covers that image.</p>
+</li>
+<li>Adjustment scope:<ul>
+<li>Global</li>
+<li>Blocks/interpolated blocks</li>
+<li>CCA space</li>
+<li>Blur</li>
+<li>Surface model</li>
+</ul>
+</li>
+<li>Overlap:<ul>
+<li>Required</li>
+<li>Not required</li>
+</ul>
+</li>
+<li>Pixel units:<ul>
+<li>Any</li>
+<li>Reflectance</li>
+<li>Radiance</li>
+<li>DN</li>
+</ul>
+</li>
+<li>Bands:<ul>
+<li>Independent</li>
+<li>Correlated</li>
+</ul>
+</li>
+<li>Target reference:<ul>
+<li>Single image</li>
+<li>Virtual central tendency</li>
+<li>Learned distribution</li>
+</ul>
+</li>
+</ul>
 
 
 
@@ -862,7 +836,7 @@ This format represents the following: For each image_name there are adjustment, 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    2025-05-16
+    2025-05-22
   </span>
 
     

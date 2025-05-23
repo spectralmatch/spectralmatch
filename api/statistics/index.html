@@ -274,6 +274,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../../rrn_methods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    RRN Methods
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="https://github.com/spectralmatch/spectralmatch/releases" class="md-nav__link">
         
   
@@ -370,10 +392,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
   
   
@@ -386,8 +408,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             Examples
           </label>
@@ -486,10 +508,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -502,8 +524,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             API Reference
           </label>
@@ -625,24 +647,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#spectralmatch.statistics.compare_spatial_spectral_difference_average" class="md-nav__link">
-    <span class="md-ellipsis">
-      compare_spatial_spectral_difference_average
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.statistics.compare_spatial_spectral_difference_individual_bands" class="md-nav__link">
-    <span class="md-ellipsis">
-      compare_spatial_spectral_difference_individual_bands
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -719,24 +723,6 @@
   <a href="#spectralmatch.statistics.compare_image_spectral_profiles_pairs" class="md-nav__link">
     <span class="md-ellipsis">
       compare_image_spectral_profiles_pairs
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.statistics.compare_spatial_spectral_difference_average" class="md-nav__link">
-    <span class="md-ellipsis">
-      compare_spatial_spectral_difference_average
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.statistics.compare_spatial_spectral_difference_individual_bands" class="md-nav__link">
-    <span class="md-ellipsis">
-      compare_spatial_spectral_difference_individual_bands
     </span>
   </a>
   
@@ -822,7 +808,11 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mapping of labels to image file paths.</p>
+                <p>Mapping of labels to image file paths:
+{
+'Image A': '/image/a.tif',
+'Image B': '/image/b.tif'
+}</p>
               </div>
             </td>
             <td>
@@ -904,7 +894,8 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/statistics.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 9</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 8</span>
+<span class="normal"> 9</span>
 <span class="normal">10</span>
 <span class="normal">11</span>
 <span class="normal">12</span>
@@ -962,17 +953,21 @@
 <span class="normal">64</span>
 <span class="normal">65</span>
 <span class="normal">66</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compare_image_spectral_profiles</span><span class="p">(</span>
-    <span class="n">input_image_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-    <span class="n">output_figure_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">xlabel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">ylabel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="n">input_image_dict</span><span class="p">,</span>
+    <span class="n">output_figure_path</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compares spectral profiles of multiple images by plotting median and interquartile ranges.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_image_dict (dict): Mapping of labels to image file paths.</span>
+<span class="sd">        input_image_dict (dict): Mapping of labels to image file paths:</span>
+<span class="sd">            {</span>
+<span class="sd">            &#39;Image A&#39;: &#39;/image/a.tif&#39;,</span>
+<span class="sd">            &#39;Image B&#39;: &#39;/image/b.tif&#39;</span>
+<span class="sd">            }</span>
 <span class="sd">        output_figure_path (str): Path to save the output plot.</span>
 <span class="sd">        title (str): Title of the plot.</span>
 <span class="sd">        xlabel (str): Label for the x-axis.</span>
@@ -981,35 +976,32 @@
 <span class="sd">    Outputs:</span>
 <span class="sd">        Saves a spectral profile comparison figure to the specified path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_figure_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-    <span class="n">colors</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">tab10</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>  <span class="c1"># Cycle through colors</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">tab10</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>
     <span class="n">spectral_profiles</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="n">input_image_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to open </span><span class="si">{</span><span class="n">image_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+                <span class="n">image_data</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>  <span class="c1"># shape: (bands, height, width)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to open </span><span class="si">{</span><span class="n">image_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">continue</span>
 
-        <span class="n">image_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">image_data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="n">bands</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">image_data</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">bands</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">image_data</span><span class="o">.</span><span class="n">shape</span>
-            <span class="n">image_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">image_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-        <span class="n">image_data</span> <span class="o">=</span> <span class="n">image_data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bands</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">mean_spectral</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">image_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">image_data</span><span class="p">,</span> <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">75</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">spectral_profiles</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">mean_spectral</span><span class="p">,</span> <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span><span class="p">))</span>
+        <span class="n">bands</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">image_data</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">reshaped</span> <span class="o">=</span> <span class="n">image_data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bands</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">median</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">reshaped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">reshaped</span><span class="p">,</span> <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">75</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">spectral_profiles</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">median</span><span class="p">,</span> <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span><span class="p">))</span>
         <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">mean_spectral</span><span class="p">,</span> <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">spectral_profiles</span><span class="p">):</span>
-        <span class="n">color</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>  <span class="c1"># Assign unique color</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mean_spectral</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">mean_spectral</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mean_spectral</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">median</span><span class="p">,</span> <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">spectral_profiles</span><span class="p">):</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">median</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">q25</span><span class="p">,</span> <span class="n">q75</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
@@ -1029,7 +1021,7 @@
 
 
 <h2 id="spectralmatch.statistics.compare_image_spectral_profiles_pairs" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">compare_image_spectral_profiles_pairs</span><span class="p">(</span><span class="n">image_groups_dict</span><span class="p">,</span> <span class="n">output_figure_path</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">compare_image_spectral_profiles_pairs</span><span class="p">(</span><span class="n">image_groups_dict</span><span class="p">,</span> <span class="n">output_figure_path</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">xlabel</span><span class="p">,</span> <span class="n">ylabel</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.statistics.compare_image_spectral_profiles_pairs" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1059,7 +1051,15 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mapping of labels to image path pairs (before, after).</p>
+                <p>Mapping of labels to image path pairs (before, after):
+{'Image A': [
+    '/image/before/a.tif',
+    'image/after/a.tif'
+],
+'Image B': [
+    '/image/before/b.tif',
+    '/image/after/b.tif'
+]}</p>
               </div>
             </td>
             <td>
@@ -1076,6 +1076,54 @@
             <td>
               <div class="doc-md-description">
                 <p>Path to save the resulting comparison figure.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>title</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Title of the plot.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>xlabel</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>X-axis label.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ylabel</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Y-axis label.</p>
               </div>
             </td>
             <td>
@@ -1136,148 +1184,10 @@
 <span class="normal">109</span>
 <span class="normal">110</span>
 <span class="normal">111</span>
-<span class="normal">112</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compare_image_spectral_profiles_pairs</span><span class="p">(</span>
-    <span class="n">image_groups_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-    <span class="n">output_figure_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Plots paired spectral profiles for before-and-after image comparisons.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        image_groups_dict (dict): Mapping of labels to image path pairs (before, after).</span>
-<span class="sd">        output_figure_path (str): Path to save the resulting comparison figure.</span>
-
-<span class="sd">    Outputs:</span>
-<span class="sd">        Saves a spectral comparison plot showing pre- and post-processing profiles.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-    <span class="n">colors</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">tab10</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>  <span class="c1"># Cycle through colors</span>
-
-    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">image_groups_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># Ensure paired comparison</span>
-            <span class="n">image_path1</span><span class="p">,</span> <span class="n">image_path2</span> <span class="o">=</span> <span class="n">group</span>
-            <span class="n">color</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>  <span class="c1"># Assign the same color to both images</span>
-
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="n">image_path1</span><span class="p">,</span> <span class="n">image_path2</span><span class="p">]):</span>
-                <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
-                    <span class="n">img</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-                    <span class="n">num_bands</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="n">img_reshaped</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_bands</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-                    <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">nodata</span>
-                    <span class="k">if</span> <span class="n">nodata_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">img_reshaped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">img_reshaped</span> <span class="o">==</span> <span class="n">nodata_value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">img_reshaped</span><span class="p">)</span>
-                    <span class="n">mean_spectral</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">img_reshaped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-                    <span class="n">bands</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_bands</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-                    <span class="n">linestyle</span> <span class="o">=</span> <span class="s1">&#39;dashed&#39;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;solid&#39;</span>
-                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bands</span><span class="p">,</span> <span class="n">mean_spectral</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="n">linestyle</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="s1">&#39;Before&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;After&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Band Number&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Reflectance(0-10,000)&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Pre and Post Spectral Match Comparison&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_figure_path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Figure saved to: </span><span class="si">{</span><span class="n">output_figure_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="spectralmatch.statistics.compare_spatial_spectral_difference_average" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">compare_spatial_spectral_difference_average</span><span class="p">(</span><span class="n">input_overlapping_image_pair_path</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">)</span></code>
-
-<a href="#spectralmatch.statistics.compare_spatial_spectral_difference_average" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Generates a heatmap of the average spectral difference between two overlapping images.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>input_overlapping_image_pair_path</code>
-            </td>
-            <td>
-                  <code><span title="list">list</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>List containing exactly two image paths (pre and post).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>output_image_path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to save the resulting difference visualization.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="outputs" open>
-  <summary>Outputs</summary>
-  <p>Saves a heatmap image illustrating spatial spectral differences.</p>
-</details>
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If the list does not contain exactly two images or if image dimensions differ.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>spectralmatch/statistics.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">115</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
 <span class="normal">116</span>
 <span class="normal">117</span>
 <span class="normal">118</span>
@@ -1290,338 +1200,66 @@
 <span class="normal">125</span>
 <span class="normal">126</span>
 <span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compare_spatial_spectral_difference_average</span><span class="p">(</span>
-    <span class="n">input_overlapping_image_pair_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
-    <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="normal">128</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compare_image_spectral_profiles_pairs</span><span class="p">(</span>
+    <span class="n">image_groups_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">output_figure_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Generates a heatmap of the average spectral difference between two overlapping images.</span>
+<span class="sd">    Plots paired spectral profiles for before-and-after image comparisons.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_overlapping_image_pair_path (list): List containing exactly two image paths (pre and post).</span>
-<span class="sd">        output_image_path (str): Path to save the resulting difference visualization.</span>
+<span class="sd">        image_groups_dict (dict): Mapping of labels to image path pairs (before, after):</span>
+<span class="sd">            {&#39;Image A&#39;: [</span>
+<span class="sd">                &#39;/image/before/a.tif&#39;,</span>
+<span class="sd">                &#39;image/after/a.tif&#39;</span>
+<span class="sd">            ],</span>
+<span class="sd">            &#39;Image B&#39;: [</span>
+<span class="sd">                &#39;/image/before/b.tif&#39;,</span>
+<span class="sd">                &#39;/image/after/b.tif&#39;</span>
+<span class="sd">            ]}</span>
+<span class="sd">        output_figure_path (str): Path to save the resulting comparison figure.</span>
+<span class="sd">        title (str): Title of the plot.</span>
+<span class="sd">        xlabel (str): X-axis label.</span>
+<span class="sd">        ylabel (str): Y-axis label.</span>
 
 <span class="sd">    Outputs:</span>
-<span class="sd">        Saves a heatmap image illustrating spatial spectral differences.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If the list does not contain exactly two images or if image dimensions differ.</span>
+<span class="sd">        Saves a spectral comparison plot showing pre- and post-processing profiles.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_overlapping_image_pair_path</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Function requires exactly two image paths for comparison.&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_figure_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">tab10</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>
 
-    <span class="n">image_path1</span><span class="p">,</span> <span class="n">image_path2</span> <span class="o">=</span> <span class="n">input_overlapping_image_pair_path</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">image_groups_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">image_path1</span><span class="p">,</span> <span class="n">image_path2</span> <span class="o">=</span> <span class="n">group</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path1</span><span class="p">)</span> <span class="k">as</span> <span class="n">src1</span><span class="p">,</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path2</span><span class="p">)</span> <span class="k">as</span> <span class="n">src2</span><span class="p">:</span>
-        <span class="n">img1</span> <span class="o">=</span> <span class="n">src1</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>  <span class="c1"># Read all bands (shape: bands, height, width)</span>
-        <span class="n">img2</span> <span class="o">=</span> <span class="n">src2</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="n">image_path1</span><span class="p">,</span> <span class="n">image_path2</span><span class="p">]):</span>
+                <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+                    <span class="n">img</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                    <span class="n">num_bands</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">img_reshaped</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_bands</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">nodata</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">nodata</span>
+                    <span class="k">if</span> <span class="n">nodata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">img_reshaped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">img_reshaped</span> <span class="o">==</span> <span class="n">nodata</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">img_reshaped</span><span class="p">)</span>
+                    <span class="n">mean_spectral</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">img_reshaped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">bands</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_bands</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">linestyle</span> <span class="o">=</span> <span class="s1">&#39;dashed&#39;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;solid&#39;</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bands</span><span class="p">,</span> <span class="n">mean_spectral</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="n">linestyle</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="s1">&#39;Before&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;After&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">img1</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">img2</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Images must have the same dimensions for comparison.&quot;</span><span class="p">)</span>
-
-        <span class="c1"># Compute absolute spectral difference per band</span>
-        <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">img2</span> <span class="o">-</span> <span class="n">img1</span><span class="p">)</span>
-        <span class="n">mean_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Average across bands for visualization</span>
-
-        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">mean_diff</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;coolwarm&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Spectral Difference&quot;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Spatial Spectral Difference (Post - Pre)&quot;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
-
-        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spatial spectral difference figure saved to: </span><span class="si">{</span><span class="n">output_image_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="spectralmatch.statistics.compare_spatial_spectral_difference_individual_bands" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">compare_spatial_spectral_difference_individual_bands</span><span class="p">(</span><span class="n">input_overlapping_image_pair_paths</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">)</span></code>
-
-<a href="#spectralmatch.statistics.compare_spatial_spectral_difference_individual_bands" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Creates a color-coded visualization of spectral differences per band between two overlapping images.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>input_overlapping_image_pair_paths</code>
-            </td>
-            <td>
-                  <code><span title="tuple">tuple</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Tuple of two image paths (before, after).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>output_image_path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to save the RGB difference visualization as a PNG.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="outputs" open>
-  <summary>Outputs</summary>
-  <p>Saves a PNG image where color represents the dominant band of spectral difference and brightness indicates magnitude.</p>
-</details>
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If input images differ in shape.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>spectralmatch/statistics.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compare_spatial_spectral_difference_individual_bands</span><span class="p">(</span>
-    <span class="n">input_overlapping_image_pair_paths</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
-    <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Creates a color-coded visualization of spectral differences per band between two overlapping images.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        input_overlapping_image_pair_paths (tuple): Tuple of two image paths (before, after).</span>
-<span class="sd">        output_image_path (str): Path to save the RGB difference visualization as a PNG.</span>
-
-<span class="sd">    Outputs:</span>
-<span class="sd">        Saves a PNG image where color represents the dominant band of spectral difference and brightness indicates magnitude.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If input images differ in shape.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">path1</span><span class="p">,</span> <span class="n">path2</span> <span class="o">=</span> <span class="n">input_overlapping_image_pair_paths</span>
-    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path1</span><span class="p">)</span> <span class="k">as</span> <span class="n">src1</span><span class="p">,</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path2</span><span class="p">)</span> <span class="k">as</span> <span class="n">src2</span><span class="p">:</span>
-        <span class="n">img1</span> <span class="o">=</span> <span class="n">src1</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>  <span class="c1"># shape: (num_bands, height, width)</span>
-        <span class="n">img2</span> <span class="o">=</span> <span class="n">src2</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>  <span class="c1"># shape: (num_bands, height, width)</span>
-
-        <span class="k">if</span> <span class="n">img1</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">img2</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Input images do not have the same shape:</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="sa">f</span><span class="s2">&quot; Image1 shape: </span><span class="si">{</span><span class="n">img1</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, Image2 shape: </span><span class="si">{</span><span class="n">img2</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-
-        <span class="n">num_bands</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">img1</span><span class="o">.</span><span class="n">shape</span>
-
-    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">img1</span> <span class="o">-</span> <span class="n">img2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># (bands, height, width)</span>
-
-    <span class="n">global_min</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>  <span class="c1"># often 0</span>
-    <span class="n">global_max</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-
-    <span class="n">default_colors</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>  <span class="c1"># Band 1 -&gt; Red</span>
-        <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>  <span class="c1"># Band 2 -&gt; Green</span>
-        <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>  <span class="c1"># Band 3 -&gt; Blue</span>
-        <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>  <span class="c1"># Band 4 -&gt; Yellow</span>
-        <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>  <span class="c1"># Band 5 -&gt; Magenta</span>
-        <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>  <span class="c1"># Band 6 -&gt; Cyan</span>
-        <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>  <span class="c1"># Band 7 -&gt; Orange</span>
-        <span class="c1"># etc. Add more if needed</span>
-    <span class="p">]</span>
-
-    <span class="n">band_colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">default_colors</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">default_colors</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bands</span><span class="p">)]</span>
-    <span class="n">band_colors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">band_colors</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># shape: (num_bands, 3)</span>
-
-    <span class="c1"># Initialize an empty float array for RGB: shape = (3, height, width)</span>
-    <span class="n">output_rgb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-
-    <span class="c1"># sum of differences per pixel across all bands -&gt; shape: (height, width)</span>
-    <span class="n">sum_diff</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">sum_diff_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sum_diff</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="n">sum_diff</span><span class="p">)</span>  <span class="c1"># avoid division-by-zero</span>
-
-    <span class="c1"># fraction_diff[b, y, x] = diff[b, y, x] / sum_diff[y, x]</span>
-    <span class="n">fraction_diff</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">sum_diff_safe</span>
-
-    <span class="c1"># Accumulate weighted colors</span>
-    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bands</span><span class="p">):</span>
-        <span class="c1"># band_colors[b] is shape (3,)</span>
-        <span class="c1"># fraction_diff[b] is shape (height, width)</span>
-        <span class="n">output_rgb</span> <span class="o">+=</span> <span class="n">fraction_diff</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">band_colors</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-
-
-    <span class="n">brightness</span> <span class="o">=</span> <span class="p">(</span><span class="n">sum_diff</span> <span class="o">-</span> <span class="n">global_min</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">global_max</span> <span class="o">-</span> <span class="n">global_min</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
-    <span class="n">brightness</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">brightness</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-    <span class="c1"># Multiply the RGB by brightness</span>
-    <span class="n">output_rgb</span> <span class="o">*=</span> <span class="n">brightness</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-
-    <span class="n">output_rgb_for_plot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">output_rgb</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-
-    <span class="c1"># Ensure the data is in 0..1</span>
-    <span class="n">output_rgb_for_plot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">output_rgb_for_plot</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-
-    <span class="c1"># Use plt.imsave to write out a PNG</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="n">output_rgb_for_plot</span><span class="p">)</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved difference visualization PNG to: </span><span class="si">{</span><span class="n">output_image_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_figure_path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Figure saved to: </span><span class="si">{</span><span class="n">output_figure_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
