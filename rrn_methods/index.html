@@ -324,9 +324,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-dimensions" class="md-nav__link">
+  <a href="#matching-algorithms" class="md-nav__link">
     <span class="md-ellipsis">
-      The dimensions
+      Matching Algorithms
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pixel-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pixel Selection
     </span>
   </a>
   
@@ -706,9 +715,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-dimensions" class="md-nav__link">
+  <a href="#matching-algorithms" class="md-nav__link">
     <span class="md-ellipsis">
-      The dimensions
+      Matching Algorithms
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pixel-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pixel Selection
     </span>
   </a>
   
@@ -738,91 +756,310 @@
 <ul>
 <li><strong>Matching algorithm:</strong> The core transformation applied to align radiometry between images.</li>
 <li><strong>Geometric alignment required:</strong> The level of spatial alignment necessary for the method.</li>
-<li><strong>PIF/RCS selection strategies:</strong> How pseudo-invariant features/control sets are identified.</li>
+<li><strong>Pixel selection (PIFs/RCS):</strong> How pseudo-invariant features/control sets are identified.</li>
 <li><strong>Adjustment scope:</strong> How corrections are applied to the images.</li>
 <li><strong>Overlap:</strong> Whether the method requires overlapping pixels.</li>
 <li><strong>Pixel units:</strong> The radiometric units the method is able to operate on.</li>
 <li><strong>Bands:</strong> Whether bands relationships are preserved.</li>
 <li><strong>Target reference:</strong> What the target image is normalized to.</li>
 </ul>
-<h2 id="the-dimensions">The dimensions<a class="headerlink" href="#the-dimensions" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Matching algorithm:<ul>
-<li>Histogram Matching (HM) (lookup table)</li>
-<li>Minimum–Maximum Normalization (min-max)</li>
-<li>Mean–Standard Deviation Normalization (gain-offset)</li>
-<li>CCA/KCCA-Based Normalization (matrix)</li>
-<li>Global Linear Regression (gain-offset)</li>
-<li>Gamma correction (power function)</li>
-<li>Dodging (low-pass brightness correction)</li>
-<li>Illumination Equalization (modeled lighting correction)</li>
-</ul>
-</li>
-<li>Minimum geometric alignment:<ul>
-<li>None (no spatial info)</li>
-<li>Moderate (A few pixels)</li>
-<li>Co-registration (pixel-wise)</li>
-</ul>
-</li>
-<li>Pseudo-Invariant Feature (PIFs)/Radiometric Control Sets (RCS) selection strategies:<ul>
-<li>None<ul>
-<li>Whole image</li>
-<li>Overlapping area</li>
-</ul>
-</li>
-<li>Manual<ul>
-<li>Manual polygons or pixels</li>
-<li>Manual threshold</li>
-</ul>
-</li>
-<li>Statistical<ul>
-<li>Dark/Bright Set (DB)</li>
-<li>Band indexes</li>
-<li>No-change  Scattergrams (NC)</li>
-<li>Multivariate Alteration Detection (MAD)</li>
-<li>Iteratively Reweighted MAD (IR-MAD)</li>
-<li>Multi-Rule-Based Normalization</li>
-</ul>
-</li>
-<li>Geometric<ul>
-<li>Feature-Based (Keypoint) RRN</li>
-<li>Location-Independent RRN (LIRRN)</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>Adjustment scope:<ul>
-<li>Global</li>
-<li>Blocks/interpolated blocks</li>
-<li>CCA space</li>
-<li>Blur</li>
-<li>Surface model</li>
-</ul>
-</li>
-<li>Overlap:<ul>
-<li>Required</li>
-<li>Not required</li>
-</ul>
-</li>
-<li>Pixel units:<ul>
-<li>Any</li>
-<li>Reflectance</li>
-<li>Radiance</li>
-<li>DN</li>
-</ul>
-</li>
-<li>Bands:<ul>
-<li>Independent</li>
-<li>Correlated</li>
-</ul>
-</li>
-<li>Target reference:<ul>
-<li>Single image</li>
-<li>Virtual central tendency</li>
-<li>Learned distribution</li>
-</ul>
-</li>
-</ul>
+<h2 id="matching-algorithms">Matching Algorithms<a class="headerlink" href="#matching-algorithms" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Matching algorithm</th>
+<th>Description</th>
+<th>Geometric alignment</th>
+<th>Adjustment granularity</th>
+<th>Applies</th>
+<th>Overlap required</th>
+<th>Pixel units</th>
+<th>Bands</th>
+<th>Target reference</th>
+<th>Year introduced</th>
+<th>Key papers</th>
+<th>Software</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Histogram Matching (HM)</td>
+<td>Matches histogram distributions between images</td>
+<td>None</td>
+<td>Global</td>
+<td>Lookup table</td>
+<td>no</td>
+<td>Any</td>
+<td>Independent</td>
+<td>Reference histogram</td>
+<td>1980s</td>
+<td></td>
+<td>ENVI; <a href="https://github.com/Gustavoohs/HistMatch">Github HistMatch QGIS Plugin</a>; ArcGIS Pro; IMAGINE Mosaic Pro</td>
+</tr>
+<tr>
+<td>Minimum–Maximum Scale Normalization</td>
+<td>Linearly scales pixel values to match reference min/max</td>
+<td>None</td>
+<td>Global</td>
+<td>Min/max</td>
+<td>No</td>
+<td>Any</td>
+<td>Independent</td>
+<td>Reference min/max</td>
+<td>1980s</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mean–Standard Deviation Regression</td>
+<td>Fits linear regression using mean and std dev</td>
+<td>None</td>
+<td>Global</td>
+<td>Gain/offset</td>
+<td>No</td>
+<td>Any</td>
+<td>Independent/Correlated</td>
+<td>Reference mean/std</td>
+<td>1980s</td>
+<td></td>
+<td>ArcGIS Pro</td>
+</tr>
+<tr>
+<td>Overlaping pixel-wise Linear Regression</td>
+<td>Fits linear regression using overlapping pairs of pixels</td>
+<td>Co-registered</td>
+<td>Global</td>
+<td>Gain/offset</td>
+<td>Yes</td>
+<td>Any</td>
+<td>Independent/Correlated</td>
+<td>Reference image pixels</td>
+<td>1980s</td>
+<td></td>
+<td>ArcGIS Pro</td>
+</tr>
+<tr>
+<td>Block adjusted gamma correction</td>
+<td>Adjusts local brightness via block-based gamma scaling</td>
+<td>Moderate</td>
+<td>Blocks/interpolation resolution</td>
+<td>Power function</td>
+<td>Yes</td>
+<td>Any</td>
+<td>Independent</td>
+<td>Reference block map (mean of local blocks)</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>CCA/KCCA-Based</td>
+<td>Finding the most correlated combinations between images</td>
+<td>Co-registered</td>
+<td>CCA space resolution</td>
+<td>Matrix</td>
+<td>Yes</td>
+<td>Any</td>
+<td>Correlated</td>
+<td>Reference canonical components</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Dodging</td>
+<td>Smooths brightness using low-pass filtering to reduce lighting artifacts</td>
+<td>Co-registered</td>
+<td>Blur resolution</td>
+<td>Low-pass brightness correction</td>
+<td>Yes</td>
+<td>Any</td>
+<td>Independent</td>
+<td>Blur created brightness values</td>
+<td></td>
+<td></td>
+<td>ArcGIS Pro; IMAGINE Mosaic Pro</td>
+</tr>
+<tr>
+<td>Illumination Equalization</td>
+<td>Models and removes large-scale illumination differences across images</td>
+<td>Co-registered</td>
+<td>Surface model resolution</td>
+<td>Modeled lighting correction</td>
+<td>Yes</td>
+<td>Any</td>
+<td>Independent</td>
+<td>Computed illumination values</td>
+<td></td>
+<td></td>
+<td>IMAGINE Mosaic Pro</td>
+</tr>
+<tr>
+<td>Wavelet reconstruction</td>
+<td>Uses ancillary data to model and reconstruct image values at multiple detail levels</td>
+<td>Co-registered</td>
+<td>Ancillary data resolution</td>
+<td>Decomposition/reconstruction</td>
+<td>Yes</td>
+<td>Any</td>
+<td>Correlated</td>
+<td>Ancillary data</td>
+<td></td>
+<td><a href="https://doi.org/10.1109/JSTARS.2021.3069855">(Gan et al., 2021)</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="pixel-selection">Pixel Selection<a class="headerlink" href="#pixel-selection" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Pixel selection (PIFs/RCS)</th>
+<th>Description</th>
+<th>Type</th>
+<th>Geometric alignment</th>
+<th>Overlap required</th>
+<th>Pixel units</th>
+<th>Year introduced</th>
+<th>Key papers</th>
+<th>Software</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Whole image</td>
+<td>Uses all pixels without selection or masking</td>
+<td>None</td>
+<td>None</td>
+<td>No</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Overlapping area</td>
+<td>Uses only pixels in the spatial overlap between images</td>
+<td>None</td>
+<td>Moderate</td>
+<td>Yes</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Manual polygons or pixels</td>
+<td>User-defined areas or points chosen as invariant</td>
+<td>Manual</td>
+<td>None</td>
+<td>No</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Manual threshold</td>
+<td>Selects pixels based on value threshold</td>
+<td>Manual</td>
+<td>None</td>
+<td>No</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Dark/Bright Set (DB)</td>
+<td>Selects darkest and brightest pixels assumed to be invariant</td>
+<td>Statistical</td>
+<td>None</td>
+<td>No</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Band indexes</td>
+<td>Uses specific band combinations (e.g., NDVI) to identify invariant pixels</td>
+<td>Statistical</td>
+<td>None</td>
+<td>No</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>No-change  Scattergrams (NC)</td>
+<td>Selects pixels near the scatterplot diagonal where reference and target values match closely</td>
+<td>Statistical</td>
+<td>Co-registered</td>
+<td>Yes</td>
+<td>Any</td>
+<td></td>
+<td><a href="https://www.mdpi.com/2072-4292/5/6/2763">(De Carvalho et al., 2013)</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Multivariate Alteration Detection (MAD)</td>
+<td>Identifies invariant pixels by transforming image differences into uncorrelated components; selects pixels with minimal change across all bands</td>
+<td>Statistical</td>
+<td>Co-registered</td>
+<td>Yes</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Iteratively Reweighted MAD (IR-MAD)</td>
+<td>Refines MAD by reweighting pixels to improve change detection</td>
+<td>Statistical</td>
+<td>Co-registered</td>
+<td>Yes</td>
+<td>Any</td>
+<td></td>
+<td><a href="https://doi.org/10.1016/j.rse.2007.07.013">(Canty &amp; Nielsen, 2008)</a></td>
+<td><a href="https://github.com/SMByC/ArrNorm">Github MATLAB scripts</a></td>
+</tr>
+<tr>
+<td>Multi-Rule-Based Normalization</td>
+<td>Combines several selection rules to identify invariant pixels</td>
+<td>Statistical</td>
+<td>None</td>
+<td>No</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Feature-Based (Keypoint) RRN</td>
+<td>Matches distinctive features between images and uses their correspondence to guide normalization</td>
+<td>Geometric</td>
+<td>Moderate</td>
+<td>Yes</td>
+<td>Any</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Location-Independent RRN (LIRRN)</td>
+<td>Groups pixels by brightness or spectral similarity, then matches these groups between images to perform group-wise normalization</td>
+<td>Geometric</td>
+<td>Moderate</td>
+<td>Yes</td>
+<td>Any</td>
+<td>2024</td>
+<td><a href="https://www.mdpi.com/1424-8220/24/7/2272">(Maghimi et al., 2024)</a></td>
+<td><a href="https://github.com/ArminMoghimi/LIRRN/tree/main">Github MATLAB scripts</a></td>
+</tr>
+</tbody>
+</table>
 
 
 
@@ -843,7 +1080,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    2025-05-22
+    2025-05-23
   </span>
 
     
