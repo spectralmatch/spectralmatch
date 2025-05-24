@@ -763,6 +763,7 @@
 <li><strong>Bands:</strong> Whether bands relationships are preserved.</li>
 <li><strong>Target reference:</strong> What the target image is normalized to.</li>
 </ul>
+<p>Multiple matching algorithms can be used in conjunction with multiple pixel selection methods. Note that the most restrictive method will dictate the image requirements (e.g. if using <code>Global regression</code> with <code>Overlapping area</code> the <code>Geometric alignment</code> will need to be <code>Moderate</code>). The specific matching algorithm used in each method is flexible and not fixed; it may involve least squares, RANSAC, Theil–Sen, Huber, or other forms of robust regression.</p>
 <h2 id="matching-algorithms">Matching Algorithms<a class="headerlink" href="#matching-algorithms" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -794,7 +795,7 @@
 <td>Reference histogram</td>
 <td>1980s</td>
 <td></td>
-<td>ENVI; <a href="https://github.com/Gustavoohs/HistMatch">Github HistMatch QGIS Plugin</a>; ArcGIS Pro; IMAGINE Mosaic Pro</td>
+<td>ENVI; <a href="https://github.com/Gustavoohs/HistMatch">HistMatch QGIS Plugin</a>; ArcGIS Pro; IMAGINE Mosaic Pro; <a href="https://cran.r-project.org/web/packages/landsat/index.html">landsat R library via histmatch()</a></td>
 </tr>
 <tr>
 <td>Minimum–Maximum Scale Normalization</td>
@@ -822,13 +823,13 @@
 <td>Reference mean/std</td>
 <td>1980s</td>
 <td></td>
-<td>ArcGIS Pro</td>
+<td>ArcGIS Pro; <a href="https://github.com/spectralmatch/spectralmatch">spectralmatch Python library and QGIS plugin</a></td>
 </tr>
 <tr>
 <td>Overlaping pixel-wise Linear Regression</td>
 <td>Fits linear regression using overlapping pairs of pixels</td>
 <td>Co-registered</td>
-<td>Global</td>
+<td>Model</td>
 <td>Gain/offset</td>
 <td>Yes</td>
 <td>Any</td>
@@ -836,7 +837,7 @@
 <td>Reference image pixels</td>
 <td>1980s</td>
 <td></td>
-<td>ArcGIS Pro</td>
+<td>ArcGIS Pro; <a href="https://cran.r-project.org/web/packages/landsat/index.html">landsat R library via relnorm()</a></td>
 </tr>
 <tr>
 <td>Block adjusted gamma correction</td>
@@ -850,7 +851,7 @@
 <td>Reference block map (mean of local blocks)</td>
 <td></td>
 <td></td>
-<td></td>
+<td><a href="https://github.com/spectralmatch/spectralmatch">spectralmatch Python library and QGIS plugin</a></td>
 </tr>
 <tr>
 <td>CCA/KCCA-Based</td>
@@ -908,6 +909,20 @@
 <td><a href="https://doi.org/10.1109/JSTARS.2021.3069855">(Gan et al., 2021)</a></td>
 <td></td>
 </tr>
+<tr>
+<td>Dual-reference affine interpolation</td>
+<td>Models corrections from the two nearest reference images and applies temporally weighted interpolation</td>
+<td>Co-registered</td>
+<td>Model</td>
+<td>Gain/offset</td>
+<td>Yes</td>
+<td>Any</td>
+<td>Independent</td>
+<td>Two closest high-quality reference images</td>
+<td>2020</td>
+<td><a href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/">(Hessel et al., 2020)</a></td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <h2 id="pixel-selection">Pixel Selection<a class="headerlink" href="#pixel-selection" title="Permanent link">&para;</a></h2>
@@ -962,7 +977,7 @@
 <tr>
 <td>Manual threshold</td>
 <td>Selects pixels based on value threshold</td>
-<td>Manual</td>
+<td>Threshold</td>
 <td>None</td>
 <td>No</td>
 <td>Any</td>
@@ -973,24 +988,46 @@
 <tr>
 <td>Dark/Bright Set (DB)</td>
 <td>Selects darkest and brightest pixels assumed to be invariant</td>
-<td>Statistical</td>
+<td>Threshold</td>
 <td>None</td>
 <td>No</td>
-<td>Any</td>
+<td>Any/reflectance may perform better</td>
 <td></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td>Band indexes</td>
-<td>Uses specific band combinations (e.g., NDVI) to identify invariant pixels</td>
-<td>Statistical</td>
+<td>NDVI ratio</td>
+<td>Uses vegetation indices to isolate vegetated areas for normalization</td>
+<td>Band ratio</td>
 <td>None</td>
 <td>No</td>
-<td>Any</td>
+<td>Reflectance</td>
 <td></td>
 <td></td>
+<td><a href="https://github.com/spectralmatch/spectralmatch">spectralmatch Python library and QGIS plugin</a></td>
+</tr>
+<tr>
+<td>K-T ratio</td>
+<td>Uses the Kauth–Thomas transformation to identify invariant pixels in greenness–brightness space</td>
+<td>Band ratio</td>
+<td>None</td>
+<td>No</td>
+<td>Reflectance</td>
 <td></td>
+<td><a href="https://www.sciencedirect.com/science/article/pii/003442579190062B?via%3Dihub">(Hall et al., 1991)</a></td>
+<td><a href="https://cran.r-project.org/web/packages/landsat/index.html">landsat R library via RCS()</a></td>
+</tr>
+<tr>
+<td>Urban materials ratio</td>
+<td>Assumes that certain <strong>man-made surfaces</strong> (e.g., roads, rooftops) have <strong>stable reflectance over time</strong> and uses their statistical properties to correct radiometric differences</td>
+<td>Band ratio</td>
+<td>None</td>
+<td>No</td>
+<td>Reflectance</td>
+<td>1988</td>
+<td><a href="https://www.sciencedirect.com/science/article/pii/0034425788901162?via%3Dihub">(Schott et al., 1988)</a></td>
+<td><a href="https://cran.r-project.org/web/packages/landsat/index.html">landsat R library via PIF()</a></td>
 </tr>
 <tr>
 <td>No-change  Scattergrams (NC)</td>
@@ -1023,7 +1060,7 @@
 <td>Any</td>
 <td></td>
 <td><a href="https://doi.org/10.1016/j.rse.2007.07.013">(Canty &amp; Nielsen, 2008)</a></td>
-<td><a href="https://github.com/SMByC/ArrNorm">Github MATLAB scripts</a></td>
+<td><a href="https://github.com/SMByC/ArrNorm">ArrNorm Python scripts</a></td>
 </tr>
 <tr>
 <td>Multi-Rule-Based Normalization</td>
@@ -1034,6 +1071,28 @@
 <td>Any</td>
 <td></td>
 <td></td>
+<td></td>
+</tr>
+<tr>
+<td>PCA</td>
+<td>Uses principal component analysis to identify pseudo-invariant pixels along the major axis of multitemporal scatterplots</td>
+<td>Statistical</td>
+<td>Co-registered</td>
+<td>Yes</td>
+<td>Any</td>
+<td>2002</td>
+<td><a href="https://www.sciencedirect.com/science/article/pii/S0034425702000299?via%3Dihub">(Du et al., 2002)</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Gradient angle similarity</td>
+<td>Selecting the 10% of pixels with the smallest gradient angle differences between an image and its reference</td>
+<td>Statistical</td>
+<td>Co-registered</td>
+<td>Yes</td>
+<td>Any</td>
+<td>2020</td>
+<td><a href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/">(Hessel et al., 2020)</a></td>
 <td></td>
 </tr>
 <tr>
@@ -1056,7 +1115,7 @@
 <td>Any</td>
 <td>2024</td>
 <td><a href="https://www.mdpi.com/1424-8220/24/7/2272">(Maghimi et al., 2024)</a></td>
-<td><a href="https://github.com/ArminMoghimi/LIRRN/tree/main">Github MATLAB scripts</a></td>
+<td><a href="https://github.com/ArminMoghimi/LIRRN/tree/main">LIRRN MATLAB scripts</a></td>
 </tr>
 </tbody>
 </table>
