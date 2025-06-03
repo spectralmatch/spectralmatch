@@ -399,9 +399,36 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-guidelines-and-philosophy" class="md-nav__link">
+  <a href="#design-philosophy" class="md-nav__link">
     <span class="md-ellipsis">
-      Design Guidelines and Philosophy
+      Design Philosophy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensible-function-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensible Function Types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#standard-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      Standard UI
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validate-inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Validate Inputs
     </span>
   </a>
   
@@ -769,9 +796,36 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-guidelines-and-philosophy" class="md-nav__link">
+  <a href="#design-philosophy" class="md-nav__link">
     <span class="md-ellipsis">
-      Design Guidelines and Philosophy
+      Design Philosophy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensible-function-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensible Function Types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#standard-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      Standard UI
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validate-inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Validate Inputs
     </span>
   </a>
   
@@ -842,10 +896,7 @@
 
 
 <h1 id="contributing-guide">Contributing Guide<a class="headerlink" href="#contributing-guide" title="Permanent link">&para;</a></h1>
-<p>This project includes a <a href="https://github.com/spectralmatch/spectralmatch/blob/main/Makefile">Makefile</a> to streamline development tasks. Makefiles allow you to automate and organize common tasks, in this case to help serve and deploy documentation, manage version tags, format and lint code, and run tests.</p>
-<blockquote>
-<p><strong>Installation instructions are on their own <a href="../installation/">page</a></strong></p>
-</blockquote>
+<p>Thank you for your interest in contributing. The sections below outline how the library is structured, how to submit changes, and the conventions to follow when developing new features or improving existing functionality.</p>
 <hr />
 <h2 id="collaboration-instructions">Collaboration Instructions<a class="headerlink" href="#collaboration-instructions" title="Permanent link">&para;</a></h2>
 <p>We welcome all contributions the project! Please be respectful and work towards improving the library. To get started:</p>
@@ -864,27 +915,188 @@
 </li>
 </ol>
 <hr />
-<h2 id="design-guidelines-and-philosophy">Design Guidelines and Philosophy<a class="headerlink" href="#design-guidelines-and-philosophy" title="Permanent link">&para;</a></h2>
-<h3 id="remember-to">Remember to:<a class="headerlink" href="#remember-to" title="Permanent link">&para;</a></h3>
+<h2 id="design-philosophy">Design Philosophy<a class="headerlink" href="#design-philosophy" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Keep code concise and simple</li>
 <li>Adapt code for large datasets with windows, multiprocessing, progressive computations, etc</li>
 <li>Keep code modular and have descriptive names</li>
 <li>Use PEP 8 code formatting</li>
 <li>Use functions that are already created when possible</li>
-</ul>
-<h3 id="when-building-a-function">When building a function:<a class="headerlink" href="#when-building-a-function" title="Permanent link">&para;</a></h3>
-<ul>
 <li>Combine similar params into one multi-value parameter</li>
-<li>Start functions by printing "Start {process}"</li>
-<li>Use similar naming convention and input parameter format as other functions. For example: vector_mask_path, window_size, debug_logs, custom_nodata_value, parallel_workers, calculation_dtype, etc.</li>
-<li>If True, debug_logs param should be used to enable printing info about the process</li>
+<li>Use similar naming convention and input parameter format as other functions.</li>
 <li>Create docstrings (Google style), tests, and update the docs for new functionality</li>
 </ul>
+<hr />
+<h2 id="extensible-function-types">Extensible Function Types<a class="headerlink" href="#extensible-function-types" title="Permanent link">&para;</a></h2>
+<p>In Relative Radiometric Normalization (RRN) methods often differ in how images are matched, pixels are selected, and seamlines are created. This library organizes those into distinct Python packages, while other operations like aligning rasters, applying masks, merging images, and calculating statistics are more consistent across techniques and are treated as standard utilities.</p>
+<h3 id="matching-functions">Matching functions<a class="headerlink" href="#matching-functions" title="Permanent link">&para;</a></h3>
+<p>Used to adjust the pixel values of images to ensure radiometric consistency across scenes. These functions compute differences between images and apply transformations so that brightness, contrast, or spectral characteristics align across datasets.</p>
+<h3 id="masking-functions-pifrcs">Masking functions (PIF/RCS)<a class="headerlink" href="#masking-functions-pifrcs" title="Permanent link">&para;</a></h3>
+<p>Used to define which parts of an image should be kept or discarded based on spatial criteria. These functions apply vector-based filters or logical rules to isolate regions of interest, remove clouds, or exclude invalid data from further processing.</p>
+<h3 id="seamline-functions">Seamline functions<a class="headerlink" href="#seamline-functions" title="Permanent link">&para;</a></h3>
+<p>Used to determine optimal boundaries between overlapping image regions. These functions generate cutlines that split image footprints in a way that minimizes visible seams and balances spatial coverage, often relying on geometric relationships between overlapping areas.</p>
+<hr />
+<h2 id="standard-ui">Standard UI<a class="headerlink" href="#standard-ui" title="Permanent link">&para;</a></h2>
+<p>Reusable types are organized into the types and validation module. Use these types directly as the types of params inside functions where applicable. Use the appropriate _resolve... function to resolve these inputs into usable variables.</p>
+<h3 id="inputoutput">Input/Output<a class="headerlink" href="#inputoutput" title="Permanent link">&para;</a></h3>
+<p>The input_images parameter accepts either a tuple or a list. If given as a tuple, it should contain a folder path and a glob pattern to search for files (e.g., ("/input/folder", "*.tif")). Alternatively, it can be a list of full file paths to individual input images. The output_images parameter defines how output filenames are determined. It can also be a tuple, consisting of an output folder and a filename template where "$" is replaced with each input image’s basename (e.g., ("/output/folder", "$_GlobalMatch.tif")). Alternatively, it may be a list of full output paths, which must match the number of input images.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="n">input_images</span>
+<span class="n">output_images</span>
+
+<span class="c1"># Types</span>
+<span class="n">SearchFolderOrListFiles</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
+<span class="n">CreateInFolderOrListFiles</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
+
+<span class="c1"># Resolve</span>
+<span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+<span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+</code></pre></div></td></tr></table></div></p>
+<h3 id="nodata-value">Nodata Value<a class="headerlink" href="#nodata-value" title="Permanent link">&para;</a></h3>
+<p>The output_dtype parameter specifies the data type for output rasters and defaults to the input image’s data type if not provided or None. Functions should begin by printing "Start {process name}", while all other print statements should be conditional on debug_logs being True.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">custom_nodata_value</span>
+
+<span class="c1"># Type</span>
+<span class="n">DebugLogs</span> <span class="o">=</span> <span class="nb">bool</span> <span class="c1"># Default: False</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div></p>
+<h3 id="debug-logs">Debug Logs<a class="headerlink" href="#debug-logs" title="Permanent link">&para;</a></h3>
+<p>The debug_logs parameter enables printing of debug information and constraint matrices when set to True; it defaults to False.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">debug_logs</span>
+
+<span class="c1"># Type</span>
+<span class="n">DebugLogs</span> <span class="o">=</span> <span class="nb">bool</span> <span class="c1"># Default: False</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div></p>
+<h3 id="vector-mask">Vector Mask<a class="headerlink" href="#vector-mask" title="Permanent link">&para;</a></h3>
+<p>The vector_mask parameter limits statistics calculations to specific areas and is given as a tuple with two or three items: a literal "include" or "exclude" to define how the mask is applied, a string path to the vector file, and an optional field name used to match geometries based on the input image name (substring match allowed). Defaults to None for no mask.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">vector_mask</span>
+
+<span class="c1"># Type</span>
+<span class="n">VectorMask</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">,</span> <span class="s2">&quot;exclude&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div>
+<h3 id="parallel-workers">Parallel Workers<a class="headerlink" href="#parallel-workers" title="Permanent link">&para;</a></h3>
+<p>The image_parallel_workers parameter defines the parallelization strategy at the image level. It accepts a tuple such as ("process", "cpu") to enable multiprocessing across all available CPU cores, or you can use "thread" as the backend if threading is preferred. Set it to None to disable image-level parallelism. The window_parallel_workers parameter controls parallelization within each image at the window level and follows the same format. Setting it to None disables window-level parallelism. Processing windows should be done one band at a time for scalability.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="n">image_parallel_workers</span>
+<span class="n">window_parallel_workers</span>
+
+<span class="c1"># Types</span>
+<span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;thread&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">WindowParallelWorkers</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+
+<span class="c1"># Resolve</span>
+<span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
+<span class="n">window_parallel</span><span class="p">,</span> <span class="n">window_backend</span><span class="p">,</span> <span class="n">window_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">window_parallel_workers</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div></p>
+<h3 id="windows">Windows<a class="headerlink" href="#windows" title="Permanent link">&para;</a></h3>
+<p>The window_size parameter sets the tile size for reading and writing, using an integer for square tiles, a tuple for custom dimensions, "internal" to use the raster’s native tiling (ideal for efficient streaming from COGs), or None to process the full image at once.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span>
+<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">window_size</span>
+
+<span class="c1"># Types</span>
+<span class="n">WindowSize</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;internal&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">WindowSizeWithBlock</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;internal&quot;</span><span class="p">,</span> <span class="s2">&quot;block&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+
+<span class="c1"># Resolve</span>
+<span class="n">windows</span> <span class="o">=</span> <span class="n">_resolve_windows</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">DatasetReader</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div></p>
+<h3 id="cogs">COGs<a class="headerlink" href="#cogs" title="Permanent link">&para;</a></h3>
+<p>The save_as_cog parameter, when set to True, saves the output as a Cloud-Optimized GeoTIFF with correct band and block ordering.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">SaveAsCog</span> <span class="o">=</span> <span class="nb">bool</span> <span class="c1"># Default: True</span>
+
+<span class="c1"># Type</span>
+<span class="n">SaveAsCog</span> <span class="o">=</span> <span class="nb">bool</span> <span class="c1"># Default: True</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div></p>
+<hr />
+<h2 id="validate-inputs">Validate Inputs<a class="headerlink" href="#validate-inputs" title="Permanent link">&para;</a></h2>
+<p>The validate methods are used to check that input parameters follow expected formats before processing begins. There are different validation methods for different scopes—some are general-purpose (e.g., Universal.validate) and others apply to specific contexts like matching (Match.validate_match). These functions raise clear errors when inputs are misconfigured, helping catch issues early and enforce consistent usage patterns across the library.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span>
+<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Validate params example</span>
+<span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">Match</span><span class="o">.</span><span class="n">validate_match</span><span class="p">(</span>
+    <span class="n">specify_model_images</span><span class="o">=</span><span class="n">specify_model_images</span><span class="p">,</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div></p>
+<hr />
 <h2 id="file-cleanup">File Cleanup<a class="headerlink" href="#file-cleanup" title="Permanent link">&para;</a></h2>
 <p>Temporary generated files can be deleted once they are no longer needed via this command:
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>clean
 </code></pre></div></td></tr></table></div></p>
+<hr />
 <h2 id="docs">Docs<a class="headerlink" href="#docs" title="Permanent link">&para;</a></h2>
 <h3 id="serve-docs-locally">Serve docs locally<a class="headerlink" href="#serve-docs-locally" title="Permanent link">&para;</a></h3>
 <p>Runs a local dev server at http://localhost:8000.
@@ -950,7 +1162,7 @@ pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    2025-05-20
+    2025-06-03
   </span>
 
     

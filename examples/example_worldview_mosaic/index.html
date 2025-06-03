@@ -1107,7 +1107,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=fd2873e3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8ea86c20">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1138,7 +1138,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=19e8993e">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9a9aa2f5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1157,12 +1157,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">fiona.env</span><span class="w"> </span><span class="kn">import</span> <span class="n">local</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
 
-<span class="c1"># Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview3 folder</span>
-<span class="n">working_directory</span> <span class="o">=</span> <span class="s1">'/Users/kanoalindiwe/Downloads/Projects/spectralmatch/docs/examples/data_worldview3'</span>
+<span class="c1"># Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder</span>
+<span class="n">working_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">"data_worldview"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">working_directory</span><span class="p">)</span>
 
 <span class="n">input_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"Input"</span><span class="p">)</span>
@@ -1172,16 +1170,16 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="n">clipped_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"Clipped"</span><span class="p">)</span>
 <span class="n">stats_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"Stats"</span><span class="p">)</span>
 
+
 <span class="n">window_size</span> <span class="o">=</span> <span class="mi">128</span>
-<span class="n">num_workers</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">num_image_workers</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">num_window_workers</span> <span class="o">=</span> <span class="mi">5</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import os
-
-from fiona.env import local
 from spectralmatch import *
 
-# Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview3 folder
-working_directory = '/Users/kanoalindiwe/Downloads/Projects/spectralmatch/docs/examples/data_worldview3'
+# Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
+working_directory = os.path.join(os.getcwd(), "data_worldview")
 print(working_directory)
 
 input_folder = os.path.join(working_directory, "Input")
@@ -1191,15 +1189,17 @@ aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 
+
 window_size = 128
-num_workers = 5</div>
+num_image_workers = 5
+num_window_workers = 5</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5448b04d">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8e3b1ecc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1217,28 +1217,35 @@ num_workers = 5</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">saved_adjustments_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"GlobalAdjustments.json"</span><span class="p">)</span>
-
-
-<span class="n">global_regression</span><span class="p">(</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">global_regression</span><span class="p">(</span>
     <span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
     <span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"$_Global.tif"</span><span class="p">),</span>
-    <span class="n">custom_mean_factor</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="c1"># Default is 1; 3 often works better to 'move' the spectral mean of images closer together</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">parallel_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
+    <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)</span>
+    <span class="c1"># custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)</span>
+    <span class="n">custom_std_factor</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">save_adjustments</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"GlobalAdjustments.json"</span><span class="p">),</span> <span class="c1"># Start from precomputed statistics for images whole and overlap stats</span>
+    <span class="c1"># load_adjustments=os.path.join(global_folder, "GlobalAdjustments.json"), # Load Statistics</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">saved_adjustments_path = os.path.join(global_folder, "GlobalAdjustments.json")
-
-
+<div class="clipboard-copy-txt" id="cell-3">
 global_regression(
     (input_folder, "*.tif"),
     (global_folder, "$_Global.tif"),
-    custom_mean_factor = 3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together
     debug_logs=True,
     window_size=window_size,
-    parallel_workers=num_workers,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
+    save_as_cog=True,
+    # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
+    # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)
+    custom_std_factor=3,
+    save_adjustments=os.path.join(global_folder, "GlobalAdjustments.json"), # Start from precomputed statistics for images whole and overlap stats
+    # load_adjustments=os.path.join(global_folder, "GlobalAdjustments.json"), # Load Statistics
     )</div>
 </div>
 </div>
@@ -1246,7 +1253,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=df72f407">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a9dc0eca">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1264,34 +1271,40 @@ global_regression(
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">new_global_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"GlobalMatch_New"</span><span class="p">)</span>
-<span class="n">saved_adjustments_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_global_folder</span><span class="p">,</span> <span class="s2">"GlobalAdjustments.json"</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">reference_map_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap"</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap.tif"</span><span class="p">)</span>
+<span class="n">local_maps_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"LocalBlockMap"</span><span class="p">,</span> <span class="s2">"$_LocalBlockMap.tif"</span><span class="p">)</span>
+<span class="n">searched_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"LocalBlockMap"</span><span class="p">),</span> <span class="s2">"*.tif"</span><span class="p">)</span>
 
-
-<span class="n">global_regression</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
-    <span class="p">(</span><span class="n">new_global_folder</span><span class="p">,</span> <span class="s2">"$_Global.tif"</span><span class="p">),</span>
-    <span class="n">custom_mean_factor</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="c1"># Default is 1; 3 often works better to 'move' the spectral mean of images closer together</span>
+<span class="n">local_block_adjustment</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"$_Local.tif"</span><span class="p">),</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">parallel_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
-    <span class="n">specify_model_images</span><span class="o">=</span><span class="p">(</span><span class="s2">"include"</span><span class="p">,</span> <span class="p">[</span><span class="s1">'worldview3_example_image_right'</span><span class="p">]),</span>
-    <span class="n">save_adjustments</span><span class="o">=</span><span class="n">saved_adjustments_path</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
+    <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">number_of_blocks</span><span class="o">=</span><span class="s2">"coefficient_of_variation"</span><span class="p">,</span> <span class="c1"># Target number of blocks</span>
+    <span class="c1"># override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)</span>
+    <span class="n">save_block_maps</span><span class="o">=</span><span class="p">(</span><span class="n">reference_map_path</span><span class="p">,</span> <span class="n">local_maps_path</span><span class="p">),</span>
+    <span class="c1"># load_block_maps=(reference_map_path, searched_paths), # Local match from saved block maps (this code just passes in local maps, but if a reference map is passed in, it will match images to the reference map without recomputing it)</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">new_global_folder = os.path.join(working_directory, "GlobalMatch_New")
-saved_adjustments_path = os.path.join(new_global_folder, "GlobalAdjustments.json")
+<div class="clipboard-copy-txt" id="cell-4">reference_map_path = os.path.join(local_folder, "ReferenceBlockMap", "ReferenceBlockMap.tif")
+local_maps_path = os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.tif")
+searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap"), "*.tif")
 
-
-global_regression(
-    (input_folder, "*.tif"),
-    (new_global_folder, "$_Global.tif"),
-    custom_mean_factor = 3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together
+local_block_adjustment(
+    (global_folder, "*.tif"),
+    (local_folder, "$_Local.tif"),
     debug_logs=True,
     window_size=window_size,
-    parallel_workers=num_workers,
-    specify_model_images=("include", ['worldview3_example_image_right']),
-    save_adjustments=saved_adjustments_path,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
+    save_as_cog=True,
+    number_of_blocks="coefficient_of_variation", # Target number of blocks
+    # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
+    save_block_maps=(reference_map_path, local_maps_path),
+    # load_block_maps=(reference_map_path, searched_paths), # Local match from saved block maps (this code just passes in local maps, but if a reference map is passed in, it will match images to the reference map without recomputing it)
     )</div>
 </div>
 </div>
@@ -1299,7 +1312,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=1e47f1d8">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6a30deda">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1317,32 +1330,27 @@ global_regression(
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">new_global_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"GlobalMatch_New"</span><span class="p">)</span>
-<span class="n">saved_adjustments_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_global_folder</span><span class="p">,</span> <span class="s2">"GlobalAdjustments.json"</span><span class="p">)</span>
-
-
-<span class="n">global_regression</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
-    <span class="p">(</span><span class="n">new_global_folder</span><span class="p">,</span> <span class="s2">"$_Global.tif"</span><span class="p">),</span>
-    <span class="n">custom_mean_factor</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="c1"># Default is 1; 3 often works better to 'move' the spectral mean of images closer together</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">align_rasters</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">aligned_folder</span><span class="p">,</span> <span class="s2">"$_Aligned.tif"</span><span class="p">),</span>
+    <span class="n">tap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="s1">'lowest'</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">parallel_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
-    <span class="n">load_adjustments</span><span class="o">=</span><span class="n">saved_adjustments_path</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-5">new_global_folder = os.path.join(working_directory, "GlobalMatch_New")
-saved_adjustments_path = os.path.join(new_global_folder, "GlobalAdjustments.json")
-
-
-global_regression(
-    (input_folder, "*.tif"),
-    (new_global_folder, "$_Global.tif"),
-    custom_mean_factor = 3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together
+<div class="clipboard-copy-txt" id="cell-5">
+align_rasters(
+    (local_folder, "*.tif"),
+    (aligned_folder, "$_Aligned.tif"),
+    tap=True,
+    resolution='lowest',
     debug_logs=True,
     window_size=window_size,
-    parallel_workers=num_workers,
-    load_adjustments=saved_adjustments_path,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
     )</div>
 </div>
 </div>
@@ -1350,7 +1358,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=447f70e9">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=509a40fd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1368,22 +1376,26 @@ global_regression(
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">local_block_adjustment</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
-    <span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"$_Local.tif"</span><span class="p">),</span>
-    <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">output_vector_mask</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"ImageMasks.gpkg"</span><span class="p">)</span>
+<span class="n">debug_vectors_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"DebugVectors.gpkg"</span><span class="p">)</span>
+
+<span class="n">voronoi_center_seamline</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">aligned_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_vector_mask</span><span class="p">,</span>
+    <span class="n">image_field_name</span><span class="o">=</span><span class="s1">'image'</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">parallel_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
+    <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">debug_vectors_path</span><span class="p">,</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-6">local_block_adjustment(
-    (global_folder, "*.tif"),
-    (local_folder, "$_Local.tif"),
-    number_of_blocks=100,
+<div class="clipboard-copy-txt" id="cell-6">output_vector_mask = os.path.join(working_directory, "ImageMasks.gpkg")
+debug_vectors_path = os.path.join(working_directory, "DebugVectors.gpkg")
+
+voronoi_center_seamline(
+    (aligned_folder, "*.tif"),
+    output_vector_mask,
+    image_field_name='image',
     debug_logs=True,
-    window_size=window_size,
-    parallel_workers=num_workers,
+    debug_vectors_path=debug_vectors_path,
     )</div>
 </div>
 </div>
@@ -1391,7 +1403,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=06c495a0">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=146c0815">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1409,34 +1421,28 @@ global_regression(
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">new_local_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"LocalMatch_New"</span><span class="p">)</span>
-<span class="n">reference_map_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_local_folder</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap"</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap.tif"</span><span class="p">)</span>
-<span class="n">local_maps_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_local_folder</span><span class="p">,</span> <span class="s2">"LocalBlockMap"</span><span class="p">,</span> <span class="s2">"$_LocalBlockMap.tif"</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">input_mask_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"ImageMasks.gpkg"</span><span class="p">)</span>
 
-<span class="n">local_block_adjustment</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
-    <span class="p">(</span><span class="n">new_local_folder</span><span class="p">,</span> <span class="s2">"$_Local.tif"</span><span class="p">),</span>
-    <span class="n">number_of_blocks</span><span class="o">=</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span><span class="mi">30</span><span class="p">),</span>
+<span class="n">mask_rasters</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">aligned_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">clipped_folder</span><span class="p">,</span> <span class="s2">"$_Clipped.tif"</span><span class="p">),</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"include"</span><span class="p">,</span> <span class="n">input_mask_path</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">),</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">parallel_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
-    <span class="n">override_bounds_canvas_coords</span> <span class="o">=</span> <span class="p">(</span><span class="mf">193011.1444011169369332</span><span class="p">,</span> <span class="mf">2184419.3597142999060452</span><span class="p">,</span> <span class="mf">205679.2836037494416814</span><span class="p">,</span> <span class="mf">2198309.8632259583100677</span><span class="p">),</span>
-    <span class="n">save_block_maps</span><span class="o">=</span><span class="p">(</span><span class="n">reference_map_path</span><span class="p">,</span> <span class="n">local_maps_path</span><span class="p">),</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-7">new_local_folder = os.path.join(working_directory, "LocalMatch_New")
-reference_map_path = os.path.join(new_local_folder, "ReferenceBlockMap", "ReferenceBlockMap.tif")
-local_maps_path = os.path.join(new_local_folder, "LocalBlockMap", "$_LocalBlockMap.tif")
+<div class="clipboard-copy-txt" id="cell-7">input_mask_path = os.path.join(working_directory, "ImageMasks.gpkg")
 
-local_block_adjustment(
-    (global_folder, "*.tif"),
-    (new_local_folder, "$_Local.tif"),
-    number_of_blocks=(30,30),
+mask_rasters(
+    (aligned_folder, "*.tif"),
+    (clipped_folder, "$_Clipped.tif"),
+    vector_mask=("include", input_mask_path, "image"),
     debug_logs=True,
     window_size=window_size,
-    parallel_workers=num_workers,
-    override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677),
-    save_block_maps=(reference_map_path, local_maps_path),
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
     )</div>
 </div>
 </div>
@@ -1444,7 +1450,7 @@ local_block_adjustment(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4579d68f">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=21ea8119">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1462,43 +1468,34 @@ local_block_adjustment(
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">old_local_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"LocalMatch"</span><span class="p">)</span>
-<span class="n">new_local_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"LocalMatch_New"</span><span class="p">)</span>
-<span class="n">saved_reference_block_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">old_local_folder</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap"</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap.tif"</span><span class="p">)</span>
-<span class="n">saved_local_block_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_local_folder</span><span class="p">,</span> <span class="s2">"LocalBlockMap"</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_local_folder</span><span class="p">,</span> <span class="s2">"LocalBlockMap"</span><span class="p">))</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".tif"</span><span class="p">)]</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">output_merged_image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"MergedImage.tif"</span><span class="p">)</span>
 
-<span class="n">local_block_adjustment</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
-    <span class="p">(</span><span class="n">new_local_folder</span><span class="p">,</span> <span class="s2">"$_Local.tif"</span><span class="p">),</span>
-    <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="n">merge_rasters</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">clipped_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_merged_image_path</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">parallel_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
-    <span class="n">load_block_maps</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">saved_local_block_paths</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
+<span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-8">
-old_local_folder = os.path.join(working_directory, "LocalMatch")
-new_local_folder = os.path.join(working_directory, "LocalMatch_New")
-saved_reference_block_path = os.path.join(old_local_folder, "ReferenceBlockMap", "ReferenceBlockMap.tif")
-saved_local_block_paths = [os.path.join(os.path.join(new_local_folder, "LocalBlockMap"), f) for f in os.listdir(os.path.join(new_local_folder, "LocalBlockMap")) if f.lower().endswith(".tif")]
+<div class="clipboard-copy-txt" id="cell-8">output_merged_image_path = os.path.join(working_directory, "MergedImage.tif")
 
-local_block_adjustment(
-    (global_folder, "*.tif"),
-    (new_local_folder, "$_Local.tif"),
-    number_of_blocks=100,
+merge_rasters(
+    (clipped_folder, "*.tif"),
+    output_merged_image_path,
     debug_logs=True,
     window_size=window_size,
-    parallel_workers=num_workers,
-    load_block_maps=(None, saved_local_block_paths)
-    )</div>
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
+)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e9138426">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4cb10de8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1507,161 +1504,6 @@ local_block_adjustment(
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
-<span class="n">output_clipped_image_paths</span> <span class="o">=</span> <span class="n">create_paths</span><span class="p">(</span><span class="n">aligned_folder</span><span class="p">,</span> <span class="s2">"$_Aligned.tif"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
-
-<span class="n">process_rasters</span><span class="p">(</span>
-    <span class="n">input_image_paths</span><span class="p">,</span>
-    <span class="n">output_clipped_image_paths</span><span class="p">,</span>
-    <span class="n">tap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">resolution</span><span class="o">=</span><span class="s1">'highest'</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="p">)</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-9">input_image_paths = search_paths(local_folder, "*.tif")
-output_clipped_image_paths = create_paths(aligned_folder, "$_Aligned.tif", input_image_paths)
-
-process_rasters(
-    input_image_paths,
-    output_clipped_image_paths,
-    tap=True,
-    resolution='highest',
-    debug_logs=True,
-    window_size=window_size,
-    )</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5ab22776">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">aligned_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
-<span class="n">output_vector_mask</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"ImageClips.gpkg"</span><span class="p">)</span>
-
-<span class="n">voronoi_center_seamline</span><span class="p">(</span>
-    <span class="n">input_image_paths</span><span class="p">,</span>
-    <span class="n">output_vector_mask</span><span class="p">,</span>
-    <span class="n">image_field_name</span><span class="o">=</span><span class="s1">'image'</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-10">input_image_paths = search_paths(aligned_folder, "*.tif")
-output_vector_mask = os.path.join(working_directory, "ImageClips.gpkg")
-
-voronoi_center_seamline(
-    input_image_paths,
-    output_vector_mask,
-    image_field_name='image',
-    debug_logs=True,
-    )</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4c1858b6">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-11">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">aligned_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
-<span class="n">output_clipped_image_paths</span> <span class="o">=</span> <span class="n">create_paths</span><span class="p">(</span><span class="n">clipped_folder</span><span class="p">,</span> <span class="s2">"$_Clipped.tif"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
-<span class="n">input_vector_mask_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"ImageClips.gpkg"</span><span class="p">)</span>
-<span class="n">output_merged_image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"MergedImage.tif"</span><span class="p">)</span>
-
-<span class="n">process_rasters</span><span class="p">(</span>
-    <span class="n">input_image_paths</span><span class="p">,</span>
-    <span class="n">output_clipped_image_paths</span><span class="p">,</span>
-    <span class="n">vector_mask_path</span><span class="o">=</span><span class="n">input_vector_mask_path</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">split_mask_by_attribute</span><span class="o">=</span><span class="s2">"image"</span><span class="p">,</span>
-    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="p">)</span>
-
-<span class="n">merge_rasters</span><span class="p">(</span>
-    <span class="n">output_clipped_image_paths</span><span class="p">,</span>
-    <span class="n">output_merged_image_path</span><span class="p">,</span>
-    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-11">input_image_paths = search_paths(aligned_folder, "*.tif")
-output_clipped_image_paths = create_paths(clipped_folder, "$_Clipped.tif", input_image_paths)
-input_vector_mask_path = os.path.join(working_directory, "ImageClips.gpkg")
-output_merged_image_path = os.path.join(working_directory, "MergedImage.tif")
-
-process_rasters(
-    input_image_paths,
-    output_clipped_image_paths,
-    vector_mask_path=input_vector_mask_path,
-    debug_logs=True,
-    split_mask_by_attribute="image",
-    window_size=window_size,
-    )
-
-merge_rasters(
-    output_clipped_image_paths,
-    output_merged_image_path,
-    window_size=window_size,
-    debug_logs=True,
-)</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=7d1562b3">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-12">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -1713,7 +1555,7 @@ merge_rasters(
     <span class="n">subtitle</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Image: </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">before_path</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-12">
+<div class="clipboard-copy-txt" id="cell-9">
 # Compare image spectral profiles
 compare_image_spectral_profiles(
     input_image_dict={
@@ -1784,7 +1626,7 @@ compare_spatial_spectral_difference_band_average(
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    2025-05-21
+    2025-06-03
   </span>
 
     

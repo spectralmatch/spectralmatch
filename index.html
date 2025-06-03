@@ -305,9 +305,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-installation-detailed-instructions-are-in-the-docs" class="md-nav__link">
+  <a href="#quick-installation-other-methods" class="md-nav__link">
     <span class="md-ellipsis">
-      Quick Installation (Detailed instructions are in the docs)
+      Quick Installation (Other methods)
     </span>
   </a>
   
@@ -785,9 +785,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-installation-detailed-instructions-are-in-the-docs" class="md-nav__link">
+  <a href="#quick-installation-other-methods" class="md-nav__link">
     <span class="md-ellipsis">
-      Quick Installation (Detailed instructions are in the docs)
+      Quick Installation (Other methods)
     </span>
   </a>
   
@@ -857,10 +857,19 @@ This library is experimental and still under heavy development.</p>
 <p><strong>Automated:</strong> Works without manual intervention, making it ideal for large-scale applications.</p>
 </li>
 <li>
+<p><strong>Multiprocessing:</strong> Image, window, and band parallel processing. Cloud Optimized GeoTIFF reading and writing.</p>
+</li>
+<li>
+<p><strong>Save Intermediate Steps:</strong> Save image stats and block maps for quick reprocessing.</p>
+</li>
+<li>
+<p><strong>Specify Model Images</strong> Include all or specified images in the matching solution to bring all images to a central tendency or selected images spectral profile.</p>
+</li>
+<li>
 <p><strong>Consistent Multi-Image Analysis:</strong> Ensures uniformity across images by applying systematic corrections with minimal spectral distortion.</p>
 </li>
 <li>
-<p><strong>Seamlessly Blended:</strong> Creates smooth transitions between images without visible seams.</p>
+<p><strong>Seamlessly Blended:</strong> Creates smooth transitions between images.</p>
 </li>
 <li>
 <p><strong>Unit Agnostic:</strong> Works with any pixel unit and preserves the spectral information for accurate analysis. This inlcludes negative numbers and reflectance.</p>
@@ -869,18 +878,14 @@ This library is experimental and still under heavy development.</p>
 <p><strong>Better Input for Machine Learning Models:</strong> Provides high-quality, unbiased data for AI and analytical workflows.</p>
 </li>
 <li>
-<p><strong>Minimizes Color Bias:</strong> Avoids excessive color normalization and does not rely on a strict reference image.</p>
+<p><strong>Sensor Agnostic:</strong> Works with all optical sensors. In addition, images from different sensors can be combined for multisensor analysis.</p>
 </li>
 <li>
-<p><strong>Sensor Agnostic:</strong> Works with all optical sensors. In addition, images from differnt sensors can be combined for multisensor analysis.</p>
+<p><strong>Mosaics:</strong> Designed to process and blend vast image collections effectively.</p>
 </li>
 <li>
-<p><strong>Parallel Processing:</strong> Optimized for modern CPUs to handle large datasets efficiently.</p>
+<p><strong>Time Series</strong>: Normalize images across time with to compare spectral changes.</p>
 </li>
-<li>
-<p><strong>Large-Scale Mosaics:</strong> Designed to process and blend vast image collections effectively.</p>
-</li>
-<li><strong>Time Series</strong>: Normalize images across time with to compare spectral changes.</li>
 </ul>
 <hr />
 <h2 id="current-matching-algorithms">Current Matching Algorithms<a class="headerlink" href="#current-matching-algorithms" title="Permanent link">&para;</a></h2>
@@ -915,7 +920,7 @@ However, global correction alone cannot capture intra-image variability so a sec
 </li>
 </ul>
 <hr />
-<h2 id="quick-installation-detailed-instructions-are-in-the-docs">Quick Installation (Detailed instructions are in the <a href="https://spectralmatch.github.io/spectralmatch/installation/">docs</a>)<a class="headerlink" href="#quick-installation-detailed-instructions-are-in-the-docs" title="Permanent link">&para;</a></h2>
+<h2 id="quick-installation-other-methods">Quick Installation (<a href="https://spectralmatch.github.io/spectralmatch/installation/">Other methods</a>)<a class="headerlink" href="#quick-installation-other-methods" title="Permanent link">&para;</a></h2>
 <h3 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h3>
 <p>Install the spectralmatch plugin in <a href="https://qgis.org/download/">QGIS</a> and use it in the Processing Toolbox.</p>
 <h3 id="installation-as-a-python-library">Installation as a Python Library<a class="headerlink" href="#installation-as-a-python-library" title="Permanent link">&para;</a></h3>

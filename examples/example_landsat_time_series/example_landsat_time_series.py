@@ -7,8 +7,8 @@
 import os
 from spectralmatch import *
 
-# Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview3 folder
-working_directory = '/Users/kanoalindiwe/Downloads/Projects/spectralmatch/docs/examples/data_landsat'
+# Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
+working_directory = os.path.join(os.getcwd(), "data_landsat")
 print(working_directory)
 
 input_folder = os.path.join(working_directory, "Input")
@@ -52,7 +52,7 @@ input_mask_vectors = search_paths(mask_cloud_folder, "*.gpkg", match_to_paths=(i
 output_paths = create_paths(masked_folder, "$_CloudMasked.tif", input_image_paths)
 
 for input_path, vector_path, output_path in zip(input_image_paths, input_mask_vectors, output_paths):
-    mask_image_with_vector(
+    mask_rasters(
         input_path,
         vector_path,
         output_path,
@@ -100,12 +100,19 @@ vector_mask_path = os.path.join(working_directory , "Pifs.gpkg")
 global_regression(
     (masked_folder, "*.tif"),
     (global_folder, "$_GlobalMatch.tif"),
-    custom_mean_factor = 3, # Defualt 1; 3 often works better to 'move' the spectral mean of images closer together
     vector_mask_path=("exclude", vector_mask_path),
     # vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image
-    window_size=window_size,
-    parallel_workers=num_workers,
     debug_logs=True,
+    )
+
+
+# %% (OPTIONAL) Global matching saving output as a Cloud Optimized GeoTIFF
+
+global_regression(
+    (masked_folder, "*.tif"),
+    (global_folder, "$_GlobalMatch.tif"),
+    debug_logs=True,
+    save_as_cog=True,
     )
 
 # %% Local matching
