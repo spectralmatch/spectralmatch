@@ -1289,7 +1289,7 @@ Args:
 Returns:
     np.ndarray: Reference block map of shape (num_row, num_col, num_bands)"""
 
-def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_image_block_space, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, parallel, backend, max_workers, save_as_cog):
+def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_image_block_space, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, parallel, backend, max_workers):
     """Applies local radiometric adjustment to a single image using reference and local block statistics.
 
 Args:
@@ -1520,7 +1520,7 @@ Args:
 Returns:
     np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1)."""
 
-def _apply_adjustments_process_image(image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, calculation_dtype, output_dtype, window_parallel, window_backend, window_max_workers, save_as_cog, debug_logs):
+def _apply_adjustments_process_image(image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, calculation_dtype, output_dtype, window_parallel, window_backend, window_max_workers, debug_logs):
     """Applies scale and offset adjustments to each band of an input image and writes the result to the output path.
 
 Args:
@@ -1928,7 +1928,7 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 [![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
 [![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=OKAM0BUUNS)](https://codecov.io/gh/spectralmatch/spectralmatch)
 [![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
-[![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](/spectralmatch/llm_prompt/)
+[![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
 > [!IMPORTANT]
 > This library is experimental and still under heavy development.
 
