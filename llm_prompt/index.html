@@ -1,0 +1,2575 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/llm_prompt/">
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+    
+    
+      
+        <title>LLM Prompt - spectralmatch</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../docs/overrides/custom.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#llm-prompt" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="spectralmatch" class="md-header__button md-logo" aria-label="spectralmatch" data-md-component="logo">
+      
+  <img src="../images/icon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            spectralmatch
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LLM Prompt
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/spectralmatch/spectralmatch" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="spectralmatch" class="md-nav__button md-logo" aria-label="spectralmatch" data-md-component="logo">
+      
+  <img src="../images/icon.png" alt="logo">
+
+    </a>
+    spectralmatch
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/spectralmatch/spectralmatch" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rrn_methods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    RRN Methods
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/spectralmatch/spectralmatch/releases" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/spectralmatch/spectralmatch/issues" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Report Issues
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formats_and_requirements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File Formats and Input Requirements
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/example_worldview_mosaic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    WorldView Mosaic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/example_landsat_time_series/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Landsat Time Series
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/benchmark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Benchmark Multithreading
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/match/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Matching Algorithms
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/mask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Mask and Pseudo-Invariant Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/statistics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Creating Statistical Figures
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/handlers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Data Handlers for IO
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="llm-prompt">LLM Prompt<a class="headerlink" href="#llm-prompt" title="Permanent link">&para;</a></h1>
+<p>Use this text to prompt LLM models with context about this codebase which includes function headers and docs.</p>
+<div style="margin-bottom: 1em; position: relative;">
+
+  <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 0.5em;">
+    <button onclick="copyToClipboard()" style="border: 1px solid #ccc; padding: 0.5em 1em; border-radius: 4px; background: #fff; cursor: pointer;">📋 Copy</button>
+    <p id="copy-success" style="color: green; display: none; margin: 0;">✅ Copied!</p>
+  </div>
+
+  <div style="margin-top: 1em;">
+    <a href="/">⬅ To Readme</a>
+  </div>
+  <pre id="copy-target" style="max-height: 300px; overflow: auto; background: #f5f5f5; padding: 1em; border-radius: 6px; border: 1px solid #ccc;">
+# LLM Prompt
+
+The following content includes function signatures and docstrings from Python source files, as well as relevant Markdown documentation. Each section is labeled by its relative file path. Use this as context to understand the project structure, purpose, and functionality.
+
+
+## Python Section
+### File: utils_multiprocessing.py
+
+def _choose_context(prefer_fork):
+    """Chooses the most appropriate multiprocessing context based on platform and preference.
+
+Args:
+    prefer_fork (bool): If True, prefers "fork" context where available; default is True.
+
+Returns:
+    mp.context.BaseContext: Selected multiprocessing context ("fork", "forkserver", or "spawn")."""
+
+def _resolve_parallel_config(config):
+    """Parses a parallel worker config into execution flags and worker count.
+
+Args:
+    config (Tuple["process" | "thread", "cpu" | int] | None): Parallelization strategy; None disables parallelism.
+
+Returns:
+    Tuple[bool, Optional[str], Optional[int]]:
+        - Whether to run in parallel,
+        - The backend ("process" or "thread"),
+        - Number of workers."""
+
+def _get_executor(backend, max_workers, initializer, initargs):
+    """Creates a parallel executor (process or thread) with optional initialization logic.
+
+Args:
+    backend (str): Execution backend, either "process" or "thread".
+    max_workers (int): Maximum number of worker processes or threads.
+    initializer (Callable, optional): Function to initialize worker context.
+    initargs (tuple, optional): Arguments to pass to the initializer.
+
+Returns:
+    Executor: An instance of ThreadPoolExecutor or ProcessPoolExecutor.
+
+Raises:
+    ValueError: If the backend is not "process" or "thread"."""
+
+def _run_parallel_images(image_paths, run_parallel_windows, image_parallel_workers, window_parallel_workers):
+    """Runs a window-level processing function across multiple images, with optional image-level parallelism.
+
+Args:
+    image_paths (List[str]): List of input image file paths.
+    run_parallel_windows (Callable): Function to run on each image, accepting (path, window_parallel_workers).
+    image_parallel_workers (Tuple["process" | "thread", "cpu" | int] | None): Strategy for image-level parallelism.
+    window_parallel_workers (Tuple["process" | "thread", "cpu" | int] | None): Passed to `run_parallel_windows` for window-level parallelism.
+
+Returns:
+    None"""
+
+def _run_parallel_windows(windows, process_fn, window_parallel_workers):
+    """Runs a processing function on a list of windows, with optional parallel execution.
+
+Args:
+    windows (List[Any]): List of window-like objects to process.
+    process_fn (Callable[[Any], Any]): Function to run on each window.
+    window_parallel_workers (Tuple["process" | "thread", "cpu" | int] | None): Parallel execution strategy; None disables parallelism.
+
+Returns:
+    None"""
+
+def _resolve_windows(dataset, window_size):
+    """Generates a list of windows for reading a raster dataset based on the given tiling strategy.
+
+Args:
+    dataset (rasterio.DatasetReader): Open raster dataset.
+    window_size (int | Tuple[int, int] | Literal["internal", "block"] | None):
+        Tiling strategy:
+        - int: square tile size,
+        - (int, int): custom width and height in pixels,
+        - "internal": use native tiling of dataset,
+        - "block": tile by block layout defined in `block_params`,
+        - None: single full-image window.
+
+    block_params (Tuple[int, int, Tuple[float, float, float, float]] | None, optional):
+        Required if window_size is "block". A tuple of:
+        - number of block rows (int),
+        - number of block columns (int),
+        - bounding box (minx, miny, maxx, maxy) of canvas extent in image coordinates.
+
+Returns:
+    List[Window]: List of rasterio Windows that cover the dataset."""
+
+def _create_windows(width, height, tile_width, tile_height):
+    """Generates tiled windows across a raster based on specified dimensions.
+
+Args:
+    width (int): Total width of the raster.
+    height (int): Total height of the raster.
+    tile_width (int): Width of each tile.
+    tile_height (int): Height of each tile.
+
+Yields:
+    rasterio.windows.Window: A window representing a tile's position and size."""
+
+def init(cls, config):
+    """Initializes per-process context from a typed config dictionary.
+
+Each entry maps a key to a tuple describing how to initialize a resource:
+
+    - ('raster', filepath): Open raster with rasterio.
+    - ('shm', shm_name): Attach to shared memory.
+    - ('array', shm_name, shape, dtype): Create NumPy array from shared memory.
+    - ('value', literal): Store a direct Python value.
+
+Examples:
+    {
+        "input": ("raster", "/path/to/image.tif"),
+        "weights": ("array", "shm_weights", (512, 512), "float32"),
+        "debug": ("value", True)
+    }
+
+Resources are stored in WorkerContext.cache and accessed via WorkerContext.get(key)."""
+
+def get(cls, key):
+
+def close(cls):
+
+### File: types_and_validation.py
+
+def validate():
+
+def validate_match():
+
+def validate_global_regression():
+
+def validate_local_block_adjustment():
+
+def _validate_window_param(val):
+
+### File: handlers.py
+
+def _resolve_paths(mode, input, args):
+    """Resolves a list of input based on the mode and input format.
+
+Args:
+    mode (Literal["search", "create", "match"]): Type of operation to perform.
+    input (Tuple[str, str] | List[str]): Either a list of file input or a tuple specifying folder/template info.
+    args (Tuple): Additional arguments passed to the called function.
+
+Returns:
+    List[str]: List of resolved input."""
+
+def search_paths(folder_path, pattern, recursive, match_to_paths, debug_logs):
+    """Search for files in a folder using a glob pattern.
+
+Args:
+    folder_path (str): The root folder to search in.
+    pattern (str): A glob pattern (e.g., "*.tif", "**/*.jpg").
+    recursive (bool, optional): Whether to search for files recursively.
+    match_to_paths (Tuple[List[str], str], optional): If provided, match `reference_paths` to `input_match_paths` using a regex applied to the basenames of `input_match_paths`. The extracted key must be a substring of the reference filename.
+        - reference_paths (List[str]): List of reference paths to align to.
+        - match_regex (str): Regex applied to basenames of input_match_paths to extract a key to match via *inclusion* in reference_paths (e.g. "(.*)_LocalMatch.gpkg$").
+    debug_logs (bool, optional): Whether to print the matched file paths.
+
+Returns:
+    List[str]: Sorted list of matched file paths."""
+
+def create_paths(output_folder, template, paths_or_bases, debug_logs, replace_symbol, create_folders):
+    """Create output paths using a filename template and a list of reference paths or names.
+
+Args:
+    output_folder (str): Directory to store output files.
+    template (str): Filename template using replace_symbol as placeholder (e.g., "$_processed.tif").
+    paths_or_bases (List[str]): List of full paths or bare names to derive replace_symbol from. Inclusion of '/' or '' indicates a path.
+    debug_logs (bool): Whether to print the created paths.
+    replace_symbol (str): Symbol to replace in the template.
+    create_folders (bool): Whether to create output folders if they don't exist.'
+
+Returns:
+    List[str]: List of constructed file paths."""
+
+def match_paths(input_match_paths, reference_paths, match_regex, debug_logs):
+    """Match `reference_paths` to `input_match_paths` using a regex applied to the basenames of `input_match_paths`. The extracted key must be a substring of the reference filename.
+
+Args:
+    input_match_paths (List[str]): List of candidate paths to extract keys from.
+    reference_paths (List[str]): List of reference paths to align to.
+    match_regex (str): Regex applied to basenames of input_match_paths to extract a key to match via *inclusion* in reference_paths (e.g. "(.*)_LocalMatch\.gpkg$" (without one of the backslashes)).
+    debug_logs (bool): If True, print matched and unmatched file basenames.
+
+Returns:
+    List[Optional[str]]: A list the same length as `reference_paths` where each
+    element is the matched path from `input_match_paths` or None.
+
+Raises:
+    ValueError: If output list length does not match reference_paths length."""
+
+def _check_raster_requirements(input_image_paths, debug_logs, check_geotransform, check_crs, check_bands, check_nodata, check_resolution):
+    """Validates a list of raster image paths to ensure they are compatible for processing.
+
+Args:
+    input_image_paths (list[str]): Paths to input raster images.
+    debug_logs (bool): If True, prints debug messages.
+    check_geotransform (bool): Check that all images have a valid geotransform.
+    check_crs (bool): Check that all images have the same CRS.
+    check_bands (bool): Check that all images have the same number of bands.
+    check_nodata (bool): Check that all images have the same nodata values per band.
+    check_resolution (bool): Check that all images have the same resolution.
+
+Returns:
+    bool: True if all checks pass.
+
+Raises:
+    ValueError: If any check fails."""
+
+def _get_nodata_value(input_image_paths, custom_nodata_value):
+    """Determines the NoData value to use from a list of raster images or a custom override.
+
+Args:
+    input_image_paths (List[str]): List of raster image paths.
+    custom_nodata_value (float, optional): User-defined NoData value.
+
+Returns:
+    float | None: The determined NoData value, or None if unavailable.
+
+Warnings:
+    Emits a warning if a custom value overrides the image value or if no value is found."""
+
+### File: utils.py
+
+def merge_vectors(input_vector_paths, merged_vector_path, method, debug_logs, create_name_attribute):
+    """Merge multiple vector files using the specified geometric method.
+
+Args:
+    input_vector_paths (List[str]): Paths to input vector files.
+    merged_vector_path (str): Path to save merged output.
+    method (Literal["intersection", "union", "keep_all"]): Merge strategy.
+    debug_logs (bool): If True, print debug information.
+    create_name_attribute (Optional[Tuple[str, str]]): Tuple of (field_name, separator).
+        If set, adds a field with all input filenames (no extension), joined by separator.
+
+Returns:
+    None"""
+
+def align_rasters(input_images, output_images):
+    """Aligns multiple rasters to a common resolution and grid using specified resampling.
+
+Args:
+    input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of input raster paths.
+    output_images (Universal.CreateInFolderOrListFiles): Tuple (output_folder, template) or list of output paths.
+    resampling_method (Literal["nearest", "bilinear", "cubic"], optional): Resampling method to use; default is "bilinear".
+    tap (bool, optional): If True, aligns outputs to target-aligned pixels (GDAL's -tap); default is False.
+    resolution (Literal["highest", "average", "lowest"], optional): Strategy for choosing target resolution; default is "highest".
+    window_size (Universal.WindowSize, optional): Tiling strategy for windowed alignment.
+    debug_logs (Universal.DebugLogs, optional): If True, prints debug output.
+    image_parallel_workers (Universal.ImageParallelWorkers, optional): Parallelization strategy for image-level alignment.
+    window_parallel_workers (Universal.WindowParallelWorkers, optional): Parallelization strategy for within-image window alignment.
+
+Returns:
+    None"""
+
+def _align_process_image(image_name, window_parallel, in_path, out_path, target_res, resampling_method, tap, window_size, debug_logs):
+    """Aligns a single raster image to a target resolution and grid, optionally in parallel by window.
+
+Args:
+    image_name (str): Identifier for the image, used for worker context management.
+    window_parallel (Universal.WindowParallelWorkers): Optional multiprocessing config for window-level alignment.
+    in_path (str): Path to the input raster.
+    out_path (str): Path to save the aligned output raster.
+    target_res (Tuple[float, float]): Target resolution (x, y) to resample the raster to.
+    resampling_method (str): Resampling method: "nearest", "bilinear", or "cubic".
+    tap (bool): If True, aligns raster to target-aligned pixels (GDAL-style -tap).
+    window_size (Universal.WindowSize): Tiling strategy for dividing the image into windows.
+    debug_logs (bool): If True, prints debug output.
+
+Returns:
+    None"""
+
+def _align_process_window(src_window, dst_window, band_idx, dst_transform, resampling_method, nodata, debug_logs, image_name):
+    """Aligns a single raster window for one band using reproject with a shared dataset.
+
+Args:
+    src_window (Window): Source window to read.
+    dst_window (Window): Output window (used to compute offset transform and for saving).
+    band_idx (int): Band index to read.
+    dst_transform: The full transform of the output raster.
+    resampling_method: Reprojection resampling method.
+    nodata: NoData value.
+    debug_logs: Print debug info if True.
+    image_name: Key to fetch the raster from WorkerContext.
+
+Returns:
+    Tuple[int, Window, np.ndarray]: Band index, destination window, and aligned data buffer."""
+
+def merge_rasters(input_images, output_image_path):
+    """Merges multiple rasters into a single mosaic aligned to the union extent and minimum resolution.
+
+Args:
+    input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of raster paths to merge.
+    output_image_path (str): Path to save the merged output raster.
+    image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level merging.
+    window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for within-image window merging.
+    window_size (Universal.WindowSize, optional): Tiling strategy for processing windows.
+    debug_logs (Universal.DebugLogs, optional): If True, prints debug output.
+    output_dtype (Universal.OutputDtype, optional): Output data type; defaults to input type if None.
+    custom_nodata_value (Universal.CustomNodataValue, optional): NoData value to use; defaults to first input's value.
+
+Returns:
+    None"""
+
+def _merge_raster_process_window(window, band_idx, dtype, debug_logs, image_name, src_transform, dst_transform, nodata_value):
+    """Processes a single raster window for merging by reading, masking, and mapping it to the destination grid.
+
+Args:
+    window (Window): Source window to read.
+    band_idx (int): Zero-based band index to process.
+    dtype (str): Data type to cast the read block to.
+    debug_logs (bool): If True, prints debug output.
+    image_name (str): Identifier for accessing the source dataset from WorkerContext.
+    src_transform: Affine transform of the source image.
+    dst_transform: Affine transform of the destination mosaic.
+    nodata_value (Universal.CustomNodataValue): Value representing NoData pixels.
+
+Returns:
+    tuple[int, Window, np.ndarray]: Band index, destination window, and processed data block (or None if fully masked)."""
+
+def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, image_parallel_workers, window_parallel_workers, include_touched_pixels):
+    """Applies a vector-based mask to one or more rasters, with support for image- and window-level parallelism.
+
+Args:
+    input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of input raster paths.
+    output_images (Universal.CreateInFolderOrListFiles): Tuple (output_folder, template) or list of output raster paths.
+    vector_mask (Universal.VectorMask, optional): Tuple ("include"/"exclude", vector path, optional field name) or None.
+    window_size (Universal.WindowSize, optional): Strategy for tiling rasters during processing.
+    debug_logs (Universal.DebugLogs, optional): If True, prints debug information.
+    image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level masking.
+    window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for parallelizing masking within windows.
+    include_touched_pixels (bool, optional): If True, includes pixels touched by mask geometry edges; default is False.
+
+Returns:
+    None"""
+
+def _mask_raster_process_image(window_parallel, max_workers, backend, input_image_path, output_image_path, image_name, vector_mask, window_size, debug_logs, include_touched_pixels):
+    """Processes a single raster image by applying a vector mask, optionally in parallel by window.
+
+Args:
+    window_parallel (bool): Whether to use parallel processing at the window level.
+    max_workers (int): Maximum number of worker processes or threads.
+    backend (str): Execution backend, e.g., "process".
+    input_image_path (str): Path to the input raster.
+    output_image_path (str): Path to save the masked output raster.
+    image_name (str): Identifier for the raster used in worker context.
+    vector_mask (Universal.VectorMask): Masking config as ("include"/"exclude", path, optional field).
+    window_size (Universal.WindowSize): Strategy for tiling the raster into windows.
+    debug_logs (bool): If True, enables debug output.
+    include_touched_pixels (bool): If True, includes pixels touched by mask geometry boundaries.
+
+Returns:
+    None"""
+
+def _mask_raster_process_window(win, band_idx, image_name, nodata, geoms, invert, include_touched_pixels):
+    """Applies a vector-based mask to a single raster window and returns the masked data.
+
+Args:
+    win (Window): Raster window to process.
+    band_idx (int): Zero-based band index to read.
+    image_name (str): Identifier for the raster in the WorkerContext.
+    nodata (int | float): Value to assign to masked-out pixels.
+    geoms (list | None): List of geometries to mask with, or None to skip masking.
+    invert (bool): If True, masks outside the geometries (exclude mode).
+    include_touched_pixels (bool): If True, includes pixels touched by mask boundaries.
+
+Returns:
+    tuple[Window, np.ndarray]: The window and its corresponding masked data array."""
+
+### File: statistics.py
+
+def compare_image_spectral_profiles(input_image_dict, output_figure_path, title, xlabel, ylabel):
+    """Compares spectral profiles of multiple images by plotting median and interquartile ranges.
+
+Args:
+    input_image_dict (dict): Mapping of labels to image file paths:
+        {
+        'Image A': '/image/a.tif',
+        'Image B': '/image/b.tif'
+        }
+    output_figure_path (str): Path to save the output plot.
+    title (str): Title of the plot.
+    xlabel (str): Label for the x-axis.
+    ylabel (str): Label for the y-axis.
+
+Outputs:
+    Saves a spectral profile comparison figure to the specified path."""
+
+def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel):
+    """Plots paired spectral profiles for before-and-after image comparisons.
+
+Args:
+    image_groups_dict (dict): Mapping of labels to image path pairs (before, after):
+        {'Image A': [
+            '/image/before/a.tif',
+            'image/after/a.tif'
+        ],
+        'Image B': [
+            '/image/before/b.tif',
+            '/image/after/b.tif'
+        ]}
+    output_figure_path (str): Path to save the resulting comparison figure.
+    title (str): Title of the plot.
+    xlabel (str): X-axis label.
+    ylabel (str): Y-axis label.
+
+Outputs:
+    Saves a spectral comparison plot showing pre- and post-processing profiles."""
+
+def compare_spatial_spectral_difference_band_average(input_images, output_image_path, title, diff_label, subtitle):
+    """Computes and visualizes the average per-band spectral difference between two coregistered, equal size images.
+
+Args:
+    input_images (list): List of two image file paths to compare.
+    output_image_path (str): Path to save the resulting difference image (PNG).
+    title (str): Title for the plot.
+    diff_label (str): Label for the colorbar indicating the difference metric.
+    subtitle (str): Optional subtitle to display below the plot."""
+
+### File: seamline/voronoi_center_seamline.py
+
+def voronoi_center_seamline(input_images, output_mask):
+    """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
+
+Args:
+    input_images (Tuple[str, str] | List[str]):
+        Specifies the input images either as:
+        - A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
+        - A list of full file paths to individual input images.
+    output_mask (str): Output path for the final seamline polygon vector file.
+    min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.
+    min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.
+    debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
+    image_field_name (str, optional): Name of the attribute field for image ID in output; default is 'image'.
+    debug_vectors_path (str | None, optional): Optional path to save debug layers (cutlines, intersections).
+
+Outputs:
+    Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""
+
+def _read_mask(path, debug_logs):
+    """Reads a raster mask and returns a binary array where valid data is True.
+
+Args:
+    path (str): Path to the input raster file.
+    debug_logs (bool, optional): If True, enables debug output; default is False.
+
+Returns:
+    Tuple[np.ndarray, Affine]: A binary mask array and the associated affine transform."""
+
+def _seamline_mask(mask, transform, debug_logs):
+    """Extracts polygons from a binary mask and returns the largest as the EMP.
+
+Args:
+    mask (np.ndarray): Binary mask where True indicates valid area.
+    transform (Affine): Affine transform associated with the mask.
+    debug_logs (bool, optional): If True, prints debug info; default is False.
+
+Returns:
+    Polygon: The largest extracted polygon from the mask."""
+
+def _densify_polygon(poly, dist, debug_logs):
+    """Densifies the exterior of the largest polygon by inserting points at regular intervals.
+
+Args:
+    poly (Polygon | GeometryCollection): Input geometry to densify.
+    dist (float): Maximum distance between inserted points.
+    debug_logs (bool, optional): If True, prints debug info; default is False.
+
+Returns:
+    List[Tuple[float, float]]: List of (x, y) coordinates with added intermediate points."""
+
+def _compute_centerline(a, b, min_point_spacing, min_cut_length, debug_logs, crs, debug_vectors_path):
+    """Computes a Voronoi-based centerline between two overlapping polygons.
+
+Args:
+    a (Polygon): First polygon.
+    b (Polygon): Second polygon.
+    min_point_spacing (float): Minimum spacing between seed points for Voronoi generation.
+    min_cut_length (float): Minimum segment length to include in the centerline graph.
+    debug_logs (bool, optional): If True, prints debug information; default is False.
+    crs (optional): Coordinate reference system used for optional debug output.
+    debug_vectors_path (optional): Path to save debug Voronoi cells; if None, skips saving.
+
+Returns:
+    LineString: Shortest centerline path computed through the Voronoi diagram of the overlap."""
+
+def _segment_emp(emp, cuts, debug_logs):
+    """Segments an EMP polygon by sequentially applying centerline cuts, retaining the piece containing the centroid.
+
+Args:
+    emp (Polygon): The original EMP polygon to segment.
+    cuts (List[LineString]): List of cutlines to apply.
+    debug_logs (bool, optional): If True, prints debug info; default is False.
+
+Returns:
+    Polygon: The segmented portion of the EMP containing the original centroid."""
+
+def _save_intersection_points(a, b, path, crs, pair_id):
+    """Saves intersection points between the boundaries of two polygons to a GeoPackage layer.
+
+Args:
+    a (Polygon): First polygon.
+    b (Polygon): Second polygon.
+    path (str): Path to the output GeoPackage file.
+    crs: Coordinate reference system for the output.
+    pair_id (str): Identifier for the polygon pair, saved as an attribute.
+
+Returns:
+    None"""
+
+def _save_voronoi_cells(voronoi_cells, path, crs, layer_name):
+    """Saves Voronoi polygon geometries to a specified GeoPackage layer.
+
+Args:
+    voronoi_cells (GeometryCollection): Collection of Voronoi polygon geometries.
+    path (str): Path to the output GeoPackage file.
+    crs: Coordinate reference system for the output layer.
+    layer_name (str, optional): Name of the layer to write; default is "voronoi_cells".
+
+Returns:
+    None"""
+
+### File: match/local_block_adjustment.py
+
+def local_block_adjustment(input_images, output_images):
+    """Performs local radiometric adjustment on a set of raster images using block-based statistics.
+
+Args:
+    input_images (Tuple[str, str] | List[str]):
+        Specifies the input images either as:
+        - A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
+        - A list of full file paths to individual input images.
+    output_images (Tuple[str, str] | List[str]):
+        Specifies how output filenames are generated or provided:
+        - A tuple with an output folder and a filename template using "$" as a placeholder for each input image's basename (e.g., ("/output/folder", "$_LocalMatch.tif")).
+        - A list of full output paths, which must match the number of input images.
+    calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
+    output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): A mask limiting pixels to include when calculating stats for each block in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. It is only applied when calculating local blocks, as the reference map is calculated as the mean of all local blocks. Loaded block maps won't have this applied unless it was used when calculating them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
+    debug_logs (bool, optional): If True, prints progress. Defaults to False.
+    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+    image_parallel_workers (Tuple[Literal["process", "thread"], Literal["cpu"] | int] | None = None): Parallelization strategy at the image level. Provide a tuple like ("process", "cpu") to use multiprocessing with all available cores. Threads are supported too. Set to None to disable.
+    window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
+    window_size (int | Tuple[int, int] | Literal["block"] | None): Tile size for processing: int for square tiles, (width, height) for custom size, or "block" to set as the size of the block map, None for full image. Defaults to None.
+    save_as_cog (bool, optional): If True, saves as COG. Defaults to False.
+    number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
+    alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.
+    correction_method (Literal["gamma", "linear"], optional): Local correction method. Defaults to "gamma".
+    save_block_maps (tuple(str, str) | None): If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.
+        - First str is the path to save the global block map.
+        - Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).
+    load_block_maps (Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None, optional):
+        Controls loading of precomputed block maps. Can be one of:
+            - Tuple[str, List[str]]: Load both reference and local block maps.
+            - Tuple[str, None]: Load only the reference block map.
+            - Tuple[None, List[str]]: Load only the local block maps.
+            - None: Do not load any block maps.
+        This supports partial or full reuse of precomputed block maps:
+            - Local block maps will still be computed for each input image that is not linked to a local block map by the images name being *included* in the local block maps name (file name).
+            - The reference block map will only be calculated (mean of all local blocks) if not set.
+            - The reference map defines the reference block statistics and the local maps define per-image local block statistics.
+            - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.
+    override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.
+    block_valid_pixel_threshold (float): Minimum fraction of valid pixels required to include a block (0–1).
+
+Returns:
+    List[str]: Paths to the locally adjusted output raster images."""
+
+def _validate_input_params(input_images, output_images, custom_nodata_value, number_of_blocks, alpha, calculation_dtype, output_dtype, debug_logs, window_size, save_as_cog, correction_method, image_parallel_workers, window_parallel_workers, save_block_maps, load_block_maps, override_bounds_canvas_coords, vector_mask, block_valid_pixel_threshold):
+    """Validates input parameters for `local_block_adjustment`.
+
+Raises:
+    TypeError or ValueError with a concise message if any parameter is improperly set."""
+
+def _get_pre_computed_block_maps(load_block_maps, calculation_dtype, debug_logs):
+    """Load pre-computed block mean maps from files.
+
+Args:
+    load_block_maps (Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]]):
+        - Tuple[str, List[str]]: Load both reference and local block maps.
+        - Tuple[str, None]: Load only the reference block map.
+        - Tuple[None, List[str]]: Load only the local block maps.
+    calculation_dtype (str): Numpy dtype to use for reading.
+    debug_logs (bool): To print debug statements or not.
+
+Returns:
+    Tuple[
+        dict[str, np.ndarray],             # block_local_means
+        Optional[np.ndarray],              # block_reference_mean
+        Optional[int],                     # num_row
+        Optional[int],                     # num_col
+        Optional[Tuple[float, float, float, float]]  # bounds_canvas_coords
+    ]"""
+
+def get_bounding_rect_images_block_space(block_local_means):
+    """Compute block-space bounding rectangles for each image based on valid block values.
+
+Args:
+    block_local_means (dict[str, np.ndarray]): Per-image block means
+        with shape (num_row, num_col, num_bands).
+
+Returns:
+    dict[str, tuple[int, int, int, int]]: Each entry maps image name to
+        (min_row, min_col, max_row, max_col)."""
+
+def _compute_reference_blocks(block_local_means, calculation_dtype):
+    """Computes reference block means across images by averaging non-NaN local block means.
+
+Args:
+    block_local_means (dict[str, np.ndarray]): Per-image block mean arrays.
+    calculation_dtype (str): Numpy dtype for output array.
+
+Returns:
+    np.ndarray: Reference block map of shape (num_row, num_col, num_bands)"""
+
+def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_image_block_space, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, parallel, backend, max_workers, save_as_cog):
+    """Applies local radiometric adjustment to a single image using reference and local block statistics.
+
+Args:
+    name (str): Image identifier.
+    img_path (str): Path to the input image.
+    out_path (str): Path to save the adjusted output image.
+    num_bands (int): Number of bands in the image.
+    block_reference_mean (np.ndarray): Global reference block mean array.
+    block_local_mean (np.ndarray): Image-specific local block mean array.
+    bounds_image_block_space (tuple): Block-space bounding box for the image.
+    bounds_canvas_coords (tuple): Full canvas extent for normalization.
+    window_size: Tiling strategy for processing.
+    num_row (int): Number of block rows.
+    num_col (int): Number of block columns.
+    nodata_val (float): Value representing missing data.
+    alpha (float): Blending factor for adjustment.
+    correction_method (str): Method to apply ("gamma" or "linear").
+    calculation_dtype (str): Dtype used for internal computation.
+    output_dtype (str): Dtype used for writing output.
+    debug_logs (bool): If True, logs progress.
+    parallel (bool): Whether to use multiprocessing for window-level processing.
+    backend (str): Backend to use for parallelism.
+    max_workers (int): Number of workers to use if parallel.
+
+Writes:
+    The adjusted image to `out_path`."""
+
+def _apply_adjustment_process_window(name, window, band_idx, num_row, num_col, bounds_canvas_coords, nodata_val, alpha, correction_method, calculation_dtype):
+    """Applies radiometric correction to a single raster window using bilinear-interpolated block statistics.
+
+Args:
+    name (str): Image identifier.
+    window (Window): Raster window to process.
+    band_idx (int): Band index (0-based).
+    num_row (int): Number of block rows in the canvas.
+    num_col (int): Number of block columns in the canvas.
+    bounds_canvas_coords (tuple): Spatial extent of the full block canvas.
+    nodata_val (float | int): NoData value in the raster.
+    alpha (float): Blending factor for correction.
+    correction_method (str): Either "gamma" or "linear".
+    calculation_dtype (str): Data type for intermediate calculations.
+
+Returns:
+    Tuple[Window, int, np.ndarray]: The window, band index, and corrected data array."""
+
+def _get_bounding_rectangle(image_paths):
+    """Calculates the bounding rectangle that encompasses all input raster images.
+
+Args:
+    image_paths (List[str]): List of raster file paths.
+
+Returns:
+    Tuple[float, float, float, float]: (min_x, min_y, max_x, max_y) of the combined extent."""
+
+def _compute_mosaic_coefficient_of_variation(image_paths, nodata_value, reference_std, reference_mean, base_block_size, band_index, calculation_dtype):
+    """Estimates block size for local adjustment using the coefficient of variation across input images.
+
+Args:
+    image_paths (List[str]): List of input raster file paths.
+    nodata_value (float): Value representing NoData in the input rasters.
+    reference_std (float, optional): Reference standard deviation for comparison. Defaults to 45.0.
+    reference_mean (float, optional): Reference mean for comparison. Defaults to 125.0.
+    base_block_size (Tuple[int, int], optional): Base block size (rows, cols). Defaults to (10, 10).
+    band_index (int, optional): Band index to use for statistics (1-based). Defaults to 1.
+    calculation_dtype (str, optional): Data type for computation. Defaults to "float32".
+
+Returns:
+    Tuple[int, int]: Estimated block size (rows, cols) adjusted based on coefficient of variation."""
+
+def _calculate_block_process_image(name, image_path, bounds_canvas_coords, num_row, num_col, num_bands, window_size, debug_logs, nodata_value, calculation_dtype, vector_mask, block_valid_pixel_threshold, parallel, backend, max_workers):
+    """Computes per-block mean statistics for a single image by aggregating pixel values into a block grid.
+
+Args:
+    name (str): Image identifier.
+    image_path (str): Path to the input raster.
+    bounds_canvas_coords (tuple): Full extent of the block canvas (minx, miny, maxx, maxy).
+    num_row (int): Number of block rows.
+    num_col (int): Number of block columns.
+    num_bands (int): Number of image bands.
+    window_size (tuple or "block" or None): Tiling strategy for processing.
+    debug_logs (bool): If True, prints progress info.
+    nodata_value (float): Value used to identify invalid pixels.
+    calculation_dtype (str): Numpy dtype for internal arrays.
+    vector_mask (tuple or None): Optional spatial mask to include/exclude regions.
+    block_valid_pixel_threshold (float): Minimum valid pixel ratio to include block.
+    parallel (bool): Whether to use multiprocessing for tiles.
+    backend (str): Parallel execution backend ("process" or "thread").
+    max_workers (int): Number of parallel workers.
+
+Returns:
+    Tuple[str, np.ndarray, np.ndarray]: (Image name, block mean array, block pixel count array)"""
+
+def _calculate_block_process_window(band_index, window, name, geoms, invert, nodata_value, calculation_dtype, transform, block_shape, bounds_canvas_coords):
+    """Aggregates pixel values within a raster window into a block grid for one band.
+
+Args:
+    band_index (int): Band index to process (0-based).
+    window (Window): Raster window to read.
+    name (str): Image identifier used to retrieve dataset.
+    geoms (list or None): Optional vector geometries for masking.
+    invert (bool): Whether to invert the mask.
+    nodata_value (float): NoData value in the raster.
+    calculation_dtype (str): Data type for computation.
+    transform: Affine transform of the dataset.
+    block_shape (tuple): (num_row, num_col) of the block grid.
+    bounds_canvas_coords (tuple): Extent of the full canvas (minx, miny, maxx, maxy).
+
+Returns:
+    Optional[Tuple[np.ndarray, np.ndarray]]: (Sum of values per block, count of valid pixels per block),
+    or None if the window has no valid pixels."""
+
+def _weighted_bilinear_interpolation(C_B, x_frac, y_frac):
+    """Performs bilinear interpolation on a 2D array while handling NaN values using a validity mask.
+
+Args:
+    C_B (np.ndarray): 2D array with possible NaNs to interpolate.
+    x_frac (np.ndarray): Fractional x-coordinates for interpolation.
+    y_frac (np.ndarray): Fractional y-coordinates for interpolation.
+
+Returns:
+    np.ndarray: Interpolated values at the specified fractional coordinates, with NaNs preserved where data is invalid."""
+
+def _download_block_map(block_map, bounding_rect, output_image_path, projection, dtype, nodata_value, width, height, write_bands, window):
+    """Writes a 3D block map to a raster file, creating or updating specified bands within a target window.
+
+Args:
+    block_map (np.ndarray): Block data of shape (rows, cols, bands).
+    bounding_rect (tuple): Spatial extent (minx, miny, maxx, maxy).
+    output_image_path (str): Path to the output raster file.
+    projection (rasterio.CRS): Coordinate reference system.
+    dtype (str): Data type for output.
+    nodata_value (float): NoData value to write.
+    width (int): Full raster width.
+    height (int): Full raster height.
+    write_bands (tuple[int] | None): 0-based band indices to write; all if None.
+    window (Window | None): Raster window to write into; defaults to full image.
+
+Output:
+    Writes the `block_map` array to `output_image_path`, either creating a new raster or updating an existing one."""
+
+def _compute_block_size(input_image_array_path, target_blocks_per_image, bounds_canvas_coords):
+    """Calculates the number of rows and columns for dividing a bounding rectangle into target-sized blocks.
+
+Args:
+    input_image_array_path (list): List of image paths to determine total image count.
+    target_blocks_per_image (int | float): Desired number of blocks per image.
+    bounds_canvas_coords (tuple): Bounding box covering all images (minx, miny, maxx, maxy).
+
+Returns:
+    Tuple[int, int]: Number of rows (num_row) and columns (num_col) for the block grid."""
+
+def _apply_gamma_correction(arr_in, Mrefs, Mins, alpha):
+    """Applies gamma correction to input pixel values based on reference and input block means.
+
+Args:
+    arr_in (np.ndarray): Input pixel values to be corrected.
+    Mrefs (np.ndarray): Reference block means.
+    Mins (np.ndarray): Local block means of the input image.
+    alpha (float, optional): Scaling factor applied to the corrected output. Defaults to 1.0.
+
+Returns:
+    Tuple[np.ndarray, np.ndarray]:
+        - Gamma-corrected pixel values.
+        - Gamma values used in the correction.
+
+Raises:
+    ValueError: If any value in Mins is zero or negative."""
+
+def _smooth_array(input_array, nodata_value, scale_factor):
+    """Applies Gaussian smoothing to an array while preserving NoData regions.
+
+Args:
+    input_array (np.ndarray): 2D array to be smoothed.
+    nodata_value (Optional[float], optional): Value representing NoData. Treated as NaN during smoothing. Defaults to None.
+    scale_factor (float, optional): Sigma value for the Gaussian filter. Controls smoothing extent. Defaults to 1.0.
+
+Returns:
+    np.ndarray: Smoothed array with NoData regions preserved or restored."""
+
+### File: match/global_regression.py
+
+def global_regression(input_images, output_images):
+    """Performs global radiometric normalization across overlapping images using least squares regression.
+
+Args:
+    input_images (Tuple[str, str] | List[str]):
+        Specifies the input images either as:
+        - A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
+        - A list of full file paths to individual input images.
+    output_images (Tuple[str, str] | List[str]):
+        Specifies how output filenames are generated or provided:
+        - A tuple with an output folder and a filename template using "$" as a placeholder for each input image's basename (e.g., ("/output/folder", "$_GlobalMatch.tif")).
+        - A list of full output paths, which must match the number of input images.
+    calculation_dtype (str, optional): Data type used for internal calculations. Defaults to "float32".
+    output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
+    debug_logs (bool, optional): If True, prints debug information and constraint matrices. Defaults to False.
+    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+    image_parallel_workers (Tuple[Literal["process", "thread"], Literal["cpu"] | int] | None = None): Parallelization strategy at the image level. Provide a tuple like ("process", "cpu") to use multiprocessing with all available cores. Threads are supported too. Set to None to disable.
+    window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
+    window_size (int | Tuple[int, int] | Literal["internal"] | None): Tile size for reading and writing: int for square tiles, tuple for (width, height), "internal" to use raster's native tiling, or None for full image. "internal" enables efficient streaming from COGs.
+    save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
+    specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.
+    custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
+    custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
+    save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
+    load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
+
+Returns:
+    List[str]: Paths to the globally adjusted output raster images."""
+
+def solve_global_model(num_bands, num_total, all_image_names, included_names, input_image_names, all_overlap_stats, all_whole_stats, custom_mean_factor, custom_std_factor, overlapping_pairs, debug_logs):
+    """Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.
+
+Args:
+    num_bands: Number of image bands.
+    num_total: Total number of images (including loaded).
+    all_image_names: Ordered list of all image names.
+    included_names: Subset of images used to constrain the model.
+    input_image_names: Names of input images to apply normalization to.
+    all_overlap_stats: Pairwise overlap statistics per band.
+    all_whole_stats: Whole-image stats (mean, std) per band.
+    custom_mean_factor: Weight for mean constraints.
+    custom_std_factor: Weight for std constraints.
+    overlapping_pairs: Pairs of overlapping images.
+    debug_logs: If True, prints debug information.
+
+Returns:
+    np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1)."""
+
+def _apply_adjustments_process_image(image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, calculation_dtype, output_dtype, window_parallel, window_backend, window_max_workers, save_as_cog, debug_logs):
+    """Applies scale and offset adjustments to each band of an input image and writes the result to the output path.
+
+Args:
+    image_name: Identifier for the image in the worker context.
+    input_image_path: Path to the input raster image.
+    output_image_path: Path to save the adjusted output image.
+    scale: Per-band scale factors (1D array of length num_bands).
+    offset: Per-band offset values (1D array of length num_bands).
+    num_bands: Number of image bands.
+    nodata_val: NoData value to preserve during adjustment.
+    window_size: Tiling strategy for processing (None, int, tuple, or "internal").
+    calculation_dtype: Data type for computation.
+    output_dtype: Output data type (defaults to input type if None).
+    window_parallel: Whether to parallelize over windows.
+    window_backend: Backend to use for window-level parallelism ("process").
+    window_max_workers: Number of parallel workers for window processing.
+    debug_logs: If True, prints debug info during processing.
+
+Returns:
+    None"""
+
+def _save_adjustments(save_path, input_image_names, all_params, all_whole_stats, all_overlap_stats, num_bands, calculation_dtype):
+    """Saves adjustment parameters, whole-image stats, and overlap stats in a nested JSON format.
+
+Args:
+    save_path (str): Output JSON path.
+    input_image_names (List[str]): List of input image names.
+    all_params (np.ndarray): Adjustment parameters, shape (bands, 2 * num_images, 1).
+    all_whole_stats (dict): Per-image stats (keyed by image name).
+    all_overlap_stats (dict): Per-pair overlap stats (keyed by image name).
+    num_bands (int): Number of bands.
+    calculation_dtype (str): Precision for saving values (e.g., "float32")."""
+
+def _validate_adjustment_model_structure(model):
+    """Validates the structure of a loaded adjustment model dictionary.
+
+Ensures that:
+- Each top-level key is an image name mapping to a dictionary.
+- Each image has 'adjustments' and 'whole_stats' with per-band keys like 'band_0'.
+- Each band entry in 'adjustments' contains 'scale' and 'offset'.
+- Each band entry in 'whole_stats' contains 'mean', 'std', and 'size'.
+- If present, 'overlap_stats' maps to other image names with valid per-band statistics.
+
+The expected model structure is a dictionary with this format:
+
+{
+    "image_name_1": {
+        "adjustments": {
+            "band_0": {"scale": float, "offset": float},
+            "band_1": {"scale": float, "offset": float},
+            ...
+        },
+        "whole_stats": {
+            "band_0": {"mean": float, "std": float, "size": int},
+            "band_1": {"mean": float, "std": float, "size": int},
+            ...
+        },
+        "overlap_stats": {
+            "image_name_2": {
+                "band_0": {"mean": float, "std": float, "size": int},
+                "band_1": {"mean": float, "std": float, "size": int},
+                ...
+            },
+            ...
+        }
+    },
+    ...
+}
+
+- Keys are image basenames (without extension).
+- Band keys are of the form "band_0", "band_1", etc.
+- All numerical values are stored as floats (except 'size', which is an int).
+
+Args:
+    model (dict): Parsed JSON adjustment model.
+
+Raises:
+    ValueError: If any structural issues or missing keys are detected."""
+
+def _apply_adjustments_process_window(window, band_idx, a, b, nodata, calculation_dtype, debug_logs, image_name):
+    """Applies a global linear transformation (scale and offset) to a raster tile.
+
+Args:
+    window (Window): Rasterio window specifying the region to process.
+    band_idx (int): Band index to read and adjust.
+    a (float): Multiplicative factor for normalization.
+    b (float): Additive offset for normalization.
+    nodata (int | float): NoData value to ignore during processing.
+    calculation_dtype (str): Data type to cast the block for computation.
+    debug_logs (bool): If True, prints processing information.
+    image_name (str): Key to fetch the raster from WorkerContext.
+
+Returns:
+    Tuple[Window, np.ndarray]: Window and the adjusted data block."""
+
+def _print_constraint_system(constraint_matrix, adjustment_params, observed_values_vector, overlap_pairs, image_names_with_id):
+    """Prints the constraint matrix system with labeled rows and columns for debugging regression inputs.
+
+Args:
+    constraint_matrix (ndarray): Coefficient matrix used in the regression system.
+    adjustment_params (ndarray): Solved adjustment parameters (regression output).
+    observed_values_vector (ndarray): Target values in the regression system.
+    overlap_pairs (tuple): Pairs of overlapping image indices used in constraints.
+    image_names_with_id (list of tuple): List of (ID, name) pairs corresponding to each image's position in the system.
+
+Returns:
+    None"""
+
+def _find_overlaps(image_bounds_dict):
+    """Finds all pairs of image names with overlapping spatial bounds.
+
+Args:
+    image_bounds_dict (dict): Dictionary mapping image names to their rasterio bounds.
+
+Returns:
+    Tuple[Tuple[str, str], ...]: Pairs of image names with overlapping extents."""
+
+def _overlap_stats_process_image(parallel, max_workers, backend, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, nodata_i, nodata_j, vector_mask, window_size, debug_logs):
+    """Computes per-band overlap statistics (mean, std, pixel count) between two images over their intersecting area.
+
+Args:
+    parallel: Whether to use multiprocessing for window processing.
+    max_workers: Number of workers for parallel processing.
+    backend: Parallelization backend ("process").
+    num_bands: Number of image bands.
+    input_image_path_i: Path to the first image.
+    input_image_path_j: Path to the second image.
+    name_i: Identifier for the first image.
+    name_j: Identifier for the second image.
+    bound_i: BoundingBox of the first image.
+    bound_j: BoundingBox of the second image.
+    nodata_i: NoData value for the first image.
+    nodata_j: NoData value for the second image.
+    vector_mask: Optional mask to include/exclude regions, with optional field filter.
+    window_size: Windowing strategy for tile processing.
+    debug_logs: If True, prints overlap bounds and status.
+
+Returns:
+    dict: Nested stats dictionary for each image pair and band."""
+
+def _overlap_stats_process_window(win, band, col_min_i, row_min_i, name_i, name_j, nodata_i, nodata_j, geoms_i, geoms_j, invert, interpolation_method):
+    """Processes a single overlapping window between two images, applying masks and interpolation if needed,
+and returns valid pixel pairs for statistical comparison.
+
+Args:
+    win: Window in image i's coordinate space.
+    band: Band index to process.
+    col_min_i: Column offset of overlap region in image i.
+    row_min_i: Row offset of overlap region in image i.
+    name_i: Image i identifier in WorkerContext.
+    name_j: Image j identifier in WorkerContext.
+    nodata_i: NoData value for image i.
+    nodata_j: NoData value for image j.
+    geoms_i: Optional list of geometries for masking image i.
+    geoms_j: Optional list of geometries for masking image j.
+    invert: Whether to invert the mask logic (exclude vs include).
+    interpolation_method: OpenCV interpolation method for resampling. 1 is bilinear interpolation.
+
+Returns:
+    Tuple of valid pixel arrays (image_i_values, image_j_values), or None if no valid pixels found."""
+
+def _fit_windows_to_pixel_bounds(windows, row_min, row_max, col_min, col_max, row_offset, col_offset):
+    """Adjusts a list of image-relative windows to ensure they fit within specified pixel bounds, based on a global offset.
+
+Args:
+    windows: List of rasterio Window objects (relative to an image region).
+    row_min, row_max: Global pixel row bounds to clip against.
+    col_min, col_max: Global pixel column bounds to clip against.
+    row_offset, col_offset: Offsets to convert window-relative coordinates to global coordinates.
+
+Returns:
+    List[Window]: Windows cropped to the specified global bounds."""
+
+def _whole_stats_process_image(parallel, max_workers, backend, input_image_path, nodata, num_bands, image_name, vector_mask, window_size, debug_logs):
+    """Calculates whole-image statistics (mean, std, and valid pixel count) per band, with optional masking and window-level parallelism.
+
+Args:
+    parallel: Whether to enable multiprocessing for window processing.
+    max_workers: Number of parallel workers to use.
+    backend: Multiprocessing backend ("process").
+    input_image_path: Path to the input raster.
+    nodata: NoData value to exclude from stats.
+    num_bands: Number of bands to process.
+    image_name: Identifier for use in WorkerContext.
+    vector_mask: Optional mask tuple to include/exclude specific regions, with optional field filter.
+    window_size: Tiling strategy (None, int, tuple, or "internal").
+    debug_logs: If True, prints debug messages.
+
+Returns:
+    dict: Per-band statistics {image_name: {band: {mean, std, size}}}."""
+
+def _whole_stats_process_window(win, band_idx, image_name, nodata, geoms, invert):
+    """Extracts valid pixel values from a raster window, optionally applying a geometry mask.
+
+Args:
+    win: Rasterio window to read.
+    band_idx: Band index to read (0-based).
+    image_name: Identifier for the image in WorkerContext.
+    nodata: NoData value to exclude.
+    geoms: Optional list of geometries for masking.
+    invert: If True, inverts the mask (exclude instead of include).
+
+Returns:
+    np.ndarray or None: 1D array of valid pixel values, or None if none found."""
+
+### File: mask/mask.py
+
+def band_math(input_images, output_vector_mask, custom_math, threshold):
+
+def band_math_process_image(input_image_path, output_vector_mask, custom_math, threshold, debug_logs, custom_nodata_value, window_parallel_workers, window_size):
+
+def band_math_process_window(input_image_path, window, custom_math, threshold, debug_logs, custom_nodata_value):
+
+def create_cloud_mask_with_omnicloudmask(input_image_path, red_band_index, green_band_index, nir_band_index, output_mask_path, down_sample_m, debug_logs):
+    """Generates a cloud mask using OmniCloudMask from a multi-band image.
+
+Args:
+    input_image_path (str): Path to the input image.
+    red_band_index (int): Index of the red band.
+    green_band_index (int): Index of the green band.
+    nir_band_index (int): Index of the NIR (or substitute blue) band.
+    output_mask_path (str): Path to save the output cloud mask GeoTIFF.
+    down_sample_m (float, optional): Target resolution (in meters) to downsample the input before processing.
+    debug_logs (bool, optional): Debug logs to console.
+    omnicloud_kwargs: Forwards key word args to OmniCloudMask predict_from_array() function. Repo here: https://github.com/DPIRD-DMA/OmniCloudMask.
+
+Outputs:
+    Saves a single-band cloud mask GeoTIFF at the specified path."""
+
+def post_process_raster_cloud_mask_to_vector(input_image_path, output_vector_path, minimum_mask_size_percentile, polygon_buffering_in_map_units, value_mapping):
+    """Converts a raster cloud mask to a vector layer with optional filtering, buffering, and merging.
+
+Args:
+    input_image_path (str): Path to the input cloud mask raster.
+    output_vector_path (str): Path to the output vector layer.
+    minimum_mask_size_percentile (float, optional): Percentile threshold to filter small polygons by area.
+    polygon_buffering_in_map_units (dict, optional): Mapping of raster values to buffer distances.
+    value_mapping (dict, optional): Mapping of original raster values to new values before vectorization.
+
+Outputs:
+    Saves a vector layer to the output path."""
+
+def create_ndvi_mask(input_image_path, output_image_path, nir_band, red_band):
+    """Computes NDVI from a multi-band image and saves the result as a GeoTIFF.
+
+Args:
+    input_image_path (str): Path to the input image with NIR and red bands.
+    output_image_path (str): Path to save the NDVI output GeoTIFF.
+    nir_band (int): Band index for NIR (1-based).
+    red_band (int): Band index for red (1-based).
+
+Returns:
+    str: Path to the saved NDVI output."""
+
+def post_process_threshold_to_vector(input_image_path, output_vector_path, threshold_val, operator_str):
+    """Converts a thresholded raster mask to a vector layer using Rasterio and Fiona.
+
+Args:
+    input_image_path (str): Path to the input single-band raster.
+    output_vector_path (str): Path to save the output vector file (GeoPackage).
+    threshold_val (float | int): Threshold value to apply.
+    operator_str (str): One of the comparison operators.
+
+Returns:
+    str: Path to the saved vector file."""
+
+## Markdown Section
+### File: rrn_methods.md
+# Dimensions of Relative Radiometric Normalization (RRN) Methods
+
+RRN methods differ not only in the algorithms used to adjust image values but also in the requirements images must have and other techniques that can be used in conjunction. The following taxonomy summarizes the core dimensions along which RRN techniques vary:
+
+ - **Matching algorithm:** The core transformation applied to align radiometry between images.
+ - **Geometric alignment required:** The level of spatial alignment necessary for the method.
+ - **Pixel selection (PIFs/RCS):** How pseudo-invariant features/control sets are identified.
+ - **Adjustment scope:** How corrections are applied to the images.
+ - **Overlap:** Whether the method requires overlapping pixels.
+ - **Pixel units:** The radiometric units the method is able to operate on.
+ - **Bands:** Whether bands relationships are preserved.
+ - **Target reference:** What the target image is normalized to.
+
+Multiple matching algorithms can be used in conjunction with multiple pixel selection methods. Note that the most restrictive method will dictate the image requirements (e.g. if using `Global regression` with `Overlapping area` the `Geometric alignment` will need to be `Moderate`). The specific matching algorithm used in each method is flexible and not fixed; it may involve least squares, RANSAC, Theil–Sen, Huber, or other forms of robust regression.
+
+## Matching Algorithms
+
+| Matching algorithm                      | Description                                                                                            | Geometric alignment | Adjustment granularity          | Applies                        | Overlap required | Pixel units | Bands                  | Target reference                           | Year introduced | Key papers                                                                               | Software                                                                                                                                                                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------- | ------------------------------- | ------------------------------ | ---------------- | ----------- | ---------------------- | ------------------------------------------ | --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Histogram Matching (HM)                 | Matches histogram distributions between images                                                         | None                | Global                          | Lookup table                   | no               | Any         | Independent            | Reference histogram                        | 1980s           |                                                                                          | ENVI; [HistMatch QGIS Plugin](https://github.com/Gustavoohs/HistMatch); ArcGIS Pro; IMAGINE Mosaic Pro; [landsat R library via histmatch()](https://cran.r-project.org/web/packages/landsat/index.html) |
+| Minimum–Maximum Scale Normalization     | Linearly scales pixel values to match reference min/max                                                | None                | Global                          | Min/max                        | No               | Any         | Independent            | Reference min/max                          | 1980s           |                                                                                          |                                                                                                                                                                                                         |
+| Mean–Standard Deviation Regression      | Fits linear regression using mean and std dev                                                          | None                | Global                          | Gain/offset                    | No               | Any         | Independent/Correlated | Reference mean/std                         | 1980s           |                                                                                          | ArcGIS Pro; [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch)                                                                                              |
+| Overlaping pixel-wise Linear Regression | Fits linear regression using overlapping pairs of pixels                                               | Co-registered       | Model                           | Gain/offset                    | Yes              | Any         | Independent/Correlated | Reference image pixels                     | 1980s           |                                                                                          | ArcGIS Pro; [landsat R library via relnorm()](https://cran.r-project.org/web/packages/landsat/index.html)                                                                                               |
+| Block adjusted gamma correction         | Adjusts local brightness via block-based gamma scaling                                                 | Moderate            | Blocks/interpolation resolution | Power function                 | Yes              | Any         | Independent            | Reference block map (mean of local blocks) |                 |                                                                                          | [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch)                                                                                                          |
+| CCA/KCCA-Based                          | Finding the most correlated combinations between images                                                | Co-registered       | CCA space resolution            | Matrix                         | Yes              | Any         | Correlated             | Reference canonical components             |                 |                                                                                          |                                                                                                                                                                                                         |
+| Dodging                                 | Smooths brightness using low-pass filtering to reduce lighting artifacts                               | Co-registered       | Blur resolution                 | Low-pass brightness correction | Yes              | Any         | Independent            | Blur created brightness values             |                 |                                                                                          | ArcGIS Pro; IMAGINE Mosaic Pro                                                                                                                                                                          |
+| Illumination Equalization               | Models and removes large-scale illumination differences across images                                  | Co-registered       | Surface model resolution        | Modeled lighting correction    | Yes              | Any         | Independent            | Computed illumination values               |                 |                                                                                          | IMAGINE Mosaic Pro                                                                                                                                                                                      |
+| Wavelet reconstruction                  | Uses ancillary data to model and reconstruct image values at multiple detail levels                    | Co-registered       | Ancillary data resolution       | Decomposition/reconstruction   | Yes              | Any         | Correlated             | Ancillary data                             |                 | [(Gan et al., 2021)](https://doi.org/10.1109/JSTARS.2021.3069855)                        |                                                                                                                                                                                                         |
+| Dual-reference affine interpolation     | Models corrections from the two nearest reference images and applies temporally weighted interpolation | Co-registered       | Model                           | Gain/offset                    | Yes              | Any         | Independent            | Two closest high-quality reference images  | 2020            | [(Hessel et al., 2020)](https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/) | [rrn-multisensor-multidate Python scripts](https://github.com/chlsl/rrn-multisensor-multidate)                                                                                                          |
+
+## Pixel Selection
+
+| Pixel selection (PIFs/RCS)              | Description                                                                                                                                                                       | Type        | Geometric alignment | Overlap required | Pixel units                        | Year introduced | Key papers                                                                                             | Software                                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------- | ---------------- | ---------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Whole image                             | Uses all pixels without selection or masking                                                                                                                                      | None        | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| Overlapping area                        | Uses only pixels in the spatial overlap between images                                                                                                                            | None        | Moderate            | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
+| Manual polygons or pixels               | User-defined areas or points chosen as invariant                                                                                                                                  | Manual      | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| Manual threshold                        | Selects pixels based on value threshold                                                                                                                                           | Threshold   | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| Dark/Bright Set (DB)                    | Selects darkest and brightest pixels assumed to be invariant                                                                                                                      | Threshold   | None                | No               | Any/reflectance may perform better |                 |                                                                                                        |                                                                                                |
+| NDVI ratio                              | Uses vegetation indices to isolate vegetated areas for normalization                                                                                                              | Band ratio  | None                | No               | Reflectance                        |                 |                                                                                                        | [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch) |
+| K-T ratio                               | Uses the Kauth–Thomas transformation to identify invariant pixels in greenness–brightness space                                                                                   | Band ratio  | None                | No               | Reflectance                        |                 | [(Hall et al., 1991)](https://www.sciencedirect.com/science/article/pii/003442579190062B?via%3Dihub)   | [landsat R library via RCS()](https://cran.r-project.org/web/packages/landsat/index.html)      |
+| Urban materials ratio                   | Assumes that certain **man-made surfaces** (e.g., roads, rooftops) have **stable reflectance over time** and uses their statistical properties to correct radiometric differences | Band ratio  | None                | No               | Reflectance                        | 1988            | [(Schott et al., 1988)](https://www.sciencedirect.com/science/article/pii/0034425788901162?via%3Dihub) | [landsat R library via PIF()](https://cran.r-project.org/web/packages/landsat/index.html)      |
+| No-change  Scattergrams (NC)            | Selects pixels near the scatterplot diagonal where reference and target values match closely                                                                                      | Statistical | Co-registered       | Yes              | Any                                |                 | [(De Carvalho et al., 2013)](https://www.mdpi.com/2072-4292/5/6/2763)                                  |                                                                                                |
+| Multivariate Alteration Detection (MAD) | Identifies invariant pixels by transforming image differences into uncorrelated components; selects pixels with minimal change across all bands                                   | Statistical | Co-registered       | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
+| Iteratively Reweighted MAD (IR-MAD)     | Refines MAD by reweighting pixels to improve change detection                                                                                                                     | Statistical | Co-registered       | Yes              | Any                                |                 | [(Canty & Nielsen, 2008)](https://doi.org/10.1016/j.rse.2007.07.013)                                   | [ArrNorm Python scripts](https://github.com/SMByC/ArrNorm)                                     |
+| Multi-Rule-Based Normalization          | Combines several selection rules to identify invariant pixels                                                                                                                     | Statistical | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| PCA                                     | Uses principal component analysis to identify pseudo-invariant pixels along the major axis of multitemporal scatterplots                                                          | Statistical | Co-registered       | Yes              | Any                                | 2002            | [(Du et al., 2002)](https://www.sciencedirect.com/science/article/pii/S0034425702000299?via%3Dihub)    |                                                                                                |
+| Gradient angle similarity               | Selecting the 10% of pixels with the smallest gradient angle differences between an image and its reference                                                                       | Statistical | Co-registered       | Yes              | Any                                | 2020            | [(Hessel et al., 2020)](https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/)               | [rrn-multisensor-multidate Python scripts](https://github.com/chlsl/rrn-multisensor-multidate) |
+| Feature-Based (Keypoint) RRN            | Matches distinctive features between images and uses their correspondence to guide normalization                                                                                  | Geometric   | Moderate            | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
+| Location-Independent RRN (LIRRN)        | Groups pixels by brightness or spectral similarity, then matches these groups between images to perform group-wise normalization                                                  | Geometric   | Moderate            | Yes              | Any                                | 2024            | [(Maghimi et al., 2024)](https://www.mdpi.com/1424-8220/24/7/2272)                                     | [LIRRN MATLAB scripts](https://github.com/ArminMoghimi/LIRRN/tree/main)                        |
+
+
+### File: formats_and_requirements.md
+# File Formats and Input Requirements
+
+## Input Raster Requirements
+Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():
+
+- Have a valid geotransform
+- Share the same coordinate reference system (CRS)
+- Have an identical number of bands
+- Use consistent nodata values
+
+Additionally, all rasters should:
+
+ - Be a `.tif` file
+ - Have overlap which represents the same data in each raster
+ - Have a consistent spectral profile 
+
+## Regression Parameters File
+Regression parameters can be stored in a `json` file which includes:
+
+ - Adjustments: Per-band scale and offset values applied to each image.
+ - Whole Stats: Per-band mean, std, and size representing overall image statistics.
+ - Overlap Stats: Per-image pair mean, std, and size for overlapping geometry regions.
+
+The structure is a dictionary keyed by images basenames (no extension) with the following format:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;image_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;adjustments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;scale&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">},</span>
+<span class="w">      </span><span class="err">...</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;whole_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
+<span class="w">      </span><span class="err">...</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;overlap_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;other_image&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
+<span class="w">        </span><span class="err">...</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="err">...</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+This format represents the following: For each image_name there are adjustment, whole_stats and overlap_stats. For each adjustments, for each band, there is scale and offset. For each whole_stats and overlap_stats, for each band, there is mean, std, and size (number of pixels). Each band key follows the format band_0, band_1, etc. Mean and std are floats and size is an integer.
+
+This structure is validated by `_validate_adjustment_model_structure()` before use to ensure consistency and completeness across images and bands. Global regression does not actually use 'adjustments' field because they are recalculated every run.
+
+## Block Maps File
+Block maps are spatial summaries of raster data, where each block represents the mean values of a group of pixels over a fixed region. They are used to reduce image resolution while preserving local radiometric characteristics, enabling efficient comparison and adjustment across images. Each map is structured as a grid of blocks with values for each spectral band. They can be saved as regular `geotif` files and together store this information: block_local_means, block_reference_mean, num_row, num_col, bounds_canvas_coords. 
+
+There are two types of block maps, although their format is exactly the same:
+
+ - **Local Block Map:** Each block stores the mean value of all pixels within its boundary for a single image.
+ - **Reference Block Map:** Each block is the mean of all images means for its boundary; simply the mean of all local block maps.
+
+Both block maps have the shape: `num_row, num_col, num_bands`, however, there are multiple (one for each image) local block maps and only one reference block map. Once a reference block map is created it is unique to its input images and cannot be accurately modified to add additional images. However, images can be 'brought' to a reference block map even if they were not involved in its creation as long as it covers that image.
+
+
+### File: index.md
+# spectralmatch: A toolkit to perform Relative Radiometric Normalization, with utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, and statistics
+
+[![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
+[![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=OKAM0BUUNS)](https://codecov.io/gh/spectralmatch/spectralmatch)
+[![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
+[![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](/spectralmatch/llm_prompt/)
+> [!IMPORTANT]
+> This library is experimental and still under heavy development.
+
+ ---
+
+## Overview
+
+![Global and Local Matching](./images/spectralmatch.png)
+
+*spectralmatch* provides a Python library and QGIS plugin with multiple algorythms to perform Relative Radiometric Normalization (RRN). It also includes utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, statistics, preprocessing, and more.
+
+## Features
+
+- **Automated:** Works without manual intervention, making it ideal for large-scale applications.
+
+- **Multiprocessing:** Image, window, and band parallel processing. Cloud Optimized GeoTIFF reading and writing.
+
+- **Save Intermediate Steps:** Save image stats and block maps for quick reprocessing.
+
+- **Specify Model Images** Include all or specified images in the matching solution to bring all images to a central tendency or selected images spectral profile.
+
+- **Consistent Multi-Image Analysis:** Ensures uniformity across images by applying systematic corrections with minimal spectral distortion.
+
+- **Seamlessly Blended:** Creates smooth transitions between images.
+
+- **Unit Agnostic:** Works with any pixel unit and preserves the spectral information for accurate analysis. This inlcludes negative numbers and reflectance.
+
+- **Better Input for Machine Learning Models:** Provides high-quality, unbiased data for AI and analytical workflows.
+
+- **Sensor Agnostic:** Works with all optical sensors. In addition, images from different sensors can be combined for multisensor analysis.
+
+- **Mosaics:** Designed to process and blend vast image collections effectively.
+
+- **Time Series**: Normalize images across time with to compare spectral changes.
+
+---
+
+## Current Matching Algorithms
+
+### Global to local matching
+This technique is derived from 'An auto-adapting global-to-local color balancing method for optical imagery mosaic' by Yu et al., 2017 (DOI: 10.1016/j.isprsjprs.2017.08.002). It is particularly useful for very high-resolution imagery (satellite or otherwise) and works in a two phase process.
+First, this method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
+However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion.
+
+
+![Histogram matching graph](./images/matching_histogram.png)
+*Shows the average spectral profile of two WorldView 3 images before and after global to local matching.*
+
+#### Assumptions
+
+- **Consistent Spectral Profile:** The true spectral response of overlapping areas remains the same throughout the images.
+
+- **Least Squares Modeling:** A least squares approach can effectively model and fit all images' spectral profiles.
+
+- **Scale and Offset Adjustment:** Applying scale and offset corrections can effectively harmonize images.
+
+- **Minimized Color Differences:** The best color correction is achieved when color differences are minimized.
+
+- **Geometric Alignment:** Images are assumed to be geometrically aligned with known relative positions.
+
+- **Global Consistency:** Overlapping color differences are consistent across the entire image.
+
+- **Local Adjustments:** Block-level color differences result from the global application of adjustments.
+
+---
+## Quick Installation ([Other methods](https://spectralmatch.github.io/spectralmatch/installation/))
+
+### Installation as a QGIS Plugin
+Install the spectralmatch plugin in [QGIS](https://qgis.org/download/) and use it in the Processing Toolbox.
+
+### Installation as a Python Library
+
+Before installing, ensure you have the following system-level prerequisites: `Python ≥ 3.10`, `pip`, `PROJ ≥ 9.3`, and `GDAL = 3.10.2`. Use this command to install the library:
+
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div>
+
+---
+
+## Documentation
+
+Documentation is available at [spectralmatch.github.io/spectralmatch/](https://spectralmatch.github.io/spectralmatch/).
+
+---
+## Contributing Guide
+
+Contributing Guide is available at [spectralmatch.github.io/spectralmatch/contributing](https://spectralmatch.github.io/spectralmatch/contributing/).
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](https://github.com/spectralmatch/spectralmatch/blob/main/LICENSE) for details.
+
+
+### File: contributing.md
+# Contributing Guide
+
+Thank you for your interest in contributing. The sections below outline how the library is structured, how to submit changes, and the conventions to follow when developing new features or improving existing functionality.
+
+For convenience, you can copy [this](/spectralmatch/llm_prompt/) auto updated LLM priming prompt with function headers and docs.
+
+---
+
+## Collaboration Instructions
+
+We welcome all contributions the project! Please be respectful and work towards improving the library. To get started:
+
+1. [Create an issue](https://github.com/spectralmatch/spectralmatch/issues/new) describing the feature or bug or just to ask a question. Provide relevant context, desired timeline, any assistance needed, who will be responsible for the work, anticipated results, and any other details.
+
+2. [Fork the repository](https://github.com/spectralmatch/spectralmatch/fork) and create a new feature branch.
+
+3. Make your changes and add any necessary tests.
+
+4. Open a Pull Request against the main repository.
+
+---
+
+## Design Philosophy
+
+ - Keep code concise and simple
+ - Adapt code for large datasets with windows, multiprocessing, progressive computations, etc
+ - Keep code modular and have descriptive names
+ - Use PEP 8 code formatting
+ - Use functions that are already created when possible
+ - Combine similar params into one multi-value parameter
+ - Use similar naming convention and input parameter format as other functions.
+ - Create docstrings (Google style), tests, and update the docs for new functionality
+
+---
+
+## Extensible Function Types
+
+In Relative Radiometric Normalization (RRN) methods often differ in how images are matched, pixels are selected, and seamlines are created. This library organizes those into distinct Python packages, while other operations like aligning rasters, applying masks, merging images, and calculating statistics are more consistent across techniques and are treated as standard utilities.
+
+### Matching functions
+
+Used to adjust the pixel values of images to ensure radiometric consistency across scenes. These functions compute differences between images and apply transformations so that brightness, contrast, or spectral characteristics align across datasets.
+
+
+### Masking functions (PIF/RCS)
+
+Used to define which parts of an image should be kept or discarded based on spatial criteria. These functions apply vector-based filters or logical rules to isolate regions of interest, remove clouds, or exclude invalid data from further processing.
+
+
+### Seamline functions
+
+Used to determine optimal boundaries between overlapping image regions. These functions generate cutlines that split image footprints in a way that minimizes visible seams and balances spatial coverage, often relying on geometric relationships between overlapping areas.
+
+---
+
+## Standard UI
+
+Reusable types are organized into the types and validation module. Use these types directly as the types of params inside functions where applicable. Use the appropriate _resolve... function to resolve these inputs into usable variables.
+
+### Input/Output
+The input_images parameter accepts either a tuple or a list. If given as a tuple, it should contain a folder path and a glob pattern to search for files (e.g., ("/input/folder", "*.tif")). Alternatively, it can be a list of full file paths to individual input images. The output_images parameter defines how output filenames are determined. It can also be a tuple, consisting of an output folder and a filename template where "\$" is replaced with each input image’s basename (e.g., ("/output/folder", "$_GlobalMatch.tif")). Alternatively, it may be a list of full output paths, which must match the number of input images.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="n">input_images</span>
+<span class="n">output_images</span>
+
+<span class="c1"># Types</span>
+<span class="n">SearchFolderOrListFiles</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
+<span class="n">CreateInFolderOrListFiles</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
+
+<span class="c1"># Resolve</span>
+<span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+<span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+</code></pre></div></td></tr></table></div>
+
+### Nodata Value
+The output_dtype parameter specifies the data type for output rasters and defaults to the input image’s data type if not provided or None. Functions should begin by printing "Start {process name}", while all other print statements should be conditional on debug_logs being True.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">custom_nodata_value</span>
+
+<span class="c1"># Type</span>
+<span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="c1"># Default: None</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div>
+
+### Debug Logs
+The debug_logs parameter enables printing of debug information and constraint matrices when set to True; it defaults to False.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">debug_logs</span>
+
+<span class="c1"># Type</span>
+<span class="n">DebugLogs</span> <span class="o">=</span> <span class="nb">bool</span> <span class="c1"># Default: False</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div>
+
+### Vector Mask
+The vector_mask parameter limits statistics calculations to specific areas and is given as a tuple with two or three items: a literal "include" or "exclude" to define how the mask is applied, a string path to the vector file, and an optional field name used to match geometries based on the input image name (substring match allowed). Defaults to None for no mask.
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">vector_mask</span>
+
+<span class="c1"># Type</span>
+<span class="n">VectorMask</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">,</span> <span class="s2">&quot;exclude&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div>
+
+### Parallel Workers
+The image_parallel_workers parameter defines the parallelization strategy at the image level. It accepts a tuple such as ("process", "cpu") to enable multiprocessing across all available CPU cores, or you can use "thread" as the backend if threading is preferred. Set it to None to disable image-level parallelism. The window_parallel_workers parameter controls parallelization within each image at the window level and follows the same format. Setting it to None disables window-level parallelism. Processing windows should be done one band at a time for scalability.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="n">image_parallel_workers</span>
+<span class="n">window_parallel_workers</span>
+
+<span class="c1"># Types</span>
+<span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;thread&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">WindowParallelWorkers</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+
+<span class="c1"># Resolve</span>
+<span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
+<span class="n">window_parallel</span><span class="p">,</span> <span class="n">window_backend</span><span class="p">,</span> <span class="n">window_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">window_parallel_workers</span><span class="p">)</span>
+
+
+<span class="c1"># Main process example</span>
+<span class="n">image_args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">arg</span><span class="p">,</span> <span class="n">other_args</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
+<span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_name_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">_name_process_image</span><span class="p">(</span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_name_process_image</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="n">arg_1</span><span class="p">,</span> <span class="n">arg_2</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="c1"># Open output image as well if saving to image</span>
+        <span class="n">windows</span> <span class="o">=</span> <span class="n">_resolve_windows</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span>
+        <span class="n">window_args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">window</span><span class="p">,</span> <span class="n">other_args</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">window</span> <span class="ow">in</span> <span class="n">windows</span><span class="p">]</span>
+
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
+            <span class="n">window_backend</span><span class="p">,</span> 
+            <span class="n">window_max_workers</span><span class="p">,</span>
+            <span class="n">initializer</span><span class="o">=</span><span class="n">WorkerContext</span><span class="o">.</span><span class="n">init</span><span class="p">,</span>
+            <span class="n">initargs</span><span class="o">=</span><span class="p">({</span><span class="n">image_name</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;raster&quot;</span><span class="p">,</span> <span class="n">input_image_path</span><span class="p">)},)</span>
+            <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_name_process_window</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">window_args</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                <span class="c1"># Save result to variable or dataset</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">WorkerContext</span><span class="o">.</span><span class="n">init</span><span class="p">({</span><span class="n">image_name</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;raster&quot;</span><span class="p">,</span> <span class="n">input_image_path</span><span class="p">)})</span>
+            <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">window_args</span><span class="p">:</span>
+                <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">buf</span> <span class="o">=</span> <span class="n">_name_process_window</span><span class="p">(</span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+                <span class="c1"># Save result to variable or dataset</span>
+            <span class="n">WorkerContext</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_name_process_window</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="n">arg_1</span><span class="p">,</span> <span class="n">arg_2</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">WorkerContext</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">image_name</span><span class="p">)</span>
+    <span class="c1"># Process result to return</span>
+
+    <span class="k">return</span> <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">block</span>
+</code></pre></div></td></tr></table></div>
+
+### Windows
+The window_size parameter sets the tile size for reading and writing, using an integer for square tiles, a tuple for custom dimensions, "internal" to use the raster’s native tiling (ideal for efficient streaming from COGs), or None to process the full image at once.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span>
+<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">window_size</span>
+
+<span class="c1"># Types</span>
+<span class="n">WindowSize</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;internal&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">WindowSizeWithBlock</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;internal&quot;</span><span class="p">,</span> <span class="s2">&quot;block&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+
+<span class="c1"># Resolve</span>
+<span class="n">windows</span> <span class="o">=</span> <span class="n">_resolve_windows</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">DatasetReader</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+### COGs
+The save_as_cog parameter, when set to True, saves the output as a Cloud-Optimized GeoTIFF with correct band and block ordering.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">SaveAsCog</span> <span class="o">=</span> <span class="nb">bool</span> <span class="c1"># Default: True</span>
+
+<span class="c1"># Type</span>
+<span class="n">SaveAsCog</span> <span class="o">=</span> <span class="nb">bool</span> <span class="c1"># Default: True</span>
+
+<span class="c1"># No resolve function necessary</span>
+</code></pre></div></td></tr></table></div>
+
+---
+
+## Validate Inputs
+The validate methods are used to check that input parameters follow expected formats before processing begins. There are different validation methods for different scopes—some are general-purpose (e.g., Universal.validate) and others apply to specific contexts like matching (Match.validate_match). These functions raise clear errors when inputs are misconfigured, helping catch issues early and enforce consistent usage patterns across the library.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span>
+<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Validate params example</span>
+<span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">Match</span><span class="o">.</span><span class="n">validate_match</span><span class="p">(</span>
+    <span class="n">specify_model_images</span><span class="o">=</span><span class="n">specify_model_images</span><span class="p">,</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+---
+
+## File Cleanup
+Temporary generated files can be deleted once they are no longer needed via this command:
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>clean
+</code></pre></div></td></tr></table></div>
+
+---
+
+## Docs
+
+### Serve docs locally
+Runs a local dev server at http://localhost:8000.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>docs-serve
+</code></pre></div></td></tr></table></div>
+
+### Build static site
+Generates the static site into the site/ folder.
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>docs-build
+</code></pre></div></td></tr></table></div>
+
+### Deploy to GitHub Pages
+Deploys built site using mkdocs gh-deploy.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>docs-deploy
+</code></pre></div></td></tr></table></div>
+---
+
+## Versioning
+Uses git tag to create annotated version tags and push them. This also syncs to Pypi. New versions will be released when the maintainer determines sufficient new functionality has been added.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>tag<span class="w"> </span><span class="nv">version</span><span class="o">=</span><span class="m">1</span>.2.3
+</code></pre></div></td></tr></table></div>
+
+---
+
+## Code Formatting
+This project uses [black](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) for code formatting and ruff for linting.
+
+### Set Up Pre-commit Hooks (Recommended)
+To maintain code consistency use this hook to check and correct code formatting automatically:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>pre-commit<span class="w"> </span>install
+pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</code></pre></div></td></tr></table></div>
+
+### Manual Formatting
+
+**Format code:** Automatically formats all Python files with black.
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>format
+</code></pre></div></td></tr></table></div>
+
+**Check formatting:** Checks that all code is formatted (non-zero exit code if not).
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>check-format
+</code></pre></div></td></tr></table></div>
+
+**Lint code:** Runs ruff to catch style and quality issues.
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>lint
+</code></pre></div></td></tr></table></div>
+
+---
+
+## Testing
+[pytest](https://docs.pytest.org/) is used for testing. Tests will automatically be run when merging into main but they can also be run locally via:
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span><span class="nb">test</span>
+</code></pre></div></td></tr></table></div>
+
+To test a individual folder or file:
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>test-file<span class="w"> </span><span class="nv">path</span><span class="o">=</span>path/to/folder_or_file
+</code></pre></div></td></tr></table></div>
+
+
+### File: installation.md
+# Installation Methods
+
+---
+
+## Installation as QGIS Plugin for Easy GUI Interface
+
+### 1. [Download](https://qgis.org/download/) and install QGIS
+### 2.  Open QGIS
+### 3.  Go to Plugins → Manage and Install Plugins…
+### 4.  Find spectralmatch in the list, install, and enable it
+### 5.  Find the plugin in the Processing Toolbox
+
+---
+
+## Installation as a Python Library for use in Code (Recommended)
+
+### 1. System requirements
+Before installing, ensure you have the following system-level prerequisites:
+
+- Python ≥ 3.10
+- PROJ ≥ 9.3
+- GDAL = 3.10.2
+- pip
+
+An easy way to install these dependancies is to use [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions):
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10<span class="w"> </span><span class="s2">&quot;gdal=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div>
+
+### 2. Install spectralmatch
+
+You can automatically install the library via [PyPI](https://pypi.org/). (this method installs only the core code as a library):
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div>
+
+### 3. Run an example and modify for your use (optional)
+
+Example scripts are provided to verify a successful installation and help you get started quickly in the repository at [`/docs/examples`](https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/) and downloadable via this [`link`](https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&filename=spectralmatch_examples).
+
+---
+
+## Installation as Python Code for Development and Customization
+
+### 1. Clone the Repository
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
+<span class="nb">cd</span><span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div>
+
+> Assuming you have Make installed, you can then run `make install-setup` to automatically complete the remaining setup steps.
+
+### 2. System requirements
+Before installing, ensure you have the following system-level prerequisites:
+
+- Python ≥ 3.10
+- PROJ ≥ 9.3
+- GDAL = 3.10.2
+
+An easy way to install these dependancies is to use [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions):
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10<span class="w"> </span><span class="s2">&quot;gdal=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div>
+
+### 3. Install Dependancies (Optional Dev and Docs Dependancies)
+The `pyproject.toml` defines **core** dependancies to run the library and optional **dev**, and **docs** dependancies.
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span><span class="c1"># normal dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span><span class="w">   </span><span class="c1"># developer dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span><span class="w">  </span><span class="c1"># documentation dependencies</span>
+</code></pre></div></td></tr></table></div>
+
+### 4. Read the [Contributing Guide](https://spectralmatch.github.io/spectralmatch/contributing/) if you aim to contribute
+
+
+### File: api/match.md
+::: spectralmatch.match.global_regression
+
+::: spectralmatch.match.local_block_adjustment
+
+
+### File: api/statistics.md
+::: spectralmatch.statistics
+
+
+### File: api/mask.md
+::: spectralmatch.mask.mask
+
+
+### File: api/handlers.md
+::: spectralmatch.handlers
+
+
+  </pre>
+
+</div>
+
+<script>
+function copyToClipboard() {
+    const text = document.getElementById("copy-target").innerText;
+    navigator.clipboard.writeText(text).then(function () {
+        const successMsg = document.getElementById("copy-success");
+        successMsg.style.display = "inline";
+        setTimeout(() => successMsg.style.display = "none", 2000);
+    });
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "search.highlight"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

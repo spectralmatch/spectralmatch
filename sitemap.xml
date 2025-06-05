@@ -2,54 +2,58 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/contributing/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
+    </url>
+    <url>
+         <loc>https://spectralmatch.github.io/spectralmatch/create_llm_prompt/</loc>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/formats_and_requirements/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/installation/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
+    </url>
+    <url>
+         <loc>https://spectralmatch.github.io/spectralmatch/llm_prompt/</loc>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/rrn_methods/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/api/handlers/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/api/mask/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/api/match/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/api/statistics/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/examples/benchmark/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/examples/example_landsat_time_series/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
     <url>
          <loc>https://spectralmatch.github.io/spectralmatch/examples/example_worldview_mosaic/</loc>
-         <lastmod>2025-06-03</lastmod>
-    </url>
-    <url>
-         <loc>https://spectralmatch.github.io/spectralmatch/examples/temp/</loc>
-         <lastmod>2025-06-03</lastmod>
+         <lastmod>2025-06-05</lastmod>
     </url>
 </urlset>
