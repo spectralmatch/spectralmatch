@@ -20,20 +20,8 @@ stats_folder = os.path.join(working_directory, "Stats")
 
 
 window_size = 128
-num_image_workers = 5
+num_image_workers = 3
 num_window_workers = 5
-
-# %% Masking shadows
-shadow_mask_path = os.path.join(working_directory, "ShadowMask.gpkg")
-
-
-# custom_band_math(
-#     input_images=(input_folder, "*.tif"),
-#     output_vector_mask=shadow_mask_path,
-#     custom_math="b1 / (b8 + 1e-6)",
-#     threshold=("percent", 5.0),
-#     debug_logs=True,
-# )
 
 # %% Global matching
 

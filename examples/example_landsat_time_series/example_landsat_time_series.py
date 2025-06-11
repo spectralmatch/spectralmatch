@@ -20,7 +20,8 @@ masked_folder = os.path.join(working_directory, "Masked")
 stats_folder = os.path.join(working_directory, "Stats")
 
 window_size = 128
-num_workers = 5
+num_image_workers = 3
+num_window_workers = 5
 
 # %% Create cloud masks
 input_image_paths = search_paths(input_folder, "*.tif")
@@ -91,7 +92,7 @@ merge_vectors(
     merged_vector_pif_path,
     create_name_attribute=("image", ", "),
     method="intersection",
-    # method="keep_all", # Create a unique mask per image
+    # method="keep", # Create a unique mask per image
     )
 
 # %% Global matching
@@ -100,19 +101,10 @@ vector_mask_path = os.path.join(working_directory , "Pifs.gpkg")
 global_regression(
     (masked_folder, "*.tif"),
     (global_folder, "$_GlobalMatch.tif"),
-    vector_mask_path=("exclude", vector_mask_path),
+    vector_mask=("exclude", vector_mask_path),
     # vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image
+    # save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
     debug_logs=True,
-    )
-
-
-# %% (OPTIONAL) Global matching saving output as a Cloud Optimized GeoTIFF
-
-global_regression(
-    (masked_folder, "*.tif"),
-    (global_folder, "$_GlobalMatch.tif"),
-    debug_logs=True,
-    save_as_cog=True,
     )
 
 # %% Local matching
@@ -122,12 +114,10 @@ local_block_adjustment(
     (global_folder, "*.tif"),
     (local_folder, "$_LocalMatch.tif"),
     number_of_blocks=100,
-    vector_mask_path=("exclude", vector_mask_path),
+    vector_mask=("exclude", vector_mask_path),
     # vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image
-    window_size=window_size,
-    parallel_workers=num_workers,
+    # save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
     debug_logs=True,
-    save_block_maps=(os.path.join(local_folder, "ReferenceBlockMap", "ReferenceBlockMap.tif"), os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.tif")),
     )
 
 # %% Pre-coded quick Statistics

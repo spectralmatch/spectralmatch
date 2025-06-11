@@ -809,11 +809,33 @@ def _validate_window_param(val):
 
 ### File: handlers.py
 
+def _resolve_output_dtype(dataset, custom_output_dtype):
+    """Resolves the output dtype for a raster operation.
+
+Args:
+    dataset (rasterio.io.DatasetReader): The input dataset to derive default dtype from.
+    custom_output_dtype (str | None): A user-specified output dtype, or None to use dataset dtype.
+
+Returns:
+    str: The resolved output dtype."""
+
+def _resolve_nodata_value(dataset, custom_nodata_value):
+    """Determine the appropriate nodata value for a raster dataset.
+
+Priority is given to a user-provided custom nodata value. If not provided, the function attempts to use the nodata value defined in the dataset metadata. Returns None if neither is available.
+
+Args:
+    dataset (rasterio.io.DatasetReader): The opened raster dataset.
+    custom_nodata_value (float | int | None): Optional user-defined nodata value.
+
+Returns:
+    float | int | None: The resolved nodata value, or None if unavailable."""
+
 def _resolve_paths(mode, input, args):
     """Resolves a list of input based on the mode and input format.
 
 Args:
-    mode (Literal["search", "create", "match"]): Type of operation to perform.
+    mode (Literal["search", "create", "match", "name"]): Type of operation to perform.
     input (Tuple[str, str] | List[str]): Either a list of file input or a tuple specifying folder/template info.
     args (Tuple): Additional arguments passed to the called function.
 
@@ -904,7 +926,7 @@ def merge_vectors(input_vector_paths, merged_vector_path, method, debug_logs, cr
 Args:
     input_vector_paths (List[str]): Paths to input vector files.
     merged_vector_path (str): Path to save merged output.
-    method (Literal["intersection", "union", "keep_all"]): Merge strategy.
+    method (Literal["intersection", "union", "keep"]): Merge strategy.
     debug_logs (bool): If True, print debug information.
     create_name_attribute (Optional[Tuple[str, str]]): Tuple of (field_name, separator).
         If set, adds a field with all input filenames (no extension), joined by separator.
@@ -972,7 +994,7 @@ Args:
     window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for within-image window merging.
     window_size (Universal.WindowSize, optional): Tiling strategy for processing windows.
     debug_logs (Universal.DebugLogs, optional): If True, prints debug output.
-    output_dtype (Universal.OutputDtype, optional): Output data type; defaults to input type if None.
+    output_dtype (Universal.CustomOutputDtype, optional): Output data type; defaults to input type if None.
     custom_nodata_value (Universal.CustomNodataValue, optional): NoData value to use; defaults to first input's value.
 
 Returns:
@@ -1196,6 +1218,23 @@ Args:
 Returns:
     None"""
 
+### File: match/lirrn.py
+
+def main():
+    """Run LIRRN normalization on selected subject and reference images."""
+
+def _show_rgb(img, title):
+    """Display RGB or first three bands of a multiband image."""
+
+def lirrn(p_n, sub_img, ref_img):
+    """Perform location-independent relative radiometric normalization."""
+
+def _linear_reg(sub, ref):
+    """Fit a linear model: ref ≈ a * sub + b."""
+
+def _sample_selection(n, a, b, idx):
+    """Select sample pairs from quantized sub/ reference image regions using minimal distance matching."""
+
 ### File: match/local_block_adjustment.py
 
 def local_block_adjustment(input_images, output_images):
@@ -1289,7 +1328,7 @@ Args:
 Returns:
     np.ndarray: Reference block map of shape (num_row, num_col, num_bands)"""
 
-def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_image_block_space, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, parallel, backend, max_workers):
+def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_image_block_space, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, parallel, backend, max_workers, save_as_cog):
     """Applies local radiometric adjustment to a single image using reference and local block statistics.
 
 Args:
@@ -1412,7 +1451,7 @@ Args:
 Returns:
     np.ndarray: Interpolated values at the specified fractional coordinates, with NaNs preserved where data is invalid."""
 
-def _download_block_map(block_map, bounding_rect, output_image_path, projection, dtype, nodata_value, width, height, write_bands, window):
+def _download_block_map(block_map, bounding_rect, output_image_path, projection, dtype, nodata_value, width, height, write_bands, window, delete_output):
     """Writes a 3D block map to a raster file, creating or updating specified bands within a target window.
 
 Args:
@@ -1520,7 +1559,7 @@ Args:
 Returns:
     np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1)."""
 
-def _apply_adjustments_process_image(image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, calculation_dtype, output_dtype, window_parallel, window_backend, window_max_workers, debug_logs):
+def _apply_adjustments_process_image(image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, calculation_dtype, output_dtype, window_parallel, window_backend, window_max_workers, save_as_cog, debug_logs):
     """Applies scale and offset adjustments to each band of an input image and writes the result to the output path.
 
 Args:
@@ -1726,13 +1765,94 @@ Args:
 Returns:
     np.ndarray or None: 1D array of valid pixel values, or None if none found."""
 
+### File: mask/band_math.py
+
+def threshold_raster(input_images, output_images, threshold_math):
+    """Applies a thresholding operation to input raster images using a mathematical expression string.
+
+Args:
+    input_images (SearchFolderOrListFiles): Input image paths or folder + pattern.
+    output_images (CreateInFolderOrListFiles): Output image paths or folder + pattern.
+    threshold_math (str): A logical expression string using bands (e.g., "b1 > 5", "b1 > 5 & b2 < 10").
+        Supports:
+            - Band references: b1, b2, ...
+            - Operators: >, <, >=, <=, ==, !=, &, |, ~, and parentheses
+            - Percentile-based thresholds: use e.g. "5%b1" to use the 5th percentile of band 1
+    debug_logs (bool, optional): If True, prints debug messages.
+    custom_nodata_value (float | int | None, optional): Override the dataset's nodata value.
+    image_parallel_workers (ImageParallelWorkers, optional): Parallelism config for image-level processing.
+    window_parallel_workers (WindowParallelWorkers, optional): Parallelism config for window-level processing.
+    window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.
+    custom_output_dtype (CustomOutputDtype, optional): Output data type override.
+    calculation_dtype (CalculationDtype, optional): Internal computation dtype."""
+
+def _threshold_process_image(input_image_path, output_image_path, name, threshold_math, debug_logs, nodata_value, window_parallel_workers, window_size, output_dtype, calculation_dtype):
+    """Processes a single input raster image using a threshold expression and writes the result to disk.
+
+Args:
+    input_image_path (str): Path to input raster image.
+    output_image_path (str): Path to save the output thresholded image.
+    name (str): Image name for worker context.
+    threshold_math (str): Expression string to evaluate pixel-wise conditions.
+    debug_logs (bool): Enable debug logging.
+    nodata_value (float | int | None): Value considered as nodata.
+    window_parallel_workers: Parallel config for window-level processing.
+    window_size: Window tiling size for memory efficiency.
+    output_dtype: Output raster data type.
+    calculation_dtype: Data type used for internal calculations."""
+
+def _threshold_process_window(name, window, threshold_math, debug_logs, nodata_value, calculation_dtype):
+    """Applies the threshold logic to a single image window.
+
+Args:
+    name (str): Image identifier for WorkerContext access.
+    window (rasterio.windows.Window): Window to read and process.
+    threshold_math (str): Logical expression for thresholding using b1, b2, etc.
+    debug_logs (bool): Enable debug logs.
+    nodata_value (float | int | None): Value considered as nodata.
+    calculation_dtype: Dtype to cast bands for threshold computation.
+
+Returns:
+    Tuple[int, rasterio.windows.Window, np.ndarray]: Band index, processed window, thresholded data mask (1 for true, 0 for false)."""
+
+def _calculate_threshold_from_percent(input_image_path, threshold, band_index):
+    """Calculates a threshold value based on a percentile of valid (non-nodata) pixel values in a raster.
+
+Args:
+    input_image_path (str): Path to input raster image.
+    threshold (str): Percent string (e.g., "5%") indicating the percentile to compute.
+    band_index (int): Band index to evaluate.
+    debug_logs (bool, optional): If True, prints debug info.
+    nodata_value (float | int | None, optional): Value treated as nodata.
+    window_parallel_workers: Optional parallel config.
+    window_size: Tiling strategy.
+    calculation_dtype (str): Internal dtype used for calculations.
+    bins (int): Number of bins for histogram.
+
+Returns:
+    float: Threshold value corresponding to the requested percentile."""
+
+def band_math(input_images, output_images, custom_math):
+
+def band_math_process_image(input_image_path, output_image_path, name, custom_math, debug_logs, nodata_value, window_parallel_workers, window_size, band_indices, output_dtype, calculation_dtype):
+
+def band_math_process_window(name, window, custom_math, debug_logs, nodata_value, band_indices, calculation_dtype):
+
+def post_process_threshold_to_vector(input_image_path, output_vector_path, threshold_val, operator_str):
+    """Converts a thresholded raster mask to a vector layer using Rasterio and Fiona.
+
+Args:
+    input_image_path (str): Path to the input single-band raster.
+    output_vector_path (str): Path to save the output vector file (GeoPackage).
+    threshold_val (float | int): Threshold value to apply.
+    operator_str (str): One of the comparison operators.
+
+Returns:
+    str: Path to the saved vector file."""
+
+def replace_percent_with_threshold(match):
+
 ### File: mask/mask.py
-
-def band_math(input_images, output_vector_mask, custom_math, threshold):
-
-def band_math_process_image(input_image_path, output_vector_mask, custom_math, threshold, debug_logs, custom_nodata_value, window_parallel_workers, window_size):
-
-def band_math_process_window(input_image_path, window, custom_math, threshold, debug_logs, custom_nodata_value):
 
 def create_cloud_mask_with_omnicloudmask(input_image_path, red_band_index, green_band_index, nir_band_index, output_mask_path, down_sample_m, debug_logs):
     """Generates a cloud mask using OmniCloudMask from a multi-band image.
@@ -1775,17 +1895,37 @@ Args:
 Returns:
     str: Path to the saved NDVI output."""
 
-def post_process_threshold_to_vector(input_image_path, output_vector_path, threshold_val, operator_str):
-    """Converts a thresholded raster mask to a vector layer using Rasterio and Fiona.
+### File: mask/shadow_mask.py
 
-Args:
-    input_image_path (str): Path to the input single-band raster.
-    output_vector_path (str): Path to save the output vector file (GeoPackage).
-    threshold_val (float | int): Threshold value to apply.
-    operator_str (str): One of the comparison operators.
+def shadow_detection(image_file, shadow_mask_file, convolve_window_size, num_thresholds, struc_elem_size):
+    """This function is used to detect shadow - covered areas in an image, as proposed in the paper
+'Near Real - Time Shadow Detection and Removal in Aerial Motion Imagery Application' by Silva G.F., Carneiro G.B.,
+Doth R., Amaral L.A., de Azevedo D.F.G. (2017)
 
-Returns:
-    str: Path to the saved vector file."""
+Inputs:
+- image_file: Path of image to be processed for shadow removal. It is assumed that the first 3 channels are ordered as
+              Red, Green and Blue respectively
+- shadow_mask_file: Path of shadow mask to be saved
+- convolve_window_size: Size of convolutional matrix filter to be used for blurring of specthem ratio image
+- num_thresholds: Number of thresholds to be used for automatic multilevel global threshold determination
+- struc_elem_size: Size of disk - shaped structuring element to be used for morphological closing operation
+
+Outputs:
+- shadow_mask: Shadow mask for input image"""
+
+def shadow_correction(image_file, shadow_mask_file, corrected_image_file, exponent):
+    """This function is used to adjust brightness for shadow - covered areas in an image, as proposed in the paper
+'Near Real - Time Shadow Detection and Removal in Aerial Motion Imagery Application' by Silva G.F., Carneiro G.B.,
+Doth R., Amaral L.A., de Azevedo D.F.G. (2017)
+
+Inputs:
+- image_file: Path of 3 - channel (red, green, blue) image to be processed for shadow removal
+- shadow_mask_file: Path of shadow mask for corresponding input image
+- corrected_image_file: Path of corrected image to be saved
+- exponent: Exponent to be used for the calculcation of statistics for unshaded and shaded areas
+
+Outputs:
+- corrected_img: Corrected input image"""
 
 ## Markdown Section
 ### File: rrn_methods.md
@@ -2110,25 +2250,47 @@ The input_images parameter accepts either a tuple or a list. If given as a tuple
 <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
 </code></pre></div></td></tr></table></div>
 
-### Nodata Value
-The output_dtype parameter specifies the data type for output rasters and defaults to the input image’s data type if not provided or None. Functions should begin by printing "Start {process name}", while all other print statements should be conditional on debug_logs being True.
+### Output dtype
+The custom_output_dtype parameter specifies the data type for output rasters and defaults to the input image’s data type if not provided.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
 <span class="normal">3</span>
 <span class="normal">4</span>
 <span class="normal">5</span>
 <span class="normal">6</span>
-<span class="normal">7</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="normal">7</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="n">custom_output_dtype</span>
+
+<span class="c1"># Type</span>
+<span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="c1"># Default: None</span>
+
+<span class="c1"># Resolve</span>
+<span class="n">output_dtype</span> <span class="o">=</span> <span class="n">_resolve_output_dtype</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">DatasetReader</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+
+### Nodata Value
+The custom_nodata_value parameter overrides the input nodata value from the first raster in the input rasters if set. 
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
 <span class="n">custom_nodata_value</span>
 
 <span class="c1"># Type</span>
 <span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="c1"># Default: None</span>
 
-<span class="c1"># No resolve function necessary</span>
+<span class="c1"># Resolve</span>
+<span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">DatasetReader</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 
 ### Debug Logs
-The debug_logs parameter enables printing of debug information and constraint matrices when set to True; it defaults to False.
+The debug_logs parameter enables printing of debug information; it defaults to False. Functions should begin by printing "Start {process name}", while all other print statements should be conditional on debug_logs being True.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
 <span class="normal">3</span>
@@ -2266,7 +2428,7 @@ The image_parallel_workers parameter defines the parallelization strategy at the
     <span class="n">ds</span> <span class="o">=</span> <span class="n">WorkerContext</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">image_name</span><span class="p">)</span>
     <span class="c1"># Process result to return</span>
 
-    <span class="k">return</span> <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">block</span>
+    <span class="k">return</span> <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">data</span>
 </code></pre></div></td></tr></table></div>
 
 ### Windows
