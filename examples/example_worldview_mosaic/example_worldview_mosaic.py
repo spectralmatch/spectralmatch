@@ -26,13 +26,12 @@ num_window_workers = 5
 # %% Global matching
 
 global_regression(
-    (input_folder, "*.tif"),
-    (global_folder, "$_Global.tif"),
+    input_images=(input_folder, "*.tif"),
+    output_images=(global_folder, "$_Global.tif"),
     debug_logs=True,
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-    save_as_cog=True,
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
     # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)
     custom_std_factor=3,
@@ -46,13 +45,12 @@ local_maps_path = os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.t
 searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap"), "*.tif")
 
 local_block_adjustment(
-    (global_folder, "*.tif"),
-    (local_folder, "$_Local.tif"),
+    input_images=(global_folder, "*.tif"),
+    output_images=(local_folder, "$_Local.tif"),
     debug_logs=True,
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-    save_as_cog=True,
     number_of_blocks="coefficient_of_variation", # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
     save_block_maps=(reference_map_path, local_maps_path),
@@ -62,8 +60,8 @@ local_block_adjustment(
 #%% Align rasters
 
 align_rasters(
-    (local_folder, "*.tif"),
-    (aligned_folder, "$_Aligned.tif"),
+    input_images=(local_folder, "*.tif"),
+    output_images=(aligned_folder, "$_Aligned.tif"),
     tap=True,
     resolution='lowest',
     debug_logs=True,
@@ -73,24 +71,21 @@ align_rasters(
     )
 
 # %% Generate voronoi center seamlines
-output_vector_mask = os.path.join(working_directory, "ImageMasks.gpkg")
-debug_vectors_path = os.path.join(working_directory, "DebugVectors.gpkg")
 
 voronoi_center_seamline(
-    (aligned_folder, "*.tif"),
-    output_vector_mask,
+    input_images=(aligned_folder, "*.tif"),
+    output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
     image_field_name='image',
     debug_logs=True,
-    debug_vectors_path=debug_vectors_path,
+    debug_vectors_path=os.path.join(working_directory, "DebugVectors.gpkg"),
     )
 
 # %% Clip
-input_mask_path = os.path.join(working_directory, "ImageMasks.gpkg")
 
 mask_rasters(
-    (aligned_folder, "*.tif"),
-    (clipped_folder, "$_Clipped.tif"),
-    vector_mask=("include", input_mask_path, "image"),
+    input_images=(aligned_folder, "*.tif"),
+    output_images=(clipped_folder, "$_Clipped.tif"),
+    vector_mask=("include", os.path.join(working_directory, "ImageMasks.gpkg"), "image"),
     debug_logs=True,
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
@@ -98,16 +93,15 @@ mask_rasters(
     )
 
 # %% Merge rasters
-output_merged_image_path = os.path.join(working_directory, "MergedImage.tif")
 
 merge_rasters(
-    (clipped_folder, "*.tif"),
-    output_merged_image_path,
+    input_images=(clipped_folder, "*.tif"),
+    output_image_path=os.path.join(working_directory, "MergedImage.tif"),
     debug_logs=True,
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-)
+    )
 
 # %% Pre-coded quick Statistics
 
@@ -121,7 +115,7 @@ compare_image_spectral_profiles(
     title="Global to Local Match Comparison of Image Spectral Profiles",
     xlabel='Band',
     ylabel='Reflectance(0-10,000)',
-)
+    )
 
 # Compare image spectral profiles pairs
 before_paths = search_paths(input_folder, "*.tif")
@@ -151,4 +145,4 @@ compare_spatial_spectral_difference_band_average(
     title="Global to Local Match Comparison of Spatial Spectral Difference Band Average",
     diff_label="Reflectance Difference (0–10,000)",
     subtitle=f"Image: {os.path.splitext(os.path.basename(before_path))[0]}",
-)
+    )

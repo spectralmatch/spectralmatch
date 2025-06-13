@@ -1107,7 +1107,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5525e4e6">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=53165cc9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1138,7 +1138,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0889cdd3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=93244e1f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1199,7 +1199,7 @@ num_window_workers = 5</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=473aab90">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=56449c5d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1217,50 +1217,61 @@ num_window_workers = 5</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
-
-<span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
-    <span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
-        <span class="n">path</span><span class="p">,</span>
-        <span class="mi">5</span><span class="p">,</span>
-        <span class="mi">3</span><span class="p">,</span>
-        <span class="mi">8</span><span class="p">,</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">_CloudMask.tif"</span><span class="p">),</span>
-        <span class="c1"># down_sample_m=10</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"$_CloudMask.tif"</span><span class="p">),</span>
+    <span class="n">red_band_index</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">green_band_index</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">nir_band_index</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"thread"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
     <span class="p">)</span>
 
-<span class="n">input_mask_rasters_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
+<span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_vectors</span><span class="o">=</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"$.gpkg"</span><span class="p">),</span>
+    <span class="n">extraction_expression</span><span class="o">=</span><span class="s2">"b1==1"</span><span class="p">,</span>
+    <span class="n">value_mapping</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+    <span class="n">polygon_buffer</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
+    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+    <span class="p">)</span>
 
-<span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_mask_rasters_paths</span><span class="p">:</span>
-    <span class="n">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span>
-        <span class="n">path</span><span class="p">,</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.gpkg"</span><span class="p">),</span>
-        <span class="kc">None</span><span class="p">,</span>
-        <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="mi">50</span><span class="p">},</span>
-        <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+<span class="n">merge_vectors</span><span class="p">(</span>
+    <span class="n">input_vectors</span><span class="o">=</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"*.gpkg"</span><span class="p">),</span>
+    <span class="n">merged_vector_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"CloudMasks.gpkg"</span><span class="p">),</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">"keep"</span><span class="p">,</span>
+    <span class="n">create_name_attribute</span><span class="o">=</span><span class="p">(</span><span class="s2">"image"</span><span class="p">,</span> <span class="s2">", "</span><span class="p">),</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">input_image_paths = search_paths(input_folder, "*.tif")
-
-for path in input_image_paths:
-    create_cloud_mask_with_omnicloudmask(
-        path,
-        5,
-        3,
-        8,
-        os.path.join(mask_cloud_folder, f"{os.path.splitext(os.path.basename(path))[0]}_CloudMask.tif"),
-        # down_sample_m=10
+<div class="clipboard-copy-txt" id="cell-3">
+create_cloud_mask_with_omnicloudmask(
+    input_images=(input_folder, "*.tif"),
+    output_images=(mask_cloud_folder, "$_CloudMask.tif"),
+    red_band_index=5,
+    green_band_index=3,
+    nir_band_index=8,
+    debug_logs=True,
+    image_parallel_workers=("thread", num_image_workers),
     )
 
-input_mask_rasters_paths = search_paths(mask_cloud_folder, "*.tif")
+process_raster_values_to_vector_polygons(
+    input_images=(mask_cloud_folder, "*.tif"),
+    output_vectors=(mask_cloud_folder, "$.gpkg"),
+    extraction_expression="b1==1",
+    value_mapping={0: None, 1: 1, 2: 1, 3: 1},
+    polygon_buffer=50,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
+    window_size=window_size,
+    )
 
-for path in input_mask_rasters_paths:
-    post_process_raster_cloud_mask_to_vector(
-        path,
-        os.path.join(mask_cloud_folder, f"{os.path.splitext(os.path.basename(path))[0]}.gpkg"),
-        None,
-        {1: 50},
-        {0: None, 1: 1, 2: 1, 3: 1}
+merge_vectors(
+    input_vectors=(mask_cloud_folder, "*.gpkg"),
+    merged_vector_path=os.path.join(working_directory, "CloudMasks.gpkg"),
+    method="keep",
+    create_name_attribute=("image", ", "),
     )</div>
 </div>
 </div>
@@ -1268,7 +1279,7 @@ for path in input_mask_rasters_paths:
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=29723ba9">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6986d16a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1286,28 +1297,17 @@ for path in input_mask_rasters_paths:
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
-<span class="n">input_mask_vectors</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"*.gpkg"</span><span class="p">,</span> <span class="n">match_to_paths</span><span class="o">=</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"(.*)_CloudMask\.gpkg$"</span><span class="p">))</span>
-<span class="n">output_paths</span> <span class="o">=</span> <span class="n">create_paths</span><span class="p">(</span><span class="n">masked_folder</span><span class="p">,</span> <span class="s2">"$_CloudMasked.tif"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
-
-<span class="k">for</span> <span class="n">input_path</span><span class="p">,</span> <span class="n">vector_path</span><span class="p">,</span> <span class="n">output_path</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">input_mask_vectors</span><span class="p">,</span> <span class="n">output_paths</span><span class="p">):</span>
-    <span class="n">mask_rasters</span><span class="p">(</span>
-        <span class="n">input_path</span><span class="p">,</span>
-        <span class="n">vector_path</span><span class="p">,</span>
-        <span class="n">output_path</span><span class="p">,</span>
-        <span class="p">(</span><span class="s2">"include"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">mask_rasters</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">masked_folder</span><span class="p">,</span> <span class="s2">"$_CloudMasked.tif"</span><span class="p">),</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"CloudMasks.gpkg"</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">),</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">input_image_paths = search_paths(input_folder, "*.tif")
-input_mask_vectors = search_paths(mask_cloud_folder, "*.gpkg", match_to_paths=(input_image_paths, r"(.*)_CloudMask\.gpkg$"))
-output_paths = create_paths(masked_folder, "$_CloudMasked.tif", input_image_paths)
-
-for input_path, vector_path, output_path in zip(input_image_paths, input_mask_vectors, output_paths):
-    mask_rasters(
-        input_path,
-        vector_path,
-        output_path,
-        ("include", "value", 1),
+<div class="clipboard-copy-txt" id="cell-4">
+mask_rasters(
+    input_images=(input_folder, "*.tif"),
+    output_images=(masked_folder, "$_CloudMasked.tif"),
+    vector_mask=("exclude", os.path.join(working_directory, "CloudMasks.gpkg"), "image"),
     )</div>
 </div>
 </div>
@@ -1315,7 +1315,7 @@ for input_path, vector_path, output_path in zip(input_image_paths, input_mask_ve
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=32a55f5d">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=09cef693">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1333,44 +1333,45 @@ for input_path, vector_path, output_path in zip(input_image_paths, input_mask_ve
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
-<span class="n">raster_mask_paths</span> <span class="o">=</span> <span class="n">create_paths</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"$_VegetationMask.tif"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
-<span class="n">vector_mask_paths</span> <span class="o">=</span> <span class="n">create_paths</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"$.gpkg"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
-
-<span class="k">for</span> <span class="n">input_path</span><span class="p">,</span> <span class="n">raster_path</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">raster_mask_paths</span><span class="p">):</span>
-    <span class="n">create_ndvi_mask</span><span class="p">(</span>
-        <span class="n">input_path</span><span class="p">,</span>
-        <span class="n">raster_path</span><span class="p">,</span>
-        <span class="mi">5</span><span class="p">,</span>
-        <span class="mi">4</span><span class="p">,</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">create_ndvi_raster</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"$_Vegetation.tif"</span><span class="p">),</span>
+    <span class="n">nir_band_index</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">red_band_index</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
     <span class="p">)</span>
 
-<span class="k">for</span> <span class="n">raster_path</span><span class="p">,</span> <span class="n">vector_path</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">raster_mask_paths</span><span class="p">,</span> <span class="n">vector_mask_paths</span><span class="p">):</span>
-    <span class="n">post_process_threshold_to_vector</span><span class="p">(</span>
-        <span class="n">raster_path</span><span class="p">,</span>
-        <span class="n">vector_path</span><span class="p">,</span>
-        <span class="mf">0.1</span><span class="p">,</span>
-        <span class="s2">"&gt;="</span><span class="p">,</span>
+<span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_vectors</span><span class="o">=</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"$.gpkg"</span><span class="p">),</span>
+    <span class="n">extraction_expression</span><span class="o">=</span><span class="s2">"b1&gt;=0.1"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">merge_vectors</span><span class="p">(</span>
+    <span class="n">input_vectors</span><span class="o">=</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"*.gpkg"</span><span class="p">),</span>
+    <span class="n">merged_vector_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">"keep"</span><span class="p">,</span>
+    <span class="n">create_name_attribute</span><span class="o">=</span><span class="p">(</span><span class="s2">"image"</span><span class="p">,</span> <span class="s2">", "</span><span class="p">),</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-5">input_image_paths = search_paths(input_folder, "*.tif")
-raster_mask_paths = create_paths(mask_vegetation_folder, "$_VegetationMask.tif", input_image_paths)
-vector_mask_paths = create_paths(mask_vegetation_folder, "$.gpkg", input_image_paths)
-
-for input_path, raster_path in zip(input_image_paths, raster_mask_paths):
-    create_ndvi_mask(
-        input_path,
-        raster_path,
-        5,
-        4,
+<div class="clipboard-copy-txt" id="cell-5">
+create_ndvi_raster(
+    input_images=(input_folder, "*.tif"),
+    output_images=(mask_vegetation_folder, "$_Vegetation.tif"),
+    nir_band_index=5,
+    red_band_index=4,
     )
 
-for raster_path, vector_path in zip(raster_mask_paths, vector_mask_paths):
-    post_process_threshold_to_vector(
-        raster_path,
-        vector_path,
-        0.1,
-        "&gt;=",
+process_raster_values_to_vector_polygons(
+    input_images=(mask_vegetation_folder, "*.tif"),
+    output_vectors=(mask_vegetation_folder, "$.gpkg"),
+    extraction_expression="b1&gt;=0.1",
+)
+
+merge_vectors(
+    input_vectors=(mask_vegetation_folder, "*.gpkg"),
+    merged_vector_path=os.path.join(working_directory, "VegetationMasks.gpkg"),
+    method="keep",
+    create_name_attribute=("image", ", "),
     )</div>
 </div>
 </div>
@@ -1378,7 +1379,7 @@ for raster_path, vector_path in zip(raster_mask_paths, vector_mask_paths):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=1587f2f8">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a7e66fcc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1396,30 +1397,23 @@ for raster_path, vector_path in zip(raster_mask_paths, vector_mask_paths):
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># This is just a simple example of creating PIFs based on NDVI values, for a more robust methodology use other techniques to create a better mask vector file</span>
-
-<span class="n">input_vector_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"*.gpkg"</span><span class="p">)</span>
-<span class="n">merged_vector_pif_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"Pifs.gpkg"</span><span class="p">)</span>
-
-<span class="n">merge_vectors</span><span class="p">(</span>
-    <span class="n">input_vector_paths</span><span class="p">,</span>
-    <span class="n">merged_vector_pif_path</span><span class="p">,</span>
-    <span class="n">create_name_attribute</span><span class="o">=</span><span class="p">(</span><span class="s2">"image"</span><span class="p">,</span> <span class="s2">", "</span><span class="p">),</span>
-    <span class="n">method</span><span class="o">=</span><span class="s2">"intersection"</span><span class="p">,</span>
-    <span class="c1"># method="keep", # Create a unique mask per image</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">global_regression</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">masked_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"$_GlobalMatch.tif"</span><span class="p">),</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span> <span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">),</span> <span class="c1"># Use unique mask per image</span>
+    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+    <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="c1"># Save output as a Cloud Optimized GeoTIFF</span>
+    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-6"># This is just a simple example of creating PIFs based on NDVI values, for a more robust methodology use other techniques to create a better mask vector file
-
-input_vector_paths = search_paths(mask_vegetation_folder, "*.gpkg")
-merged_vector_pif_path = os.path.join(working_directory, "Pifs.gpkg")
-
-merge_vectors(
-    input_vector_paths,
-    merged_vector_pif_path,
-    create_name_attribute=("image", ", "),
-    method="intersection",
-    # method="keep", # Create a unique mask per image
+<div class="clipboard-copy-txt" id="cell-6">
+global_regression(
+    input_images=(masked_folder, "*.tif"),
+    output_images=(global_folder, "$_GlobalMatch.tif"),
+    vector_mask=("exclude", os.path.join(working_directory , "VegetationMasks.gpkg"), "image"), # Use unique mask per image
+    window_size=window_size,
+    save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
+    debug_logs=True,
     )</div>
 </div>
 </div>
@@ -1427,7 +1421,7 @@ merge_vectors(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=707a8aa0">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c73439b6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1445,26 +1439,27 @@ merge_vectors(
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">vector_mask_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span> <span class="p">,</span> <span class="s2">"Pifs.gpkg"</span><span class="p">)</span>
-
-<span class="n">global_regression</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">masked_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
-    <span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"$_GlobalMatch.tif"</span><span class="p">),</span>
-    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">vector_mask_path</span><span class="p">),</span>
-    <span class="c1"># vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image</span>
-    <span class="c1"># save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">local_block_adjustment</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"$_LocalMatch.tif"</span><span class="p">),</span>
+    <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">),</span>
+    <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_block_maps</span><span class="o">=</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"ReferenceBLockMap.tif"</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"$_LocalBlockMap.tif"</span><span class="p">)),</span>
     <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-7">vector_mask_path = os.path.join(working_directory , "Pifs.gpkg")
-
-global_regression(
-    (masked_folder, "*.tif"),
-    (global_folder, "$_GlobalMatch.tif"),
-    vector_mask=("exclude", vector_mask_path),
-    # vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image
-    # save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
+<div class="clipboard-copy-txt" id="cell-7">
+local_block_adjustment(
+    input_images=(global_folder, "*.tif"),
+    output_images=(local_folder, "$_LocalMatch.tif"),
+    number_of_blocks=100,
+    window_size=window_size,
+    vector_mask=("exclude", os.path.join(working_directory, "VegetationMasks.gpkg"), "image"),
+    save_as_cog=True,
     debug_logs=True,
+    save_block_maps=(os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"), os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif")),
     )</div>
 </div>
 </div>
@@ -1472,7 +1467,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=363f409f">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=851ed10b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1481,53 +1476,6 @@ global_regression(
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-8">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">vector_mask_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span> <span class="p">,</span> <span class="s2">"Pifs.gpkg"</span><span class="p">)</span>
-
-<span class="n">local_block_adjustment</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
-    <span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"$_LocalMatch.tif"</span><span class="p">),</span>
-    <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">vector_mask_path</span><span class="p">),</span>
-    <span class="c1"># vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image</span>
-    <span class="c1"># save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF</span>
-    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-8">vector_mask_path = os.path.join(working_directory , "Pifs.gpkg")
-
-local_block_adjustment(
-    (global_folder, "*.tif"),
-    (local_folder, "$_LocalMatch.tif"),
-    number_of_blocks=100,
-    vector_mask=("exclude", vector_mask_path),
-    # vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image
-    # save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
-    debug_logs=True,
-    )</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=69e76ff0">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -1579,7 +1527,7 @@ local_block_adjustment(
     <span class="n">subtitle</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Image: </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">before_path</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-9">
+<div class="clipboard-copy-txt" id="cell-8">
 # Compare image spectral profiles
 compare_image_spectral_profiles(
     input_image_dict={
@@ -1650,7 +1598,7 @@ compare_spatial_spectral_difference_band_average(
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 31, 2025 02:28:46 UTC">May 31, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 13, 2025 04:45:41 UTC">June 13, 2025</span>
   </span>
 
     

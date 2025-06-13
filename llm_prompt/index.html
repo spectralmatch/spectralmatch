@@ -920,16 +920,15 @@ Warnings:
 
 ### File: utils.py
 
-def merge_vectors(input_vector_paths, merged_vector_path, method, debug_logs, create_name_attribute):
+def merge_vectors(input_vectors, merged_vector_path, method, debug_logs, create_name_attribute):
     """Merge multiple vector files using the specified geometric method.
 
 Args:
-    input_vector_paths (List[str]): Paths to input vector files.
+    input_vectors (SearchFolderOrListFiles): Input vectors, either as a list of paths or a (folder, pattern) tuple.
     merged_vector_path (str): Path to save merged output.
     method (Literal["intersection", "union", "keep"]): Merge strategy.
     debug_logs (bool): If True, print debug information.
-    create_name_attribute (Optional[Tuple[str, str]]): Tuple of (field_name, separator).
-        If set, adds a field with all input filenames (no extension), joined by separator.
+    create_name_attribute (Optional[Tuple[str, str]]): Tuple of (field_name, separator) to add a combined name field.
 
 Returns:
     None"""
@@ -1834,66 +1833,117 @@ Returns:
 
 def band_math(input_images, output_images, custom_math):
 
-def band_math_process_image(input_image_path, output_image_path, name, custom_math, debug_logs, nodata_value, window_parallel_workers, window_size, band_indices, output_dtype, calculation_dtype):
+def _band_math_process_image(input_image_path, output_image_path, name, custom_math, debug_logs, nodata_value, window_parallel_workers, window_size, band_indices, output_dtype, calculation_dtype):
 
-def band_math_process_window(name, window, custom_math, debug_logs, nodata_value, band_indices, calculation_dtype):
-
-def post_process_threshold_to_vector(input_image_path, output_vector_path, threshold_val, operator_str):
-    """Converts a thresholded raster mask to a vector layer using Rasterio and Fiona.
-
-Args:
-    input_image_path (str): Path to the input single-band raster.
-    output_vector_path (str): Path to save the output vector file (GeoPackage).
-    threshold_val (float | int): Threshold value to apply.
-    operator_str (str): One of the comparison operators.
-
-Returns:
-    str: Path to the saved vector file."""
+def _band_math_process_window(name, window, custom_math, debug_logs, nodata_value, band_indices, calculation_dtype):
 
 def replace_percent_with_threshold(match):
 
 ### File: mask/mask.py
 
-def create_cloud_mask_with_omnicloudmask(input_image_path, red_band_index, green_band_index, nir_band_index, output_mask_path, down_sample_m, debug_logs):
-    """Generates a cloud mask using OmniCloudMask from a multi-band image.
+def create_cloud_mask_with_omnicloudmask(input_images, output_images, red_band_index, green_band_index, nir_band_index):
+    """Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
 
 Args:
-    input_image_path (str): Path to the input image.
-    red_band_index (int): Index of the red band.
-    green_band_index (int): Index of the green band.
-    nir_band_index (int): Index of the NIR (or substitute blue) band.
-    output_mask_path (str): Path to save the output cloud mask GeoTIFF.
-    down_sample_m (float, optional): Target resolution (in meters) to downsample the input before processing.
-    debug_logs (bool, optional): Debug logs to console.
-    omnicloud_kwargs: Forwards key word args to OmniCloudMask predict_from_array() function. Repo here: https://github.com/DPIRD-DMA/OmniCloudMask.
+    input_images (SearchFolderOrListFiles): Input folder and pattern or list of image paths.
+    output_images (CreateInFolderOrListFiles): Output folder and pattern or list of paths.
+    red_band_index (int): Index of red band in the image.
+    green_band_index (int): Index of green band in the image.
+    nir_band_index (int): Index of NIR band in the image.
+    down_sample_m (float, optional): If set, resamples input to this resolution in meters.
+    debug_logs (bool, optional): If True, prints progress and debug info.
+    image_parallel_workers (ImageParallelWorkers, optional): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
+    **omnicloud_kwargs: Additional arguments forwarded to predict_from_array.
 
-Outputs:
-    Saves a single-band cloud mask GeoTIFF at the specified path."""
+Raises:
+    Exception: Propagates any error from processing individual images."""
 
-def post_process_raster_cloud_mask_to_vector(input_image_path, output_vector_path, minimum_mask_size_percentile, polygon_buffering_in_map_units, value_mapping):
-    """Converts a raster cloud mask to a vector layer with optional filtering, buffering, and merging.
-
-Args:
-    input_image_path (str): Path to the input cloud mask raster.
-    output_vector_path (str): Path to the output vector layer.
-    minimum_mask_size_percentile (float, optional): Percentile threshold to filter small polygons by area.
-    polygon_buffering_in_map_units (dict, optional): Mapping of raster values to buffer distances.
-    value_mapping (dict, optional): Mapping of original raster values to new values before vectorization.
-
-Outputs:
-    Saves a vector layer to the output path."""
-
-def create_ndvi_mask(input_image_path, output_image_path, nir_band, red_band):
-    """Computes NDVI from a multi-band image and saves the result as a GeoTIFF.
+def _process_cloud_mask_image(input_image_path, output_mask_path, red_band_index, green_band_index, nir_band_index, down_sample_m, debug_logs, omnicloud_kwargs):
+    """Processes a single image to generate a cloud mask using OmniCloudMask.
 
 Args:
-    input_image_path (str): Path to the input image with NIR and red bands.
-    output_image_path (str): Path to save the NDVI output GeoTIFF.
-    nir_band (int): Band index for NIR (1-based).
-    red_band (int): Band index for red (1-based).
+    input_image_path (str): Path to input image.
+    output_mask_path (str): Path to save output mask.
+    red_band_index (int): Index of red band.
+    green_band_index (int): Index of green band.
+    nir_band_index (int): Index of NIR band.
+    down_sample_m (float): Target resolution (if resampling).
+    debug_logs (bool): If True, print progress info.
+    omnicloud_kwargs (dict): Passed to predict_from_array.
+
+Raises:
+    Exception: If any step in reading, prediction, or writing fails."""
+
+def create_ndvi_raster(input_images, output_images, nir_band_index, red_band_index):
+    """Computes NDVI masks for one or more images and writes them to disk.
+
+Args:
+    input_images: Folder and pattern tuple or list of input image paths.
+    output_images: Output folder and template or list of output paths.
+    nir_band_index: Band index for NIR (1-based).
+    red_band_index: Band index for Red (1-based).
+    custom_output_dtype: Optional output data type (e.g., "float32").
+    window_size: Tile size or mode for window-based processing.
+    debug_logs: Whether to print debug messages.
+    image_parallel_workers: Parallelism strategy for image-level processing.
+    window_parallel_workers: Parallelism strategy for window-level processing.
+
+Output:
+    NDVI raster saved to output_images."""
+
+def _ndvi_process_image(input_path, output_path, image_name, nir_band_index, red_band_index, custom_output_dtype, window_size, debug_logs, window_parallel_workers):
+    """Processes a single image for NDVI using windowed strategy."""
+
+def _ndvi_process_window(image_name, window, nir_band_index, red_band_index, debug_logs):
+    """Computes NDVI for a single window of a raster."""
+
+def process_raster_values_to_vector_polygons(input_images, output_vectors):
+    """Converts raster values into vector polygons based on an expression and optional filtering logic.
+
+Args:
+    input_images (Universal.SearchFolderOrListFiles): Either a (folder, pattern) tuple to search for rasters or a list of raster file paths.
+    output_vectors (Universal.CreateInFolderOrListFiles): Output folder or list of file paths where the vector polygons will be saved.
+    custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.
+    custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.
+    image_parallel_workers (Universal.ImageParallelWorkers, optional): Controls parallelism across input images. Can be an integer, executor string, or boolean.
+    window_parallel_workers (Universal.WindowParallelWorkers, optional): Controls parallelism within a single image by processing windows in parallel.
+    window_size (Universal.WindowSizeWithBlock, optional): Size of each processing block (width, height), or a strategy string such as "block" or "whole".
+    debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
+    extraction_expression (str): Logical expression to identify pixels of interest using band references (e.g., "b1 > 10 & b2 < 50").
+    filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., "95%").
+    polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.
+    value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData."""
+
+def _process_image_to_polygons(input_image_path, output_vector_path, extraction_expression, filter_by_polygon_size, polygon_buffer, value_mapping, custom_nodata_value, custom_output_dtype, window_parallel, window_backend, window_max_workers, window_size, debug_logs):
+    """Processes a single raster file and extracts polygons based on logical expressions and optional filters.
+
+Args:
+    input_image_path (str): Path to the input raster image.
+    output_vector_path (str): Output file path for the resulting vector file (GeoPackage format).
+    extraction_expression (str): Logical expression using band indices (e.g., "b1 > 5 & b2 < 10").
+    filter_by_polygon_size (str): Area filter for polygons. Supports direct comparisons (">100") or percentiles ("90%").
+    polygon_buffer (float): Amount of buffer to apply to polygons in projection units.
+    value_mapping (dict): Dictionary mapping original raster values to new ones. Set value to `None` to mark as NoData.
+    custom_nodata_value: Custom NoData value to use during processing.
+    custom_output_dtype: Output data type for raster if relevant in future I/O steps.
+    window_parallel: Whether to parallelize over raster windows.
+    window_backend: Backend used for window-level parallelism (e.g., "thread", "process").
+    window_max_workers: Max number of parallel workers for window-level processing.
+    window_size: Tuple or strategy defining how the raster should be split into windows.
+    debug_logs (bool): Whether to print debug logging information."""
+
+def _process_window(window, band_indices, expression, value_mapping, nodata_value):
+    """Processes a single window of a raster image to extract polygons matching an expression.
+
+Args:
+    window (rasterio.windows.Window): Raster window to process.
+    band_indices (list[int]): List of band indices required by the expression (e.g., [1, 2]).
+    expression (str): Logical expression involving bands (e.g., "b1 > 10 & b2 < 50").
+    value_mapping (dict): Dictionary mapping original raster values to new ones or to NoData.
+    nodata_value (int | float): NoData value to exclude from analysis.
 
 Returns:
-    str: Path to the saved NDVI output."""
+    list[dict]: List of dictionaries with keys `"value"` and `"geometry"` representing polygons."""
 
 ### File: mask/shadow_mask.py
 
@@ -2226,7 +2276,7 @@ Used to determine optimal boundaries between overlapping image regions. These fu
 Reusable types are organized into the types and validation module. Use these types directly as the types of params inside functions where applicable. Use the appropriate _resolve... function to resolve these inputs into usable variables.
 
 ### Input/Output
-The input_images parameter accepts either a tuple or a list. If given as a tuple, it should contain a folder path and a glob pattern to search for files (e.g., ("/input/folder", "*.tif")). Alternatively, it can be a list of full file paths to individual input images. The output_images parameter defines how output filenames are determined. It can also be a tuple, consisting of an output folder and a filename template where "\$" is replaced with each input image’s basename (e.g., ("/output/folder", "$_GlobalMatch.tif")). Alternatively, it may be a list of full output paths, which must match the number of input images.
+The input_images parameter accepts either a tuple or a list. If given as a tuple, it should contain a folder path and a glob pattern to search for files (e.g., ("/input/folder", "*.tif")). Alternatively, it can be a list of full file paths to individual input images. The output_images parameter defines how output filenames are determined. It can also be a tuple, consisting of an output folder and a filename template where "\$" is replaced with each input image’s basename (e.g., ("/output/folder", "$_GlobalMatch.tif")). Alternatively, it may be a list of full output paths, which must match the number of input images. The _resolve_paths function handles creating folders for output files.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
 <span class="normal"> 2</span>
 <span class="normal"> 3</span>
@@ -2237,7 +2287,8 @@ The input_images parameter accepts either a tuple or a list. If given as a tuple
 <span class="normal"> 8</span>
 <span class="normal"> 9</span>
 <span class="normal">10</span>
-<span class="normal">11</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="normal">11</span>
+<span class="normal">12</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
 <span class="n">input_images</span>
 <span class="n">output_images</span>
 
@@ -2248,6 +2299,7 @@ The input_images parameter accepts either a tuple or a list. If given as a tuple
 <span class="c1"># Resolve</span>
 <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
 <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+<span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 
 ### Output dtype
@@ -2290,7 +2342,7 @@ The custom_nodata_value parameter overrides the input nodata value from the firs
 </code></pre></div></td></tr></table></div>
 
 ### Debug Logs
-The debug_logs parameter enables printing of debug information; it defaults to False. Functions should begin by printing "Start {process name}", while all other print statements should be conditional on debug_logs being True.
+The debug_logs parameter enables printing of debug information; it defaults to False. Functions should begin by printing "Start {process name}", while all other print statements should be conditional on debug_logs being True. When printing the image being processed, use the image name and not the image path.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
 <span class="normal">3</span>

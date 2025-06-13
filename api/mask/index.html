@@ -616,18 +616,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.mask.mask.create_ndvi_mask" class="md-nav__link">
+  <a href="#spectralmatch.mask.mask.create_ndvi_raster" class="md-nav__link">
     <span class="md-ellipsis">
-      create_ndvi_mask
+      create_ndvi_raster
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.mask.mask.post_process_raster_cloud_mask_to_vector" class="md-nav__link">
+  <a href="#spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="md-nav__link">
     <span class="md-ellipsis">
-      post_process_raster_cloud_mask_to_vector
+      process_raster_values_to_vector_polygons
     </span>
   </a>
   
@@ -729,18 +729,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.mask.mask.create_ndvi_mask" class="md-nav__link">
+  <a href="#spectralmatch.mask.mask.create_ndvi_raster" class="md-nav__link">
     <span class="md-ellipsis">
-      create_ndvi_mask
+      create_ndvi_raster
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.mask.mask.post_process_raster_cloud_mask_to_vector" class="md-nav__link">
+  <a href="#spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="md-nav__link">
     <span class="md-ellipsis">
-      post_process_raster_cloud_mask_to_vector
+      process_raster_values_to_vector_polygons
     </span>
   </a>
   
@@ -796,14 +796,14 @@
 
 
 <h2 id="spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="n">output_mask_path</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Generates a cloud mask using OmniCloudMask from a multi-band image.</p>
+        <p>Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -819,14 +819,30 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>input_image_path</code>
+                <code>input_images</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to the input image.</p>
+                <p>Input folder and pattern or list of image paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_images</code>
+            </td>
+            <td>
+                  <code><span title="CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output folder and pattern or list of paths.</p>
               </div>
             </td>
             <td>
@@ -842,7 +858,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Index of the red band.</p>
+                <p>Index of red band in the image.</p>
               </div>
             </td>
             <td>
@@ -858,7 +874,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Index of the green band.</p>
+                <p>Index of green band in the image.</p>
               </div>
             </td>
             <td>
@@ -874,23 +890,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Index of the NIR (or substitute blue) band.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>output_mask_path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to save the output cloud mask GeoTIFF.</p>
+                <p>Index of NIR band in the image.</p>
               </div>
             </td>
             <td>
@@ -906,7 +906,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Target resolution (in meters) to downsample the input before processing.</p>
+                <p>If set, resamples input to this resolution in meters.</p>
               </div>
             </td>
             <td>
@@ -922,7 +922,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Debug logs to console.</p>
+                <p>If True, prints progress and debug info.</p>
               </div>
             </td>
             <td>
@@ -931,14 +931,30 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>omnicloud_kwargs</code>
+                <code>image_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="ImageParallelWorkers">ImageParallelWorkers</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**omnicloud_kwargs</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Forwards key word args to OmniCloudMask predict_from_array() function. Repo here: https://github.com/DPIRD-DMA/OmniCloudMask.</p>
+                <p>Additional arguments forwarded to predict_from_array.</p>
               </div>
             </td>
             <td>
@@ -949,21 +965,32 @@
     </table>
 
 
-<details class="outputs" open>
-  <summary>Outputs</summary>
-  <p>Saves a single-band cloud mask GeoTIFF at the specified path.</p>
-</details>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="Exception">Exception</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Propagates any error from processing individual images.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
 <span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
@@ -1028,81 +1055,72 @@
 <span class="normal">83</span>
 <span class="normal">84</span>
 <span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
-    <span class="n">input_image_path</span><span class="p">,</span>
-    <span class="n">red_band_index</span><span class="p">,</span>
-    <span class="n">green_band_index</span><span class="p">,</span>
-    <span class="n">nir_band_index</span><span class="p">,</span> <span class="c1"># Blue band can work if nir isnt available</span>
-    <span class="n">output_mask_path</span><span class="p">,</span>
-    <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="c1"># Down sample to 10 m if imagery has a spatial resolution &lt; 10 m</span>
-    <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="normal">86</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">red_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">green_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">nir_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">down_sample_m</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Generates a cloud mask using OmniCloudMask from a multi-band image.</span>
+<span class="sd">    Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_image_path (str): Path to the input image.</span>
-<span class="sd">        red_band_index (int): Index of the red band.</span>
-<span class="sd">        green_band_index (int): Index of the green band.</span>
-<span class="sd">        nir_band_index (int): Index of the NIR (or substitute blue) band.</span>
-<span class="sd">        output_mask_path (str): Path to save the output cloud mask GeoTIFF.</span>
-<span class="sd">        down_sample_m (float, optional): Target resolution (in meters) to downsample the input before processing.</span>
-<span class="sd">        debug_logs (bool, optional): Debug logs to console.</span>
-<span class="sd">        omnicloud_kwargs: Forwards key word args to OmniCloudMask predict_from_array() function. Repo here: https://github.com/DPIRD-DMA/OmniCloudMask.</span>
+<span class="sd">        input_images (SearchFolderOrListFiles): Input folder and pattern or list of image paths.</span>
+<span class="sd">        output_images (CreateInFolderOrListFiles): Output folder and pattern or list of paths.</span>
+<span class="sd">        red_band_index (int): Index of red band in the image.</span>
+<span class="sd">        green_band_index (int): Index of green band in the image.</span>
+<span class="sd">        nir_band_index (int): Index of NIR band in the image.</span>
+<span class="sd">        down_sample_m (float, optional): If set, resamples input to this resolution in meters.</span>
+<span class="sd">        debug_logs (bool, optional): If True, prints progress and debug info.</span>
+<span class="sd">        image_parallel_workers (ImageParallelWorkers, optional): Enables parallel execution. Note: &quot;process&quot; does not work on macOS due to PyTorch MPS limitations.</span>
+<span class="sd">        **omnicloud_kwargs: Additional arguments forwarded to predict_from_array.</span>
 
-<span class="sd">    Outputs:</span>
-<span class="sd">        Saves a single-band cloud mask GeoTIFF at the specified path.</span>
+<span class="sd">    Raises:</span>
+<span class="sd">        Exception: Propagates any error from processing individual images.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start create omnicloudmask&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask_path</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">down_sample_m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Compute new dimensions based on the image bounds and the desired resolution.</span>
-            <span class="n">left</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">top</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">bounds</span>
-            <span class="n">new_width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">right</span> <span class="o">-</span> <span class="n">left</span><span class="p">)</span> <span class="o">/</span> <span class="n">down_sample_m</span><span class="p">)</span>
-            <span class="n">new_height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">top</span> <span class="o">-</span> <span class="n">bottom</span><span class="p">)</span> <span class="o">/</span> <span class="n">down_sample_m</span><span class="p">)</span>
-            <span class="n">new_transform</span> <span class="o">=</span> <span class="n">from_origin</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="p">)</span>
-            <span class="c1"># Read the bands with resampling to the new size.</span>
-            <span class="n">red</span>   <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">red_band_index</span><span class="p">,</span> <span class="n">out_shape</span><span class="o">=</span><span class="p">(</span><span class="n">new_height</span><span class="p">,</span> <span class="n">new_width</span><span class="p">),</span>
-                             <span class="n">resampling</span><span class="o">=</span><span class="n">Resampling</span><span class="o">.</span><span class="n">bilinear</span><span class="p">)</span>
-            <span class="n">green</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">green_band_index</span><span class="p">,</span> <span class="n">out_shape</span><span class="o">=</span><span class="p">(</span><span class="n">new_height</span><span class="p">,</span> <span class="n">new_width</span><span class="p">),</span>
-                             <span class="n">resampling</span><span class="o">=</span><span class="n">Resampling</span><span class="o">.</span><span class="n">bilinear</span><span class="p">)</span>
-            <span class="n">nir</span>   <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">nir_band_index</span><span class="p">,</span> <span class="n">out_shape</span><span class="o">=</span><span class="p">(</span><span class="n">new_height</span><span class="p">,</span> <span class="n">new_width</span><span class="p">),</span>
-                             <span class="n">resampling</span><span class="o">=</span><span class="n">Resampling</span><span class="o">.</span><span class="n">bilinear</span><span class="p">)</span>
-            <span class="n">meta</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-                <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="n">new_width</span><span class="p">,</span>
-                <span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="n">new_height</span><span class="p">,</span>
-                <span class="s1">&#39;transform&#39;</span><span class="p">:</span> <span class="n">new_transform</span><span class="p">,</span>
-            <span class="p">})</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Read without resampling.</span>
-            <span class="n">red</span>   <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">red_band_index</span><span class="p">)</span>
-            <span class="n">green</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">green_band_index</span><span class="p">)</span>
-            <span class="n">nir</span>   <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">nir_band_index</span><span class="p">)</span>
-            <span class="n">meta</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start omnicloudmask&quot;</span><span class="p">)</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span>
+    <span class="p">)</span>
 
-        <span class="c1"># Stack bands into an array of shape (3, height, width).</span>
-        <span class="n">band_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">red</span><span class="p">,</span> <span class="n">green</span><span class="p">,</span> <span class="n">nir</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
 
-    <span class="c1"># Predict the mask (expected shape: (1, height, width))</span>
-    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">predict_from_array</span><span class="p">(</span><span class="n">band_array</span><span class="p">,</span> <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">)</span>
-    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">pred_mask</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output images: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="c1"># Update metadata for a single-band output.</span>
-    <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-        <span class="s1">&#39;driver&#39;</span><span class="p">:</span> <span class="s1">&#39;GTiff&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">pred_mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="s1">&#39;nodata&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="p">})</span>
+    <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span>
+            <span class="n">input_path</span><span class="p">,</span>
+            <span class="n">output_path</span><span class="p">,</span>
+            <span class="n">red_band_index</span><span class="p">,</span>
+            <span class="n">green_band_index</span><span class="p">,</span>
+            <span class="n">nir_band_index</span><span class="p">,</span>
+            <span class="n">down_sample_m</span><span class="p">,</span>
+            <span class="n">debug_logs</span><span class="p">,</span>
+            <span class="n">omnicloud_kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">input_path</span><span class="p">,</span> <span class="n">output_path</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">output_image_paths</span><span class="p">)</span>
+    <span class="p">]</span>
 
-    <span class="c1"># Write the predicted mask to a GeoTIFF file.</span>
-    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_mask_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
-        <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pred_mask</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_process_cloud_mask_image</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
+            <span class="n">_process_cloud_mask_image</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1112,15 +1130,15 @@
 <div class="doc doc-object doc-function">
 
 
-<h2 id="spectralmatch.mask.mask.create_ndvi_mask" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_ndvi_mask</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="n">nir_band</span><span class="p">,</span> <span class="n">red_band</span><span class="p">)</span></code>
+<h2 id="spectralmatch.mask.mask.create_ndvi_raster" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_ndvi_raster</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-<a href="#spectralmatch.mask.mask.create_ndvi_mask" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#spectralmatch.mask.mask.create_ndvi_raster" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Computes NDVI from a multi-band image and saves the result as a GeoTIFF.</p>
+        <p>Computes NDVI masks for one or more images and writes them to disk.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1136,14 +1154,14 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>input_image_path</code>
+                <code>input_images</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="spectralmatch.types_and_validation.Universal.SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to the input image with NIR and red bands.</p>
+                <p>Folder and pattern tuple or list of input image paths.</p>
               </div>
             </td>
             <td>
@@ -1152,14 +1170,14 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>output_image_path</code>
+                <code>output_images</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="spectralmatch.types_and_validation.Universal.CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to save the NDVI output GeoTIFF.</p>
+                <p>Output folder and template or list of output paths.</p>
               </div>
             </td>
             <td>
@@ -1168,7 +1186,7 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>nir_band</code>
+                <code>nir_band_index</code>
             </td>
             <td>
                   <code><span title="int">int</span></code>
@@ -1184,165 +1202,14 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>red_band</code>
+                <code>red_band_index</code>
             </td>
             <td>
                   <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Band index for red (1-based).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>str</code></td>            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to the saved NDVI output.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span>
-<span class="normal">246</span>
-<span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_mask</span><span class="p">(</span>
-    <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">nir_band</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">red_band</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Computes NDVI from a multi-band image and saves the result as a GeoTIFF.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        input_image_path (str): Path to the input image with NIR and red bands.</span>
-<span class="sd">        output_image_path (str): Path to save the NDVI output GeoTIFF.</span>
-<span class="sd">        nir_band (int): Band index for NIR (1-based).</span>
-<span class="sd">        red_band (int): Band index for red (1-based).</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        str: Path to the saved NDVI output.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start ndvi computation&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">)):</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
-        <span class="n">nir</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">nir_band</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="n">red</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">red_band</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="n">ndvi</span> <span class="o">=</span> <span class="p">(</span><span class="n">nir</span> <span class="o">-</span> <span class="n">red</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">nir</span> <span class="o">+</span> <span class="n">red</span> <span class="o">+</span> <span class="mf">1e-9</span><span class="p">)</span>
-
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NIR min/max:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">nir</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">nir</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Red min/max:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">red</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">red</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NDVI min/max:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">ndvi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">ndvi</span><span class="p">))</span>
-
-        <span class="n">profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
-        <span class="n">profile</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">rasterio</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
-            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ndvi</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">output_image_path</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="spectralmatch.mask.mask.post_process_raster_cloud_mask_to_vector" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">,</span> <span class="n">output_vector_path</span><span class="p">,</span> <span class="n">minimum_mask_size_percentile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polygon_buffering_in_map_units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
-
-<a href="#spectralmatch.mask.mask.post_process_raster_cloud_mask_to_vector" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Converts a raster cloud mask to a vector layer with optional filtering, buffering, and merging.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>input_image_path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to the input cloud mask raster.</p>
+                <p>Band index for Red (1-based).</p>
               </div>
             </td>
             <td>
@@ -1351,30 +1218,30 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>output_vector_path</code>
+                <code>custom_output_dtype</code>
             </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="spectralmatch.types_and_validation.Universal.CustomOutputDtype">CustomOutputDtype</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to the output vector layer.</p>
+                <p>Optional output data type (e.g., "float32").</p>
               </div>
             </td>
             <td>
-                <em>required</em>
+                  <code>&#39;float32&#39;</code>
             </td>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>minimum_mask_size_percentile</code>
+                <code>window_size</code>
             </td>
             <td>
-                  <code><span title="float">float</span></code>
+                  <code><span title="spectralmatch.types_and_validation.Universal.WindowSize">WindowSize</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Percentile threshold to filter small polygons by area.</p>
+                <p>Tile size or mode for window-based processing.</p>
               </div>
             </td>
             <td>
@@ -1383,14 +1250,30 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>polygon_buffering_in_map_units</code>
+                <code>debug_logs</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span></code>
+                  <code><span title="spectralmatch.types_and_validation.Universal.DebugLogs">DebugLogs</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mapping of raster values to buffer distances.</p>
+                <p>Whether to print debug messages.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>image_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.ImageParallelWorkers">ImageParallelWorkers</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parallelism strategy for image-level processing.</p>
               </div>
             </td>
             <td>
@@ -1399,14 +1282,14 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>value_mapping</code>
+                <code>window_parallel_workers</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span></code>
+                  <code><span title="spectralmatch.types_and_validation.Universal.WindowParallelWorkers">WindowParallelWorkers</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mapping of original raster values to new values before vectorization.</p>
+                <p>Parallelism strategy for window-level processing.</p>
               </div>
             </td>
             <td>
@@ -1417,76 +1300,14 @@
     </table>
 
 
-<details class="outputs" open>
-  <summary>Outputs</summary>
-  <p>Saves a vector layer to the output path.</p>
+<details class="output" open>
+  <summary>Output</summary>
+  <p>NDVI raster saved to output_images.</p>
 </details>
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 90</span>
-<span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span>
-<span class="normal">108</span>
-<span class="normal">109</span>
-<span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span>
-<span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span>
-<span class="normal">116</span>
-<span class="normal">117</span>
-<span class="normal">118</span>
-<span class="normal">119</span>
-<span class="normal">120</span>
-<span class="normal">121</span>
-<span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">152</span>
 <span class="normal">153</span>
 <span class="normal">154</span>
 <span class="normal">155</span>
@@ -1544,137 +1365,427 @@
 <span class="normal">207</span>
 <span class="normal">208</span>
 <span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">post_process_raster_cloud_mask_to_vector</span><span class="p">(</span>
-    <span class="n">input_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">output_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">minimum_mask_size_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">polygon_buffering_in_map_units</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">value_mapping</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ogr</span><span class="o">.</span><span class="n">DataSource</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts a raster cloud mask to a vector layer with optional filtering, buffering, and merging.</span>
+<span class="normal">210</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_raster</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">nir_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">red_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">custom_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">window_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes NDVI masks for one or more images and writes them to disk.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_image_path (str): Path to the input cloud mask raster.</span>
-<span class="sd">        output_vector_path (str): Path to the output vector layer.</span>
-<span class="sd">        minimum_mask_size_percentile (float, optional): Percentile threshold to filter small polygons by area.</span>
-<span class="sd">        polygon_buffering_in_map_units (dict, optional): Mapping of raster values to buffer distances.</span>
-<span class="sd">        value_mapping (dict, optional): Mapping of original raster values to new values before vectorization.</span>
+<span class="sd">        input_images: Folder and pattern tuple or list of input image paths.</span>
+<span class="sd">        output_images: Output folder and template or list of output paths.</span>
+<span class="sd">        nir_band_index: Band index for NIR (1-based).</span>
+<span class="sd">        red_band_index: Band index for Red (1-based).</span>
+<span class="sd">        custom_output_dtype: Optional output data type (e.g., &quot;float32&quot;).</span>
+<span class="sd">        window_size: Tile size or mode for window-based processing.</span>
+<span class="sd">        debug_logs: Whether to print debug messages.</span>
+<span class="sd">        image_parallel_workers: Parallelism strategy for image-level processing.</span>
+<span class="sd">        window_parallel_workers: Parallelism strategy for window-level processing.</span>
 
-<span class="sd">    Outputs:</span>
-<span class="sd">        Saves a vector layer to the output path.</span>
+<span class="sd">    Output:</span>
+<span class="sd">        NDVI raster saved to output_images.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start post-processing raster cloud mask&quot;</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
-        <span class="n">raster_data</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">transform</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">transform</span>
-        <span class="n">crs</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">crs</span>
-
-    <span class="k">if</span> <span class="n">value_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">include_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">raster_data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
-        <span class="n">mapped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">raster_data</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">orig_value</span><span class="p">,</span> <span class="n">new_value</span> <span class="ow">in</span> <span class="n">value_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">new_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">include_mask</span> <span class="o">&amp;=</span> <span class="n">raster_data</span> <span class="o">!=</span> <span class="n">orig_value</span>  <span class="c1"># Exclude from processing</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">mapped</span><span class="p">[</span><span class="n">raster_data</span> <span class="o">==</span> <span class="n">orig_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_value</span>
-        <span class="n">raster_data</span> <span class="o">=</span> <span class="n">mapped</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">include_mask</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">{</span><span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">v</span><span class="p">},</span> <span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">s</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">(</span><span class="n">raster_data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">include_mask</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start create NDVI rasters&quot;</span><span class="p">)</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+        <span class="n">custom_output_dtype</span><span class="o">=</span><span class="n">custom_output_dtype</span><span class="p">,</span>
+        <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+        <span class="n">image_parallel_workers</span><span class="o">=</span><span class="n">image_parallel_workers</span><span class="p">,</span>
+        <span class="n">window_parallel_workers</span><span class="o">=</span><span class="n">window_parallel_workers</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">features</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No features were detected in the raster mask.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
 
+    <span class="n">input_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+    <span class="n">output_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_paths</span><span class="p">,))</span>
+    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_paths</span><span class="p">)</span>
 
-    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="o">.</span><span class="n">from_features</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+    <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
 
-    <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;area&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">area</span>
-    <span class="k">if</span> <span class="n">minimum_mask_size_percentile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">area_threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;area&#39;</span><span class="p">],</span> <span class="n">minimum_mask_size_percentile</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Area threshold (at </span><span class="si">{</span><span class="n">minimum_mask_size_percentile</span><span class="si">}</span><span class="s2">th percentile): </span><span class="si">{</span><span class="n">area_threshold</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="p">[</span><span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;area&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">area_threshold</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">image_name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_paths</span><span class="p">,</span> <span class="n">output_paths</span><span class="p">,</span> <span class="n">image_names</span><span class="p">)</span>
+    <span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">polygon_buffering_in_map_units</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="n">polygon_buffering_in_map_units</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">],</span> <span class="mi">0</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">polygon_buffering_in_map_units</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">],</span>
-            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
-        <span class="p">)</span>
-
-    <span class="n">merged_features</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">val</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">gdf</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">):</span>
-        <span class="c1"># Use union_all() to merge the geometries within the group.</span>
-        <span class="c1"># (Requires Shapely 2.0 or later; otherwise use shapely.ops.unary_union on group.geometry.tolist())</span>
-        <span class="n">union_geom</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">union_all</span><span class="p">()</span>
-        <span class="c1"># If the union produces a single Polygon, add it directly;</span>
-        <span class="c1"># if it produces a MultiPolygon, split it into individual features.</span>
-        <span class="k">if</span> <span class="n">union_geom</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s1">&#39;Polygon&#39;</span><span class="p">:</span>
-            <span class="n">merged_features</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">val</span><span class="p">,</span> <span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">union_geom</span><span class="p">})</span>
-        <span class="k">elif</span> <span class="n">union_geom</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s1">&#39;MultiPolygon&#39;</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">geom</span> <span class="ow">in</span> <span class="n">union_geom</span><span class="o">.</span><span class="n">geoms</span><span class="p">:</span>
-                <span class="n">merged_features</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">val</span><span class="p">,</span> <span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">geom</span><span class="p">})</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># In case of unexpected geometry types, skip or handle accordingly.</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected geometry type for value </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">union_geom</span><span class="o">.</span><span class="n">geom_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="c1"># Create a new GeoDataFrame from merged features.</span>
-    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">merged_features</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">gdf</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span>
-
-
-    <span class="n">ogr_driver</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">&quot;Memory&quot;</span><span class="p">)</span>
-    <span class="n">mem_ds</span> <span class="o">=</span> <span class="n">ogr_driver</span><span class="o">.</span><span class="n">CreateDataSource</span><span class="p">(</span><span class="s2">&quot;in_memory&quot;</span><span class="p">)</span>
-
-    <span class="c1"># Determine an appropriate OGR geometry type using the first feature.</span>
-    <span class="n">first_geom</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">first_geom</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">:</span>
-        <span class="n">ogr_geom_type</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">wkbPolygon</span>
-    <span class="k">elif</span> <span class="n">first_geom</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">:</span>
-        <span class="n">ogr_geom_type</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">wkbMultiPolygon</span>
+    <span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_ndvi_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">ogr_geom_type</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">wkbUnknown</span>
+        <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
+            <span class="n">_ndvi_process_image</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
 
-    <span class="c1"># Convert the CRS to OGR SpatialReference.</span>
-    <span class="n">sr</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span><span class="p">()</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">sr</span><span class="o">.</span><span class="n">ImportFromWkt</span><span class="p">(</span><span class="n">crs</span><span class="o">.</span><span class="n">to_wkt</span><span class="p">())</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-        <span class="n">sr</span><span class="o">.</span><span class="n">ImportFromEPSG</span><span class="p">(</span><span class="mi">4326</span><span class="p">)</span>
+</div>
 
-    <span class="n">mem_layer</span> <span class="o">=</span> <span class="n">mem_ds</span><span class="o">.</span><span class="n">CreateLayer</span><span class="p">(</span><span class="s2">&quot;post_processed&quot;</span><span class="p">,</span> <span class="n">sr</span><span class="p">,</span> <span class="n">ogr_geom_type</span><span class="p">)</span>
+<div class="doc doc-object doc-function">
 
-    <span class="c1"># Add attribute field for &#39;value&#39; (and any other non-geometry columns if needed).</span>
-    <span class="c1"># Here we add &#39;value&#39; for example.</span>
-    <span class="n">field_defn</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">FieldDefn</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">ogr</span><span class="o">.</span><span class="n">OFTInteger</span><span class="p">)</span>
-    <span class="n">mem_layer</span><span class="o">.</span><span class="n">CreateField</span><span class="p">(</span><span class="n">field_defn</span><span class="p">)</span>
 
-    <span class="c1"># Add each row from the GeoDataFrame as an OGR feature.</span>
-    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">gdf</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
-        <span class="n">feat</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">mem_layer</span><span class="o">.</span><span class="n">GetLayerDefn</span><span class="p">())</span>
-        <span class="n">ogr_geom</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">CreateGeometryFromWkt</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">wkt</span><span class="p">)</span>
-        <span class="n">feat</span><span class="o">.</span><span class="n">SetGeometry</span><span class="p">(</span><span class="n">ogr_geom</span><span class="p">)</span>
-        <span class="n">feat</span><span class="o">.</span><span class="n">SetField</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
-        <span class="n">mem_layer</span><span class="o">.</span><span class="n">CreateFeature</span><span class="p">(</span><span class="n">feat</span><span class="p">)</span>
-        <span class="n">feat</span> <span class="o">=</span> <span class="kc">None</span>
+<h2 id="spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_vectors</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">extraction_expression</span><span class="p">,</span> <span class="n">filter_by_polygon_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polygon_buffer</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">value_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-    <span class="n">driver</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">&quot;GPKG&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">):</span>
-        <span class="n">driver</span><span class="o">.</span><span class="n">DeleteDataSource</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">)</span>
-    <span class="n">out_ds</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">CreateDataSource</span><span class="p">(</span><span class="n">output_vector_path</span><span class="p">)</span>
-    <span class="n">out_ds</span><span class="o">.</span><span class="n">CopyLayer</span><span class="p">(</span><span class="n">mem_layer</span><span class="p">,</span> <span class="s2">&quot;post_processed&quot;</span><span class="p">)</span>
-    <span class="n">out_ds</span> <span class="o">=</span> <span class="kc">None</span>
+<a href="#spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="headerlink" title="Permanent link">&para;</a></h2>
 
-    <span class="k">return</span> <span class="n">output_vector_path</span>
+
+    <div class="doc doc-contents ">
+
+        <p>Converts raster values into vector polygons based on an expression and optional filtering logic.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_images</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Either a (folder, pattern) tuple to search for rasters or a list of raster file paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_vectors</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output folder or list of file paths where the vector polygons will be saved.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_nodata_value</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.CustomNodataValue">CustomNodataValue</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Custom NoData value to override the default from the raster metadata.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_output_dtype</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.CustomOutputDtype">CustomOutputDtype</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Desired output data type. If not set, defaults to raster’s dtype.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>image_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.ImageParallelWorkers">ImageParallelWorkers</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Controls parallelism across input images. Can be an integer, executor string, or boolean.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>window_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.WindowParallelWorkers">WindowParallelWorkers</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Controls parallelism within a single image by processing windows in parallel.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>window_size</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.WindowSizeWithBlock">WindowSizeWithBlock</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of each processing block (width, height), or a strategy string such as "block" or "whole".</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>debug_logs</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.DebugLogs">DebugLogs</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to print debug logs to the console.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extraction_expression</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Logical expression to identify pixels of interest using band references (e.g., "b1 &gt; 10 &amp; b2 &lt; 50").</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filter_by_polygon_size</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Area filter for resulting polygons. Can be a number (e.g., "&gt;100") or percentile (e.g., "95%").</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>polygon_buffer</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance in coordinate units to buffer the resulting polygons. Default is 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>value_mapping</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mapping from original raster values to new values. Use <code>None</code> to convert to NoData.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">output_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">custom_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">window_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSizeWithBlock</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">extraction_expression</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">filter_by_polygon_size</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">polygon_buffer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">value_mapping</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts raster values into vector polygons based on an expression and optional filtering logic.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_images (Universal.SearchFolderOrListFiles): Either a (folder, pattern) tuple to search for rasters or a list of raster file paths.</span>
+<span class="sd">        output_vectors (Universal.CreateInFolderOrListFiles): Output folder or list of file paths where the vector polygons will be saved.</span>
+<span class="sd">        custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.</span>
+<span class="sd">        custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.</span>
+<span class="sd">        image_parallel_workers (Universal.ImageParallelWorkers, optional): Controls parallelism across input images. Can be an integer, executor string, or boolean.</span>
+<span class="sd">        window_parallel_workers (Universal.WindowParallelWorkers, optional): Controls parallelism within a single image by processing windows in parallel.</span>
+<span class="sd">        window_size (Universal.WindowSizeWithBlock, optional): Size of each processing block (width, height), or a strategy string such as &quot;block&quot; or &quot;whole&quot;.</span>
+<span class="sd">        debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.</span>
+<span class="sd">        extraction_expression (str): Logical expression to identify pixels of interest using band references (e.g., &quot;b1 &gt; 10 &amp; b2 &lt; 50&quot;).</span>
+<span class="sd">        filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., &quot;&gt;100&quot;) or percentile (e.g., &quot;95%&quot;).</span>
+<span class="sd">        polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.</span>
+<span class="sd">        value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start raster value extraction to polygons&quot;</span><span class="p">)</span>
+
+    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="o">=</span><span class="n">output_vectors</span><span class="p">,</span>
+        <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
+        <span class="n">custom_output_dtype</span><span class="o">=</span><span class="n">custom_output_dtype</span><span class="p">,</span>
+        <span class="n">image_parallel_workers</span><span class="o">=</span><span class="n">image_parallel_workers</span><span class="p">,</span>
+        <span class="n">window_parallel_workers</span><span class="o">=</span><span class="n">window_parallel_workers</span><span class="p">,</span>
+        <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+
+    <span class="p">)</span>
+
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_vectors</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+
+    <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
+    <span class="n">window_parallel</span><span class="p">,</span> <span class="n">window_backend</span><span class="p">,</span> <span class="n">window_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">window_parallel_workers</span><span class="p">)</span>
+
+    <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">extraction_expression</span><span class="p">,</span> <span class="n">filter_by_polygon_size</span><span class="p">,</span> <span class="n">polygon_buffer</span><span class="p">,</span> <span class="n">value_mapping</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="p">,</span> <span class="n">window_parallel</span><span class="p">,</span> <span class="n">window_backend</span><span class="p">,</span> <span class="n">window_max_workers</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">output_image_paths</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_process_image_to_polygons</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
+            <span class="n">_process_image_to_polygons</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

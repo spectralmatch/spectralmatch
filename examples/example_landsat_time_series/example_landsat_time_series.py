@@ -24,100 +24,87 @@ num_image_workers = 3
 num_window_workers = 5
 
 # %% Create cloud masks
-input_image_paths = search_paths(input_folder, "*.tif")
 
-for path in input_image_paths:
-    create_cloud_mask_with_omnicloudmask(
-        path,
-        5,
-        3,
-        8,
-        os.path.join(mask_cloud_folder, f"{os.path.splitext(os.path.basename(path))[0]}_CloudMask.tif"),
-        # down_sample_m=10
+create_cloud_mask_with_omnicloudmask(
+    input_images=(input_folder, "*.tif"),
+    output_images=(mask_cloud_folder, "$_CloudMask.tif"),
+    red_band_index=5,
+    green_band_index=3,
+    nir_band_index=8,
+    debug_logs=True,
+    image_parallel_workers=("thread", num_image_workers),
     )
 
-input_mask_rasters_paths = search_paths(mask_cloud_folder, "*.tif")
+process_raster_values_to_vector_polygons(
+    input_images=(mask_cloud_folder, "*.tif"),
+    output_vectors=(mask_cloud_folder, "$.gpkg"),
+    extraction_expression="b1==1",
+    value_mapping={0: None, 1: 1, 2: 1, 3: 1},
+    polygon_buffer=50,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
+    window_size=window_size,
+    )
 
-for path in input_mask_rasters_paths:
-    post_process_raster_cloud_mask_to_vector(
-        path,
-        os.path.join(mask_cloud_folder, f"{os.path.splitext(os.path.basename(path))[0]}.gpkg"),
-        None,
-        {1: 50},
-        {0: None, 1: 1, 2: 1, 3: 1}
+merge_vectors(
+    input_vectors=(mask_cloud_folder, "*.gpkg"),
+    merged_vector_path=os.path.join(working_directory, "CloudMasks.gpkg"),
+    method="keep",
+    create_name_attribute=("image", ", "),
     )
 
 # %% Use cloud masks
-input_image_paths = search_paths(input_folder, "*.tif")
-input_mask_vectors = search_paths(mask_cloud_folder, "*.gpkg", match_to_paths=(input_image_paths, r"(.*)_CloudMask\.gpkg$"))
-output_paths = create_paths(masked_folder, "$_CloudMasked.tif", input_image_paths)
 
-for input_path, vector_path, output_path in zip(input_image_paths, input_mask_vectors, output_paths):
-    mask_rasters(
-        input_path,
-        vector_path,
-        output_path,
-        ("include", "value", 1),
+mask_rasters(
+    input_images=(input_folder, "*.tif"),
+    output_images=(masked_folder, "$_CloudMasked.tif"),
+    vector_mask=("exclude", os.path.join(working_directory, "CloudMasks.gpkg"), "image"),
     )
 
-# %% Create vegetation mask for isolated analysis of vegetation
-input_image_paths = search_paths(input_folder, "*.tif")
-raster_mask_paths = create_paths(mask_vegetation_folder, "$_VegetationMask.tif", input_image_paths)
-vector_mask_paths = create_paths(mask_vegetation_folder, "$.gpkg", input_image_paths)
+# %% Create vegetation mask for isolated analysis of vegetation. This will be used to mask statistics for adjustment model not to directly clip images. This is just a simple example of creating PIFs based on NDVI values, for a more robust methodology use other techniques to create a better mask vector file.
 
-for input_path, raster_path in zip(input_image_paths, raster_mask_paths):
-    create_ndvi_mask(
-        input_path,
-        raster_path,
-        5,
-        4,
+create_ndvi_raster(
+    input_images=(input_folder, "*.tif"),
+    output_images=(mask_vegetation_folder, "$_Vegetation.tif"),
+    nir_band_index=5,
+    red_band_index=4,
     )
 
-for raster_path, vector_path in zip(raster_mask_paths, vector_mask_paths):
-    post_process_threshold_to_vector(
-        raster_path,
-        vector_path,
-        0.1,
-        ">=",
-    )
-
-# %% Merge vegetation mask to create an inverted-PIF vector
-# This is just a simple example of creating PIFs based on NDVI values, for a more robust methodology use other techniques to create a better mask vector file
-
-input_vector_paths = search_paths(mask_vegetation_folder, "*.gpkg")
-merged_vector_pif_path = os.path.join(working_directory, "Pifs.gpkg")
+process_raster_values_to_vector_polygons(
+    input_images=(mask_vegetation_folder, "*.tif"),
+    output_vectors=(mask_vegetation_folder, "$.gpkg"),
+    extraction_expression="b1>=0.1",
+)
 
 merge_vectors(
-    input_vector_paths,
-    merged_vector_pif_path,
+    input_vectors=(mask_vegetation_folder, "*.gpkg"),
+    merged_vector_path=os.path.join(working_directory, "VegetationMasks.gpkg"),
+    method="keep",
     create_name_attribute=("image", ", "),
-    method="intersection",
-    # method="keep", # Create a unique mask per image
     )
 
 # %% Global matching
-vector_mask_path = os.path.join(working_directory , "Pifs.gpkg")
 
 global_regression(
-    (masked_folder, "*.tif"),
-    (global_folder, "$_GlobalMatch.tif"),
-    vector_mask=("exclude", vector_mask_path),
-    # vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image
-    # save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
+    input_images=(masked_folder, "*.tif"),
+    output_images=(global_folder, "$_GlobalMatch.tif"),
+    vector_mask=("exclude", os.path.join(working_directory , "VegetationMasks.gpkg"), "image"), # Use unique mask per image
+    window_size=window_size,
+    save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
     debug_logs=True,
     )
 
 # %% Local matching
-vector_mask_path = os.path.join(working_directory , "Pifs.gpkg")
 
 local_block_adjustment(
-    (global_folder, "*.tif"),
-    (local_folder, "$_LocalMatch.tif"),
+    input_images=(global_folder, "*.tif"),
+    output_images=(local_folder, "$_LocalMatch.tif"),
     number_of_blocks=100,
-    vector_mask=("exclude", vector_mask_path),
-    # vector_mask_path=("exclude", vector_mask_path, "image"), # Use unique mask per image
-    # save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
+    window_size=window_size,
+    vector_mask=("exclude", os.path.join(working_directory, "VegetationMasks.gpkg"), "image"),
+    save_as_cog=True,
     debug_logs=True,
+    save_block_maps=(os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"), os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif")),
     )
 
 # %% Pre-coded quick Statistics
