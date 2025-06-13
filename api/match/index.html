@@ -11,10 +11,10 @@
         <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/match/">
       
       
-        <link rel="prev" href="../../examples/benchmark/">
+        <link rel="prev" href="../mask/">
       
       
-        <link rel="next" href="../mask/">
+        <link rel="next" href="../seamline/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -535,6 +535,52 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../handlers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Data Handlers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Masks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -593,24 +639,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.match.global_regression.solve_global_model" class="md-nav__link">
-    <span class="md-ellipsis">
-      solve_global_model
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.match.local_block_adjustment.get_bounding_rect_images_block_space" class="md-nav__link">
-    <span class="md-ellipsis">
-      get_bounding_rect_images_block_space
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#spectralmatch.match.local_block_adjustment.local_block_adjustment" class="md-nav__link">
     <span class="md-ellipsis">
       local_block_adjustment
@@ -635,12 +663,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../mask/" class="md-nav__link">
+      <a href="../seamline/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Create Mask and Pseudo-Invariant Features
+    Create Seamlines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utilities
     
   </span>
   
@@ -663,30 +714,7 @@
   
   
   <span class="md-ellipsis">
-    Creating Statistical Figures
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../handlers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Data Handlers for IO
+    Statistical Figures
     
   </span>
   
@@ -732,24 +760,6 @@
   <a href="#spectralmatch.match.global_regression.global_regression" class="md-nav__link">
     <span class="md-ellipsis">
       global_regression
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.match.global_regression.solve_global_model" class="md-nav__link">
-    <span class="md-ellipsis">
-      solve_global_model
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.match.local_block_adjustment.get_bounding_rect_images_block_space" class="md-nav__link">
-    <span class="md-ellipsis">
-      get_bounding_rect_images_block_space
     </span>
   </a>
   
@@ -1702,7 +1712,7 @@
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">&lt;4</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">source</span><span class="si">:</span><span class="s2">&lt;6</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">included</span><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="c1"># Build model</span>
-    <span class="n">all_params</span> <span class="o">=</span> <span class="n">solve_global_model</span><span class="p">(</span>
+    <span class="n">all_params</span> <span class="o">=</span> <span class="n">_solve_global_model</span><span class="p">(</span>
         <span class="n">num_bands</span><span class="p">,</span>
         <span class="n">num_total</span><span class="p">,</span>
         <span class="n">all_image_names</span><span class="p">,</span>
@@ -1767,453 +1777,6 @@
 
 </div>
 
-<div class="doc doc-object doc-function">
-
-
-<h2 id="spectralmatch.match.global_regression.solve_global_model" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">solve_global_model</span><span class="p">(</span><span class="n">num_bands</span><span class="p">,</span> <span class="n">num_total</span><span class="p">,</span> <span class="n">all_image_names</span><span class="p">,</span> <span class="n">included_names</span><span class="p">,</span> <span class="n">input_image_names</span><span class="p">,</span> <span class="n">all_overlap_stats</span><span class="p">,</span> <span class="n">all_whole_stats</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="p">,</span> <span class="n">overlapping_pairs</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
-
-<a href="#spectralmatch.match.global_regression.solve_global_model" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>num_bands</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of image bands.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>num_total</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Total number of images (including loaded).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>all_image_names</code>
-            </td>
-            <td>
-                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Ordered list of all image names.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>included_names</code>
-            </td>
-            <td>
-                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Subset of images used to constrain the model.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>input_image_names</code>
-            </td>
-            <td>
-                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Names of input images to apply normalization to.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>all_overlap_stats</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Pairwise overlap statistics per band.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>all_whole_stats</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Whole-image stats (mean, std) per band.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>custom_mean_factor</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Weight for mean constraints.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>custom_std_factor</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Weight for std constraints.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>overlapping_pairs</code>
-            </td>
-            <td>
-                  <code><span title="tuple">tuple</span>[<span title="tuple">tuple</span>[<span title="str">str</span>, <span title="str">str</span>], ...]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Pairs of overlapping images.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>debug_logs</code>
-            </td>
-            <td>
-                  <code><span title="bool">bool</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If True, prints debug information.</p>
-              </div>
-            </td>
-            <td>
-                  <code>False</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1).</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>spectralmatch/match/global_regression.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">344</span>
-<span class="normal">345</span>
-<span class="normal">346</span>
-<span class="normal">347</span>
-<span class="normal">348</span>
-<span class="normal">349</span>
-<span class="normal">350</span>
-<span class="normal">351</span>
-<span class="normal">352</span>
-<span class="normal">353</span>
-<span class="normal">354</span>
-<span class="normal">355</span>
-<span class="normal">356</span>
-<span class="normal">357</span>
-<span class="normal">358</span>
-<span class="normal">359</span>
-<span class="normal">360</span>
-<span class="normal">361</span>
-<span class="normal">362</span>
-<span class="normal">363</span>
-<span class="normal">364</span>
-<span class="normal">365</span>
-<span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span>
-<span class="normal">369</span>
-<span class="normal">370</span>
-<span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
-<span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span>
-<span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span>
-<span class="normal">398</span>
-<span class="normal">399</span>
-<span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
-<span class="normal">404</span>
-<span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
-<span class="normal">408</span>
-<span class="normal">409</span>
-<span class="normal">410</span>
-<span class="normal">411</span>
-<span class="normal">412</span>
-<span class="normal">413</span>
-<span class="normal">414</span>
-<span class="normal">415</span>
-<span class="normal">416</span>
-<span class="normal">417</span>
-<span class="normal">418</span>
-<span class="normal">419</span>
-<span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span>
-<span class="normal">427</span>
-<span class="normal">428</span>
-<span class="normal">429</span>
-<span class="normal">430</span>
-<span class="normal">431</span>
-<span class="normal">432</span>
-<span class="normal">433</span>
-<span class="normal">434</span>
-<span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span>
-<span class="normal">445</span>
-<span class="normal">446</span>
-<span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">solve_global_model</span><span class="p">(</span>
-    <span class="n">num_bands</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">num_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">all_image_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">included_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">input_image_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">all_overlap_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-    <span class="n">all_whole_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-    <span class="n">custom_mean_factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">custom_std_factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">overlapping_pairs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
-    <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        num_bands: Number of image bands.</span>
-<span class="sd">        num_total: Total number of images (including loaded).</span>
-<span class="sd">        all_image_names: Ordered list of all image names.</span>
-<span class="sd">        included_names: Subset of images used to constrain the model.</span>
-<span class="sd">        input_image_names: Names of input images to apply normalization to.</span>
-<span class="sd">        all_overlap_stats: Pairwise overlap statistics per band.</span>
-<span class="sd">        all_whole_stats: Whole-image stats (mean, std) per band.</span>
-<span class="sd">        custom_mean_factor: Weight for mean constraints.</span>
-<span class="sd">        custom_std_factor: Weight for std constraints.</span>
-<span class="sd">        overlapping_pairs: Pairs of overlapping images.</span>
-<span class="sd">        debug_logs: If True, prints debug information.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">all_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_bands</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">image_names_with_id</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_image_names</span><span class="p">)]</span>
-    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bands</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing band </span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
-
-        <span class="n">A</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">tot_overlap</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name_i</span> <span class="ow">in</span> <span class="n">image_names_with_id</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">name_j</span> <span class="ow">in</span> <span class="n">image_names_with_id</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]:</span>
-                <span class="n">stat</span> <span class="o">=</span> <span class="n">all_overlap_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name_i</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name_j</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">stat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">continue</span>
-
-                <span class="c1"># This condition ensures that only overlaps involving at least one included image contribute constraints, allowing external images to be calibrated against the model without influencing it.</span>
-                <span class="k">if</span> <span class="n">name_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span> <span class="ow">and</span> <span class="n">name_j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span><span class="p">:</span>
-                    <span class="k">continue</span>
-
-                <span class="n">s</span> <span class="o">=</span> <span class="n">stat</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s2">&quot;size&quot;</span><span class="p">]</span>
-                <span class="n">m1</span><span class="p">,</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">stat</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="n">stat</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s2">&quot;std&quot;</span><span class="p">]</span>
-                <span class="n">m2</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">all_overlap_stats</span><span class="p">[</span><span class="n">name_j</span><span class="p">][</span><span class="n">name_i</span><span class="p">][</span><span class="n">b</span><span class="p">][</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span>
-                    <span class="n">all_overlap_stats</span><span class="p">[</span><span class="n">name_j</span><span class="p">][</span><span class="n">name_i</span><span class="p">][</span><span class="n">b</span><span class="p">][</span><span class="s2">&quot;std&quot;</span><span class="p">],</span>
-                <span class="p">)</span>
-
-                <span class="n">row_m</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">)</span>
-                <span class="n">row_s</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">)</span>
-                <span class="n">row_m</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">m1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-                <span class="n">row_m</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">j</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="n">m2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">row_s</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span><span class="p">],</span> <span class="n">row_s</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">v1</span><span class="p">,</span> <span class="o">-</span><span class="n">v2</span>
-
-                <span class="n">A</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
-                    <span class="p">[</span><span class="n">v</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">custom_mean_factor</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row_m</span><span class="p">],</span>
-                    <span class="p">[</span><span class="n">v</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">custom_std_factor</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row_s</span><span class="p">],</span>
-                <span class="p">])</span>
-                <span class="n">y</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-                <span class="n">tot_overlap</span> <span class="o">+=</span> <span class="n">s</span>
-
-        <span class="n">pjj</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">tot_overlap</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">tot_overlap</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">included_names</span><span class="p">:</span>
-            <span class="n">mj</span> <span class="o">=</span> <span class="n">all_whole_stats</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">b</span><span class="p">][</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span>
-            <span class="n">vj</span> <span class="o">=</span> <span class="n">all_whole_stats</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">b</span><span class="p">][</span><span class="s2">&quot;std&quot;</span><span class="p">]</span>
-            <span class="n">j_idx</span> <span class="o">=</span> <span class="n">all_image_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">row_m</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">)</span>
-            <span class="n">row_s</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">)</span>
-            <span class="n">row_m</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">j_idx</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">j_idx</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">mj</span> <span class="o">*</span> <span class="n">pjj</span><span class="p">,</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">pjj</span><span class="p">]</span>
-            <span class="n">row_s</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">vj</span> <span class="o">*</span> <span class="n">pjj</span>
-            <span class="n">A</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">row_m</span><span class="p">,</span> <span class="n">row_s</span><span class="p">])</span>
-            <span class="n">y</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">mj</span> <span class="o">*</span> <span class="n">pjj</span><span class="p">,</span> <span class="n">vj</span> <span class="o">*</span> <span class="n">pjj</span><span class="p">])</span>
-
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">input_image_names</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">included_names</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="n">row</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">)</span>
-            <span class="n">A</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
-            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">A</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
-            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-
-        <span class="n">A_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
-        <span class="n">y_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">least_squares</span><span class="p">(</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">A_arr</span> <span class="o">@</span> <span class="n">p</span> <span class="o">-</span> <span class="n">y_arr</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_total</span><span class="p">)</span>
-        <span class="n">all_params</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
-
-
-        <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-            <span class="n">_print_constraint_system</span><span class="p">(</span>
-                <span class="n">constraint_matrix</span><span class="o">=</span><span class="n">A_arr</span><span class="p">,</span>
-                <span class="n">adjustment_params</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
-                <span class="n">observed_values_vector</span><span class="o">=</span><span class="n">y_arr</span><span class="p">,</span>
-                <span class="n">overlap_pairs</span><span class="o">=</span><span class="n">overlapping_pairs</span><span class="p">,</span>
-                <span class="n">image_names_with_id</span><span class="o">=</span><span class="n">image_names_with_id</span><span class="p">,</span>
-
-            <span class="p">)</span>
-    <span class="k">return</span> <span class="n">all_params</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
 
 
   </div>
@@ -2246,141 +1809,6 @@
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="spectralmatch.match.local_block_adjustment.get_bounding_rect_images_block_space" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_bounding_rect_images_block_space</span><span class="p">(</span><span class="n">block_local_means</span><span class="p">)</span></code>
-
-<a href="#spectralmatch.match.local_block_adjustment.get_bounding_rect_images_block_space" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Compute block-space bounding rectangles for each image based on valid block values.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>block_local_means</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="numpy.ndarray">ndarray</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Per-image block means
-with shape (num_row, num_col, num_bands).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>, <span title="int">int</span>, <span title="int">int</span>]]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>dict[str, tuple[int, int, int, int]]: Each entry maps image name to
-(min_row, min_col, max_row, max_col).</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>spectralmatch/match/local_block_adjustment.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">529</span>
-<span class="normal">530</span>
-<span class="normal">531</span>
-<span class="normal">532</span>
-<span class="normal">533</span>
-<span class="normal">534</span>
-<span class="normal">535</span>
-<span class="normal">536</span>
-<span class="normal">537</span>
-<span class="normal">538</span>
-<span class="normal">539</span>
-<span class="normal">540</span>
-<span class="normal">541</span>
-<span class="normal">542</span>
-<span class="normal">543</span>
-<span class="normal">544</span>
-<span class="normal">545</span>
-<span class="normal">546</span>
-<span class="normal">547</span>
-<span class="normal">548</span>
-<span class="normal">549</span>
-<span class="normal">550</span>
-<span class="normal">551</span>
-<span class="normal">552</span>
-<span class="normal">553</span>
-<span class="normal">554</span>
-<span class="normal">555</span>
-<span class="normal">556</span>
-<span class="normal">557</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_bounding_rect_images_block_space</span><span class="p">(</span>
-    <span class="n">block_local_means</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute block-space bounding rectangles for each image based on valid block values.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        block_local_means (dict[str, np.ndarray]): Per-image block means</span>
-<span class="sd">            with shape (num_row, num_col, num_bands).</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        dict[str, tuple[int, int, int, int]]: Each entry maps image name to</span>
-<span class="sd">            (min_row, min_col, max_row, max_col).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">block_local_means</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">rows</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">cols</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">min_row</span><span class="p">,</span> <span class="n">max_row</span> <span class="o">=</span> <span class="n">rows</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">rows</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
-            <span class="n">min_col</span><span class="p">,</span> <span class="n">max_col</span> <span class="o">=</span> <span class="n">cols</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">cols</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">min_row</span> <span class="o">=</span> <span class="n">max_row</span> <span class="o">=</span> <span class="n">min_col</span> <span class="o">=</span> <span class="n">max_col</span> <span class="o">=</span> <span class="mi">0</span>
-
-        <span class="n">output</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">min_row</span><span class="p">,</span> <span class="n">min_col</span><span class="p">,</span> <span class="n">max_row</span><span class="p">,</span> <span class="n">max_col</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">output</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 
@@ -3266,7 +2694,7 @@ This supports partial or full reuse of precomputed block maps:
     <span class="k">else</span><span class="p">:</span>
         <span class="n">block_local_means</span> <span class="o">=</span> <span class="n">local_blocks_to_load</span>
 
-    <span class="n">bounds_images_block_space</span> <span class="o">=</span> <span class="n">get_bounding_rect_images_block_space</span><span class="p">(</span><span class="n">block_local_means</span><span class="p">)</span>
+    <span class="n">bounds_images_block_space</span> <span class="o">=</span> <span class="n">_get_bounding_rect_images_block_space</span><span class="p">(</span><span class="n">block_local_means</span><span class="p">)</span>
 
     <span class="c1"># Compute reference block</span>
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Computing reference block map&quot;</span><span class="p">)</span>

@@ -532,6 +532,52 @@
   
   
     <li class="md-nav__item">
+      <a href="../api/handlers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Data Handlers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/mask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Create Masks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/match/" class="md-nav__link">
         
   
@@ -555,12 +601,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/mask/" class="md-nav__link">
+      <a href="../api/seamline/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Create Mask and Pseudo-Invariant Features
+    Create Seamlines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utilities
     
   </span>
   
@@ -583,30 +652,7 @@
   
   
   <span class="md-ellipsis">
-    Creating Statistical Figures
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../api/handlers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Data Handlers for IO
+    Statistical Figures
     
   </span>
   
@@ -1306,7 +1352,7 @@ Returns:
         Optional[Tuple[float, float, float, float]]  # bounds_canvas_coords
     ]"""
 
-def get_bounding_rect_images_block_space(block_local_means):
+def _get_bounding_rect_images_block_space(block_local_means):
     """Compute block-space bounding rectangles for each image based on valid block values.
 
 Args:
@@ -1539,7 +1585,7 @@ Args:
 Returns:
     List[str]: Paths to the globally adjusted output raster images."""
 
-def solve_global_model(num_bands, num_total, all_image_names, included_names, input_image_names, all_overlap_stats, all_whole_stats, custom_mean_factor, custom_std_factor, overlapping_pairs, debug_logs):
+def _solve_global_model(num_bands, num_total, all_image_names, included_names, input_image_names, all_overlap_stats, all_whole_stats, custom_mean_factor, custom_std_factor, overlapping_pairs, debug_logs):
     """Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.
 
 Args:
@@ -1764,7 +1810,111 @@ Args:
 Returns:
     np.ndarray or None: 1D array of valid pixel values, or None if none found."""
 
-### File: mask/band_math.py
+### File: mask/mask.py
+
+def create_cloud_mask_with_omnicloudmask(input_images, output_images, red_band_index, green_band_index, nir_band_index):
+    """Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
+
+Args:
+    input_images (SearchFolderOrListFiles): Input folder and pattern or list of image paths.
+    output_images (CreateInFolderOrListFiles): Output folder and pattern or list of paths.
+    red_band_index (int): Index of red band in the image.
+    green_band_index (int): Index of green band in the image.
+    nir_band_index (int): Index of NIR band in the image.
+    down_sample_m (float, optional): If set, resamples input to this resolution in meters.
+    debug_logs (bool, optional): If True, prints progress and debug info.
+    image_parallel_workers (ImageParallelWorkers, optional): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
+    **omnicloud_kwargs: Additional arguments forwarded to predict_from_array.
+
+Raises:
+    Exception: Propagates any error from processing individual images."""
+
+def _process_cloud_mask_image(input_image_path, output_mask_path, red_band_index, green_band_index, nir_band_index, down_sample_m, debug_logs, omnicloud_kwargs):
+    """Processes a single image to generate a cloud mask using OmniCloudMask.
+
+Args:
+    input_image_path (str): Path to input image.
+    output_mask_path (str): Path to save output mask.
+    red_band_index (int): Index of red band.
+    green_band_index (int): Index of green band.
+    nir_band_index (int): Index of NIR band.
+    down_sample_m (float): Target resolution (if resampling).
+    debug_logs (bool): If True, print progress info.
+    omnicloud_kwargs (dict): Passed to predict_from_array.
+
+Raises:
+    Exception: If any step in reading, prediction, or writing fails."""
+
+def create_ndvi_raster(input_images, output_images, nir_band_index, red_band_index):
+    """Computes NDVI masks for one or more images and writes them to disk.
+
+Args:
+    input_images: Folder and pattern tuple or list of input image paths.
+    output_images: Output folder and template or list of output paths.
+    nir_band_index: Band index for NIR (1-based).
+    red_band_index: Band index for Red (1-based).
+    custom_output_dtype: Optional output data type (e.g., "float32").
+    window_size: Tile size or mode for window-based processing.
+    debug_logs: Whether to print debug messages.
+    image_parallel_workers: Parallelism strategy for image-level processing.
+    window_parallel_workers: Parallelism strategy for window-level processing.
+
+Output:
+    NDVI raster saved to output_images."""
+
+def _ndvi_process_image(input_path, output_path, image_name, nir_band_index, red_band_index, custom_output_dtype, window_size, debug_logs, window_parallel_workers):
+    """Processes a single image for NDVI using windowed strategy."""
+
+def _ndvi_process_window(image_name, window, nir_band_index, red_band_index, debug_logs):
+    """Computes NDVI for a single window of a raster."""
+
+def band_math(input_images, output_images, custom_math):
+    """Applies custom band math expression to a list of input images and writes the results.
+
+Args:
+    input_images (SearchFolderOrListFiles): Folder and pattern or list of input image paths.
+    output_images (CreateInFolderOrListFiles): Folder or list of output paths to write results.
+    custom_math (str): Python-compatible math expression using bands (e.g., "b1 + b2 / 2").
+    debug_logs (bool, optional): If True, prints debug messages.
+    custom_nodata_value (Any, optional): Override nodata value in source image.
+    image_parallel_workers (int | str | None, optional): Controls image-level parallelism.
+    window_parallel_workers (int | str | None, optional): Controls window-level parallelism.
+    window_size (tuple[int, int] | None, optional): Size of processing windows (width, height).
+    custom_output_dtype (str | None, optional): Output image data type (e.g., "uint16").
+    calculation_dtype (str | None, optional): Computation data type (e.g., "float32")."""
+
+def _band_math_process_image(input_image_path, output_image_path, name, custom_math, debug_logs, nodata_value, window_parallel_workers, window_size, band_indices, output_dtype, calculation_dtype):
+    """Processes a single image by evaluating a custom math expression per pixel block.
+
+Args:
+    input_image_path (str): Path to the input image.
+    output_image_path (str): Path to save the result.
+    name (str): Dataset identifier for use in worker context.
+    custom_math (str): Math expression using band variables (e.g., "b1 - b2").
+    debug_logs (bool): If True, prints debug information.
+    nodata_value (Any): Value to treat as nodata during processing.
+    window_parallel_workers (int | str | None): Parallelism setting for window processing.
+    window_size (tuple[int, int]): Size of the processing window (width, height).
+    band_indices (list[int]): List of 1-based band indices used in the expression.
+    output_dtype (str): Output data type (e.g., "uint16").
+    calculation_dtype (str): Intermediate computation data type (e.g., "float32")."""
+
+def _band_math_process_window(name, window, custom_math, debug_logs, nodata_value, band_indices, calculation_dtype):
+    """Computes the result of a band math expression within a raster window.
+
+Args:
+    name (str): Dataset identifier to retrieve the open raster.
+    window (rasterio.windows.Window): Raster window to process.
+    custom_math (str): Math expression to evaluate (e.g., "b1 * b2").
+    debug_logs (bool): If True, prints window-level debug messages.
+    nodata_value (Any): Value representing nodata in the input bands.
+    band_indices (list[int]): Band indices referenced in the expression.
+    calculation_dtype (str): Data type used for evaluation.
+
+Returns:
+    tuple: (band index, window, computed result as ndarray)"""
+
+### File: mask/utils_mask.py
 
 def threshold_raster(input_images, output_images, threshold_math):
     """Applies a thresholding operation to input raster images using a mathematical expression string.
@@ -1831,72 +1981,6 @@ Args:
 Returns:
     float: Threshold value corresponding to the requested percentile."""
 
-def band_math(input_images, output_images, custom_math):
-
-def _band_math_process_image(input_image_path, output_image_path, name, custom_math, debug_logs, nodata_value, window_parallel_workers, window_size, band_indices, output_dtype, calculation_dtype):
-
-def _band_math_process_window(name, window, custom_math, debug_logs, nodata_value, band_indices, calculation_dtype):
-
-def replace_percent_with_threshold(match):
-
-### File: mask/mask.py
-
-def create_cloud_mask_with_omnicloudmask(input_images, output_images, red_band_index, green_band_index, nir_band_index):
-    """Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
-
-Args:
-    input_images (SearchFolderOrListFiles): Input folder and pattern or list of image paths.
-    output_images (CreateInFolderOrListFiles): Output folder and pattern or list of paths.
-    red_band_index (int): Index of red band in the image.
-    green_band_index (int): Index of green band in the image.
-    nir_band_index (int): Index of NIR band in the image.
-    down_sample_m (float, optional): If set, resamples input to this resolution in meters.
-    debug_logs (bool, optional): If True, prints progress and debug info.
-    image_parallel_workers (ImageParallelWorkers, optional): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
-    **omnicloud_kwargs: Additional arguments forwarded to predict_from_array.
-
-Raises:
-    Exception: Propagates any error from processing individual images."""
-
-def _process_cloud_mask_image(input_image_path, output_mask_path, red_band_index, green_band_index, nir_band_index, down_sample_m, debug_logs, omnicloud_kwargs):
-    """Processes a single image to generate a cloud mask using OmniCloudMask.
-
-Args:
-    input_image_path (str): Path to input image.
-    output_mask_path (str): Path to save output mask.
-    red_band_index (int): Index of red band.
-    green_band_index (int): Index of green band.
-    nir_band_index (int): Index of NIR band.
-    down_sample_m (float): Target resolution (if resampling).
-    debug_logs (bool): If True, print progress info.
-    omnicloud_kwargs (dict): Passed to predict_from_array.
-
-Raises:
-    Exception: If any step in reading, prediction, or writing fails."""
-
-def create_ndvi_raster(input_images, output_images, nir_band_index, red_band_index):
-    """Computes NDVI masks for one or more images and writes them to disk.
-
-Args:
-    input_images: Folder and pattern tuple or list of input image paths.
-    output_images: Output folder and template or list of output paths.
-    nir_band_index: Band index for NIR (1-based).
-    red_band_index: Band index for Red (1-based).
-    custom_output_dtype: Optional output data type (e.g., "float32").
-    window_size: Tile size or mode for window-based processing.
-    debug_logs: Whether to print debug messages.
-    image_parallel_workers: Parallelism strategy for image-level processing.
-    window_parallel_workers: Parallelism strategy for window-level processing.
-
-Output:
-    NDVI raster saved to output_images."""
-
-def _ndvi_process_image(input_path, output_path, image_name, nir_band_index, red_band_index, custom_output_dtype, window_size, debug_logs, window_parallel_workers):
-    """Processes a single image for NDVI using windowed strategy."""
-
-def _ndvi_process_window(image_name, window, nir_band_index, red_band_index, debug_logs):
-    """Computes NDVI for a single window of a raster."""
-
 def process_raster_values_to_vector_polygons(input_images, output_vectors):
     """Converts raster values into vector polygons based on an expression and optional filtering logic.
 
@@ -1945,6 +2029,8 @@ Args:
 Returns:
     list[dict]: List of dictionaries with keys `"value"` and `"geometry"` representing polygons."""
 
+def replace_percent_with_threshold(match):
+
 ### File: mask/shadow_mask.py
 
 def shadow_detection(image_file, shadow_mask_file, convolve_window_size, num_thresholds, struc_elem_size):
@@ -1979,7 +2065,7 @@ Outputs:
 
 ## Markdown Section
 ### File: rrn_methods.md
-# Dimensions of Relative Radiometric Normalization (RRN) Methods
+# Relative Radiometric Normalization (RRN) Methods
 
 RRN methods differ not only in the algorithms used to adjust image values but also in the requirements images must have and other techniques that can be used in conjunction. The following taxonomy summarizes the core dimensions along which RRN techniques vary:
 
@@ -2132,27 +2218,21 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 
 ## Features
 
-- **Automated:** Works without manual intervention, making it ideal for large-scale applications.
+- **Automated, Efficient, and Scalable:** Designed for large-scale workflows with no manual steps, leveraging multiprocessing and Cloud Optimized GeoTIFF support for fast, efficient processing across images, windows, and bands. 
 
-- **Multiprocessing:** Image, window, and band parallel processing. Cloud Optimized GeoTIFF reading and writing.
+- **Resumable Processing:** Save image stats and block maps for quicker reprocessing.
 
-- **Save Intermediate Steps:** Save image stats and block maps for quick reprocessing.
+- **Integrated Seamline and Cloud Masking:** Generate seamlines and detect clouds within the same workflow.
 
 - **Specify Model Images** Include all or specified images in the matching solution to bring all images to a central tendency or selected images spectral profile.
 
-- **Consistent Multi-Image Analysis:** Ensures uniformity across images by applying systematic corrections with minimal spectral distortion.
+- **Consistent Multi-image Analysis:** Performs minimal necessary adjustments to achieve inter-image consistency while preserving the original spectral characteristics.
 
-- **Seamlessly Blended:** Creates smooth transitions between images.
+- **Sensor and Unit Agnostic:** Supports optical imagery from handheld cameras, drones, crewed aircraft, and satellites for reliable single sensor and multi-sensor analysis, while preserving spectral integrity across all pixel units—including negative values and reflectance.
 
-- **Unit Agnostic:** Works with any pixel unit and preserves the spectral information for accurate analysis. This inlcludes negative numbers and reflectance.
+- **Enhanced Imagery:** Helpful when performing mosaics and time series analysis by blending large image collections and normalizing them over time, providing consistent, high-quality data for machine learning and other analytical tasks.
 
-- **Better Input for Machine Learning Models:** Provides high-quality, unbiased data for AI and analytical workflows.
-
-- **Sensor Agnostic:** Works with all optical sensors. In addition, images from different sensors can be combined for multisensor analysis.
-
-- **Mosaics:** Designed to process and blend vast image collections effectively.
-
-- **Time Series**: Normalize images across time with to compare spectral changes.
+- **Open Source and Collaborative:** Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows.
 
 ---
 
@@ -2697,6 +2777,14 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 ### 4. Read the [Contributing Guide](https://spectralmatch.github.io/spectralmatch/contributing/) if you aim to contribute
 
 
+### File: api/seamline.md
+::: spectralmatch.seamline.voronoi_center_seamline
+
+
+### File: api/utils.md
+::: spectralmatch.utils
+
+
 ### File: api/match.md
 ::: spectralmatch.match.global_regression
 
@@ -2709,6 +2797,9 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 
 ### File: api/mask.md
 ::: spectralmatch.mask.mask
+
+
+::: spectralmatch.mask.utils_mask
 
 
 ### File: api/handlers.md

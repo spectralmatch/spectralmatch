@@ -11,10 +11,10 @@
         <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/mask/">
       
       
-        <link rel="prev" href="../match/">
+        <link rel="prev" href="../handlers/">
       
       
-        <link rel="next" href="../statistics/">
+        <link rel="next" href="../match/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Create Mask and Pseudo-Invariant Features - spectralmatch</title>
+        <title>Create Masks - spectralmatch</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="md-skip">
+        <a href="#spectralmatch.mask.mask.band_math" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Create Mask and Pseudo-Invariant Features
+              Create Masks
             
           </span>
         </div>
@@ -538,12 +538,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../match/" class="md-nav__link">
+      <a href="../handlers/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Matching Algorithms
+    Data Handlers
     
   </span>
   
@@ -573,7 +573,7 @@
   
   
   <span class="md-ellipsis">
-    Create Mask and Pseudo-Invariant Features
+    Create Masks
     
   </span>
   
@@ -586,7 +586,7 @@
   
   
   <span class="md-ellipsis">
-    Create Mask and Pseudo-Invariant Features
+    Create Masks
     
   </span>
   
@@ -607,6 +607,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#spectralmatch.mask.mask.band_math" class="md-nav__link">
+    <span class="md-ellipsis">
+      band_math
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="md-nav__link">
     <span class="md-ellipsis">
       create_cloud_mask_with_omnicloudmask
@@ -625,9 +634,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="md-nav__link">
+  <a href="#spectralmatch.mask.utils_mask.process_raster_values_to_vector_polygons" class="md-nav__link">
     <span class="md-ellipsis">
       process_raster_values_to_vector_polygons
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spectralmatch.mask.utils_mask.threshold_raster" class="md-nav__link">
+    <span class="md-ellipsis">
+      threshold_raster
     </span>
   </a>
   
@@ -649,12 +667,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../statistics/" class="md-nav__link">
+      <a href="../match/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Creating Statistical Figures
+    Matching Algorithms
     
   </span>
   
@@ -672,12 +690,58 @@
   
   
     <li class="md-nav__item">
-      <a href="../handlers/" class="md-nav__link">
+      <a href="../seamline/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Data Handlers for IO
+    Create Seamlines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statistics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Statistical Figures
     
   </span>
   
@@ -720,6 +784,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#spectralmatch.mask.mask.band_math" class="md-nav__link">
+    <span class="md-ellipsis">
+      band_math
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="md-nav__link">
     <span class="md-ellipsis">
       create_cloud_mask_with_omnicloudmask
@@ -738,9 +811,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="md-nav__link">
+  <a href="#spectralmatch.mask.utils_mask.process_raster_values_to_vector_polygons" class="md-nav__link">
     <span class="md-ellipsis">
       process_raster_values_to_vector_polygons
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spectralmatch.mask.utils_mask.threshold_raster" class="md-nav__link">
+    <span class="md-ellipsis">
+      threshold_raster
     </span>
   </a>
   
@@ -765,7 +847,7 @@
   
 
 
-  <h1>Create Mask and Pseudo-Invariant Features</h1>
+  <h1>Create Masks</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -791,6 +873,312 @@
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="spectralmatch.mask.mask.band_math" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">band_math</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">custom_math</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#spectralmatch.mask.mask.band_math" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Applies custom band math expression to a list of input images and writes the results.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_images</code>
+            </td>
+            <td>
+                  <code><span title="SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Folder and pattern or list of input image paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_images</code>
+            </td>
+            <td>
+                  <code><span title="CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Folder or list of output paths to write results.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_math</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Python-compatible math expression using bands (e.g., "b1 + b2 / 2").</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>debug_logs</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, prints debug messages.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_nodata_value</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Override nodata value in source image.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>image_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Controls image-level parallelism.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>window_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Controls window-level parallelism.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>window_size</code>
+            </td>
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of processing windows (width, height).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_output_dtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output image data type (e.g., "uint16").</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>calculation_dtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Computation data type (e.g., "float32").</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">band_math</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">custom_math</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">window_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">custom_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies custom band math expression to a list of input images and writes the results.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_images (SearchFolderOrListFiles): Folder and pattern or list of input image paths.</span>
+<span class="sd">        output_images (CreateInFolderOrListFiles): Folder or list of output paths to write results.</span>
+<span class="sd">        custom_math (str): Python-compatible math expression using bands (e.g., &quot;b1 + b2 / 2&quot;).</span>
+<span class="sd">        debug_logs (bool, optional): If True, prints debug messages.</span>
+<span class="sd">        custom_nodata_value (Any, optional): Override nodata value in source image.</span>
+<span class="sd">        image_parallel_workers (int | str | None, optional): Controls image-level parallelism.</span>
+<span class="sd">        window_parallel_workers (int | str | None, optional): Controls window-level parallelism.</span>
+<span class="sd">        window_size (tuple[int, int] | None, optional): Size of processing windows (width, height).</span>
+<span class="sd">        custom_output_dtype (str | None, optional): Output image data type (e.g., &quot;uint16&quot;).</span>
+<span class="sd">        calculation_dtype (str | None, optional): Computation data type (e.g., &quot;float32&quot;).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
+        <span class="n">output_dtype</span> <span class="o">=</span> <span class="n">_resolve_output_dtype</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="p">)</span>
+
+    <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
+
+    <span class="c1"># Extract referenced bands from custom_math (e.g., b1, b2, ...)</span>
+    <span class="n">band_indices</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\bb\d+\b&quot;</span><span class="p">,</span> <span class="n">custom_math</span><span class="p">)})</span>
+
+    <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">custom_math</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">,</span> <span class="n">nodata_value</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">band_indices</span><span class="p">,</span> <span class="n">output_dtype</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">output_image_paths</span><span class="p">,</span> <span class="n">image_names</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_band_math_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
+            <span class="n">_band_math_process_image</span><span class="p">(</span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
@@ -1430,13 +1818,46 @@
 
 </div>
 
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
 <div class="doc doc-object doc-function">
 
 
-<h2 id="spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="doc doc-heading">
+<h2 id="spectralmatch.mask.utils_mask.process_raster_values_to_vector_polygons" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_vectors</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">extraction_expression</span><span class="p">,</span> <span class="n">filter_by_polygon_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polygon_buffer</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">value_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-<a href="#spectralmatch.mask.mask.process_raster_values_to_vector_polygons" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#spectralmatch.mask.utils_mask.process_raster_values_to_vector_polygons" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
@@ -1652,12 +2073,8 @@
 
 
             <details class="quote">
-              <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
+              <summary>Source code in <code>spectralmatch/mask/utils_mask.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">270</span>
 <span class="normal">271</span>
 <span class="normal">272</span>
 <span class="normal">273</span>
@@ -1719,7 +2136,11 @@
 <span class="normal">329</span>
 <span class="normal">330</span>
 <span class="normal">331</span>
-<span class="normal">332</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1792,6 +2213,318 @@
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h2 id="spectralmatch.mask.utils_mask.threshold_raster" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">threshold_raster</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">threshold_math</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span></code>
+
+<a href="#spectralmatch.mask.utils_mask.threshold_raster" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Applies a thresholding operation to input raster images using a mathematical expression string.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_images</code>
+            </td>
+            <td>
+                  <code><span title="SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Input image paths or folder + pattern.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_images</code>
+            </td>
+            <td>
+                  <code><span title="CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output image paths or folder + pattern.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>threshold_math</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A logical expression string using bands (e.g., "b1 &gt; 5", "b1 &gt; 5 &amp; b2 &lt; 10").
+Supports:
+    - Band references: b1, b2, ...
+    - Operators: &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;, |, ~, and parentheses
+    - Percentile-based thresholds: use e.g. "5%b1" to use the 5th percentile of band 1</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>debug_logs</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, prints debug messages.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_nodata_value</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | <span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Override the dataset's nodata value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>image_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="ImageParallelWorkers">ImageParallelWorkers</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parallelism config for image-level processing.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>window_parallel_workers</code>
+            </td>
+            <td>
+                  <code><span title="WindowParallelWorkers">WindowParallelWorkers</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parallelism config for window-level processing.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>window_size</code>
+            </td>
+            <td>
+                  <code><span title="WindowSize">WindowSize</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Window tiling strategy for memory-efficient processing.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_output_dtype</code>
+            </td>
+            <td>
+                  <code><span title="CustomOutputDtype">CustomOutputDtype</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output data type override.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>calculation_dtype</code>
+            </td>
+            <td>
+                  <code><span title="CalculationDtype">CalculationDtype</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Internal computation dtype.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;float32&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>spectralmatch/mask/utils_mask.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">threshold_raster</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
+    <span class="n">threshold_math</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">window_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">custom_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies a thresholding operation to input raster images using a mathematical expression string.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_images (SearchFolderOrListFiles): Input image paths or folder + pattern.</span>
+<span class="sd">        output_images (CreateInFolderOrListFiles): Output image paths or folder + pattern.</span>
+<span class="sd">        threshold_math (str): A logical expression string using bands (e.g., &quot;b1 &gt; 5&quot;, &quot;b1 &gt; 5 &amp; b2 &lt; 10&quot;).</span>
+<span class="sd">            Supports:</span>
+<span class="sd">                - Band references: b1, b2, ...</span>
+<span class="sd">                - Operators: &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;, |, ~, and parentheses</span>
+<span class="sd">                - Percentile-based thresholds: use e.g. &quot;5%b1&quot; to use the 5th percentile of band 1</span>
+<span class="sd">        debug_logs (bool, optional): If True, prints debug messages.</span>
+<span class="sd">        custom_nodata_value (float | int | None, optional): Override the dataset&#39;s nodata value.</span>
+<span class="sd">        image_parallel_workers (ImageParallelWorkers, optional): Parallelism config for image-level processing.</span>
+<span class="sd">        window_parallel_workers (WindowParallelWorkers, optional): Parallelism config for window-level processing.</span>
+<span class="sd">        window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.</span>
+<span class="sd">        custom_output_dtype (CustomOutputDtype, optional): Output data type override.</span>
+<span class="sd">        calculation_dtype (CalculationDtype, optional): Internal computation dtype.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
+        <span class="n">output_dtype</span> <span class="o">=</span> <span class="n">_resolve_output_dtype</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="p">)</span>
+
+    <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
+
+    <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">threshold_math</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">,</span> <span class="n">nodata_value</span><span class="p">,</span> <span class="n">window_parallel_workers</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">output_dtype</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">output_image_paths</span><span class="p">,</span> <span class="n">image_names</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_threshold_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+                <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
+            <span class="n">_threshold_process_image</span><span class="p">(</span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
 
 
   </div>
@@ -1819,7 +2552,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 3, 2025 23:33:49 UTC">June 3, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 13, 2025 07:12:40 UTC">June 13, 2025</span>
   </span>
 
     
