@@ -1065,7 +1065,10 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">266</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
 <span class="normal">267</span>
 <span class="normal">268</span>
 <span class="normal">269</span>
@@ -1116,10 +1119,7 @@
 <span class="normal">314</span>
 <span class="normal">315</span>
 <span class="normal">316</span>
-<span class="normal">317</span>
-<span class="normal">318</span>
-<span class="normal">319</span>
-<span class="normal">320</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">band_math</span><span class="p">(</span>
+<span class="normal">317</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">band_math</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">custom_math</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1378,7 +1378,10 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
 <span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
@@ -1440,10 +1443,7 @@
 <span class="normal">80</span>
 <span class="normal">81</span>
 <span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
+<span class="normal">83</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">red_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1695,7 +1695,10 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">152</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
 <span class="normal">153</span>
 <span class="normal">154</span>
 <span class="normal">155</span>
@@ -1750,10 +1753,7 @@
 <span class="normal">204</span>
 <span class="normal">205</span>
 <span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_raster</span><span class="p">(</span>
+<span class="normal">207</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_raster</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">nir_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -2029,7 +2029,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Area filter for resulting polygons. Can be a number (e.g., "&gt;100") or percentile (e.g., "95%").</p>
+                <p>Area filter for resulting polygons. Can be a number (e.g., "&gt;100") or percentile (e.g., "&gt;95%").</p>
               </div>
             </td>
             <td>
@@ -2074,7 +2074,8 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/utils_mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">270</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">269</span>
+<span class="normal">270</span>
 <span class="normal">271</span>
 <span class="normal">272</span>
 <span class="normal">273</span>
@@ -2139,8 +2140,7 @@
 <span class="normal">332</span>
 <span class="normal">333</span>
 <span class="normal">334</span>
-<span class="normal">335</span>
-<span class="normal">336</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
+<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -2168,7 +2168,7 @@
 <span class="sd">        window_size (Universal.WindowSizeWithBlock, optional): Size of each processing block (width, height), or a strategy string such as &quot;block&quot; or &quot;whole&quot;.</span>
 <span class="sd">        debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.</span>
 <span class="sd">        extraction_expression (str): Logical expression to identify pixels of interest using band references (e.g., &quot;b1 &gt; 10 &amp; b2 &lt; 50&quot;).</span>
-<span class="sd">        filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., &quot;&gt;100&quot;) or percentile (e.g., &quot;95%&quot;).</span>
+<span class="sd">        filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., &quot;&gt;100&quot;) or percentile (e.g., &quot;&gt;95%&quot;).</span>
 <span class="sd">        polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.</span>
 <span class="sd">        value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData.</span>
 
@@ -2408,7 +2408,8 @@ Supports:
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/utils_mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">17</span>
+<span class="normal">18</span>
 <span class="normal">19</span>
 <span class="normal">20</span>
 <span class="normal">21</span>
@@ -2462,8 +2463,7 @@ Supports:
 <span class="normal">69</span>
 <span class="normal">70</span>
 <span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">threshold_raster</span><span class="p">(</span>
+<span class="normal">72</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">threshold_raster</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">threshold_math</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>

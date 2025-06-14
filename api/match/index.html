@@ -2167,8 +2167,7 @@ This supports partial or full reuse of precomputed block maps:
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/match/local_block_adjustment.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 22</span>
-<span class="normal"> 23</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 23</span>
 <span class="normal"> 24</span>
 <span class="normal"> 25</span>
 <span class="normal"> 26</span>
@@ -2472,7 +2471,8 @@ This supports partial or full reuse of precomputed block maps:
 <span class="normal">324</span>
 <span class="normal">325</span>
 <span class="normal">326</span>
-<span class="normal">327</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
+<span class="normal">327</span>
+<span class="normal">328</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -2706,7 +2706,7 @@ This supports partial or full reuse of precomputed block maps:
 
     <span class="k">if</span> <span class="n">save_block_maps</span><span class="p">:</span>
         <span class="n">_download_block_map</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">block_reference_mean</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">block_reference_mean</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">)</span> <span class="k">if</span> <span class="n">nodata_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">block_reference_mean</span><span class="p">,</span>
             <span class="n">bounds_canvas_coords</span><span class="p">,</span>
             <span class="n">reference_map_path</span><span class="p">,</span>
             <span class="n">projection</span><span class="p">,</span>
@@ -2717,7 +2717,7 @@ This supports partial or full reuse of precomputed block maps:
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">block_local_mean</span> <span class="ow">in</span> <span class="n">block_local_means</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">_download_block_map</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">block_local_mean</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">block_local_mean</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nodata_val</span><span class="p">)</span> <span class="k">if</span> <span class="n">nodata_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">block_local_mean</span><span class="p">,</span>
                 <span class="n">bounds_canvas_coords</span><span class="p">,</span>
                 <span class="n">local_map_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;$&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span>
                 <span class="n">projection</span><span class="p">,</span>

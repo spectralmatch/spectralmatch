@@ -1061,7 +1061,7 @@ Args:
 Returns:
     tuple[int, Window, np.ndarray]: Band index, destination window, and processed data block (or None if fully masked)."""
 
-def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, image_parallel_workers, window_parallel_workers, include_touched_pixels):
+def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, image_parallel_workers, window_parallel_workers, include_touched_pixels, custom_nodata_value):
     """Applies a vector-based mask to one or more rasters, with support for image- and window-level parallelism.
 
 Args:
@@ -1077,7 +1077,7 @@ Args:
 Returns:
     None"""
 
-def _mask_raster_process_image(window_parallel, max_workers, backend, input_image_path, output_image_path, image_name, vector_mask, window_size, debug_logs, include_touched_pixels):
+def _mask_raster_process_image(window_parallel, max_workers, backend, input_image_path, output_image_path, image_name, vector_mask, window_size, debug_logs, include_touched_pixels, custom_nodata_value):
     """Processes a single raster image by applying a vector mask, optionally in parallel by window.
 
 Args:
@@ -1994,7 +1994,7 @@ Args:
     window_size (Universal.WindowSizeWithBlock, optional): Size of each processing block (width, height), or a strategy string such as "block" or "whole".
     debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
     extraction_expression (str): Logical expression to identify pixels of interest using band references (e.g., "b1 > 10 & b2 < 50").
-    filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., "95%").
+    filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., ">95%").
     polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.
     value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData."""
 
@@ -2202,7 +2202,7 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 # spectralmatch: A toolkit to perform Relative Radiometric Normalization, with utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, and statistics
 
 [![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
-[![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=OKAM0BUUNS)](https://codecov.io/gh/spectralmatch/spectralmatch)
+[![Codecov](https://img.shields.io/codecov/c/github/spectralmatch/spectralmatch)](https://codecov.io/gh/spectralmatch/spectralmatch)
 [![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
 [![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
 > [!IMPORTANT]
@@ -2257,7 +2257,7 @@ However, global correction alone cannot capture intra-image variability so a sec
 
 - **Minimized Color Differences:** The best color correction is achieved when color differences are minimized.
 
-- **Geometric Alignment:** Images are assumed to be geometrically aligned with known relative positions.
+- **Geometric Alignment:** Images are assumed to be geometrically aligned with known relative positions via a geotransform. However, they only need to be roughly aligned as pixel co-registration is not required.
 
 - **Global Consistency:** Overlapping color differences are consistent across the entire image.
 
