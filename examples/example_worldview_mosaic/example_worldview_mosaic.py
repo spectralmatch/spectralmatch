@@ -35,12 +35,16 @@ global_regression(
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
     # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)
     custom_std_factor=3,
-    save_adjustments=os.path.join(global_folder, "GlobalAdjustments.json"), # Start from precomputed statistics for images whole and overlap stats
+    save_adjustments=os.path.join(
+        global_folder, "GlobalAdjustments.json"
+    ),  # Start from precomputed statistics for images whole and overlap stats
     # load_adjustments=os.path.join(global_folder, "GlobalAdjustments.json"), # Load Statistics
-    )
+)
 
 # %% Local matching
-reference_map_path = os.path.join(local_folder, "ReferenceBlockMap", "ReferenceBlockMap.tif")
+reference_map_path = os.path.join(
+    local_folder, "ReferenceBlockMap", "ReferenceBlockMap.tif"
+)
 local_maps_path = os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.tif")
 searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap"), "*.tif")
 
@@ -51,46 +55,50 @@ local_block_adjustment(
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-    number_of_blocks="coefficient_of_variation", # Target number of blocks
+    number_of_blocks="coefficient_of_variation",  # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
     save_block_maps=(reference_map_path, local_maps_path),
     # load_block_maps=(reference_map_path, searched_paths), # Local match from saved block maps (this code just passes in local maps, but if a reference map is passed in, it will match images to the reference map without recomputing it)
-    )
+)
 
-#%% Align rasters
+# %% Align rasters
 
 align_rasters(
     input_images=(local_folder, "*.tif"),
     output_images=(aligned_folder, "$_Aligned.tif"),
     tap=True,
-    resolution='lowest',
+    resolution="lowest",
     debug_logs=True,
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-    )
+)
 
 # %% Generate voronoi center seamlines
 
 voronoi_center_seamline(
     input_images=(aligned_folder, "*.tif"),
     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
-    image_field_name='image',
+    image_field_name="image",
     debug_logs=True,
     debug_vectors_path=os.path.join(working_directory, "DebugVectors.gpkg"),
-    )
+)
 
 # %% Clip
 
 mask_rasters(
     input_images=(aligned_folder, "*.tif"),
     output_images=(clipped_folder, "$_Clipped.tif"),
-    vector_mask=("include", os.path.join(working_directory, "ImageMasks.gpkg"), "image"),
+    vector_mask=(
+        "include",
+        os.path.join(working_directory, "ImageMasks.gpkg"),
+        "image",
+    ),
     debug_logs=True,
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-    )
+)
 
 # %% Merge rasters
 
@@ -101,7 +109,7 @@ merge_rasters(
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-    )
+)
 
 # %% Pre-coded quick Statistics
 
@@ -111,11 +119,13 @@ compare_image_spectral_profiles(
         os.path.splitext(os.path.basename(p))[0]: p
         for p in search_paths(local_folder, "*.tif")
     },
-    output_figure_path=os.path.join(stats_folder,'LocalMatch_CompareImageSpectralProfiles.png'),
+    output_figure_path=os.path.join(
+        stats_folder, "LocalMatch_CompareImageSpectralProfiles.png"
+    ),
     title="Global to Local Match Comparison of Image Spectral Profiles",
-    xlabel='Band',
-    ylabel='Reflectance(0-10,000)',
-    )
+    xlabel="Band",
+    ylabel="Reflectance(0-10,000)",
+)
 
 # Compare image spectral profiles pairs
 before_paths = search_paths(input_folder, "*.tif")
@@ -124,15 +134,15 @@ after_paths = search_paths(local_folder, "*.tif")
 image_pairs = {
     os.path.splitext(os.path.basename(b))[0]: [b, a]
     for b, a in zip(sorted(before_paths), sorted(after_paths))
-    }
+}
 
 compare_image_spectral_profiles_pairs(
     image_pairs,
-    os.path.join(stats_folder, 'LocalMatch_CompareImageSpectralProfilesPairs.png'),
+    os.path.join(stats_folder, "LocalMatch_CompareImageSpectralProfilesPairs.png"),
     title="Global to Local Match Comparison of Image Spectral Profiles Pairs",
-    xlabel='Band',
-    ylabel='Reflectance(0-10,000)',
-    )
+    xlabel="Band",
+    ylabel="Reflectance(0-10,000)",
+)
 
 # Compare spatial spectral difference band average
 input_paths = search_paths(input_folder, "*.tif")
@@ -141,8 +151,10 @@ before_path, after_path = next(zip(sorted(input_paths), sorted(local_paths)))
 
 compare_spatial_spectral_difference_band_average(
     input_images=[before_path, after_path],
-    output_image_path=os.path.join(stats_folder, 'LocalMatch_CompareSpatialSpectralDifferenceBandAverage.png'),
+    output_image_path=os.path.join(
+        stats_folder, "LocalMatch_CompareSpatialSpectralDifferenceBandAverage.png"
+    ),
     title="Global to Local Match Comparison of Spatial Spectral Difference Band Average",
     diff_label="Reflectance Difference (0–10,000)",
     subtitle=f"Image: {os.path.splitext(os.path.basename(before_path))[0]}",
-    )
+)

@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
     
     
       
@@ -22,7 +22,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -670,6 +670,28 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Command Line Interface
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -963,6 +985,14 @@ Returns:
 
 Warnings:
     Emits a warning if a custom value overrides the image value or if no value is found."""
+
+### File: cli.py
+
+def cli_version():
+
+def build_cli():
+
+def main():
 
 ### File: utils.py
 
@@ -2031,39 +2061,39 @@ Returns:
 
 def replace_percent_with_threshold(match):
 
-### File: mask/shadow_mask.py
-
-def shadow_detection(image_file, shadow_mask_file, convolve_window_size, num_thresholds, struc_elem_size):
-    """This function is used to detect shadow - covered areas in an image, as proposed in the paper
-'Near Real - Time Shadow Detection and Removal in Aerial Motion Imagery Application' by Silva G.F., Carneiro G.B.,
-Doth R., Amaral L.A., de Azevedo D.F.G. (2017)
-
-Inputs:
-- image_file: Path of image to be processed for shadow removal. It is assumed that the first 3 channels are ordered as
-              Red, Green and Blue respectively
-- shadow_mask_file: Path of shadow mask to be saved
-- convolve_window_size: Size of convolutional matrix filter to be used for blurring of specthem ratio image
-- num_thresholds: Number of thresholds to be used for automatic multilevel global threshold determination
-- struc_elem_size: Size of disk - shaped structuring element to be used for morphological closing operation
-
-Outputs:
-- shadow_mask: Shadow mask for input image"""
-
-def shadow_correction(image_file, shadow_mask_file, corrected_image_file, exponent):
-    """This function is used to adjust brightness for shadow - covered areas in an image, as proposed in the paper
-'Near Real - Time Shadow Detection and Removal in Aerial Motion Imagery Application' by Silva G.F., Carneiro G.B.,
-Doth R., Amaral L.A., de Azevedo D.F.G. (2017)
-
-Inputs:
-- image_file: Path of 3 - channel (red, green, blue) image to be processed for shadow removal
-- shadow_mask_file: Path of shadow mask for corresponding input image
-- corrected_image_file: Path of corrected image to be saved
-- exponent: Exponent to be used for the calculcation of statistics for unshaded and shaded areas
-
-Outputs:
-- corrected_img: Corrected input image"""
-
 ## Markdown Section
+### File: cli.md
+# Command Line Interface
+
+## Installation
+The command line interface will be installed automatically when the Python library is installed. See instructions on the installation [page](https://spectralmatch.github.io/spectralmatch/installation/). Use the api reference or command --help to see options to pass into python functions.
+
+## Usage
+
+Print general help:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>--help
+</code></pre></div></td></tr></table></div>
+
+Print help for a specific command:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>COMMAND<span class="w"> </span>--help
+</code></pre></div></td></tr></table></div>
+
+Print installed version:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>--version
+</code></pre></div></td></tr></table></div>
+
+Run a specific command:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>COMMAND<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</code></pre></div></td></tr></table></div>
+
+## Commands
+{commands_content}
+
+
 ### File: rrn_methods.md
 # Relative Radiometric Normalization (RRN) Methods
 
@@ -2199,10 +2229,10 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 
 
 ### File: index.md
-# spectralmatch: A toolkit to perform Relative Radiometric Normalization, with utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, and statistics
+# spectralmatch: Performant Relative Radiometric Normalization toolkit with Pseudo-Invariant Features, seamlines, and other utilities for mosaics and time series
 
 [![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
-[![Codecov](https://img.shields.io/codecov/c/github/spectralmatch/spectralmatch)](https://codecov.io/gh/spectralmatch/spectralmatch)
+[![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C)](https://codecov.io/gh/spectralmatch/spectralmatch)
 [![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
 [![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
 > [!IMPORTANT]
@@ -2214,7 +2244,7 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 
 ![Global and Local Matching](./images/spectralmatch.png)
 
-*spectralmatch* provides a Python library and QGIS plugin with multiple algorythms to perform Relative Radiometric Normalization (RRN). It also includes utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, statistics, preprocessing, and more.
+*spectralmatch* provides a Python library, command line interface, and QGIS plugin with multiple algorythms to perform Relative Radiometric Normalization (RRN). It also includes utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, statistics, preprocessing, and more.
 
 ## Features
 
@@ -2868,10 +2898,10 @@ function copyToClipboard() {
     
     
       
-      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "search.highlight"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "search.highlight"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       

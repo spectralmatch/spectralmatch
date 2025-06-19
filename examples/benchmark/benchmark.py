@@ -9,7 +9,6 @@ from rasterio.transform import from_origin
 from spectralmatch import global_regression, local_block_adjustment
 
 
-
 def make_fake_rasters(out_dir, n_images, width, height, nodata=0):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

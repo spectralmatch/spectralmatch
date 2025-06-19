@@ -12,7 +12,11 @@ def create_initial_prompt_text() -> str:
     )
 
 
-def parse_python_files_to_prompt_text(input_directory="spectralmatch", include_filter="*.py", only_include_function_headers=True) -> str:
+def parse_python_files_to_prompt_text(
+    input_directory="spectralmatch",
+    include_filter="*.py",
+    only_include_function_headers=True,
+) -> str:
     prompt_lines = []
     for root, _, files in os.walk(input_directory):
         for filename in fnmatch.filter(files, include_filter):
@@ -47,7 +51,9 @@ def parse_python_files_to_prompt_text(input_directory="spectralmatch", include_f
     return "## Python Section\n" + "\n\n".join(prompt_lines) + "\n"
 
 
-def parse_markdown_files_to_prompt_text(input_directory="docs", include_filter="*.md", exclude_filter="*prompt*") -> str:
+def parse_markdown_files_to_prompt_text(
+    input_directory="docs", include_filter="*.md", exclude_filter="*prompt*"
+) -> str:
     prompt_lines = []
     for root, _, files in os.walk(input_directory):
         for filename in files:
@@ -69,7 +75,7 @@ def main() -> str:
     parts = [
         create_initial_prompt_text(),
         parse_python_files_to_prompt_text(),
-        parse_markdown_files_to_prompt_text()
+        parse_markdown_files_to_prompt_text(),
     ]
     prompt = "\n".join(filter(None, parts))
 

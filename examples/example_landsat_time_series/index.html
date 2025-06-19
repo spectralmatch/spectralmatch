@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.2afb09e1.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.342714a4.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -679,6 +679,28 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Command Line Interface
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -1153,7 +1175,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b2faa157">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=55b291b9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1184,7 +1206,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=31d8732a">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0863140b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1245,7 +1267,7 @@ num_window_workers = 5</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5cc93da7">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=97ac286b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1271,7 +1293,7 @@ num_window_workers = 5</div>
     <span class="n">nir_band_index</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"thread"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
-    <span class="p">)</span>
+<span class="p">)</span>
 
 <span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
@@ -1282,14 +1304,14 @@ num_window_workers = 5</div>
     <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
     <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="p">)</span>
 
 <span class="n">merge_vectors</span><span class="p">(</span>
     <span class="n">input_vectors</span><span class="o">=</span><span class="p">(</span><span class="n">mask_cloud_folder</span><span class="p">,</span> <span class="s2">"*.gpkg"</span><span class="p">),</span>
     <span class="n">merged_vector_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"CloudMasks.gpkg"</span><span class="p">),</span>
     <span class="n">method</span><span class="o">=</span><span class="s2">"keep"</span><span class="p">,</span>
     <span class="n">create_name_attribute</span><span class="o">=</span><span class="p">(</span><span class="s2">"image"</span><span class="p">,</span> <span class="s2">", "</span><span class="p">),</span>
-    <span class="p">)</span>
+<span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-3">
 create_cloud_mask_with_omnicloudmask(
@@ -1300,7 +1322,7 @@ create_cloud_mask_with_omnicloudmask(
     nir_band_index=8,
     debug_logs=True,
     image_parallel_workers=("thread", num_image_workers),
-    )
+)
 
 process_raster_values_to_vector_polygons(
     input_images=(mask_cloud_folder, "*.tif"),
@@ -1311,21 +1333,21 @@ process_raster_values_to_vector_polygons(
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
     window_size=window_size,
-    )
+)
 
 merge_vectors(
     input_vectors=(mask_cloud_folder, "*.gpkg"),
     merged_vector_path=os.path.join(working_directory, "CloudMasks.gpkg"),
     method="keep",
     create_name_attribute=("image", ", "),
-    )</div>
+)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c9fdc89d">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=2d3cfe82">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1346,22 +1368,30 @@ merge_vectors(
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">mask_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
     <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">masked_folder</span><span class="p">,</span> <span class="s2">"$_CloudMasked.tif"</span><span class="p">),</span>
-    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"CloudMasks.gpkg"</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">),</span>
-    <span class="p">)</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">"exclude"</span><span class="p">,</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"CloudMasks.gpkg"</span><span class="p">),</span>
+        <span class="s2">"image"</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-4">
 mask_rasters(
     input_images=(input_folder, "*.tif"),
     output_images=(masked_folder, "$_CloudMasked.tif"),
-    vector_mask=("exclude", os.path.join(working_directory, "CloudMasks.gpkg"), "image"),
-    )</div>
+    vector_mask=(
+        "exclude",
+        os.path.join(working_directory, "CloudMasks.gpkg"),
+        "image",
+    ),
+)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e7cc6099">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5bbdafce">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1384,7 +1414,7 @@ mask_rasters(
     <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"$_Vegetation.tif"</span><span class="p">),</span>
     <span class="n">nir_band_index</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
     <span class="n">red_band_index</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="p">)</span>
 
 <span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">mask_vegetation_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
@@ -1397,7 +1427,7 @@ mask_rasters(
     <span class="n">merged_vector_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span>
     <span class="n">method</span><span class="o">=</span><span class="s2">"keep"</span><span class="p">,</span>
     <span class="n">create_name_attribute</span><span class="o">=</span><span class="p">(</span><span class="s2">"image"</span><span class="p">,</span> <span class="s2">", "</span><span class="p">),</span>
-    <span class="p">)</span>
+<span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-5">
 create_ndvi_raster(
@@ -1405,7 +1435,7 @@ create_ndvi_raster(
     output_images=(mask_vegetation_folder, "$_Vegetation.tif"),
     nir_band_index=5,
     red_band_index=4,
-    )
+)
 
 process_raster_values_to_vector_polygons(
     input_images=(mask_vegetation_folder, "*.tif"),
@@ -1418,14 +1448,14 @@ merge_vectors(
     merged_vector_path=os.path.join(working_directory, "VegetationMasks.gpkg"),
     method="keep",
     create_name_attribute=("image", ", "),
-    )</div>
+)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4194586b">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5034ccdf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1446,28 +1476,36 @@ merge_vectors(
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">global_regression</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="p">(</span><span class="n">masked_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">),</span>
     <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">global_folder</span><span class="p">,</span> <span class="s2">"$_GlobalMatch.tif"</span><span class="p">),</span>
-    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span> <span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">),</span> <span class="c1"># Use unique mask per image</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">"exclude"</span><span class="p">,</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span>
+        <span class="s2">"image"</span><span class="p">,</span>
+    <span class="p">),</span>  <span class="c1"># Use unique mask per image</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="c1"># Save output as a Cloud Optimized GeoTIFF</span>
+    <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Save output as a Cloud Optimized GeoTIFF</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">
 global_regression(
     input_images=(masked_folder, "*.tif"),
     output_images=(global_folder, "$_GlobalMatch.tif"),
-    vector_mask=("exclude", os.path.join(working_directory , "VegetationMasks.gpkg"), "image"), # Use unique mask per image
+    vector_mask=(
+        "exclude",
+        os.path.join(working_directory, "VegetationMasks.gpkg"),
+        "image",
+    ),  # Use unique mask per image
     window_size=window_size,
-    save_as_cog=True, # Save output as a Cloud Optimized GeoTIFF
+    save_as_cog=True,  # Save output as a Cloud Optimized GeoTIFF
     debug_logs=True,
-    )</div>
+)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ce0148a3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=461c72b0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1490,11 +1528,18 @@ global_regression(
     <span class="n">output_images</span><span class="o">=</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"$_LocalMatch.tif"</span><span class="p">),</span>
     <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">),</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">"exclude"</span><span class="p">,</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span>
+        <span class="s2">"image"</span><span class="p">,</span>
+    <span class="p">),</span>
     <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">save_block_maps</span><span class="o">=</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"ReferenceBLockMap.tif"</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"$_LocalBlockMap.tif"</span><span class="p">)),</span>
-    <span class="p">)</span>
+    <span class="n">save_block_maps</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"ReferenceBLockMap.tif"</span><span class="p">),</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"$_LocalBlockMap.tif"</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-7">
 local_block_adjustment(
@@ -1502,18 +1547,25 @@ local_block_adjustment(
     output_images=(local_folder, "$_LocalMatch.tif"),
     number_of_blocks=100,
     window_size=window_size,
-    vector_mask=("exclude", os.path.join(working_directory, "VegetationMasks.gpkg"), "image"),
+    vector_mask=(
+        "exclude",
+        os.path.join(working_directory, "VegetationMasks.gpkg"),
+        "image",
+    ),
     save_as_cog=True,
     debug_logs=True,
-    save_block_maps=(os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"), os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif")),
-    )</div>
+    save_block_maps=(
+        os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"),
+        os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif"),
+    ),
+)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d3ed965b">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=096e4b43">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1537,10 +1589,12 @@ local_block_adjustment(
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">p</span><span class="p">))[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">p</span>
         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
     <span class="p">},</span>
-    <span class="n">output_figure_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stats_folder</span><span class="p">,</span><span class="s1">'LocalMatch_CompareImageSpectralProfiles.png'</span><span class="p">),</span>
+    <span class="n">output_figure_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">stats_folder</span><span class="p">,</span> <span class="s2">"LocalMatch_CompareImageSpectralProfiles.png"</span>
+    <span class="p">),</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">"Global to Local Match Comparison of Image Spectral Profiles"</span><span class="p">,</span>
-    <span class="n">xlabel</span><span class="o">=</span><span class="s1">'Band'</span><span class="p">,</span>
-    <span class="n">ylabel</span><span class="o">=</span><span class="s1">'Reflectance(0-10,000)'</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="s2">"Band"</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="s2">"Reflectance(0-10,000)"</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="c1"># Compare image spectral profiles pairs</span>
@@ -1550,15 +1604,15 @@ local_block_adjustment(
 <span class="n">image_pairs</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">b</span><span class="p">))[</span><span class="mi">0</span><span class="p">]:</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">before_paths</span><span class="p">),</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">after_paths</span><span class="p">))</span>
-    <span class="p">}</span>
+<span class="p">}</span>
 
 <span class="n">compare_image_spectral_profiles_pairs</span><span class="p">(</span>
     <span class="n">image_pairs</span><span class="p">,</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stats_folder</span><span class="p">,</span> <span class="s1">'LocalMatch_CompareImageSpectralProfilesPairs.png'</span><span class="p">),</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stats_folder</span><span class="p">,</span> <span class="s2">"LocalMatch_CompareImageSpectralProfilesPairs.png"</span><span class="p">),</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">"Global to Local Match Comparison of Image Spectral Profiles Pairs"</span><span class="p">,</span>
-    <span class="n">xlabel</span><span class="o">=</span><span class="s1">'Band'</span><span class="p">,</span>
-    <span class="n">ylabel</span><span class="o">=</span><span class="s1">'Reflectance(0-10,000)'</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="s2">"Band"</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="s2">"Reflectance(0-10,000)"</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="c1"># Compare spatial spectral difference band average</span>
 <span class="n">input_paths</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="n">input_folder</span><span class="p">,</span> <span class="s2">"*.tif"</span><span class="p">)</span>
@@ -1567,7 +1621,9 @@ local_block_adjustment(
 
 <span class="n">compare_spatial_spectral_difference_band_average</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="p">[</span><span class="n">before_path</span><span class="p">,</span> <span class="n">after_path</span><span class="p">],</span>
-    <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stats_folder</span><span class="p">,</span> <span class="s1">'LocalMatch_CompareSpatialSpectralDifferenceBandAverage.png'</span><span class="p">),</span>
+    <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">stats_folder</span><span class="p">,</span> <span class="s2">"LocalMatch_CompareSpatialSpectralDifferenceBandAverage.png"</span>
+    <span class="p">),</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">"Global to Local Match Comparison of Spatial Spectral Difference Band Average"</span><span class="p">,</span>
     <span class="n">diff_label</span><span class="o">=</span><span class="s2">"Reflectance Difference (0–10,000)"</span><span class="p">,</span>
     <span class="n">subtitle</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Image: </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">before_path</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
@@ -1580,10 +1636,12 @@ compare_image_spectral_profiles(
         os.path.splitext(os.path.basename(p))[0]: p
         for p in search_paths(local_folder, "*.tif")
     },
-    output_figure_path=os.path.join(stats_folder,'LocalMatch_CompareImageSpectralProfiles.png'),
+    output_figure_path=os.path.join(
+        stats_folder, "LocalMatch_CompareImageSpectralProfiles.png"
+    ),
     title="Global to Local Match Comparison of Image Spectral Profiles",
-    xlabel='Band',
-    ylabel='Reflectance(0-10,000)',
+    xlabel="Band",
+    ylabel="Reflectance(0-10,000)",
 )
 
 # Compare image spectral profiles pairs
@@ -1593,15 +1651,15 @@ after_paths = search_paths(local_folder, "*.tif")
 image_pairs = {
     os.path.splitext(os.path.basename(b))[0]: [b, a]
     for b, a in zip(sorted(before_paths), sorted(after_paths))
-    }
+}
 
 compare_image_spectral_profiles_pairs(
     image_pairs,
-    os.path.join(stats_folder, 'LocalMatch_CompareImageSpectralProfilesPairs.png'),
+    os.path.join(stats_folder, "LocalMatch_CompareImageSpectralProfilesPairs.png"),
     title="Global to Local Match Comparison of Image Spectral Profiles Pairs",
-    xlabel='Band',
-    ylabel='Reflectance(0-10,000)',
-    )
+    xlabel="Band",
+    ylabel="Reflectance(0-10,000)",
+)
 
 # Compare spatial spectral difference band average
 input_paths = search_paths(input_folder, "*.tif")
@@ -1610,7 +1668,9 @@ before_path, after_path = next(zip(sorted(input_paths), sorted(local_paths)))
 
 compare_spatial_spectral_difference_band_average(
     input_images=[before_path, after_path],
-    output_image_path=os.path.join(stats_folder, 'LocalMatch_CompareSpatialSpectralDifferenceBandAverage.png'),
+    output_image_path=os.path.join(
+        stats_folder, "LocalMatch_CompareSpatialSpectralDifferenceBandAverage.png"
+    ),
     title="Global to Local Match Comparison of Spatial Spectral Difference Band Average",
     diff_label="Reflectance Difference (0–10,000)",
     subtitle=f"Image: {os.path.splitext(os.path.basename(before_path))[0]}",
@@ -1644,7 +1704,7 @@ compare_spatial_spectral_difference_band_average(
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 13, 2025 04:45:41 UTC">June 13, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 14, 2025 01:22:34 UTC">June 14, 2025</span>
   </span>
 
     
@@ -1693,10 +1753,10 @@ compare_spatial_spectral_difference_band_average(
     
     
       
-      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "search.highlight"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "search.highlight"], "search": "../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../../assets/javascripts/bundle.13a4f30d.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       
