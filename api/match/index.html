@@ -872,13 +872,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="str">str</span>] | <span title="typing.List">List</span>[<span title="str">str</span>]</code>
+                  <code>(<span title="str">str</span> | <span title="typing.List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Specifies the input images either as:
-- A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
-- A list of full file paths to individual input images.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -890,13 +888,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="str">str</span>] | <span title="typing.List">List</span>[<span title="str">str</span>]</code>
+                  <code>(<span title="str">str</span> | <span title="typing.List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Specifies how output filenames are generated or provided:
-- A tuple with an output folder and a filename template using "<span class="arithmatex">\(" as a placeholder for each input image's basename (e.g., ("/output/folder", "\)</span>_GlobalMatch.tif")).
-- A list of full output paths, which must match the number of input images.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1522,7 +1518,10 @@
 <span class="normal">391</span>
 <span class="normal">392</span>
 <span class="normal">393</span>
-<span class="normal">394</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">global_regression</span><span class="p">(</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">global_regression</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1545,14 +1544,8 @@
 <span class="sd">    Performs global radiometric normalization across overlapping images using least squares regression.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (Tuple[str, str] | List[str]):</span>
-<span class="sd">            Specifies the input images either as:</span>
-<span class="sd">            - A tuple with a folder path and glob pattern to search for files (e.g., (&quot;/input/folder&quot;, &quot;*.tif&quot;)).</span>
-<span class="sd">            - A list of full file paths to individual input images.</span>
-<span class="sd">        output_images (Tuple[str, str] | List[str]):</span>
-<span class="sd">            Specifies how output filenames are generated or provided:</span>
-<span class="sd">            - A tuple with an output folder and a filename template using &quot;$&quot; as a placeholder for each input image&#39;s basename (e.g., (&quot;/output/folder&quot;, &quot;$_GlobalMatch.tif&quot;)).</span>
-<span class="sd">            - A list of full output paths, which must match the number of input images.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Global.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        calculation_dtype (str, optional): Data type used for internal calculations. Defaults to &quot;float32&quot;.</span>
 <span class="sd">        output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.</span>
 <span class="sd">        vector_mask (Tuple[Literal[&quot;include&quot;, &quot;exclude&quot;], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal &quot;include&quot; or &quot;exclude&quot; the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won&#39;t have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.</span>
@@ -1601,8 +1594,17 @@
     <span class="p">)</span>
 
     <span class="c1"># Input and output paths</span>
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Global.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1958,13 +1960,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="str">str</span>] | <span title="typing.List">List</span>[<span title="str">str</span>]</code>
+                  <code>(<span title="str">str</span> | <span title="typing.List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Specifies the input images either as:
-- A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
-- A list of full file paths to individual input images.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1976,13 +1976,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="str">str</span>] | <span title="typing.List">List</span>[<span title="str">str</span>]</code>
+                  <code>(<span title="str">str</span> | <span title="typing.List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Specifies how output filenames are generated or provided:
-- A tuple with an output folder and a filename template using "<span class="arithmatex">\(" as a placeholder for each input image's basename (e.g., ("/output/folder", "\)</span>_LocalMatch.tif")).
-- A list of full output paths, which must match the number of input images.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -2661,7 +2659,10 @@ This supports partial or full reuse of precomputed block maps:
 <span class="normal">402</span>
 <span class="normal">403</span>
 <span class="normal">404</span>
-<span class="normal">405</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -2688,14 +2689,8 @@ This supports partial or full reuse of precomputed block maps:
 <span class="sd">    Performs local radiometric adjustment on a set of raster images using block-based statistics.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (Tuple[str, str] | List[str]):</span>
-<span class="sd">            Specifies the input images either as:</span>
-<span class="sd">            - A tuple with a folder path and glob pattern to search for files (e.g., (&quot;/input/folder&quot;, &quot;*.tif&quot;)).</span>
-<span class="sd">            - A list of full file paths to individual input images.</span>
-<span class="sd">        output_images (Tuple[str, str] | List[str]):</span>
-<span class="sd">            Specifies how output filenames are generated or provided:</span>
-<span class="sd">            - A tuple with an output folder and a filename template using &quot;$&quot; as a placeholder for each input image&#39;s basename (e.g., (&quot;/output/folder&quot;, &quot;$_LocalMatch.tif&quot;)).</span>
-<span class="sd">            - A list of full output paths, which must match the number of input images.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Local.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        calculation_dtype (str, optional): Precision for internal calculations. Defaults to &quot;float32&quot;.</span>
 <span class="sd">        output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.</span>
 <span class="sd">        vector_mask (Tuple[Literal[&quot;include&quot;, &quot;exclude&quot;], str, Optional[str]] | None): A mask limiting pixels to include when calculating stats for each block in the format of a tuple with two or three items: literal &quot;include&quot; or &quot;exclude&quot; the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. It is only applied when calculating local blocks, as the reference map is calculated as the mean of all local blocks. Loaded block maps won&#39;t have this applied unless it was used when calculating them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.</span>
@@ -2764,8 +2759,17 @@ This supports partial or full reuse of precomputed block maps:
         <span class="n">window_parallel_workers</span>
     <span class="p">)</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Local.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -2881,7 +2885,7 @@ This supports partial or full reuse of precomputed block maps:
             <span class="n">num_row</span><span class="p">,</span> <span class="n">num_col</span> <span class="o">=</span> <span class="n">number_of_blocks</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">number_of_blocks</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">num_row</span><span class="p">,</span> <span class="n">num_col</span> <span class="o">=</span> <span class="n">_compute_mosaic_coefficient_of_variation</span><span class="p">(</span>
-                <span class="n">input_image_paths</span><span class="p">,</span> <span class="n">nodata_val</span>
+                <span class="n">input_image_paths</span><span class="p">,</span> <span class="n">nodata_val</span><span class="p">,</span> <span class="n">debug_logs</span>
             <span class="p">)</span>  <span class="c1"># This is the approach from the paper to compute bock size</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">num_row</span><span class="p">,</span> <span class="n">num_col</span> <span class="o">=</span> <span class="n">loaded_num_row</span><span class="p">,</span> <span class="n">loaded_num_col</span>

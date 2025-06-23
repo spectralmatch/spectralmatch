@@ -926,11 +926,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Folder and pattern or list of input image paths.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -942,11 +942,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Folder or list of output paths to write results.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Math.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1087,29 +1087,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span>
-<span class="normal">316</span>
-<span class="normal">317</span>
-<span class="normal">318</span>
-<span class="normal">319</span>
-<span class="normal">320</span>
-<span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span>
-<span class="normal">335</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">335</span>
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
@@ -1161,7 +1139,38 @@
 <span class="normal">384</span>
 <span class="normal">385</span>
 <span class="normal">386</span>
-<span class="normal">387</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">band_math</span><span class="p">(</span>
+<span class="normal">387</span>
+<span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span>
+<span class="normal">391</span>
+<span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">band_math</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">custom_math</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1178,8 +1187,8 @@
 <span class="sd">    Applies custom band math expression to a list of input images and writes the results.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (SearchFolderOrListFiles): Folder and pattern or list of input image paths.</span>
-<span class="sd">        output_images (CreateInFolderOrListFiles): Folder or list of output paths to write results.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Math.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        custom_math (str): Python-compatible math expression using bands (e.g., &quot;b1 + b2 / 2&quot;).</span>
 <span class="sd">        debug_logs (bool, optional): If True, prints debug messages.</span>
 <span class="sd">        custom_nodata_value (Any, optional): Override nodata value in source image.</span>
@@ -1190,8 +1199,17 @@
 <span class="sd">        calculation_dtype (str | None, optional): Computation data type (e.g., &quot;float32&quot;).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Math.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
     <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
@@ -1246,7 +1264,7 @@
 
 
 <h2 id="spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_parallel_workers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omnicloud_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1272,11 +1290,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Input folder and pattern or list of image paths.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1288,11 +1306,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Output folder and pattern or list of paths.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_CloudMask.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1397,10 +1415,10 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>**omnicloud_kwargs</code>
+                <code>omnicloud_kwargs</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="dict">dict</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1408,7 +1426,7 @@
               </div>
             </td>
             <td>
-                  <code>{}</code>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -1440,76 +1458,85 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">red_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1519,21 +1546,21 @@
     <span class="n">down_sample_m</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">image_parallel_workers</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">omnicloud_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">omnicloud_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (SearchFolderOrListFiles): Input folder and pattern or list of image paths.</span>
-<span class="sd">        output_images (CreateInFolderOrListFiles): Output folder and pattern or list of paths.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_CloudMask.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        red_band_index (int): Index of red band in the image.</span>
 <span class="sd">        green_band_index (int): Index of green band in the image.</span>
 <span class="sd">        nir_band_index (int): Index of NIR band in the image.</span>
 <span class="sd">        down_sample_m (float, optional): If set, resamples input to this resolution in meters.</span>
 <span class="sd">        debug_logs (bool, optional): If True, prints progress and debug info.</span>
 <span class="sd">        image_parallel_workers (ImageParallelWorkers, optional): Enables parallel execution. Note: &quot;process&quot; does not work on macOS due to PyTorch MPS limitations.</span>
-<span class="sd">        **omnicloud_kwargs: Additional arguments forwarded to predict_from_array.</span>
+<span class="sd">        omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        Exception: Propagates any error from processing individual images.</span>
@@ -1544,8 +1571,17 @@
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span>
     <span class="p">)</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_CloudClip.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
     <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
         <span class="n">image_parallel_workers</span>
     <span class="p">)</span>
@@ -1615,11 +1651,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Folder and pattern tuple or list of input image paths.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1631,11 +1667,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Output folder and template or list of output paths.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Vegetation.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1765,18 +1801,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">185</span>
 <span class="normal">186</span>
 <span class="normal">187</span>
 <span class="normal">188</span>
@@ -1837,7 +1862,29 @@
 <span class="normal">243</span>
 <span class="normal">244</span>
 <span class="normal">245</span>
-<span class="normal">246</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_raster</span><span class="p">(</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_ndvi_raster</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">nir_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1852,8 +1899,8 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes NDVI masks for one or more images and writes them to disk.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images: Folder and pattern tuple or list of input image paths.</span>
-<span class="sd">        output_images: Output folder and template or list of output paths.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Vegetation.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        nir_band_index: Band index for NIR (1-based).</span>
 <span class="sd">        red_band_index: Band index for Red (1-based).</span>
 <span class="sd">        custom_output_dtype: Optional output data type (e.g., &quot;float32&quot;).</span>
@@ -1877,9 +1924,18 @@
         <span class="n">window_parallel_workers</span><span class="o">=</span><span class="n">window_parallel_workers</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">input_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_paths</span><span class="p">,))</span>
-    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_paths</span><span class="p">)</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Vegetation.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 
     <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
         <span class="n">image_parallel_workers</span>
@@ -1897,7 +1953,9 @@
             <span class="n">debug_logs</span><span class="p">,</span>
             <span class="n">window_parallel_workers</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">image_name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_paths</span><span class="p">,</span> <span class="n">output_paths</span><span class="p">,</span> <span class="n">image_names</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">in_path</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">image_name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">input_image_paths</span><span class="p">,</span> <span class="n">output_image_paths</span><span class="p">,</span> <span class="n">image_names</span>
+        <span class="p">)</span>
     <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
@@ -1979,11 +2037,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Either a (folder, pattern) tuple to search for rasters or a list of raster file paths.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1995,11 +2053,11 @@
                 <code>output_vectors</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Output folder or list of file paths where the vector polygons will be saved.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.gpkg", "/input/folder" (assumes $_Vectorized.gpkg), ["/input/one.gpkg", "/input/two.gpkg"].</p>
               </div>
             </td>
             <td>
@@ -2172,22 +2230,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/utils_mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">316</span>
-<span class="normal">317</span>
-<span class="normal">318</span>
-<span class="normal">319</span>
-<span class="normal">320</span>
-<span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">331</span>
 <span class="normal">332</span>
 <span class="normal">333</span>
 <span class="normal">334</span>
@@ -2258,7 +2301,31 @@
 <span class="normal">399</span>
 <span class="normal">400</span>
 <span class="normal">401</span>
-<span class="normal">402</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -2277,8 +2344,8 @@
 <span class="sd">    Converts raster values into vector polygons based on an expression and optional filtering logic.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (Universal.SearchFolderOrListFiles): Either a (folder, pattern) tuple to search for rasters or a list of raster file paths.</span>
-<span class="sd">        output_vectors (Universal.CreateInFolderOrListFiles): Output folder or list of file paths where the vector polygons will be saved.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_vectors (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.gpkg&quot;, &quot;/input/folder&quot; (assumes $_Vectorized.gpkg), [&quot;/input/one.gpkg&quot;, &quot;/input/two.gpkg&quot;].</span>
 <span class="sd">        custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.</span>
 <span class="sd">        custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.</span>
 <span class="sd">        image_parallel_workers (Universal.ImageParallelWorkers, optional): Controls parallelism across input images. Can be an integer, executor string, or boolean.</span>
@@ -2305,8 +2372,17 @@
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_vectors</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_vectors</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Vectorized.gpkg&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
 
     <span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
         <span class="n">image_parallel_workers</span>
@@ -2381,11 +2457,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Input image paths or folder + pattern.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -2397,11 +2473,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Output image paths or folder + pattern.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Threshold.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -2417,11 +2493,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A logical expression string using bands (e.g., "b1 &gt; 5", "b1 &gt; 5 &amp; b2 &lt; 10").
-Supports:
-    - Band references: b1, b2, ...
-    - Operators: &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;, |, ~, and parentheses
-    - Percentile-based thresholds: use e.g. "5%b1" to use the 5th percentile of band 1</p>
+                <p>A logical expression string using bands (e.g., "b1 &gt; 5", "b1 &gt; 5 &amp; b2 &lt; 10"). Supports: Band references: b1, b2, ...; Operators: &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;, |, ~, and (); Percentile-based thresholds: use e.g. "5%b1" to use the 5th percentile of band 1.</p>
               </div>
             </td>
             <td>
@@ -2546,79 +2618,94 @@ Supports:
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/mask/utils_mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span>
-<span class="normal">93</span>
-<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">threshold_raster</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">threshold_raster</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">threshold_math</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -2635,13 +2722,9 @@ Supports:
 <span class="sd">    Applies a thresholding operation to input raster images using a mathematical expression string.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (SearchFolderOrListFiles): Input image paths or folder + pattern.</span>
-<span class="sd">        output_images (CreateInFolderOrListFiles): Output image paths or folder + pattern.</span>
-<span class="sd">        threshold_math (str): A logical expression string using bands (e.g., &quot;b1 &gt; 5&quot;, &quot;b1 &gt; 5 &amp; b2 &lt; 10&quot;).</span>
-<span class="sd">            Supports:</span>
-<span class="sd">                - Band references: b1, b2, ...</span>
-<span class="sd">                - Operators: &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;, |, ~, and parentheses</span>
-<span class="sd">                - Percentile-based thresholds: use e.g. &quot;5%b1&quot; to use the 5th percentile of band 1</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Threshold.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        threshold_math (str): A logical expression string using bands (e.g., &quot;b1 &gt; 5&quot;, &quot;b1 &gt; 5 &amp; b2 &lt; 10&quot;). Supports: Band references: b1, b2, ...; Operators: &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;, |, ~, and (); Percentile-based thresholds: use e.g. &quot;5%b1&quot; to use the 5th percentile of band 1.</span>
 <span class="sd">        debug_logs (bool, optional): If True, prints debug messages.</span>
 <span class="sd">        custom_nodata_value (float | int | None, optional): Override the dataset&#39;s nodata value.</span>
 <span class="sd">        image_parallel_workers (ImageParallelWorkers, optional): Parallelism config for image-level processing.</span>
@@ -2651,8 +2734,27 @@ Supports:
 <span class="sd">        calculation_dtype (CalculationDtype, optional): Internal computation dtype.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+        <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
+        <span class="n">image_parallel_workers</span><span class="o">=</span><span class="n">image_parallel_workers</span><span class="p">,</span>
+        <span class="n">window_parallel_workers</span><span class="o">=</span><span class="n">window_parallel_workers</span><span class="p">,</span>
+        <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+        <span class="n">custom_output_dtype</span><span class="o">=</span><span class="n">custom_output_dtype</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Threshold.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
     <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>

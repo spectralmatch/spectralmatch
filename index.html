@@ -305,9 +305,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-installation-other-methods" class="md-nav__link">
+  <a href="#installation-detailed-methods" class="md-nav__link">
     <span class="md-ellipsis">
-      Quick Installation (Other methods)
+      Installation (Detailed methods)
     </span>
   </a>
   
@@ -853,9 +853,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-installation-other-methods" class="md-nav__link">
+  <a href="#installation-detailed-methods" class="md-nav__link">
     <span class="md-ellipsis">
-      Quick Installation (Other methods)
+      Installation (Detailed methods)
     </span>
   </a>
   
@@ -912,11 +912,6 @@
 <a href="https://codecov.io/gh/spectralmatch/spectralmatch"><img alt="codecov" src="https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C" /></a>
 <a href="https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&amp;cloudshell_working_dir=."><img alt="Open in Cloud Shell" src="https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud" /></a>
 <a href="https://spectralmatch.github.io/spectralmatch/llm_prompt"><img alt="📋 Copy LLM Prompt" src="https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen" /></a></p>
-<blockquote>
-<p>[!IMPORTANT]
-This library is experimental and still under heavy development.</p>
-</blockquote>
-<hr />
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p><img alt="Global and Local Matching" src="images/spectralmatch.png" /></p>
 <p><em>spectralmatch</em> provides a Python library, command line interface, and QGIS plugin with multiple algorythms to perform Relative Radiometric Normalization (RRN). It also includes utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, statistics, preprocessing, and more.</p>
@@ -944,7 +939,7 @@ This library is experimental and still under heavy development.</p>
 <p><strong>Enhanced Imagery:</strong> Helpful when performing mosaics and time series analysis by blending large image collections and normalizing them over time, providing consistent, high-quality data for machine learning and other analytical tasks.</p>
 </li>
 <li>
-<p><strong>Open Source and Collaborative:</strong> Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows.</p>
+<p><strong>Open Source and Collaborative:</strong> Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows. Accessible through a python library, command line interface, and QGIS plugin.</p>
 </li>
 </ul>
 <hr />
@@ -980,13 +975,15 @@ However, global correction alone cannot capture intra-image variability so a sec
 </li>
 </ul>
 <hr />
-<h2 id="quick-installation-other-methods">Quick Installation (<a href="https://spectralmatch.github.io/spectralmatch/installation/">Other methods</a>)<a class="headerlink" href="#quick-installation-other-methods" title="Permanent link">&para;</a></h2>
+<h2 id="installation-detailed-methods">Installation <a href="https://spectralmatch.github.io/spectralmatch/installation/">(Detailed methods)</a><a class="headerlink" href="#installation-detailed-methods" title="Permanent link">&para;</a></h2>
 <h3 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h3>
 <p>Install the spectralmatch plugin in <a href="https://qgis.org/download/">QGIS</a> and use it in the Processing Toolbox.</p>
-<h3 id="installation-as-a-python-library">Installation as a Python Library<a class="headerlink" href="#installation-as-a-python-library" title="Permanent link">&para;</a></h3>
+<h3 id="installation-as-a-python-library-and-cli">Installation as a Python Library and CLI<a class="headerlink" href="#installation-as-a-python-library-and-cli" title="Permanent link">&para;</a></h3>
 <p>Before installing, ensure you have the following system-level prerequisites: <code>Python ≥ 3.10</code>, <code>pip</code>, <code>PROJ ≥ 9.3</code>, and <code>GDAL = 3.10.2</code>. Use this command to install the library:</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
+<hr />
+<h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h3>
 <hr />
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <p>Documentation is available at <a href="https://spectralmatch.github.io/spectralmatch/">spectralmatch.github.io/spectralmatch/</a>.</p>
@@ -1016,7 +1013,7 @@ However, global correction alone cannot capture intra-image variability so a sec
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 19, 2025 06:32:41 UTC">June 19, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 22, 2025 05:04:36 UTC">June 22, 2025</span>
   </span>
 
     

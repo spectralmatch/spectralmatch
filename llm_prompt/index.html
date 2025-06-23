@@ -899,45 +899,49 @@ Args:
 Returns:
     float | int | None: The resolved nodata value, or None if unavailable."""
 
-def _resolve_paths(mode, input, args):
+def _resolve_paths(mode, input):
     """Resolves a list of input based on the mode and input format.
 
 Args:
     mode (Literal["search", "create", "match", "name"]): Type of operation to perform.
-    input (Tuple[str, str] | List[str]): Either a list of file input or a tuple specifying folder/template info.
-    args (Tuple): Additional arguments passed to the called function.
+    input (str | List[str]): Either a list of file input or a folder/template string.
+    kwargs (dict, optional): Additional keyword arguments passed to the resolved function.
 
 Returns:
     List[str]: List of resolved input."""
 
-def search_paths(folder_path, pattern, recursive, match_to_paths, debug_logs):
-    """Search for files in a folder using a glob pattern.
+def search_paths(search_pattern):
+    """Search for files using a glob pattern, or a folder with a default file pattern.
 
 Args:
-    folder_path (str): The root folder to search in.
-    pattern (str): A glob pattern (e.g., "*.tif", "**/*.jpg").
-    recursive (bool, optional): Whether to search for files recursively.
-    match_to_paths (Tuple[List[str], str], optional): If provided, match `reference_paths` to `input_match_paths` using a regex applied to the basenames of `input_match_paths`. The extracted key must be a substring of the reference filename.
-        - reference_paths (List[str]): List of reference paths to align to.
-        - match_regex (str): Regex applied to basenames of input_match_paths to extract a key to match via *inclusion* in reference_paths (e.g. "(.*)_LocalMatch.gpkg$").
-    debug_logs (bool, optional): Whether to print the matched file paths.
+    search_pattern (str, required): Defines input files from a glob path or folder. Specify like: "/input/files/*.tif" or "/input/folder" (while passing default_file_pattern like: '*.tif')
+    default_file_pattern (str, optional): Used when `pattern` is a directory. If not set and `pattern` is a folder, raises an error.
+    recursive (bool, optional): Whether to search recursively.
+    match_to_paths (Tuple[List[str], str], optional): Matches input files to a reference list using a regex.
+    debug_logs (bool, optional): Whether to print matched paths.
 
 Returns:
-    List[str]: Sorted list of matched file paths."""
+    List[str]: Sorted list of matched file paths.
 
-def create_paths(output_folder, template, paths_or_bases, debug_logs, replace_symbol, create_folders):
-    """Create output paths using a filename template and a list of reference paths or names.
+Raises:
+    ValueError: If `search_pattern` is a directory and `default_file_pattern` is not provided."""
+
+def create_paths(template_pattern, paths_or_bases):
+    """Create output paths using a filename template_pattern and a list of reference paths or names.
 
 Args:
-    output_folder (str): Directory to store output files.
-    template (str): Filename template using replace_symbol as placeholder (e.g., "$_processed.tif").
-    paths_or_bases (List[str]): List of full paths or bare names to derive replace_symbol from. Inclusion of '/' or '' indicates a path.
+    template_pattern (str, required): Defines output files from a glob path or folder to match input paths or names. Specify like: "/input/files/$.tif" or "/input/folder" (while passing default_file_pattern like: '$.tif')
+    paths_or_bases (List[str]): List of full paths or base names to derive the replace_symbol from.
+    default_file_pattern (str, optional): Used if `template_pattern` is a directory.
     debug_logs (bool): Whether to print the created paths.
-    replace_symbol (str): Symbol to replace in the template.
-    create_folders (bool): Whether to create output folders if they don't exist.'
+    replace_symbol (str): Placeholder symbol in the template to replace with base names.
+    create_folders (bool): Whether to create output folders if they don't exist.
 
 Returns:
-    List[str]: List of constructed file paths."""
+    List[str]: List of constructed file paths.
+
+Raises:
+    ValueError: If `template_pattern` is a directory and `default_file_pattern` is not provided."""
 
 def match_paths(input_match_paths, reference_paths, match_regex, debug_logs):
     """Match `reference_paths` to `input_match_paths` using a regex applied to the basenames of `input_match_paths`. The extracted key must be a substring of the reference filename.
@@ -988,9 +992,9 @@ Warnings:
 
 ### File: cli.py
 
-def cli_version():
+def _cli_version():
 
-def build_cli():
+def _build_cli():
 
 def main():
 
@@ -1000,7 +1004,7 @@ def merge_vectors(input_vectors, merged_vector_path, method, debug_logs, create_
     """Merge multiple vector files using the specified geometric method.
 
 Args:
-    input_vectors (SearchFolderOrListFiles): Input vectors, either as a list of paths or a (folder, pattern) tuple.
+    input_vectors (str | List[str]): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.gpkg", "/input/folder" (assumes *.gpkg), ["/input/one.tif", "/input/two.tif"].
     merged_vector_path (str): Path to save merged output.
     method (Literal["intersection", "union", "keep"]): Merge strategy.
     debug_logs (bool): If True, print debug information.
@@ -1013,8 +1017,8 @@ def align_rasters(input_images, output_images):
     """Aligns multiple rasters to a common resolution and grid using specified resampling.
 
 Args:
-    input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of input raster paths.
-    output_images (Universal.CreateInFolderOrListFiles): Tuple (output_folder, template) or list of output paths.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Align.tif), ["/input/one.tif", "/input/two.tif"].
     resampling_method (Literal["nearest", "bilinear", "cubic"], optional): Resampling method to use; default is "bilinear".
     tap (bool, optional): If True, aligns outputs to target-aligned pixels (GDAL's -tap); default is False.
     resolution (Literal["highest", "average", "lowest"], optional): Strategy for choosing target resolution; default is "highest".
@@ -1063,7 +1067,7 @@ def merge_rasters(input_images, output_image_path):
     """Merges multiple rasters into a single mosaic aligned to the union extent and minimum resolution.
 
 Args:
-    input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of raster paths to merge.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_image_path (str): Path to save the merged output raster.
     image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level merging.
     window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for within-image window merging.
@@ -1095,8 +1099,8 @@ def mask_rasters(input_images, output_images, vector_mask, window_size, debug_lo
     """Applies a vector-based mask to one or more rasters, with support for image- and window-level parallelism.
 
 Args:
-    input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of input raster paths.
-    output_images (Universal.CreateInFolderOrListFiles): Tuple (output_folder, template) or list of output raster paths.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Clip.tif), ["/input/one.tif", "/input/two.tif"].
     vector_mask (Universal.VectorMask, optional): Tuple ("include"/"exclude", vector path, optional field name) or None.
     window_size (Universal.WindowSize, optional): Strategy for tiling rasters during processing.
     debug_logs (Universal.DebugLogs, optional): If True, prints debug information.
@@ -1142,23 +1146,6 @@ Returns:
 
 ### File: statistics.py
 
-def compare_image_spectral_profiles(input_image_dict, output_figure_path, title, xlabel, ylabel):
-    """Compares spectral profiles of multiple images by plotting median and interquartile ranges.
-
-Args:
-    input_image_dict (dict): Mapping of labels to image file paths:
-        {
-        'Image A': '/image/a.tif',
-        'Image B': '/image/b.tif'
-        }
-    output_figure_path (str): Path to save the output plot.
-    title (str): Title of the plot.
-    xlabel (str): Label for the x-axis.
-    ylabel (str): Label for the y-axis.
-
-Outputs:
-    Saves a spectral profile comparison figure to the specified path."""
-
 def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel):
     """Plots paired spectral profiles for before-and-after image comparisons.
 
@@ -1180,15 +1167,37 @@ Args:
 Outputs:
     Saves a spectral comparison plot showing pre- and post-processing profiles."""
 
-def compare_spatial_spectral_difference_band_average(input_images, output_image_path, title, diff_label, subtitle):
-    """Computes and visualizes the average per-band spectral difference between two coregistered, equal size images.
+def compare_spatial_spectral_difference_band_average(input_images, output_figure_path, title, diff_label, subtitle, scale):
+    """Computes and visualizes the mean per-pixel spectral difference between two coregistered, equal-size images.
 
 Args:
-    input_images (list): List of two image file paths to compare.
-    output_image_path (str): Path to save the resulting difference image (PNG).
+    input_images (list): List of two image file paths [before, after].
+    output_figure_path (str): Path to save the resulting difference image (PNG).
     title (str): Title for the plot.
-    diff_label (str): Label for the colorbar indicating the difference metric.
-    subtitle (str): Optional subtitle to display below the plot."""
+    diff_label (str): Label for the colorbar.
+    subtitle (str): Subtitle text shown below the image.
+    scale (tuple, optional): Tuple (vmin, vmax) to fix the color scale. Centered at 0.
+
+Raises:
+    ValueError: If the input list doesn't contain exactly two image paths, or shapes mismatch."""
+
+def compare_before_after_all_images(input_images_1, input_images_2, output_figure_path, title, ylabel_1, ylabel_2, image_names):
+    """Creates a 2-row grid comparing before and after images with per-band contrast stretch and nodata transparency.
+
+Args:
+    input_images_1 (list): Paths to "before" images (top row).
+    input_images_2 (list): Paths to "after" images (bottom row).
+    output_figure_path (str): File path to save the output figure.
+    image_names (list, optional): Column titles. Must match image count if provided.
+    title (str): Figure title.
+    ylabel_1 (str): Label for the top row.
+    ylabel_2 (str): Label for the bottom row.
+
+Raises:
+    AssertionError: If input lengths mismatch or if image_names is invalid.
+
+Saves:
+    A PNG figure with transparent nodata and matched image pairs."""
 
 ### File: seamline/voronoi_center_seamline.py
 
@@ -1196,10 +1205,7 @@ def voronoi_center_seamline(input_images, output_mask):
     """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
 
 Args:
-    input_images (Tuple[str, str] | List[str]):
-        Specifies the input images either as:
-        - A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
-        - A list of full file paths to individual input images.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_mask (str): Output path for the final seamline polygon vector file.
     min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.
     min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.
@@ -1316,14 +1322,8 @@ def local_block_adjustment(input_images, output_images):
     """Performs local radiometric adjustment on a set of raster images using block-based statistics.
 
 Args:
-    input_images (Tuple[str, str] | List[str]):
-        Specifies the input images either as:
-        - A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
-        - A list of full file paths to individual input images.
-    output_images (Tuple[str, str] | List[str]):
-        Specifies how output filenames are generated or provided:
-        - A tuple with an output folder and a filename template using "$" as a placeholder for each input image's basename (e.g., ("/output/folder", "$_LocalMatch.tif")).
-        - A list of full output paths, which must match the number of input images.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
     calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
     output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
     vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): A mask limiting pixels to include when calculating stats for each block in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. It is only applied when calculating local blocks, as the reference map is calculated as the mean of all local blocks. Loaded block maps won't have this applied unless it was used when calculating them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
@@ -1458,7 +1458,7 @@ Args:
 Returns:
     Tuple[float, float, float, float]: (min_x, min_y, max_x, max_y) of the combined extent."""
 
-def _compute_mosaic_coefficient_of_variation(image_paths, nodata_value, reference_std, reference_mean, base_block_size, band_index, calculation_dtype):
+def _compute_mosaic_coefficient_of_variation(image_paths, nodata_value, reference_std, reference_mean, base_block_size, band_index, calculation_dtype, debug_logs):
     """Estimates block size for local adjustment using the coefficient of variation across input images.
 
 Args:
@@ -1589,14 +1589,8 @@ def global_regression(input_images, output_images):
     """Performs global radiometric normalization across overlapping images using least squares regression.
 
 Args:
-    input_images (Tuple[str, str] | List[str]):
-        Specifies the input images either as:
-        - A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
-        - A list of full file paths to individual input images.
-    output_images (Tuple[str, str] | List[str]):
-        Specifies how output filenames are generated or provided:
-        - A tuple with an output folder and a filename template using "$" as a placeholder for each input image's basename (e.g., ("/output/folder", "$_GlobalMatch.tif")).
-        - A list of full output paths, which must match the number of input images.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
     calculation_dtype (str, optional): Data type used for internal calculations. Defaults to "float32".
     output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
     vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
@@ -1846,15 +1840,15 @@ def create_cloud_mask_with_omnicloudmask(input_images, output_images, red_band_i
     """Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
 
 Args:
-    input_images (SearchFolderOrListFiles): Input folder and pattern or list of image paths.
-    output_images (CreateInFolderOrListFiles): Output folder and pattern or list of paths.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_CloudMask.tif), ["/input/one.tif", "/input/two.tif"].
     red_band_index (int): Index of red band in the image.
     green_band_index (int): Index of green band in the image.
     nir_band_index (int): Index of NIR band in the image.
     down_sample_m (float, optional): If set, resamples input to this resolution in meters.
     debug_logs (bool, optional): If True, prints progress and debug info.
     image_parallel_workers (ImageParallelWorkers, optional): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
-    **omnicloud_kwargs: Additional arguments forwarded to predict_from_array.
+    omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.
 
 Raises:
     Exception: Propagates any error from processing individual images."""
@@ -1870,7 +1864,7 @@ Args:
     nir_band_index (int): Index of NIR band.
     down_sample_m (float): Target resolution (if resampling).
     debug_logs (bool): If True, print progress info.
-    omnicloud_kwargs (dict): Passed to predict_from_array.
+    omnicloud_kwargs (dict | None): Passed to predict_from_array.
 
 Raises:
     Exception: If any step in reading, prediction, or writing fails."""
@@ -1879,8 +1873,8 @@ def create_ndvi_raster(input_images, output_images, nir_band_index, red_band_ind
     """Computes NDVI masks for one or more images and writes them to disk.
 
 Args:
-    input_images: Folder and pattern tuple or list of input image paths.
-    output_images: Output folder and template or list of output paths.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Vegetation.tif), ["/input/one.tif", "/input/two.tif"].
     nir_band_index: Band index for NIR (1-based).
     red_band_index: Band index for Red (1-based).
     custom_output_dtype: Optional output data type (e.g., "float32").
@@ -1902,8 +1896,8 @@ def band_math(input_images, output_images, custom_math):
     """Applies custom band math expression to a list of input images and writes the results.
 
 Args:
-    input_images (SearchFolderOrListFiles): Folder and pattern or list of input image paths.
-    output_images (CreateInFolderOrListFiles): Folder or list of output paths to write results.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Math.tif), ["/input/one.tif", "/input/two.tif"].
     custom_math (str): Python-compatible math expression using bands (e.g., "b1 + b2 / 2").
     debug_logs (bool, optional): If True, prints debug messages.
     custom_nodata_value (Any, optional): Override nodata value in source image.
@@ -1950,13 +1944,9 @@ def threshold_raster(input_images, output_images, threshold_math):
     """Applies a thresholding operation to input raster images using a mathematical expression string.
 
 Args:
-    input_images (SearchFolderOrListFiles): Input image paths or folder + pattern.
-    output_images (CreateInFolderOrListFiles): Output image paths or folder + pattern.
-    threshold_math (str): A logical expression string using bands (e.g., "b1 > 5", "b1 > 5 & b2 < 10").
-        Supports:
-            - Band references: b1, b2, ...
-            - Operators: >, <, >=, <=, ==, !=, &, |, ~, and parentheses
-            - Percentile-based thresholds: use e.g. "5%b1" to use the 5th percentile of band 1
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Threshold.tif), ["/input/one.tif", "/input/two.tif"].
+    threshold_math (str): A logical expression string using bands (e.g., "b1 > 5", "b1 > 5 & b2 < 10"). Supports: Band references: b1, b2, ...; Operators: >, <, >=, <=, ==, !=, &, |, ~, and (); Percentile-based thresholds: use e.g. "5%b1" to use the 5th percentile of band 1.
     debug_logs (bool, optional): If True, prints debug messages.
     custom_nodata_value (float | int | None, optional): Override the dataset's nodata value.
     image_parallel_workers (ImageParallelWorkers, optional): Parallelism config for image-level processing.
@@ -2015,8 +2005,8 @@ def process_raster_values_to_vector_polygons(input_images, output_vectors):
     """Converts raster values into vector polygons based on an expression and optional filtering logic.
 
 Args:
-    input_images (Universal.SearchFolderOrListFiles): Either a (folder, pattern) tuple to search for rasters or a list of raster file paths.
-    output_vectors (Universal.CreateInFolderOrListFiles): Output folder or list of file paths where the vector polygons will be saved.
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_vectors (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.gpkg", "/input/folder" (assumes $_Vectorized.gpkg), ["/input/one.gpkg", "/input/two.gpkg"].
     custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.
     custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.
     image_parallel_workers (Universal.ImageParallelWorkers, optional): Controls parallelism across input images. Can be an integer, executor string, or boolean.
@@ -2235,10 +2225,6 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 [![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C)](https://codecov.io/gh/spectralmatch/spectralmatch)
 [![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
 [![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
-> [!IMPORTANT]
-> This library is experimental and still under heavy development.
-
- ---
 
 ## Overview
 
@@ -2262,7 +2248,7 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 
 - **Enhanced Imagery:** Helpful when performing mosaics and time series analysis by blending large image collections and normalizing them over time, providing consistent, high-quality data for machine learning and other analytical tasks.
 
-- **Open Source and Collaborative:** Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows.
+- **Open Source and Collaborative:** Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows. Accessible through a python library, command line interface, and QGIS plugin.
 
 ---
 
@@ -2294,18 +2280,22 @@ However, global correction alone cannot capture intra-image variability so a sec
 - **Local Adjustments:** Block-level color differences result from the global application of adjustments.
 
 ---
-## Quick Installation ([Other methods](https://spectralmatch.github.io/spectralmatch/installation/))
+## Installation [(Detailed methods)](https://spectralmatch.github.io/spectralmatch/installation/)
 
 ### Installation as a QGIS Plugin
 Install the spectralmatch plugin in [QGIS](https://qgis.org/download/) and use it in the Processing Toolbox.
 
-### Installation as a Python Library
+### Installation as a Python Library and CLI
 
 Before installing, ensure you have the following system-level prerequisites: `Python ≥ 3.10`, `pip`, `PROJ ≥ 9.3`, and `GDAL = 3.10.2`. Use this command to install the library:
 
 
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
+
+---
+
+### Usage
 
 ---
 
@@ -2386,7 +2376,19 @@ Used to determine optimal boundaries between overlapping image regions. These fu
 Reusable types are organized into the types and validation module. Use these types directly as the types of params inside functions where applicable. Use the appropriate _resolve... function to resolve these inputs into usable variables.
 
 ### Input/Output
-The input_images parameter accepts either a tuple or a list. If given as a tuple, it should contain a folder path and a glob pattern to search for files (e.g., ("/input/folder", "*.tif")). Alternatively, it can be a list of full file paths to individual input images. The output_images parameter defines how output filenames are determined. It can also be a tuple, consisting of an output folder and a filename template where "\$" is replaced with each input image’s basename (e.g., ("/output/folder", "$_GlobalMatch.tif")). Alternatively, it may be a list of full output paths, which must match the number of input images. The _resolve_paths function handles creating folders for output files.
+The input_name parameter defines how the input files are determined and accepts either a str or a list. If given as a str, it should contain either a folder glob pattern path and default_file_pattern must be set or a whole glob pattern file path. Functions should default to searching for all appropriately formated files in the input folder (for example "*.tif"). Alternatively, it can be a list of full file paths to individual input images. For example:
+
+- input_images="/input/files/*.tif" (does not require default_file_pattern)
+- input_images="/input/folder" (requires default_file_pattern to be set), 
+- input_images=["/input/one.tif", "/input/two.tif", ...] (does not require default_file_pattern)
+
+ The output_name parameter defines how output filenames are determined and accepts either a str or a list. If given as a str, it should contain either a folder template pattern path and default_file_pattern must be set or a whole template pattern file path. Functions should default to templating with basename, underscore, processing step (for example "$_Global"). Alternatively, it may be a list of full output paths, which must match the number of input images. For example:
+
+- output_images="/output/files/$.tif" (does not require default_file_pattern)
+- output_images="/output/folder" (requires default_file_pattern to be set), 
+- output_images=["/output/one.tif", "/output/two.tif", ...] (does not require default_file_pattern)
+
+The _resolve_paths function handles creating folders for output files. Folders and files are distinguished by the presence of a "." in the basename.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
 <span class="normal"> 2</span>
 <span class="normal"> 3</span>
@@ -2398,18 +2400,20 @@ The input_images parameter accepts either a tuple or a list. If given as a tuple
 <span class="normal"> 9</span>
 <span class="normal">10</span>
 <span class="normal">11</span>
-<span class="normal">12</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
-<span class="n">input_images</span>
-<span class="n">output_images</span>
+<span class="normal">12</span>
+<span class="normal">13</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="n">input_name</span> <span class="c1"># For example: input_images</span>
+<span class="n">input_name</span> <span class="c1"># For example: output_images</span>
 
 <span class="c1"># Types</span>
-<span class="n">SearchFolderOrListFiles</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
-<span class="n">CreateInFolderOrListFiles</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
+<span class="n">SearchFolderOrListFiles</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
+<span class="n">CreateInFolderOrListFiles</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
 
 <span class="c1"># Resolve</span>
-<span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-<span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+<span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span><span class="s2">&quot;*.tif&quot;</span><span class="p">})</span>
+<span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span><span class="s2">&quot;$_Global.tif&quot;</span><span class="p">})</span>
 <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+<span class="c1"># This pattern can also be used with other input types like vectors</span>
 </code></pre></div></td></tr></table></div>
 
 ### Output dtype

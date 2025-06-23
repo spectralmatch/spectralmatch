@@ -854,13 +854,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="str">str</span>] | <span title="typing.List">List</span>[<span title="str">str</span>]</code>
+                  <code>(<span title="str">str</span> | <span title="typing.List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Specifies the input images either as:
-- A tuple with a folder path and glob pattern to search for files (e.g., ("/input/folder", "*.tif")).
-- A list of full file paths to individual input images.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1081,7 +1079,9 @@
 <span class="normal">131</span>
 <span class="normal">132</span>
 <span class="normal">133</span>
-<span class="normal">134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">voronoi_center_seamline</span><span class="p">(</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">voronoi_center_seamline</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_mask</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1095,10 +1095,7 @@
 <span class="sd">    Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (Tuple[str, str] | List[str]):</span>
-<span class="sd">            Specifies the input images either as:</span>
-<span class="sd">            - A tuple with a folder path and glob pattern to search for files (e.g., (&quot;/input/folder&quot;, &quot;*.tif&quot;)).</span>
-<span class="sd">            - A list of full file paths to individual input images.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        output_mask (str): Output path for the final seamline polygon vector file.</span>
 <span class="sd">        min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.</span>
 <span class="sd">        min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.</span>
@@ -1111,12 +1108,17 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start voronoi center seamline&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-        <span class="n">input_images</span> <span class="o">=</span> <span class="n">search_paths</span><span class="p">(</span><span class="o">*</span><span class="n">input_images</span><span class="p">)</span>
+
+    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
 
     <span class="n">emps</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">crs</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">input_images</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
         <span class="n">mask</span><span class="p">,</span> <span class="n">transform</span> <span class="o">=</span> <span class="n">_read_mask</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
         <span class="n">emp</span> <span class="o">=</span> <span class="n">_seamline_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
         <span class="n">emps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
@@ -1180,7 +1182,7 @@
     <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
         <span class="n">output_mask</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;seamlines&quot;</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">img</span><span class="p">,</span> <span class="n">poly</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">segmented</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">img</span><span class="p">,</span> <span class="n">poly</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="n">segmented</span><span class="p">):</span>
             <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
                 <span class="p">{</span>
                     <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">poly</span><span class="p">),</span>

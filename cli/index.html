@@ -870,9 +870,9 @@
 <p>Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.</p>
 <h3 id="handlers">Handlers<a class="headerlink" href="#handlers" title="Permanent link">&para;</a></h3>
 <h4 id="search_paths"><code>search_paths</code><a class="headerlink" href="#search_paths" title="Permanent link">&para;</a></h4>
-<p>Search for files in a folder using a glob pattern.</p>
+<p>Search for files using a glob pattern, or a folder with a default file pattern.</p>
 <h4 id="create_paths"><code>create_paths</code><a class="headerlink" href="#create_paths" title="Permanent link">&para;</a></h4>
-<p>Create output paths using a filename template and a list of reference paths or names.</p>
+<p>Create output paths using a filename template_pattern and a list of reference paths or names.</p>
 <h4 id="match_paths"><code>match_paths</code><a class="headerlink" href="#match_paths" title="Permanent link">&para;</a></h4>
 <p>Match <code>reference_paths</code> to <code>input_match_paths</code> using a regex applied to the basenames of <code>input_match_paths</code>. The extracted key must be a substring of the reference filename.</p>
 <h3 id="utils">Utils<a class="headerlink" href="#utils" title="Permanent link">&para;</a></h3>
@@ -887,10 +887,10 @@
 <h3 id="statistics">Statistics<a class="headerlink" href="#statistics" title="Permanent link">&para;</a></h3>
 <h4 id="compare_image_spectral_profiles_pairs"><code>compare_image_spectral_profiles_pairs</code><a class="headerlink" href="#compare_image_spectral_profiles_pairs" title="Permanent link">&para;</a></h4>
 <p>Plots paired spectral profiles for before-and-after image comparisons.</p>
-<h4 id="compare_image_spectral_profiles"><code>compare_image_spectral_profiles</code><a class="headerlink" href="#compare_image_spectral_profiles" title="Permanent link">&para;</a></h4>
-<p>Compares spectral profiles of multiple images by plotting median and interquartile ranges.</p>
+<h4 id="compare_before_after_all_images"><code>compare_before_after_all_images</code><a class="headerlink" href="#compare_before_after_all_images" title="Permanent link">&para;</a></h4>
+<p>Creates a 2-row grid comparing before and after images with per-band contrast stretch and nodata transparency.</p>
 <h4 id="compare_spatial_spectral_difference_band_average"><code>compare_spatial_spectral_difference_band_average</code><a class="headerlink" href="#compare_spatial_spectral_difference_band_average" title="Permanent link">&para;</a></h4>
-<p>Computes and visualizes the average per-band spectral difference between two coregistered, equal size images.</p>
+<p>Computes and visualizes the mean per-pixel spectral difference between two coregistered, equal-size images.</p>
 
 
 
@@ -911,7 +911,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 19, 2025 06:43:26 UTC">June 19, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2025 02:26:01 UTC">June 23, 2025</span>
   </span>
 
     

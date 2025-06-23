@@ -908,11 +908,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tuple (folder, pattern) or list of input raster paths.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -924,11 +924,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tuple (output_folder, template) or list of output paths.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Align.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1076,9 +1076,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">102</span>
 <span class="normal">103</span>
 <span class="normal">104</span>
 <span class="normal">105</span>
@@ -1170,7 +1168,18 @@
 <span class="normal">191</span>
 <span class="normal">192</span>
 <span class="normal">193</span>
-<span class="normal">194</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">align_rasters</span><span class="p">(</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">align_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1186,8 +1195,8 @@
 <span class="sd">    Aligns multiple rasters to a common resolution and grid using specified resampling.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of input raster paths.</span>
-<span class="sd">        output_images (Universal.CreateInFolderOrListFiles): Tuple (output_folder, template) or list of output paths.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Align.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        resampling_method (Literal[&quot;nearest&quot;, &quot;bilinear&quot;, &quot;cubic&quot;], optional): Resampling method to use; default is &quot;bilinear&quot;.</span>
 <span class="sd">        tap (bool, optional): If True, aligns outputs to target-aligned pixels (GDAL&#39;s -tap); default is False.</span>
 <span class="sd">        resolution (Literal[&quot;highest&quot;, &quot;average&quot;, &quot;lowest&quot;], optional): Strategy for choosing target resolution; default is &quot;highest&quot;.</span>
@@ -1211,9 +1220,18 @@
         <span class="n">window_parallel_workers</span><span class="o">=</span><span class="n">window_parallel_workers</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
-    <span class="n">image_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">p</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">]</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Align.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> rasters to align&quot;</span><span class="p">)</span>
@@ -1301,11 +1319,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tuple (folder, pattern) or list of input raster paths.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1317,11 +1335,11 @@
                 <code>output_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.CreateInFolderOrListFiles">CreateInFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tuple (output_folder, template) or list of output raster paths.</p>
+                <p>Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Clip.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1453,20 +1471,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">576</span>
-<span class="normal">577</span>
-<span class="normal">578</span>
-<span class="normal">579</span>
-<span class="normal">580</span>
-<span class="normal">581</span>
-<span class="normal">582</span>
-<span class="normal">583</span>
-<span class="normal">584</span>
-<span class="normal">585</span>
-<span class="normal">586</span>
-<span class="normal">587</span>
-<span class="normal">588</span>
-<span class="normal">589</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">589</span>
 <span class="normal">590</span>
 <span class="normal">591</span>
 <span class="normal">592</span>
@@ -1540,7 +1545,29 @@
 <span class="normal">660</span>
 <span class="normal">661</span>
 <span class="normal">662</span>
-<span class="normal">663</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
+<span class="normal">663</span>
+<span class="normal">664</span>
+<span class="normal">665</span>
+<span class="normal">666</span>
+<span class="normal">667</span>
+<span class="normal">668</span>
+<span class="normal">669</span>
+<span class="normal">670</span>
+<span class="normal">671</span>
+<span class="normal">672</span>
+<span class="normal">673</span>
+<span class="normal">674</span>
+<span class="normal">675</span>
+<span class="normal">676</span>
+<span class="normal">677</span>
+<span class="normal">678</span>
+<span class="normal">679</span>
+<span class="normal">680</span>
+<span class="normal">681</span>
+<span class="normal">682</span>
+<span class="normal">683</span>
+<span class="normal">684</span>
+<span class="normal">685</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1555,8 +1582,8 @@
 <span class="sd">    Applies a vector-based mask to one or more rasters, with support for image- and window-level parallelism.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of input raster paths.</span>
-<span class="sd">        output_images (Universal.CreateInFolderOrListFiles): Tuple (output_folder, template) or list of output raster paths.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Clip.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        vector_mask (Universal.VectorMask, optional): Tuple (&quot;include&quot;/&quot;exclude&quot;, vector path, optional field name) or None.</span>
 <span class="sd">        window_size (Universal.WindowSize, optional): Strategy for tiling rasters during processing.</span>
 <span class="sd">        debug_logs (Universal.DebugLogs, optional): If True, prints debug information.</span>
@@ -1579,8 +1606,17 @@
         <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
-    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="p">(</span><span class="n">input_image_paths</span><span class="p">,))</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Clip.tif&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1664,11 +1700,11 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code><span title="spectralmatch.types_and_validation.Universal.SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tuple (folder, pattern) or list of raster paths to merge.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.tif", "/input/folder" (assumes </em>.tif), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -1816,18 +1852,7 @@
 
             <details class="quote">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">357</span>
-<span class="normal">358</span>
-<span class="normal">359</span>
-<span class="normal">360</span>
-<span class="normal">361</span>
-<span class="normal">362</span>
-<span class="normal">363</span>
-<span class="normal">364</span>
-<span class="normal">365</span>
-<span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">368</span>
 <span class="normal">369</span>
 <span class="normal">370</span>
 <span class="normal">371</span>
@@ -1978,7 +2003,20 @@
 <span class="normal">516</span>
 <span class="normal">517</span>
 <span class="normal">518</span>
-<span class="normal">519</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1993,7 +2031,7 @@
 <span class="sd">    Merges multiple rasters into a single mosaic aligned to the union extent and minimum resolution.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (Universal.SearchFolderOrListFiles): Tuple (folder, pattern) or list of raster paths to merge.</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        output_image_path (str): Path to save the merged output raster.</span>
 <span class="sd">        image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level merging.</span>
 <span class="sd">        window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for within-image window merging.</span>
@@ -2019,7 +2057,9 @@
         <span class="n">window_parallel_workers</span><span class="o">=</span><span class="n">window_parallel_workers</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">)</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
 
     <span class="n">_check_raster_requirements</span><span class="p">(</span>
         <span class="n">input_image_paths</span><span class="p">,</span>
@@ -2177,11 +2217,11 @@
                 <code>input_vectors</code>
             </td>
             <td>
-                  <code><span title="SearchFolderOrListFiles">SearchFolderOrListFiles</span></code>
+                  <code><span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Input vectors, either as a list of paths or a (folder, pattern) tuple.</p>
+                <p>Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/<em>.gpkg", "/input/folder" (assumes </em>.gpkg), ["/input/one.tif", "/input/two.tif"].</p>
               </div>
             </td>
             <td>
@@ -2351,7 +2391,9 @@
 <span class="normal">94</span>
 <span class="normal">95</span>
 <span class="normal">96</span>
-<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_vectors</span><span class="p">(</span>
+<span class="normal">97</span>
+<span class="normal">98</span>
+<span class="normal">99</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_vectors</span><span class="p">(</span>
     <span class="n">input_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">merged_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;intersection&quot;</span><span class="p">,</span> <span class="s2">&quot;union&quot;</span><span class="p">,</span> <span class="s2">&quot;keep&quot;</span><span class="p">],</span>
@@ -2362,7 +2404,7 @@
 <span class="sd">    Merge multiple vector files using the specified geometric method.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_vectors (SearchFolderOrListFiles): Input vectors, either as a list of paths or a (folder, pattern) tuple.</span>
+<span class="sd">        input_vectors (str | List[str]): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.gpkg&quot;, &quot;/input/folder&quot; (assumes *.gpkg), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
 <span class="sd">        merged_vector_path (str): Path to save merged output.</span>
 <span class="sd">        method (Literal[&quot;intersection&quot;, &quot;union&quot;, &quot;keep&quot;]): Merge strategy.</span>
 <span class="sd">        debug_logs (bool): If True, print debug information.</span>
@@ -2374,7 +2416,9 @@
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start vector merge&quot;</span><span class="p">)</span>
 
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">merged_vector_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">input_vector_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_vectors</span><span class="p">)</span>
+    <span class="n">input_vector_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_vectors</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.gpkg&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
 
     <span class="n">geoms</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">input_names</span> <span class="o">=</span> <span class="p">[]</span>

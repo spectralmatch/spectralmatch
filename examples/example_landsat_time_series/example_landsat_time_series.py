@@ -22,76 +22,84 @@ stats_folder = os.path.join(working_directory, "Stats")
 window_size = 128
 num_image_workers = 3
 num_window_workers = 5
+debug_mode = False
 
 # %% Create cloud masks
 
 create_cloud_mask_with_omnicloudmask(
-    input_images=(input_folder, "*.tif"),
-    output_images=(mask_cloud_folder, "$_CloudMask.tif"),
+    input_images=input_folder,
+    output_images=mask_cloud_folder,
     red_band_index=5,
     green_band_index=3,
     nir_band_index=8,
-    debug_logs=True,
+    debug_logs=debug_mode,
     image_parallel_workers=("thread", num_image_workers),
+    omnicloud_kwargs={"patch_size": 200, "patch_overlap": 100},
 )
 
 process_raster_values_to_vector_polygons(
-    input_images=(mask_cloud_folder, "*.tif"),
-    output_vectors=(mask_cloud_folder, "$.gpkg"),
+    input_images=mask_cloud_folder,
+    output_vectors=mask_cloud_folder,
     extraction_expression="b1==1",
     value_mapping={0: None, 1: 1, 2: 1, 3: 1},
     polygon_buffer=50,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
     window_size=window_size,
+    debug_logs=debug_mode,
 )
 
 merge_vectors(
-    input_vectors=(mask_cloud_folder, "*.gpkg"),
+    input_vectors=mask_cloud_folder,
     merged_vector_path=os.path.join(working_directory, "CloudMasks.gpkg"),
     method="keep",
     create_name_attribute=("image", ", "),
+    debug_logs=debug_mode,
 )
 
 # %% Use cloud masks
 
 mask_rasters(
-    input_images=(input_folder, "*.tif"),
-    output_images=(masked_folder, "$_CloudMasked.tif"),
+    input_images=input_folder,
+    output_images=os.path.join(masked_folder, "$_CloudMasked.tif"),
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "CloudMasks.gpkg"),
         "image",
     ),
+    debug_logs=debug_mode,
 )
 
 # %% Create vegetation mask for isolated analysis of vegetation. This will be used to mask statistics for adjustment model not to directly clip images. This is just a simple example of creating PIFs based on NDVI values, for a more robust methodology use other techniques to create a better mask vector file.
 
 create_ndvi_raster(
-    input_images=(input_folder, "*.tif"),
-    output_images=(mask_vegetation_folder, "$_Vegetation.tif"),
+    input_images=input_folder,
+    output_images=mask_vegetation_folder,
     nir_band_index=5,
     red_band_index=4,
+    debug_logs=debug_mode,
 )
 
 process_raster_values_to_vector_polygons(
-    input_images=(mask_vegetation_folder, "*.tif"),
-    output_vectors=(mask_vegetation_folder, "$.gpkg"),
+    input_images=mask_vegetation_folder,
+    output_vectors=mask_vegetation_folder,
     extraction_expression="b1>=0.1",
+    debug_logs=debug_mode,
 )
 
 merge_vectors(
-    input_vectors=(mask_vegetation_folder, "*.gpkg"),
+    input_vectors=mask_vegetation_folder,
     merged_vector_path=os.path.join(working_directory, "VegetationMasks.gpkg"),
     method="keep",
     create_name_attribute=("image", ", "),
+    debug_logs=debug_mode,
 )
 
 # %% Global matching
 
 global_regression(
-    input_images=(masked_folder, "*.tif"),
-    output_images=(global_folder, "$_GlobalMatch.tif"),
+    input_images=masked_folder,
+    output_images=global_folder,
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "VegetationMasks.gpkg"),
@@ -99,14 +107,14 @@ global_regression(
     ),  # Use unique mask per image
     window_size=window_size,
     save_as_cog=True,  # Save output as a Cloud Optimized GeoTIFF
-    debug_logs=True,
+    debug_logs=debug_mode,
 )
 
 # %% Local matching
 
 local_block_adjustment(
-    input_images=(global_folder, "*.tif"),
-    output_images=(local_folder, "$_LocalMatch.tif"),
+    input_images=global_folder,
+    output_images=local_folder,
     number_of_blocks=100,
     window_size=window_size,
     vector_mask=(
@@ -115,7 +123,7 @@ local_block_adjustment(
         "image",
     ),
     save_as_cog=True,
-    debug_logs=True,
+    debug_logs=debug_mode,
     save_block_maps=(
         os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"),
         os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif"),
@@ -124,48 +132,42 @@ local_block_adjustment(
 
 # %% Pre-coded quick Statistics
 
-# Compare image spectral profiles
-compare_image_spectral_profiles(
-    input_image_dict={
-        os.path.splitext(os.path.basename(p))[0]: p
-        for p in search_paths(local_folder, "*.tif")
-    },
-    output_figure_path=os.path.join(
-        stats_folder, "LocalMatch_CompareImageSpectralProfiles.png"
-    ),
-    title="Global to Local Match Comparison of Image Spectral Profiles",
-    xlabel="Band",
-    ylabel="Reflectance(0-10,000)",
-)
-
 # Compare image spectral profiles pairs
-before_paths = search_paths(input_folder, "*.tif")
-after_paths = search_paths(local_folder, "*.tif")
-
 image_pairs = {
     os.path.splitext(os.path.basename(b))[0]: [b, a]
-    for b, a in zip(sorted(before_paths), sorted(after_paths))
+    for b, a in zip(search_paths(os.path.join(input_folder, "*.tif")), search_paths(os.path.join(local_folder, "*.tif")))
 }
 
 compare_image_spectral_profiles_pairs(
     image_pairs,
-    os.path.join(stats_folder, "LocalMatch_CompareImageSpectralProfilesPairs.png"),
-    title="Global to Local Match Comparison of Image Spectral Profiles Pairs",
+    os.path.join(stats_folder, "ImageSpectralProfilesPairs.png"),
+    title="Comparison of Image Spectral Profile Pairs",
     xlabel="Band",
-    ylabel="Reflectance(0-10,000)",
+    ylabel="Reflectance",
 )
 
 # Compare spatial spectral difference band average
-input_paths = search_paths(input_folder, "*.tif")
-local_paths = search_paths(local_folder, "*.tif")
-before_path, after_path = next(zip(sorted(input_paths), sorted(local_paths)))
+before_paths, after_paths = zip(*zip(search_paths(os.path.join(input_folder, "*.tif")), search_paths(os.path.join(local_folder, "*.tif"))))
 
-compare_spatial_spectral_difference_band_average(
-    input_images=[before_path, after_path],
-    output_image_path=os.path.join(
-        stats_folder, "LocalMatch_CompareSpatialSpectralDifferenceBandAverage.png"
-    ),
-    title="Global to Local Match Comparison of Spatial Spectral Difference Band Average",
-    diff_label="Reflectance Difference (0–10,000)",
-    subtitle=f"Image: {os.path.splitext(os.path.basename(before_path))[0]}",
+for before_path, after_path in zip(before_paths, after_paths):
+    compare_spatial_spectral_difference_band_average(
+        input_images=[before_path, after_path],
+        output_figure_path=os.path.join(
+            stats_folder,
+            f"PixelChange_{os.path.splitext(os.path.basename(before_path))[0]}.png"
+        ),
+        title="Input to Output Comparison of Pixel Change",
+        diff_label="Pixel Difference",
+        subtitle=f"Image: {os.path.splitext(os.path.basename(before_path))[0]}",
+    )
+
+# Compare before after all images
+compare_before_after_all_images(
+    input_images_1=search_paths(os.path.join(masked_folder, "*.tif")),
+    input_images_2=search_paths(os.path.join(local_folder, "*.tif")),
+    output_figure_path=os.path.join(stats_folder, "CompareBeforeAfterAllImages.png"),
+    image_names=[os.path.splitext(os.path.basename(p))[0] for p in search_paths(os.path.join(input_folder, "*.tif"))],
+    title="Comparison of Before to After of all Images",
+    ylabel_1="Before",
+    ylabel_2="After",
 )
