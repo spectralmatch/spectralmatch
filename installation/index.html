@@ -302,27 +302,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation-as-qgis-plugin-for-easy-gui-interface" class="md-nav__link">
+  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as QGIS Plugin for Easy GUI Interface
+      Installation as a QGIS Plugin
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-python-library-for-use-in-code-recommended" class="md-nav__link">
+  <a href="#installation-as-a-python-library-and-cli" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a Python Library for use in Code (Recommended)
+      Installation as a Python Library and CLI
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-python-code-for-development-and-customization" class="md-nav__link">
+  <a href="#installation-from-source" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as Python Code for Development and Customization
+      Installation from Source
     </span>
   </a>
   
@@ -792,27 +792,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation-as-qgis-plugin-for-easy-gui-interface" class="md-nav__link">
+  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as QGIS Plugin for Easy GUI Interface
+      Installation as a QGIS Plugin
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-a-python-library-for-use-in-code-recommended" class="md-nav__link">
+  <a href="#installation-as-a-python-library-and-cli" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as a Python Library for use in Code (Recommended)
+      Installation as a Python Library and CLI
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-as-python-code-for-development-and-customization" class="md-nav__link">
+  <a href="#installation-from-source" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation as Python Code for Development and Customization
+      Installation from Source
     </span>
   </a>
   
@@ -839,14 +839,20 @@
 
 <h1 id="installation-methods">Installation Methods<a class="headerlink" href="#installation-methods" title="Permanent link">&para;</a></h1>
 <hr />
-<h2 id="installation-as-qgis-plugin-for-easy-gui-interface">Installation as QGIS Plugin for Easy GUI Interface<a class="headerlink" href="#installation-as-qgis-plugin-for-easy-gui-interface" title="Permanent link">&para;</a></h2>
-<h3 id="1-download-and-install-qgis">1. <a href="https://qgis.org/download/">Download</a> and install QGIS<a class="headerlink" href="#1-download-and-install-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="2-open-qgis">2.  Open QGIS<a class="headerlink" href="#2-open-qgis" title="Permanent link">&para;</a></h3>
-<h3 id="3-go-to-plugins-manage-and-install-plugins">3.  Go to Plugins → Manage and Install Plugins…<a class="headerlink" href="#3-go-to-plugins-manage-and-install-plugins" title="Permanent link">&para;</a></h3>
-<h3 id="4-find-spectralmatch-in-the-list-install-and-enable-it">4.  Find spectralmatch in the list, install, and enable it<a class="headerlink" href="#4-find-spectralmatch-in-the-list-install-and-enable-it" title="Permanent link">&para;</a></h3>
-<h3 id="5-find-the-plugin-in-the-processing-toolbox">5.  Find the plugin in the Processing Toolbox<a class="headerlink" href="#5-find-the-plugin-in-the-processing-toolbox" title="Permanent link">&para;</a></h3>
+<h2 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h2>
+<h3 id="1-get-qgis">1. Get QGIS<a class="headerlink" href="#1-get-qgis" title="Permanent link">&para;</a></h3>
+<p><a href="https://qgis.org/download/">Download</a> and install QGIS.</p>
+<blockquote>
+<p>This plugin requires python&gt;=3.10. QGIS ships with different versions of Python, to check, in the QGIS menu, go to QGIS&gt;About gis. If your version is out of date you can use <code>conda install qgis</code> to create a containerized version of QGIS and then <code>qgis</code> to start the program.</p>
+</blockquote>
+<h3 id="2-install-spactalmatch-plugin">2. Install spactalmatch plugin<a class="headerlink" href="#2-install-spactalmatch-plugin" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Go to Plugins → Manage and Install Plugins…</li>
+<li>Find spectralmatch in the list, install, and enable it</li>
+<li>Find the plugin in the Processing Toolbox</li>
+</ul>
 <hr />
-<h2 id="installation-as-a-python-library-for-use-in-code-recommended">Installation as a Python Library for use in Code (Recommended)<a class="headerlink" href="#installation-as-a-python-library-for-use-in-code-recommended" title="Permanent link">&para;</a></h2>
+<h2 id="installation-as-a-python-library-and-cli">Installation as a Python Library and CLI<a class="headerlink" href="#installation-as-a-python-library-and-cli" title="Permanent link">&para;</a></h2>
 <h3 id="1-system-requirements">1. System requirements<a class="headerlink" href="#1-system-requirements" title="Permanent link">&para;</a></h3>
 <p>Before installing, ensure you have the following system-level prerequisites:</p>
 <ul>
@@ -864,10 +870,8 @@ conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 <p>You can automatically install the library via <a href="https://pypi.org/">PyPI</a>. (this method installs only the core code as a library):</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
-<h3 id="3-run-an-example-and-modify-for-your-use-optional">3. Run an example and modify for your use (optional)<a class="headerlink" href="#3-run-an-example-and-modify-for-your-use-optional" title="Permanent link">&para;</a></h3>
-<p>Example scripts are provided to verify a successful installation and help you get started quickly in the repository at <a href="https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/"><code>/docs/examples</code></a> and downloadable via this <a href="https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&amp;filename=spectralmatch_examples"><code>link</code></a>.</p>
 <hr />
-<h2 id="installation-as-python-code-for-development-and-customization">Installation as Python Code for Development and Customization<a class="headerlink" href="#installation-as-python-code-for-development-and-customization" title="Permanent link">&para;</a></h2>
+<h2 id="installation-from-source">Installation from Source<a class="headerlink" href="#installation-from-source" title="Permanent link">&para;</a></h2>
 <h3 id="1-clone-the-repository">1. Clone the Repository<a class="headerlink" href="#1-clone-the-repository" title="Permanent link">&para;</a></h3>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
@@ -888,7 +892,7 @@ conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 <span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10<span class="w"> </span><span class="s2">&quot;gdal=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div></p>
-<h3 id="3-install-dependancies-optional-dev-and-docs-dependancies">3. Install Dependancies (Optional Dev and Docs Dependancies)<a class="headerlink" href="#3-install-dependancies-optional-dev-and-docs-dependancies" title="Permanent link">&para;</a></h3>
+<h3 id="3-install-dependancies">3. Install Dependancies<a class="headerlink" href="#3-install-dependancies" title="Permanent link">&para;</a></h3>
 <p>The <code>pyproject.toml</code> defines <strong>core</strong> dependancies to run the library and optional <strong>dev</strong>, and <strong>docs</strong> dependancies.</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
@@ -917,7 +921,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 30, 2025 20:28:47 UTC">May 30, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2025 02:59:10 UTC">June 23, 2025</span>
   </span>
 
     

@@ -2225,6 +2225,7 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 [![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C)](https://codecov.io/gh/spectralmatch/spectralmatch)
 [![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
 [![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
+[![PyPI version](https://img.shields.io/pypi/v/spectralmatch.svg)](https://pypi.org/project/spectralmatch/)
 
 ## Overview
 
@@ -2283,11 +2284,11 @@ However, global correction alone cannot capture intra-image variability so a sec
 ## Installation [(Detailed methods)](https://spectralmatch.github.io/spectralmatch/installation/)
 
 ### Installation as a QGIS Plugin
-Install the spectralmatch plugin in [QGIS](https://qgis.org/download/) and use it in the Processing Toolbox.
+Install the spectralmatch plugin in QGIS and use it in the Processing Toolbox.
 
 ### Installation as a Python Library and CLI
 
-Before installing, ensure you have the following system-level prerequisites: `Python ≥ 3.10`, `pip`, `PROJ ≥ 9.3`, and `GDAL = 3.10.2`. Use this command to install the library:
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10`, `pip`, `PROJ ≥ 9.3`, and `GDAL = 3.10.2`. Use this command to install the library:
 
 
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
@@ -2295,8 +2296,90 @@ Before installing, ensure you have the following system-level prerequisites: `Py
 
 ---
 
-### Usage
+## Usage
 
+Example scripts and sample data are provided to verify a successful installation and help you get started quickly in the repository at [`/docs/examples`](https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/) and downloadable [here](https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&filename=spectralmatch_examples).
+
+This is an example mosaic workflow using folders for each step:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;/path/to/working/directory&quot;</span>
+<span class="n">input_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Input&quot;</span><span class="p">)</span>
+<span class="n">global_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;GlobalMatch&quot;</span><span class="p">)</span>
+<span class="n">local_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;LocalMatch&quot;</span><span class="p">)</span>
+<span class="n">aligned_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Aligned&quot;</span><span class="p">)</span>
+<span class="n">clipped_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Clipped&quot;</span><span class="p">)</span>
+
+<span class="n">global_regression</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">input_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">local_block_adjustment</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">align_rasters</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
+    <span class="n">tap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">voronoi_center_seamline</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
+    <span class="n">output_mask</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span>
+    <span class="n">image_field_name</span><span class="o">=</span><span class="s2">&quot;image&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">mask_rasters</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">clipped_folder</span><span class="p">,</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;include&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span> <span class="s2">&quot;image&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">merge_rasters</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">clipped_folder</span><span class="p">,</span>
+    <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;MergedImage.tif&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
 ---
 
 ## Documentation
@@ -2736,17 +2819,18 @@ To test a individual folder or file:
 
 ---
 
-## Installation as QGIS Plugin for Easy GUI Interface
-
-### 1. [Download](https://qgis.org/download/) and install QGIS
-### 2.  Open QGIS
-### 3.  Go to Plugins → Manage and Install Plugins…
-### 4.  Find spectralmatch in the list, install, and enable it
-### 5.  Find the plugin in the Processing Toolbox
+## Installation as a QGIS Plugin
+### 1. Get QGIS
+[Download](https://qgis.org/download/) and install QGIS.
+> This plugin requires python>=3.10. QGIS ships with different versions of Python, to check, in the QGIS menu, go to QGIS>About gis. If your version is out of date you can use `conda install qgis` to create a containerized version of QGIS and then `qgis` to start the program.
+### 2. Install spactalmatch plugin
+- Go to Plugins → Manage and Install Plugins…
+- Find spectralmatch in the list, install, and enable it
+- Find the plugin in the Processing Toolbox
 
 ---
 
-## Installation as a Python Library for use in Code (Recommended)
+## Installation as a Python Library and CLI
 
 ### 1. System requirements
 Before installing, ensure you have the following system-level prerequisites:
@@ -2769,13 +2853,9 @@ You can automatically install the library via [PyPI](https://pypi.org/). (this m
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
 
-### 3. Run an example and modify for your use (optional)
-
-Example scripts are provided to verify a successful installation and help you get started quickly in the repository at [`/docs/examples`](https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/) and downloadable via this [`link`](https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&filename=spectralmatch_examples).
-
 ---
 
-## Installation as Python Code for Development and Customization
+## Installation from Source
 
 ### 1. Clone the Repository
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
@@ -2798,7 +2878,7 @@ An easy way to install these dependancies is to use [Miniconda](https://www.anac
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
 
-### 3. Install Dependancies (Optional Dev and Docs Dependancies)
+### 3. Install Dependancies
 The `pyproject.toml` defines **core** dependancies to run the library and optional **dev**, and **docs** dependancies.
 
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
