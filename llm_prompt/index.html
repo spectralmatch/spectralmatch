@@ -2284,7 +2284,7 @@ However, global correction alone cannot capture intra-image variability so a sec
 ## Installation [(Detailed methods)](https://spectralmatch.github.io/spectralmatch/installation/)
 
 ### Installation as a QGIS Plugin
-Install the spectralmatch plugin in QGIS and use it in the Processing Toolbox.
+Install the spectralmatch plugin in QGIS and find the tools in the Processing Toolbox. Install the spectralmatch Python library with the tools in the `setup` toolbox or manually.
 
 ### Installation as a Python Library and CLI
 
@@ -2823,10 +2823,13 @@ To test a individual folder or file:
 ### 1. Get QGIS
 [Download](https://qgis.org/download/) and install QGIS.
 > This plugin requires python>=3.10. QGIS ships with different versions of Python, to check, in the QGIS menu, go to QGIS>About gis. If your version is out of date you can use `conda install qgis` to create a containerized version of QGIS and then `qgis` to start the program.
-### 2. Install spactalmatch plugin
+### 2. Install spactalmatch QGIS plugin
 - Go to Plugins → Manage and Install Plugins…
 - Find spectralmatch in the list, install, and enable it
 - Find the plugin in the Processing Toolbox
+
+### 3. Install spectralmatch Python library
+Use the tools in the `setup` toolbox to install the spectralmatch Python library or manually do it. You must install the Python library into the QGIS Python interpreter for the tool to work.
 
 ---
 
@@ -2887,8 +2890,6 @@ The `pyproject.toml` defines **core** dependancies to run the library and option
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span><span class="w">   </span><span class="c1"># developer dependencies</span>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span><span class="w">  </span><span class="c1"># documentation dependencies</span>
 </code></pre></div></td></tr></table></div>
-
-### 4. Read the [Contributing Guide](https://spectralmatch.github.io/spectralmatch/contributing/) if you aim to contribute
 
 
 ### File: api/seamline.md
