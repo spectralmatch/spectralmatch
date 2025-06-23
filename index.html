@@ -323,15 +323,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-33-34-35-36-37-38-39working_directory-pathtoworkingdirectory-input_folder-ospathjoinworking_directory-input-global_folder-ospathjoinworking_directory-globalmatch-local_folder-ospathjoinworking_directory-localmatch-aligned_folder-ospathjoinworking_directory-aligned-clipped_folder-ospathjoinworking_directory-clipped-global_regression-input_imagesinput_folder-output_imagesglobal_folder-local_block_adjustment-input_imagesglobal_folder-output_imageslocal_folder-align_rasters-input_imageslocal_folder-output_imagesaligned_folder-taptrue-voronoi_center_seamline-input_imagesaligned_folder-output_maskospathjoinworking_directory-imagemasksgpkg-image_field_nameimage-mask_rasters-input_imagesaligned_folder-output_imagesclipped_folder-vector_maskinclude-ospathjoinworking_directory-imagemasksgpkg-image-merge_rasters-input_imagesclipped_folder-output_image_pathospathjoinworking_directory-mergedimagetif" class="md-nav__link">
-    <span class="md-ellipsis">
-      1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39working_directory = &quot;/path/to/working/directory&quot; input_folder = os.path.join(working_directory, &quot;Input&quot;) global_folder = os.path.join(working_directory, &quot;GlobalMatch&quot;) local_folder = os.path.join(working_directory, &quot;LocalMatch&quot;) aligned_folder = os.path.join(working_directory, &quot;Aligned&quot;) clipped_folder = os.path.join(working_directory, &quot;Clipped&quot;) global_regression( input_images=input_folder, output_images=global_folder, ) local_block_adjustment( input_images=global_folder, output_images=local_folder, ) align_rasters( input_images=local_folder, output_images=aligned_folder, tap=True, ) voronoi_center_seamline( input_images=aligned_folder, output_mask=os.path.join(working_directory, &quot;ImageMasks.gpkg&quot;), image_field_name=&quot;image&quot;, ) mask_rasters( input_images=aligned_folder, output_images=clipped_folder, vector_mask=(&quot;include&quot;, os.path.join(working_directory, &quot;ImageMasks.gpkg&quot;), &quot;image&quot;), ) merge_rasters( input_images=clipped_folder, output_image_path=os.path.join(working_directory, &quot;MergedImage.tif&quot;), )
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#documentation" class="md-nav__link">
     <span class="md-ellipsis">
       Documentation
@@ -889,15 +880,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-33-34-35-36-37-38-39working_directory-pathtoworkingdirectory-input_folder-ospathjoinworking_directory-input-global_folder-ospathjoinworking_directory-globalmatch-local_folder-ospathjoinworking_directory-localmatch-aligned_folder-ospathjoinworking_directory-aligned-clipped_folder-ospathjoinworking_directory-clipped-global_regression-input_imagesinput_folder-output_imagesglobal_folder-local_block_adjustment-input_imagesglobal_folder-output_imageslocal_folder-align_rasters-input_imageslocal_folder-output_imagesaligned_folder-taptrue-voronoi_center_seamline-input_imagesaligned_folder-output_maskospathjoinworking_directory-imagemasksgpkg-image_field_nameimage-mask_rasters-input_imagesaligned_folder-output_imagesclipped_folder-vector_maskinclude-ospathjoinworking_directory-imagemasksgpkg-image-merge_rasters-input_imagesclipped_folder-output_image_pathospathjoinworking_directory-mergedimagetif" class="md-nav__link">
-    <span class="md-ellipsis">
-      1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39working_directory = &quot;/path/to/working/directory&quot; input_folder = os.path.join(working_directory, &quot;Input&quot;) global_folder = os.path.join(working_directory, &quot;GlobalMatch&quot;) local_folder = os.path.join(working_directory, &quot;LocalMatch&quot;) aligned_folder = os.path.join(working_directory, &quot;Aligned&quot;) clipped_folder = os.path.join(working_directory, &quot;Clipped&quot;) global_regression( input_images=input_folder, output_images=global_folder, ) local_block_adjustment( input_images=global_folder, output_images=local_folder, ) align_rasters( input_images=local_folder, output_images=aligned_folder, tap=True, ) voronoi_center_seamline( input_images=aligned_folder, output_mask=os.path.join(working_directory, &quot;ImageMasks.gpkg&quot;), image_field_name=&quot;image&quot;, ) mask_rasters( input_images=aligned_folder, output_images=clipped_folder, vector_mask=(&quot;include&quot;, os.path.join(working_directory, &quot;ImageMasks.gpkg&quot;), &quot;image&quot;), ) merge_rasters( input_images=clipped_folder, output_image_path=os.path.join(working_directory, &quot;MergedImage.tif&quot;), )
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#documentation" class="md-nav__link">
     <span class="md-ellipsis">
       Documentation
@@ -951,7 +933,7 @@
 <a href="https://pypi.org/project/spectralmatch/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/spectralmatch.svg" /></a></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p><img alt="Global and Local Matching" src="images/spectralmatch.png" /></p>
-<p><em>spectralmatch</em> provides a Python library, command line interface, and QGIS plugin with multiple algorythms to perform Relative Radiometric Normalization (RRN). It also includes utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, statistics, preprocessing, and more.</p>
+<p><em>spectralmatch</em> provides a Python library, command line interface, and QGIS plugin with multiple algorithms to perform Relative Radiometric Normalization (RRN). It also includes utilities for generating seamlines, cloud masks, Pseudo-Invariant Features, statistics, preprocessing, and more.</p>
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <ul>
 <li>
@@ -1023,7 +1005,7 @@ However, global correction alone cannot capture intra-image variability so a sec
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <p>Example scripts and sample data are provided to verify a successful installation and help you get started quickly in the repository at <a href="https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/"><code>/docs/examples</code></a> and downloadable <a href="https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&amp;filename=spectralmatch_examples">here</a>.</p>
 <p>This is an example mosaic workflow using folders for each step:</p>
-<h2 id="1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-33-34-35-36-37-38-39working_directory-pathtoworkingdirectory-input_folder-ospathjoinworking_directory-input-global_folder-ospathjoinworking_directory-globalmatch-local_folder-ospathjoinworking_directory-localmatch-aligned_folder-ospathjoinworking_directory-aligned-clipped_folder-ospathjoinworking_directory-clipped-global_regression-input_imagesinput_folder-output_imagesglobal_folder-local_block_adjustment-input_imagesglobal_folder-output_imageslocal_folder-align_rasters-input_imageslocal_folder-output_imagesaligned_folder-taptrue-voronoi_center_seamline-input_imagesaligned_folder-output_maskospathjoinworking_directory-imagemasksgpkg-image_field_nameimage-mask_rasters-input_imagesaligned_folder-output_imagesclipped_folder-vector_maskinclude-ospathjoinworking_directory-imagemasksgpkg-image-merge_rasters-input_imagesclipped_folder-output_image_pathospathjoinworking_directory-mergedimagetif"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
 <span class="normal"> 2</span>
 <span class="normal"> 3</span>
 <span class="normal"> 4</span>
@@ -1100,7 +1082,8 @@ However, global correction alone cannot capture intra-image variability so a sec
     <span class="n">input_images</span><span class="o">=</span><span class="n">clipped_folder</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;MergedImage.tif&quot;</span><span class="p">),</span>
 <span class="p">)</span>
-</code></pre></div></td></tr></table></div><a class="headerlink" href="#1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-33-34-35-36-37-38-39working_directory-pathtoworkingdirectory-input_folder-ospathjoinworking_directory-input-global_folder-ospathjoinworking_directory-globalmatch-local_folder-ospathjoinworking_directory-localmatch-aligned_folder-ospathjoinworking_directory-aligned-clipped_folder-ospathjoinworking_directory-clipped-global_regression-input_imagesinput_folder-output_imagesglobal_folder-local_block_adjustment-input_imagesglobal_folder-output_imageslocal_folder-align_rasters-input_imageslocal_folder-output_imagesaligned_folder-taptrue-voronoi_center_seamline-input_imagesaligned_folder-output_maskospathjoinworking_directory-imagemasksgpkg-image_field_nameimage-mask_rasters-input_imagesaligned_folder-output_imagesclipped_folder-vector_maskinclude-ospathjoinworking_directory-imagemasksgpkg-image-merge_rasters-input_imagesclipped_folder-output_image_pathospathjoinworking_directory-mergedimagetif" title="Permanent link">&para;</a></h2>
+</code></pre></div></td></tr></table></div>
+<hr />
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <p>Documentation is available at <a href="https://spectralmatch.github.io/spectralmatch/">spectralmatch.github.io/spectralmatch/</a>.</p>
 <hr />
@@ -1129,7 +1112,7 @@ However, global correction alone cannot capture intra-image variability so a sec
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2025 11:09:56 UTC">June 23, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2025 11:28:43 UTC">June 23, 2025</span>
   </span>
 
     
