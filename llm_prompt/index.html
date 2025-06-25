@@ -2248,8 +2248,8 @@ First, this method applies least squares regression to estimate scale and offset
 However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion.
 
 
-![Histogram matching graph](../images/matching_histogram.png)
-*Shows the average spectral profile of two WorldView 3 images before and after global to local matching.*
+![Histogram matching graph](./images/matching_histogram.png)
+*Mean spectral profiles of five cloud masked Landsat images before and after applying Normalized Difference Vegetation Index masking, global regression, and local block adjustment with spectralmatch.*
 
 #### Assumptions
 
