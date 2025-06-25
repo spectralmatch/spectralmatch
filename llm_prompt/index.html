@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
     
     
       
@@ -22,7 +22,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -1146,7 +1146,7 @@ Returns:
 
 ### File: statistics.py
 
-def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel):
+def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel, line_width):
     """Plots paired spectral profiles for before-and-after image comparisons.
 
 Args:
@@ -1163,6 +1163,7 @@ Args:
     title (str): Title of the plot.
     xlabel (str): X-axis label.
     ylabel (str): Y-axis label.
+    line_width (float, optional): Width of the spectral profiles lines. Default is 1.
 
 Outputs:
     Saves a spectral comparison plot showing pre- and post-processing profiles."""
@@ -1182,22 +1183,8 @@ Raises:
     ValueError: If the input list doesn't contain exactly two image paths, or shapes mismatch."""
 
 def compare_before_after_all_images(input_images_1, input_images_2, output_figure_path, title, ylabel_1, ylabel_2, image_names):
-    """Creates a 2-row grid comparing before and after images with per-band contrast stretch and nodata transparency.
 
-Args:
-    input_images_1 (list): Paths to "before" images (top row).
-    input_images_2 (list): Paths to "after" images (bottom row).
-    output_figure_path (str): File path to save the output figure.
-    image_names (list, optional): Column titles. Must match image count if provided.
-    title (str): Figure title.
-    ylabel_1 (str): Label for the top row.
-    ylabel_2 (str): Label for the bottom row.
-
-Raises:
-    AssertionError: If input lengths mismatch or if image_names is invalid.
-
-Saves:
-    A PNG figure with transparent nodata and matched image pairs."""
+def compute_row_stretch(paths):
 
 ### File: seamline/voronoi_center_seamline.py
 
@@ -2261,7 +2248,7 @@ First, this method applies least squares regression to estimate scale and offset
 However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion.
 
 
-![Histogram matching graph](./images/matching_histogram.png)
+![Histogram matching graph](../images/matching_histogram.png)
 *Shows the average spectral profile of two WorldView 3 images before and after global to local matching.*
 
 #### Assumptions
@@ -2985,10 +2972,10 @@ function copyToClipboard() {
     
     
       
-      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "search.highlight"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "search.highlight"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       
