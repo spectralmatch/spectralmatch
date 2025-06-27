@@ -2391,6 +2391,7 @@ Temporary generated files can be deleted once they are no longer needed via this
 ---
 
 ## Docs
+Docs are deployed on push or merge at the main branch, or use the following commands:
 
 ### Serve docs locally
 Runs a local dev server at http://localhost:8000.
@@ -2410,8 +2411,8 @@ Deploys built site using mkdocs gh-deploy.
 ---
 
 ## Versioning
-Uses git tag to create annotated version tags and push them. This also syncs to Pypi. New versions will be released when the maintainer determines sufficient new functionality has been added.
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>tag<span class="w"> </span><span class="nv">version</span><span class="o">=</span><span class="m">1</span>.2.3
+Automatically create a GitHub release, Pypi library, and QGIS plugin with each version. All three distributions are on the same versioning and deployed with GitHub actions. New versions will be released when sufficient new functionality and bug fixes have been added. 
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>version<span class="w"> </span><span class="nv">version</span><span class="o">=</span><span class="m">1</span>.2.3
 </code></pre></div></td></tr></table></div>
 
 ---
@@ -2451,6 +2452,13 @@ pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 
 To test a individual folder or file:
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>test-file<span class="w"> </span><span class="nv">path</span><span class="o">=</span>path/to/folder_or_file
+</code></pre></div></td></tr></table></div>
+
+## Building Python Library and QGIS Plugin Locally
+Use these commands to build packages locally:
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>make<span class="w"> </span>qgis-build<span class="w"> </span><span class="c1"># Build QGIS plugin</span>
+make<span class="w"> </span>python-build<span class="w"> </span><span class="c1"># Build python library</span>
 </code></pre></div></td></tr></table></div>
 
 
