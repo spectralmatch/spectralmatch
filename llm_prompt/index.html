@@ -2470,7 +2470,8 @@ make<span class="w"> </span>python-build<span class="w"> </span><span class="c1"
 ## Installation as a QGIS Plugin
 ### 1. Get QGIS
 [Download](https://qgis.org/download/) and install QGIS.
-> This plugin requires python>=3.10. QGIS ships with different versions of Python, to check, in the QGIS menu, go to QGIS>About gis. If your version is out of date you can use `conda install qgis` to create a containerized version of QGIS and then `qgis` to start the program.
+> This plugin requires python>=3.10. QGIS ships with different versions of Python, to check, in the QGIS menu, go to QGIS>About gis. If your version is out of date you can use a containerized version with conda: `conda create --name qgis_env python=3.12`, `conda activate qgis_env`, `conda install qgis`, then `qgis` to start the program.
+
 ### 2. Install spactalmatch QGIS plugin
 - Go to Plugins → Manage and Install Plugins…
 - Find spectralmatch in the list, install, and enable it
