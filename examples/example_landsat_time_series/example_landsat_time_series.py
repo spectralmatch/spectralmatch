@@ -31,7 +31,7 @@ create_cloud_mask_with_omnicloudmask(
     output_images=mask_cloud_folder,
     red_band_index=5,
     green_band_index=3,
-    nir_band_index=8,
+    nir_band_index=7,
     debug_logs=debug_mode,
     image_parallel_workers=("thread", num_image_workers),
     omnicloud_kwargs={"patch_size": 200, "patch_overlap": 100},
