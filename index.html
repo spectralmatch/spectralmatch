@@ -931,10 +931,14 @@
 <a href="#"><img alt="Your-License-Badge" src="https://img.shields.io/badge/License-MIT-green" /></a>
 <a href="https://codecov.io/gh/spectralmatch/spectralmatch"><img alt="codecov" src="https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C" /></a>
 <a href="https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&amp;cloudshell_working_dir=."><img alt="Open in Cloud Shell" src="https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud" /></a>
-<a href="https://spectralmatch.github.io/spectralmatch/llm_prompt"><img alt="📋 Copy LLM Prompt" src="https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen" /></a></p>
+<a href="https://spectralmatch.github.io/spectralmatch/llm_prompt"><img alt="📋 Copy LLM Prompt" src="https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen" /></a>
+<a href="https://doi.org/10.5281/zenodo.15312878"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.15312878.svg" /></a></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p><img alt="Global and Local Matching" src="images/spectralmatch.png" /></p>
 <p>Spectralmatch provides algorithms to perform relative radiometric normalization (RRN) to enhance spectral consistency across raster mosaics and time series. It is built for geoscientific use, with a sensor- and unit-agnostic design, optimized for automation and efficiency on arbitrarily many images and bands, and works well with Very High Resolution Imagery (VHRI) as it does not require pixel co-registration. In addition to matching algorithms, the software supports cloud and vegetation masking, pseudo invariant feature (PIF) based exclusion, seamline network generation, raster merging, and plotting statistics. The toolkit is available as an open-source Python library, command line interface, and QGIS plugin.</p>
+<blockquote>
+<p>Please cite as: Lindiwe, K., Percival, J. E. H., &amp; Perroy, R. (2025). spectralmatch. Zenodo. https://doi.org/10.5281/zenodo.15312878</p>
+</blockquote>
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <ul>
 <li>
@@ -969,7 +973,7 @@
 First, this method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
 However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion.</p>
 <p><img alt="Histogram matching graph" src="images/matching_histogram.png" />
-<em>Mean spectral profiles of five cloud masked Landsat 8 OLI L2 images located in Kohala, Hawaii before and after applying Normalized Difference Vegetation Index masking, global regression, and local block adjustment with spectralmatch.</em></p>
+<em>Comparison of three WorldView-3 images from Puʻu Waʻawaʻa, Hawaiʻi before and after processing with global regression and local block adjustment using spectralmatch. The top left shows images before processing, the middle left shows images after process, the bottom left shows images mosaiced before and after processing, and lastly, the right shows the spectral profile of all images.</em></p>
 <h4 id="assumptions">Assumptions<a class="headerlink" href="#assumptions" title="Permanent link">&para;</a></h4>
 <ul>
 <li>
@@ -1113,7 +1117,7 @@ However, global correction alone cannot capture intra-image variability so a sec
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 29, 2025 05:09:14 UTC">June 29, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 10, 2025 09:26:19 UTC">July 10, 2025</span>
   </span>
 
     
