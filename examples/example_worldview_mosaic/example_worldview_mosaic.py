@@ -54,7 +54,7 @@ local_block_adjustment(
     window_size=window_size,
     image_parallel_workers=("process", num_image_workers),
     window_parallel_workers=("process", num_window_workers),
-    number_of_blocks="coefficient_of_variation",  # Target number of blocks
+    number_of_blocks=50,  # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
     save_block_maps=(reference_map_path, local_maps_path),
     # load_block_maps=(reference_map_path, searched_paths), # Local match from saved block maps (this code just passes in local maps, but if a reference map is passed in, it will match images to the reference map without recomputing it)
