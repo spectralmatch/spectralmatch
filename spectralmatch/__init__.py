@@ -1,3 +1,5 @@
+from importlib.metadata import version, PackageNotFoundError
+
 from .match.global_regression import global_regression
 from .match.local_block_adjustment import local_block_adjustment
 from .handlers import search_paths, create_paths, match_paths
@@ -41,3 +43,9 @@ __all__ = [
     "compare_before_after_all_images",
     "compare_spatial_spectral_difference_band_average",
 ]
+
+# Import version from pyproject.toml
+try:
+    __version__ = version("spectralmatch")
+except PackageNotFoundError:
+    __version__ = "0.0.0"

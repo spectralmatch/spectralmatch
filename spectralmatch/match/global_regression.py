@@ -44,6 +44,7 @@ def global_regression(
     custom_std_factor: float = 1.0,
     save_adjustments: str | None = None,
     load_adjustments: str | None = None,
+    min_overlap_size: int | None = None,
 ) -> list:
     """
     Performs global radiometric normalization across overlapping images using least squares regression.
@@ -65,6 +66,7 @@ def global_regression(
         custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
         save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
         load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
+        min_overlap_size: Minimum overlap size for each overlap. Defaults to None for no minimum overlap size.
 
     Returns:
         List[str]: Paths to the globally adjusted output raster images.
@@ -344,6 +346,7 @@ def global_regression(
         custom_mean_factor,
         custom_std_factor,
         overlapping_pairs,
+        min_overlap_size,
         debug_logs,
     )
 
@@ -409,6 +412,7 @@ def _solve_global_model(
     custom_mean_factor: float,
     custom_std_factor: float,
     overlapping_pairs: tuple[tuple[str, str], ...],
+    min_overlap_size: int | None = None,
     debug_logs: bool = False,
 ) -> np.ndarray:
     """
@@ -425,6 +429,7 @@ def _solve_global_model(
         custom_mean_factor: Weight for mean constraints.
         custom_std_factor: Weight for std constraints.
         overlapping_pairs: Pairs of overlapping images.
+        min_overlap_size: Minimum overlap size for each overlap. Defaults to None for no minimum overlap size.
         debug_logs: If True, prints debug information.
 
     Returns:
@@ -448,6 +453,11 @@ def _solve_global_model(
                     continue
 
                 s = stat[b]["size"]
+
+                # Skip min overlaps
+                if min_overlap_size is not None and s < min_overlap_size:
+                    continue
+
                 m1, v1 = stat[b]["mean"], stat[b]["std"]
                 m2, v2 = (
                     all_overlap_stats[name_j][name_i][b]["mean"],
