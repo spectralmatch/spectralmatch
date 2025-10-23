@@ -414,6 +414,7 @@ def _solve_global_model(
     overlapping_pairs: tuple[tuple[str, str], ...],
     min_overlap_size: int | None = None,
     debug_logs: bool = False,
+    weight_by_size: bool = True,
 ) -> np.ndarray:
     """
     Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.
@@ -438,82 +439,59 @@ def _solve_global_model(
     all_params = np.zeros((num_bands, 2 * num_total, 1), dtype=float)
     image_names_with_id = [(i, name) for i, name in enumerate(all_image_names)]
     for b in range(num_bands):
-        if debug_logs:
-            print(f"\nProcessing band {b}:")
+        if debug_logs: print(f"\nProcessing band {b}:")
+        A, y = [], []
+        tot_overlap, overlap_count = 0, 0  # track both
 
-        A, y, tot_overlap = [], [], 0
         for i, name_i in image_names_with_id:
-            for j, name_j in image_names_with_id[i + 1 :]:
+            for j, name_j in image_names_with_id[i + 1:]:
                 stat = all_overlap_stats.get(name_i, {}).get(name_j)
-                if stat is None:
-                    continue
-
-                # This condition ensures that only overlaps involving at least one included image contribute constraints, allowing external images to be calibrated against the model without influencing it.
-                if name_i not in included_names and name_j not in included_names:
-                    continue
+                if stat is None: continue
+                if name_i not in included_names and name_j not in included_names: continue
 
                 s = stat[b]["size"]
-
-                # Skip min overlaps
-                if min_overlap_size is not None and s < min_overlap_size:
-                    continue
+                if min_overlap_size is not None and s < min_overlap_size: continue
 
                 m1, v1 = stat[b]["mean"], stat[b]["std"]
-                m2, v2 = (
-                    all_overlap_stats[name_j][name_i][b]["mean"],
-                    all_overlap_stats[name_j][name_i][b]["std"],
-                )
+                m2, v2 = all_overlap_stats[name_j][name_i][b]["mean"], all_overlap_stats[name_j][name_i][b]["std"]
 
-                row_m = [0] * (2 * num_total)
-                row_s = [0] * (2 * num_total)
-                row_m[2 * i : 2 * i + 2] = [m1, 1]
-                row_m[2 * j : 2 * j + 2] = [-m2, -1]
-                row_s[2 * i], row_s[2 * j] = v1, -v2
+                row_m = [0]*(2*num_total); row_s = [0]*(2*num_total)
+                row_m[2*i:2*i+2] = [m1, 1]; row_m[2*j:2*j+2] = [-m2, -1]
+                row_s[2*i], row_s[2*j] = v1, -v2
 
-                A.extend(
-                    [
-                        [v * s * custom_mean_factor for v in row_m],
-                        [v * s * custom_std_factor for v in row_s],
-                    ]
-                )
+                w = (s if weight_by_size else 1.0)  # <- no size weighting when False
+                A.extend([[v*w*custom_mean_factor for v in row_m],
+                          [v*w*custom_std_factor for v in row_s]])
                 y.extend([0, 0])
-                tot_overlap += s
 
-        pjj = 1.0 if tot_overlap == 0 else tot_overlap / (2.0 * num_total)
+                tot_overlap += s
+                overlap_count += 1
+
+        # Whole-image constraint balancing:
+        # original used tot_overlap/(2*num_total); unweighted uses overlap_count instead
+        if weight_by_size:
+            pjj = 1.0 if tot_overlap == 0 else tot_overlap/(2.0*num_total)
+        else:
+            pjj = 1.0 if overlap_count == 0 else overlap_count/(2.0*num_total)
 
         for name in included_names:
-            mj = all_whole_stats[name][b]["mean"]
-            vj = all_whole_stats[name][b]["std"]
+            mj = all_whole_stats[name][b]["mean"]; vj = all_whole_stats[name][b]["std"]
             j_idx = all_image_names.index(name)
-            row_m = [0] * (2 * num_total)
-            row_s = [0] * (2 * num_total)
-            row_m[2 * j_idx : 2 * j_idx + 2] = [mj * pjj, 1 * pjj]
-            row_s[2 * j_idx] = vj * pjj
-            A.extend([row_m, row_s])
-            y.extend([mj * pjj, vj * pjj])
+            row_m = [0]*(2*num_total); row_s = [0]*(2*num_total)
+            row_m[2*j_idx:2*j_idx+2] = [mj*pjj, 1*pjj]; row_s[2*j_idx] = vj*pjj
+            A.extend([row_m, row_s]); y.extend([mj*pjj, vj*pjj])
 
         for name in input_image_names:
-            if name in included_names:
-                continue
-            row = [0] * (2 * num_total)
-            A.append(row.copy())
-            y.append(0)
-            A.append(row.copy())
-            y.append(0)
+            if name in included_names: continue
+            row = [0]*(2*num_total); A.append(row.copy()); y.append(0); A.append(row.copy()); y.append(0)
 
-        A_arr = np.asarray(A)
-        y_arr = np.asarray(y)
-        res = least_squares(lambda p: A_arr @ p - y_arr, [1, 0] * num_total)
+        A_arr = np.asarray(A); y_arr = np.asarray(y)
+        res = least_squares(lambda p: A_arr @ p - y_arr, [1, 0]*num_total)
         all_params[b, :, 0] = res.x
 
         if debug_logs:
-            _print_constraint_system(
-                constraint_matrix=A_arr,
-                adjustment_params=res.x,
-                observed_values_vector=y_arr,
-                overlap_pairs=overlapping_pairs,
-                image_names_with_id=image_names_with_id,
-            )
+            _print_constraint_system(A_arr, res.x, y_arr, overlapping_pairs, image_names_with_id)
+
     return all_params
 
 
