@@ -72,7 +72,7 @@ Install the spectralmatch plugin in QGIS and find the tools in the Processing To
 
 ### Installation as a Python Library and CLI
 
-Ensure you have the following system-level prerequisites: `Python ≥ 3.10`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`. Use this command to install the library:
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`. Use this command to install the library:
 
 
 ```bash
