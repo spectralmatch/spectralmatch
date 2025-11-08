@@ -65,17 +65,21 @@ However, global correction alone cannot capture intra-image variability so a sec
 - **Local Adjustments:** Block-level color differences result from the global application of adjustments.
 
 ---
-## Installation [(Detailed methods)](https://spectralmatch.github.io/spectralmatch/installation/)
+## Installation
+
+> For additional installation instructions see the [Installation Methods](https://spectralmatch.github.io/spectralmatch/installation/) in the docs.
 
 ### Installation as a QGIS Plugin
-Install the spectralmatch plugin in QGIS and find the tools in the Processing Toolbox under 'spectralmatch'.
+In the [QGIS](https://qgis.org/download/) plugin manager, install 'spectralmatch' and find it in the Processing Toolbox.
 
 ### Installation as a Python Library and CLI
 
-Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`. Use this command to install the library:
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`; then use pip to install the library:
 
 
 ```bash
+conda create -n spectralmatch python=3.12 "gdal>=3.10.2" "proj>=9.3" -c conda-forge
+conda activate spectralmatch
 pip install spectralmatch
 ```
 
