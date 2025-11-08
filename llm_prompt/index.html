@@ -2145,7 +2145,7 @@ The plugin will attempt to automatically install all Python dependencies that it
 
 ---
 
-## Installation as a Python Library and CLI
+## Installation via pip as a Python Library and CLI
 
 ### 1. System requirements
 Before installing, ensure you have the following system-level prerequisites:
@@ -2169,6 +2169,13 @@ You can automatically install the library via [PyPI](https://pypi.org/). (this m
 </code></pre></div></td></tr></table></div>
 
 ---
+
+## Installation via pixi as a Python Library and CLI
+
+Installing via pixi can be easier as it handles the system level dependencies:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pixi<span class="w"> </span>init<span class="w"> </span>myproject<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>myproject<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pixi<span class="w"> </span>add<span class="w"> </span><span class="s2">&quot;python&gt;=3.9,&lt;3.13&quot;</span><span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10.2&quot;</span><span class="w"> </span>spectralmatch<span class="w"> </span>--pypi
+</code></pre></div></td></tr></table></div>
 
 ## Installation from Source
 
@@ -2779,17 +2786,23 @@ However, global correction alone cannot capture intra-image variability so a sec
 - **Local Adjustments:** Block-level color differences result from the global application of adjustments.
 
 ---
-## Installation [(Detailed methods)](https://spectralmatch.github.io/spectralmatch/installation/)
+## Installation
+
+> For additional installation instructions see the [Installation Methods](https://spectralmatch.github.io/spectralmatch/installation/) in the docs.
 
 ### Installation as a QGIS Plugin
-Install the spectralmatch plugin in QGIS and find the tools in the Processing Toolbox under 'spectralmatch'.
+In the [QGIS](https://qgis.org/download/) plugin manager, install 'spectralmatch' and find it in the Processing Toolbox.
 
 ### Installation as a Python Library and CLI
 
-Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`. Use this command to install the library:
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`; then use pip to install the library:
 
 
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
+pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
 
 ---
