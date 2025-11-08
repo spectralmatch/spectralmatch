@@ -17,7 +17,7 @@ The plugin will attempt to automatically install all Python dependencies that it
 
 ---
 
-## Installation as a Python Library and CLI
+## Installation via pip as a Python Library and CLI
 
 ### 1. System requirements
 Before installing, ensure you have the following system-level prerequisites:
@@ -42,6 +42,14 @@ pip install spectralmatch
 ```
 
 ---
+
+## Installation via pixi as a Python Library and CLI
+
+Installing via pixi can be easier as it handles the system level dependencies:
+
+```bash
+pixi init myproject && cd myproject && pixi add "python>=3.9,<3.13" "gdal>=3.10.2" spectralmatch --pypi
+```
 
 ## Installation from Source
 
