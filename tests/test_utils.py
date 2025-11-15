@@ -110,72 +110,68 @@ def misaligned_raster_set(tmp_path):
 
 # merge_rasters
 def test_merge_rasters_minimal(basic_raster_set):
-    input_rasters, output_dir = basic_raster_set
-    output_path = os.path.join(output_dir, "merged_minimal.tif")
-
-    merge_rasters(input_images=input_rasters, output_image_path=output_path)
-
-    assert os.path.exists(output_path)
-
-
-def test_merge_rasters_all_params(basic_raster_set):
-    input_rasters, output_dir = basic_raster_set
-    output_path = os.path.join(output_dir, "merged_all.tif")
-
-    merge_rasters(
-        input_images=input_rasters,
-        output_image_path=output_path,
-        image_parallel_workers=("thread", 2),
-        window_parallel_workers=("process", 2),
-        window_size=(16, 16),
-        debug_logs=True,
-        output_dtype="uint16",
-        custom_nodata_value=9999,
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {},
+            {
+                "io_threads": 2,
+                "tile_threads": 2,
+                "debug_logs": True,
+                "output_dtype": "uint16",
+                "custom_nodata_value": 9999,
+            },
+        ],
     )
+    def test_merge_rasters_parametrized(basic_raster_set, kwargs):
+        input_rasters, output_dir = basic_raster_set
+        name = "minimal" if not kwargs else "all"
+        output_path = os.path.join(output_dir, f"merged_{name}.tif")
 
-    assert os.path.exists(output_path)
+        merge_rasters(
+            input_images=input_rasters,
+            output_image_path=output_path,
+            **kwargs,
+        )
+
+        assert os.path.exists(output_path)
 
 
 # mask_rasters
-def test_mask_rasters_minimal(raster_and_vector_mask):
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {
+            "debug_logs": True,
+            "window_size": 16,
+            "io_threads": 2,
+            "tile_threads": 2,
+            "include_touched_pixels": True,
+            "custom_nodata_value": 99,
+        },
+    ],
+)
+def test_mask_rasters_parametrized(raster_and_vector_mask, kwargs):
     input_rasters, output_rasters, vector_mask = raster_and_vector_mask
 
-    # Manually update input raster to have a nodata value
-    with rasterio.open(input_rasters[0], "r+") as src:
-        src.nodata = 255
+    # Ensure initial nodata for minimal test
+    if not kwargs:
+        with rasterio.open(input_rasters[0], "r+") as src:
+            src.nodata = 255
 
     mask_rasters(
         input_images=input_rasters,
         output_images=output_rasters,
         vector_mask=vector_mask,
+        **kwargs,
     )
 
     assert os.path.exists(output_rasters[0])
+
     with rasterio.open(output_rasters[0]) as src:
-        assert src.nodata == 255
-        data = src.read(1)
-        assert data.shape == (32, 32)
-
-
-def test_mask_rasters_all_options(raster_and_vector_mask):
-    input_rasters, output_rasters, vector_mask = raster_and_vector_mask
-    custom_nodata = 99
-
-    mask_rasters(
-        input_images=input_rasters,
-        output_images=output_rasters,
-        vector_mask=vector_mask,
-        debug_logs=True,
-        window_size=(16, 16),
-        image_parallel_workers=("thread", 2),
-        window_parallel_workers=("process", 2),
-        include_touched_pixels=True,
-        custom_nodata_value=custom_nodata,
-    )
-
-    assert os.path.exists(output_rasters[0])
-    with rasterio.open(output_rasters[0]) as src:
-        assert src.nodata == custom_nodata
+        expected_nodata = kwargs.get("custom_nodata_value", 255)
+        assert src.nodata == expected_nodata
         data = src.read(1)
         assert data.shape == (32, 32)
 
@@ -234,10 +230,10 @@ def test_align_rasters_all_options(misaligned_raster_set):
         tap=True,
         resolution="average",
         debug_logs=True,
-        window_size=(8, 8),
-        image_parallel_workers=("thread", 2),
-        window_parallel_workers=("process", 2),
-    )
+        window_size=16,
+        io_threads=2,
+        image_threads=2,
+        )
 
     for out_path in output_paths:
         assert os.path.exists(out_path)

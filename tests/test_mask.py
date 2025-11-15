@@ -10,8 +10,6 @@ from spectralmatch import (
     band_math,
     create_cloud_mask_with_omnicloudmask,
     process_raster_values_to_vector_polygons,
-    threshold_raster,
-    create_ndvi_raster,
 )
 from .utils_test import create_dummy_raster
 
@@ -103,7 +101,7 @@ def test_band_math_basic(dummy_multiband_raster, tmp_path):
     input_path = str(dummy_multiband_raster)
     output_path = str(tmp_path / "output.tif")
     band_math(
-        input_images=[input_path], output_images=[output_path], custom_math="b1 + b2"
+        input_images=[input_path], output_images=[output_path], threshold_math="B1 + B2"
     )
 
     with rasterio.open(output_path) as out:
@@ -118,7 +116,7 @@ def test_band_math_dtype(dummy_multiband_raster, tmp_path):
     band_math(
         input_images=[input_path],
         output_images=[output_path],
-        custom_math="b1 * 2",
+        threshold_math="B1 * 2",
         custom_output_dtype="uint16",
     )
 
@@ -132,7 +130,7 @@ def test_band_math_nodata(dummy_multiband_raster, tmp_path):
     band_math(
         input_images=[input_path],
         output_images=[output_path],
-        custom_math="b1 + b2",
+        threshold_math="B1 + B2",
         custom_nodata_value=99,
     )
 
@@ -160,25 +158,6 @@ def test_create_cloud_mask(dummy_rgbn_raster, tmp_path):
         assert out.read(1).shape == (128, 128)
 
 
-# create_ndvi_raster
-def test_create_ndvi_raster_basic(dummy_red_nir_raster, tmp_path):
-    input_path = str(dummy_red_nir_raster)
-    output_path = str(tmp_path / "ndvi.tif")
-
-    create_ndvi_raster(
-        input_images=[input_path],
-        output_images=[output_path],
-        nir_band_index=1,
-        red_band_index=2,
-    )
-
-    assert tmp_path.joinpath("ndvi.tif").exists()
-    with rasterio.open(output_path) as ds:
-        ndvi_data = ds.read(1)
-        assert ndvi_data.shape == (32, 32)
-        assert np.allclose(ndvi_data, (1000 - 500) / (1000 + 500), atol=1e-3)
-
-
 # process_raster_values_to_vector_polygons
 def test_process_raster_values_to_polygons_basic(dummy_raster_for_vector, tmp_path):
     input_path = str(dummy_raster_for_vector)
@@ -187,7 +166,7 @@ def test_process_raster_values_to_polygons_basic(dummy_raster_for_vector, tmp_pa
     process_raster_values_to_vector_polygons(
         input_images=[input_path],
         output_vectors=[output_path],
-        extraction_expression="b1 > 0",
+        extraction_expression="B1 > 0",
     )
 
     assert tmp_path.joinpath("out.gpkg").exists()
@@ -205,7 +184,7 @@ def test_process_polygons_with_value_mapping_and_filter(
     process_raster_values_to_vector_polygons(
         input_images=[input_path],
         output_vectors=[output_path],
-        extraction_expression="b1 >= 2",
+        extraction_expression="B1 >= 2",
         filter_by_polygon_size="<50%",
         value_mapping={2: 5},
     )
@@ -221,7 +200,7 @@ def test_process_polygons_with_buffer(dummy_raster_for_vector, tmp_path):
     process_raster_values_to_vector_polygons(
         input_images=[input_path],
         output_vectors=[output_path],
-        extraction_expression="b1 == 1",
+        extraction_expression="B1 == 1",
         polygon_buffer=0.5,
     )
 
@@ -237,56 +216,6 @@ def test_invalid_filter_by_polygon_size_raises(dummy_raster_for_vector, tmp_path
         process_raster_values_to_vector_polygons(
             input_images=[input_path],
             output_vectors=[output_path],
-            extraction_expression="b1 > 0",
+            extraction_expression="B1 > 0",
             filter_by_polygon_size="50%",  # Invalid
         )
-
-
-# threshold_raster
-def test_threshold_raster_basic(dummy_gradient_raster, tmp_path):
-    input_path = str(dummy_gradient_raster)
-    output_path = str(tmp_path / "out.tif")
-
-    threshold_raster(
-        input_images=[input_path],
-        output_images=[output_path],
-        threshold_math="b1 > 5",
-    )
-
-    with rasterio.open(output_path) as out:
-        result = out.read(1)
-        assert result.dtype == np.uint8
-        assert np.all((result == 0) | (result == 1))
-        assert np.sum(result) > 0
-
-
-def test_threshold_raster_compound(dummy_gradient_raster, tmp_path):
-    input_path = str(dummy_gradient_raster)
-    output_path = str(tmp_path / "out_compound.tif")
-
-    threshold_raster(
-        input_images=[input_path],
-        output_images=[output_path],
-        threshold_math="(b1 > 5) & (b1 < 10)",
-    )
-
-    with rasterio.open(output_path) as out:
-        result = out.read(1)
-        assert np.all((result == 0) | (result == 1))
-        assert np.any(result == 1)
-
-
-def test_threshold_raster_percentile(dummy_gradient_raster, tmp_path):
-    input_path = str(dummy_gradient_raster)
-    output_path = str(tmp_path / "out_percentile.tif")
-
-    threshold_raster(
-        input_images=[input_path],
-        output_images=[output_path],
-        threshold_math="b1 > 95%b1",
-    )
-
-    with rasterio.open(output_path) as out:
-        result = out.read(1)
-        assert np.any(result == 1)
-        assert np.all((result == 0) | (result == 1))
