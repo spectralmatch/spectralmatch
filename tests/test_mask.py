@@ -17,7 +17,7 @@ from .utils_test import create_dummy_raster
 @pytest.fixture
 def dummy_multiband_raster(tmp_path):
     path = tmp_path / "input.tif"
-    create_dummy_raster(path, width=5, height=5, count=2, fill_value=10)
+    create_dummy_raster(path, width=64, height=64, count=2, fill_value=10)
     return path
 
 
@@ -106,7 +106,7 @@ def test_band_math_basic(dummy_multiband_raster, tmp_path):
 
     with rasterio.open(output_path) as out:
         result = out.read(1)
-        assert result.shape == (5, 5)
+        assert result.shape == (64, 64)
         assert np.all(result == 20)
 
 

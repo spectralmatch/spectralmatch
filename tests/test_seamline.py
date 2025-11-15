@@ -34,8 +34,6 @@ def test_voronoi_center_seamline_all_params(tmp_path, image_prefix, fill_value):
         input_images=input_paths,
         output_mask=output_mask,
         image_field_name="source",
-        min_point_spacing=1,
-        min_cut_length=0.5,
         debug_logs=True,
         debug_vectors_path=debug_vectors,
     )
