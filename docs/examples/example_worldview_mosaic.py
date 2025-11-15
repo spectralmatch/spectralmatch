@@ -20,9 +20,10 @@ stats_folder = os.path.join(working_directory, "Stats")
 
 
 window_size = 128
-num_image_workers = 3
-num_window_workers = 5
-debug_mode = False
+image_threads = "cpu"
+io_threads = "cpu"
+tile_threads = "cpu"
+debug_mode = True
 
 # %% Global matching
 
@@ -30,9 +31,13 @@ global_regression(
     input_images=input_folder, # Automatically searches for all *.tif files if passed this way
     output_images=global_folder,
     debug_logs=debug_mode,
+    custom_nodata_value=-9999,
     window_size=window_size,
-    image_parallel_workers=("process", num_image_workers),
-    window_parallel_workers=("process", num_window_workers),
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads = tile_threads,
+    save_as_cog=True,  # Save output as a Cloud Optimized GeoTIFF
+    estimate_stats=True,
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
     # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)
     custom_std_factor=3,
@@ -51,9 +56,11 @@ local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
     debug_logs=debug_mode,
+    # custom_nodata_value=-9999,
     window_size=window_size,
-    image_parallel_workers=("process", num_image_workers),
-    window_parallel_workers=("process", num_window_workers),
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
     number_of_blocks=50,  # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
     save_block_maps=(reference_map_path, local_maps_path),
@@ -69,8 +76,9 @@ align_rasters(
     resolution="lowest",
     debug_logs=debug_mode,
     window_size=window_size,
-    image_parallel_workers=("process", num_image_workers),
-    window_parallel_workers=("process", num_window_workers),
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
 )
 
 # %% Generate voronoi center seamlines
@@ -91,8 +99,9 @@ mask_rasters(
     vector_mask=("include", os.path.join(working_directory, "ImageMasks.gpkg"), "image"),
     debug_logs=debug_mode,
     window_size=window_size,
-    image_parallel_workers=("process", num_image_workers),
-    window_parallel_workers=("process", num_window_workers),
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
 )
 
 # %% Merge rasters
@@ -101,13 +110,11 @@ merge_rasters(
     input_images=clipped_folder,
     output_image_path=os.path.join(working_directory, "MergedImage.tif"),
     debug_logs=debug_mode,
-    window_size=window_size,
-    image_parallel_workers=("process", num_image_workers),
-    window_parallel_workers=("process", num_window_workers),
+    io_threads=io_threads,
+    tile_threads=tile_threads,
 )
 
 # %% Pre-coded quick Statistics
-
 
 # Compare image spectral profiles pairs
 image_pairs = {
