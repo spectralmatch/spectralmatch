@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     "numpy>=2.2.3",
     "rasterio>=1.4.3",
-    "gdal>=3.10.2",
+    "gdal>=3.11",
     "scipy>=1.15.2",
     "fiona>=1.10.1",
     "omnicloudmask>=1.0.11",
@@ -67,8 +67,8 @@ qgis-build = [
 ]
 
 [project.urls]
-"Bug Tracker" = "https://github.com/cankanoa/spectralmatch"
-"Source" = "https://github.com/cankanoa/spectralmatch"
+"Bug Tracker" = "https://github.com/spectralmatch/spectralmatch/issues"
+"Source" = "https://github.com/spectralmatch/spectralmatch"
 
 [project.scripts]
 spectralmatch = "spectralmatch.cli:main"
