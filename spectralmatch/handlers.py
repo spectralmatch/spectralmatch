@@ -1,54 +1,13 @@
 import os
 import warnings
-import rasterio
 import re
 import glob
 
-from typing import List, Optional, Literal, Tuple, Union
+from osgeo import gdal
+gdal.UseExceptions()
+from typing import List, Optional, Literal, Tuple
 
 from spectralmatch.types_and_validation import Universal
-
-
-def _resolve_output_dtype(
-    dataset: rasterio.io.DatasetReader,
-    custom_output_dtype: Universal.CustomOutputDtype,
-):
-    """
-    Resolves the output dtype for a raster operation.
-
-    Args:
-        dataset (rasterio.io.DatasetReader): The input dataset to derive default dtype from.
-        custom_output_dtype (str | None): A user-specified output dtype, or None to use dataset dtype.
-
-    Returns:
-        str: The resolved output dtype.
-    """
-    if custom_output_dtype is not None:
-        return custom_output_dtype
-    return dataset.dtypes[0]
-
-
-def _resolve_nodata_value(
-    dataset: rasterio.io.DatasetReader, custom_nodata_value: Universal.CustomNodataValue
-) -> float | int | None:
-    """
-    Determine the appropriate nodata value for a raster dataset.
-
-    Priority is given to a user-provided custom nodata value. If not provided, the function attempts to use the nodata value defined in the dataset metadata. Returns None if neither is available.
-
-    Args:
-        dataset (rasterio.io.DatasetReader): The opened raster dataset.
-        custom_nodata_value (float | int | None): Optional user-defined nodata value.
-
-    Returns:
-        float | int | None: The resolved nodata value, or None if unavailable.
-    """
-    if custom_nodata_value is not None:
-        return custom_nodata_value
-    elif dataset.nodata is not None:
-        return dataset.nodata
-    else:
-        return None
 
 
 def _resolve_paths(
@@ -70,7 +29,9 @@ def _resolve_paths(
     """
     kwargs = kwargs or {}
 
-    if isinstance(input, list):
+    if mode == "name":
+        resolved = [os.path.splitext(os.path.basename(p))[0] for p in input]
+    elif isinstance(input, list):
         resolved = input
     elif mode == "search":
         resolved = search_paths(input, **kwargs)
@@ -78,8 +39,6 @@ def _resolve_paths(
         resolved = create_paths(input, **kwargs)
     elif mode == "match":
         resolved = match_paths(**kwargs)
-    elif mode == "name":
-        resolved = [os.path.splitext(os.path.basename(p))[0] for p in input]
     else:
         raise ValueError(f"Invalid mode: {mode}")
 
@@ -271,89 +230,67 @@ def _check_raster_requirements(
     if debug_logs:
         print(f"Found {len(input_image_paths)} images")
 
-    datasets = [rasterio.open(p) for p in input_image_paths]
+    datasets = [gdal.Open(p, gdal.GA_ReadOnly) for p in input_image_paths]
 
-    ref_crs = datasets[0].crs
-    ref_count = datasets[0].count
-    ref_res = datasets[0].res
-    ref_nodata = (
-        [datasets[0].nodata] * ref_count
-        if datasets[0].nodata is not None
-        else [None] * ref_count
-    )
+    ref_ds = datasets[0]
+    ref_crs = ref_ds.GetProjectionRef()
+    ref_count = ref_ds.RasterCount
+    ref_gt = ref_ds.GetGeoTransform()
+    ref_res = (ref_gt[1], abs(ref_gt[5]))
+    ref_nodata = [ref_ds.GetRasterBand(b + 1).GetNoDataValue() for b in range(ref_count)]
 
     for i, ds in enumerate(datasets):
-        if check_geotransform and ds.transform is None:
-            raise ValueError(f"Fail: Image {i} has no geotransform.")
-        if check_crs and ds.crs != ref_crs:
+        if check_geotransform:
+            gt = ds.GetGeoTransform()
+            if gt is None or gt[1] == 0 or gt[5] == 0:
+                raise ValueError(f"Fail: Image {i} has no valid geotransform.")
+        if check_crs and ds.GetProjectionRef() != ref_crs:
             raise ValueError(f"Fail: Image {i} has different CRS.")
-        if check_bands and ds.count != ref_count:
-            raise ValueError(
-                f"Fail: Image {i} has {ds.count} bands; expected {ref_count}."
-            )
-        if check_resolution and ds.res != ref_res:
-            raise ValueError(
-                f"Fail: Image {i} has resolution {ds.res}; expected {ref_res}."
-            )
+        if check_bands and ds.RasterCount != ref_count:
+            raise ValueError(f"Fail: Image {i} has {ds.RasterCount} bands; expected {ref_count}.")
+        if check_resolution:
+            gt = ds.GetGeoTransform()
+            res = (gt[1], abs(gt[5]))
+            if res != ref_res:
+                raise ValueError(f"Fail: Image {i} has resolution {res}; expected {ref_res}.")
         if check_nodata:
-            for b in range(ds.count):
-                if ds.nodata != ref_nodata[b]:
-                    raise ValueError(
-                        f"Fail: Image {i}, band {b+1} has different nodata value."
-                    )
+            for b in range(ref_count):
+                nd = ds.GetRasterBand(b + 1).GetNoDataValue()
+                if nd != ref_nodata[b]:
+                    raise ValueError(f"Fail: Image {i}, band {b+1} has different nodata value.")
 
     if debug_logs:
         passed_checks = []
-        if check_geotransform:
-            passed_checks.append("geotransform")
-        if check_crs:
-            passed_checks.append("crs")
-        if check_bands:
-            passed_checks.append("bands")
-        if check_nodata:
-            passed_checks.append("nodata")
-        if check_resolution:
-            passed_checks.append("resolution")
+        if check_geotransform: passed_checks.append("geotransform")
+        if check_crs: passed_checks.append("crs")
+        if check_bands: passed_checks.append("bands")
+        if check_nodata: passed_checks.append("nodata")
+        if check_resolution: passed_checks.append("resolution")
         print(f"Input data checks passed: {', '.join(passed_checks)}")
 
+    for ds in datasets:
+        ds = None
     return True
 
 
-def _get_nodata_value(
-    input_image_paths: List[Union[str]],
-    custom_nodata_value: Optional[float] = None,
-) -> float | None:
+def _resolve_nodata_value(
+    image_path: str | None = None,
+    custom_nodata_value: float | int | None = None,
+) -> float | int | None:
     """
-    Determines the NoData value to use from a list of raster images or a custom override.
+    Get the NoData value for a raster.
 
     Args:
-        input_image_paths (List[str]): List of raster image paths.
-        custom_nodata_value (float, optional): User-defined NoData value.
+        image_path (str): Path to the raster image.
+        custom_nodata_value (float | int | None, optional): If provided, overrides the image's NoData.
 
     Returns:
-        float | None: The determined NoData value, or None if unavailable.
-
-    Warnings:
-        Emits a warning if a custom value overrides the image value or if no value is found.
+        float | None: The chosen NoData value.
     """
-
-    try:
-        with rasterio.open(input_image_paths[0]) as ds:
-            image_nodata_value = ds.nodata
-    except:
-        image_nodata_value = None
-
-    if custom_nodata_value is None and image_nodata_value is not None:
-        return image_nodata_value
-
     if custom_nodata_value is not None:
-        if image_nodata_value is not None and image_nodata_value != custom_nodata_value:
-            warnings.warn(
-                "Image no data value has been overwritten by custom_nodata_value"
-            )
         return custom_nodata_value
-
-    warnings.warn(
-        "Custom nodata value not set and could not get one from the first band so no nodata value will be used."
-    )
-    return None
+    else:
+        ds = gdal.Open(image_path, gdal.GA_ReadOnly)
+        nodata = ds.GetRasterBand(1).GetNoDataValue()
+        ds = None
+        return nodata

@@ -1,27 +1,16 @@
 import os
-import fiona
-import rasterio
 import geopandas as gpd
 import pandas as pd
 import numpy as np
+import tempfile
 
-from typing import Optional, Literal, Tuple
-from rasterio.windows import Window
-from rasterio.enums import Resampling
-from rasterio.features import geometry_mask
-from rasterio.warp import reproject
+from typing import Optional, Literal, Tuple, Dict
 from concurrent.futures import as_completed
-from rasterio.transform import Affine
+from osgeo import gdal, ogr, osr
 
-from .handlers import _resolve_paths, _check_raster_requirements
+from .handlers import _resolve_paths, _check_raster_requirements, _resolve_nodata_value
 from .types_and_validation import Universal
-from .utils_multiprocessing import (
-    _resolve_windows,
-    _get_executor,
-    WorkerContext,
-    _resolve_parallel_config,
-)
-from .handlers import _resolve_nodata_value
+from .utils_multiprocessing import _get_executor, _resolve_parallel_config
 
 
 def merge_vectors(
@@ -108,36 +97,42 @@ def align_rasters(
     resolution: Literal["highest", "average", "lowest"] = "highest",
     window_size: Universal.WindowSize = None,
     debug_logs: Universal.DebugLogs = False,
-    image_parallel_workers: Universal.ImageParallelWorkers = None,
-    window_parallel_workers: Universal.WindowParallelWorkers = None,
+    cache: Universal.Cache = None,
+    image_threads: Universal.Threads = None,
+    io_threads: Universal.Threads = None,
+    tile_threads: Universal.Threads = None,
 ) -> None:
     """
     Aligns multiple rasters to a common resolution and grid using specified resampling.
 
     Args:
         input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Align.tif), ["/input/one.tif", "/input/two.tif"].
-        resampling_method (Literal["nearest", "bilinear", "cubic"], optional): Resampling method to use; default is "bilinear".
-        tap (bool, optional): If True, aligns outputs to target-aligned pixels (GDAL's -tap); default is False.
-        resolution (Literal["highest", "average", "lowest"], optional): Strategy for choosing target resolution; default is "highest".
-        window_size (Universal.WindowSize, optional): Tiling strategy for windowed alignment.
-        debug_logs (Universal.DebugLogs, optional): If True, prints debug output.
-        image_parallel_workers (Universal.ImageParallelWorkers, optional): Parallelization strategy for image-level alignment.
-        window_parallel_workers (Universal.WindowParallelWorkers, optional): Parallelization strategy for within-image window alignment.
+        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
+        resampling_method: "nearest" | "bilinear" | "cubic".
+        tap: If True, snap output extent to target-aligned pixels (GDAL -tap behavior).
+        resolution: "highest" (min px size), "average", or "lowest" (max px size).
+        window_size: Tile size for output blocks; used for GTiff creation options.
+        debug_logs: Verbose logging.
+        cache: Cache for processing.
+        image_threads: Python-level parallelism over images (e.g., ("process", 4)).
+        io_threads: Sets GDAL_NUM_THREADS for internal GDAL multithreading (int or str).
+        tile_threads: Sets GTiff/COG writer NUM_THREADS and Warp’s NUM_THREADS (int or str).
 
     Returns:
-        None
+        List[str]: Paths to the locally adjusted output raster images.
     """
-
-    print("Start align rasters")
+    if debug_logs:
+        print("Start align rasters")
 
     Universal.validate(
         input_images=input_images,
         output_images=output_images,
         debug_logs=debug_logs,
         window_size=window_size,
-        image_parallel_workers=image_parallel_workers,
-        window_parallel_workers=window_parallel_workers,
+        cache=cache,
+        image_threads=image_threads,
+        io_threads=io_threads,
+        tile_threads=tile_threads,
     )
 
     input_image_paths = _resolve_paths(
@@ -151,265 +146,24 @@ def align_rasters(
             "default_file_pattern": "$_Align.tif",
         },
     )
-    image_names = _resolve_paths("name", input_image_paths)
+    input_image_names = [
+        os.path.splitext(os.path.basename(p))[0] for p in input_image_paths
+    ]
+
+    # Setup gdal
+    _set_gdal_cache(cache, debug_logs)
+    _set_gdal_workers(io_threads, debug_logs)
+
+    # Setup parallel
+    image_backend = "thread" # "process" or "thread"
+    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
+
 
     if debug_logs:
         print(f"{len(input_image_paths)} rasters to align")
 
-    # Determine target resolution
-    resolutions = []
-    crs_list = []
-    for path in input_image_paths:
-        with rasterio.open(path) as src:
-            resolutions.append(src.res)
-            crs_list.append(src.crs)
-    if len(set(crs_list)) > 1:
-        raise ValueError("Input rasters must have the same CRS.")
-
-    res_arr = np.array(resolutions)
-    target_res = {
-        "highest": res_arr.min(axis=0),
-        "lowest": res_arr.max(axis=0),
-        "average": res_arr.mean(axis=0),
-    }[resolution]
-
-    if debug_logs:
-        print(f"Target resolution: {target_res}")
-
-    parallel_args = [
-        (
-            image_name,
-            window_parallel_workers,
-            in_path,
-            out_path,
-            target_res,
-            resampling_method,
-            tap,
-            window_size,
-            debug_logs,
-        )
-        for in_path, out_path, image_name in zip(
-            input_image_paths, output_image_paths, image_names
-        )
-    ]
-
-    if image_parallel_workers:
-        with _get_executor(*image_parallel_workers) as executor:
-            futures = [
-                executor.submit(_align_process_image, *args) for args in parallel_args
-            ]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for args in parallel_args:
-            _align_process_image(*args)
-
-
-def _align_process_image(
-    image_name: str,
-    window_parallel: Universal.WindowParallelWorkers,
-    in_path: str,
-    out_path: str,
-    target_res: Tuple[float, float],
-    resampling_method: str,
-    tap: bool,
-    window_size: Universal.WindowSize,
-    debug_logs: bool,
-):
-    """
-    Aligns a single raster image to a target resolution and grid, optionally in parallel by window.
-
-    Args:
-        image_name (str): Identifier for the image, used for worker context management.
-        window_parallel (Universal.WindowParallelWorkers): Optional multiprocessing config for window-level alignment.
-        in_path (str): Path to the input raster.
-        out_path (str): Path to save the aligned output raster.
-        target_res (Tuple[float, float]): Target resolution (x, y) to resample the raster to.
-        resampling_method (str): Resampling method: "nearest", "bilinear", or "cubic".
-        tap (bool): If True, aligns raster to target-aligned pixels (GDAL-style -tap).
-        window_size (Universal.WindowSize): Tiling strategy for dividing the image into windows.
-        debug_logs (bool): If True, prints debug output.
-
-    Returns:
-        None
-    """
-
-    if debug_logs:
-        print(f"Aligning: {in_path}")
-
-    with rasterio.open(in_path) as src:
-        profile = src.profile.copy()
-
-        if tap:
-            res_x, res_y = target_res
-            minx = np.floor(src.bounds.left / res_x) * res_x
-            miny = np.floor(src.bounds.bottom / res_y) * res_y
-            maxx = np.ceil(src.bounds.right / res_x) * res_x
-            maxy = np.ceil(src.bounds.top / res_y) * res_y
-            dst_width = int((maxx - minx) / res_x)
-            dst_height = int((maxy - miny) / res_y)
-            dst_transform = rasterio.transform.from_origin(minx, maxy, res_x, res_y)
-        else:
-            dst_width, dst_height = src.width, src.height
-            dst_transform = src.transform
-
-        src_transform = src.transform
-
-        profile.update(
-            {"height": dst_height, "width": dst_width, "transform": dst_transform}
-        )
-
-        with rasterio.open(out_path, "w", **profile) as dst:
-            for band_idx in range(src.count):
-
-                windows_dst = _resolve_windows(dst, window_size)
-
-                window_args = []
-                for dst_win in windows_dst:
-                    dst_bounds = rasterio.windows.bounds(dst_win, dst.transform)
-
-                    # Convert bounds to source window using inverse transform
-                    src_win = rasterio.windows.from_bounds(
-                        *dst_bounds, transform=src.transform
-                    )
-                    # src_win = src_win.round_offsets().round_lengths()  # Makes it integer-aligned
-
-                    window_args.append(
-                        (
-                            src_win,
-                            dst_win,
-                            band_idx,
-                            dst_transform,
-                            resampling_method,
-                            src.nodata,
-                            debug_logs,
-                            image_name,
-                        )
-                    )
-
-                parallel = window_parallel is not None
-                backend, max_workers = (window_parallel or (None, None))[0:2]
-
-                if parallel and backend == "process":
-                    with _get_executor(
-                        backend,
-                        max_workers,
-                        initializer=WorkerContext.init,
-                        initargs=({image_name: ("raster", in_path)},),
-                    ) as executor:
-                        futures = [
-                            executor.submit(_align_process_window, *args)
-                            for args in window_args
-                        ]
-                        for future in as_completed(futures):
-                            band, window, buf = future.result()
-                            dst.write(buf, band + 1, window=window)
-                    WorkerContext.close()
-                else:
-                    WorkerContext.init({image_name: ("raster", in_path)})
-                    for args in window_args:
-                        band, window, buf = _align_process_window(*args)
-                        dst.write(buf, band + 1, window=window)
-                    WorkerContext.close()
-
-
-def _align_process_window(
-    src_window: Window,
-    dst_window: Window,
-    band_idx: int,
-    dst_transform,
-    resampling_method: str,
-    nodata: int | float,
-    debug_logs: bool,
-    image_name: str,
-) -> tuple[int, Window, np.ndarray]:
-    """
-    Aligns a single raster window for one band using reproject with a shared dataset.
-
-    Args:
-        src_window (Window): Source window to read.
-        dst_window (Window): Output window (used to compute offset transform and for saving).
-        band_idx (int): Band index to read.
-        dst_transform: The full transform of the output raster.
-        resampling_method: Reprojection resampling method.
-        nodata: NoData value.
-        debug_logs: Print debug info if True.
-        image_name: Key to fetch the raster from WorkerContext.
-
-    Returns:
-        Tuple[int, Window, np.ndarray]: Band index, destination window, and aligned data buffer.
-    """
-    src = WorkerContext.get(image_name)
-    dst_shape = (int(dst_window.height), int(dst_window.width))
-    dst_buffer = np.empty(dst_shape, dtype=src.dtypes[band_idx])
-
-    # Compute the transform specific to the current dst_window tile
-    dst_transform_window = dst_transform * Affine.translation(
-        dst_window.col_off, dst_window.row_off
-    )
-
-    reproject(
-        source=rasterio.band(src, band_idx + 1),
-        destination=dst_buffer,
-        src_transform=src.window_transform(src_window),
-        src_crs=src.crs,
-        dst_transform=dst_transform_window,
-        dst_crs=src.crs,
-        src_nodata=nodata,
-        dst_nodata=nodata,
-        resampling=Resampling[resampling_method],
-        src_window=src_window,
-        dst_window=Window(0, 0, dst_shape[1], dst_shape[0]),
-    )
-
-    return band_idx, dst_window, dst_buffer
-
-
-def merge_rasters(
-    input_images: Universal.SearchFolderOrListFiles,
-    output_image_path: str,
-    *,
-    image_parallel_workers: Universal.ImageParallelWorkers = None,
-    window_parallel_workers: Universal.WindowParallelWorkers = None,
-    window_size: Universal.WindowSize = None,
-    debug_logs: Universal.DebugLogs = False,
-    output_dtype: Universal.CustomOutputDtype = None,
-    custom_nodata_value: Universal.CustomNodataValue = None,
-) -> None:
-    """
-    Merges multiple rasters into a single mosaic aligned to the union extent and minimum resolution.
-
-    Args:
-        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-        output_image_path (str): Path to save the merged output raster.
-        image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level merging.
-        window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for within-image window merging.
-        window_size (Universal.WindowSize, optional): Tiling strategy for processing windows.
-        debug_logs (Universal.DebugLogs, optional): If True, prints debug output.
-        output_dtype (Universal.CustomOutputDtype, optional): Output data type; defaults to input type if None.
-        custom_nodata_value (Universal.CustomNodataValue, optional): NoData value to use; defaults to first input's value.
-
-    Returns:
-        None
-    """
-
-    print("Start raster merging")
-
-    # Validate parameters
-    Universal.validate(
-        input_images=input_images,
-        debug_logs=debug_logs,
-        custom_nodata_value=custom_nodata_value,
-        output_dtype=output_dtype,
-        window_size=window_size,
-        image_parallel_workers=image_parallel_workers,
-        window_parallel_workers=window_parallel_workers,
-    )
-
-    input_image_paths = _resolve_paths(
-        "search", input_images, kwargs={"default_file_pattern": "*.tif"}
-    )
-
+    # Check requirements
     _check_raster_requirements(
         input_image_paths,
         debug_logs,
@@ -419,171 +173,264 @@ def merge_rasters(
         check_nodata=True,
     )
 
-    image_names = [os.path.splitext(os.path.basename(p))[0] for p in input_image_paths]
-    input_image_path_pairs = dict(zip(image_names, input_image_paths))
-
-    if custom_nodata_value:
-        nodata_value = custom_nodata_value
-    else:
-        with rasterio.open(input_image_paths[0]) as src:
-            nodata_value = src.nodata
+    # Get target resolution
+    target_res = compute_resolution(input_image_paths, resolution)
 
     if debug_logs:
-        print(f"Merging {len(input_image_paths)} rasters into: {output_image_path}")
+        print(f"Target resolution: {target_res}")
 
-    # Compute union bounds and min resolution
-    bounds_list = []
-    res_x_list, res_y_list = [], []
-    for path in input_image_paths:
-        with rasterio.open(path) as src:
-            bounds_list.append(src.bounds)
-            res_x, res_y = src.res
-            res_x_list.append(res_x)
-            res_y_list.append(res_y)
-
-    minx = min(b.left for b in bounds_list)
-    miny = min(b.bottom for b in bounds_list)
-    maxx = max(b.right for b in bounds_list)
-    maxy = max(b.top for b in bounds_list)
-
-    res_x = min(res_x_list)
-    res_y = min(res_y_list)
-
-    width = int(np.ceil((maxx - minx) / res_x))
-    height = int(np.ceil((maxy - miny) / res_y))
-
-    transform = Affine.translation(minx, maxy) * Affine.scale(res_x, -res_y)
-
-    with rasterio.open(input_image_paths[0]) as src:
-        meta = src.meta.copy()
-        meta.update(
-            {
-                "height": height,
-                "width": width,
-                "transform": transform,
-                "count": src.count,
-                "dtype": output_dtype or src.dtypes[0],
-                "nodata": nodata_value,
-            }
+    # Prepare per-image args
+    window_size = _resolve_window_size(window_size, input_image_paths[0], debug_logs)
+    args = [
+        (
+            input_image_names[i],
+            input_image_paths[i],
+            output_image_paths[i],
+            target_res,
+            resampling_method,
+            tap,
+            window_size,
+            tile_thread_workers,
+            debug_logs,
         )
+        for i in range(len(input_image_paths))
+    ]
 
-    # Determine multiprocessing and worker count
-    image_parallel, image_backend, image_max_workers = _resolve_parallel_config(
-        image_parallel_workers
-    )
-
-    parallel_args = []
-    for name, path in input_image_path_pairs.items():
-        with rasterio.open(path) as src:
-            for band in range(src.count):
-                windows = _resolve_windows(src, window_size)
-                for window in windows:
-                    parallel_args.append(
-                        (
-                            window,
-                            band,
-                            meta["dtype"],
-                            debug_logs,
-                            name,
-                            src.transform,
-                            transform,
-                            nodata_value,
-                        )
-                    )
-
-    # Pre-initialize WorkerContext
-    init_worker = WorkerContext.init
-    init_args_map = {
-        name: ("raster", path) for name, path in input_image_path_pairs.items()
-    }
-
-    with rasterio.open(output_image_path, "w", **meta):
-        pass
-    with rasterio.open(output_image_path, "r+", **meta) as dst:
-        if image_parallel:
-            with _get_executor(
-                image_backend,
-                image_max_workers,
-                initializer=init_worker,
-                initargs=(init_args_map,),
-            ) as executor:
-                futures = [
-                    executor.submit(_merge_raster_process_window, *args)
-                    for args in parallel_args
-                ]
-                for future in as_completed(futures):
-                    band, dst_window, buf = future.result()
-                    if buf is not None:
-                        existing = dst.read(band + 1, window=dst_window)
-                        valid_mask = buf != nodata_value
-                        merged = np.where(valid_mask, buf, existing)
-                        dst.write(merged, band + 1, window=dst_window)
-        else:
-            WorkerContext.init(init_args_map)
-            for args in parallel_args:
-                band, dst_window, buf = _merge_raster_process_window(*args)
-                if buf is not None:
-                    existing = dst.read(band + 1, window=dst_window)
-                    valid_mask = buf != nodata_value
-                    merged = np.where(valid_mask, buf, existing)
-                    dst.write(merged, band + 1, window=dst_window)
-            WorkerContext.close()
-    if debug_logs:
-        print("Raster merging complete")
+    if image_threads:
+        with _get_executor(image_backend, image_thread_workers) as executor:
+            futures = [
+                executor.submit(_align_process_image, *arg) for arg in args
+            ]
+            for future in as_completed(futures):
+                future.result()
+    else:
+        for args in args:
+            _align_process_image(*args)
+    return output_image_paths
 
 
-def _merge_raster_process_window(
-    window: Window,
-    band_idx: int,
-    dtype: str,
-    debug_logs: bool,
+def _align_process_image(
     image_name: str,
-    src_transform,
-    dst_transform,
-    nodata_value: Universal.CustomNodataValue,
-) -> tuple[int, Window, np.ndarray]:
+    in_path: str,
+    out_path: str,
+    target_res: Tuple[float, float],
+    resampling_method: Literal["nearest", "bilinear", "cubic"],
+    tap: bool,
+    window_size: int,
+    tile_threads: Optional[int | str],
+    debug_logs: bool,
+    ) -> None:
     """
-    Processes a single raster window for merging by reading, masking, and mapping it to the destination grid.
+    Align a single raster to a target resolution and grid using GDAL Warp.
 
     Args:
-        window (Window): Source window to read.
-        band_idx (int): Zero-based band index to process.
-        dtype (str): Data type to cast the read block to.
-        debug_logs (bool): If True, prints debug output.
-        image_name (str): Identifier for accessing the source dataset from WorkerContext.
-        src_transform: Affine transform of the source image.
-        dst_transform: Affine transform of the destination mosaic.
-        nodata_value (Universal.CustomNodataValue): Value representing NoData pixels.
+        image_name (str): Identifier for the raster, used for logging.
+        in_path (str): Path to the input raster file.
+        out_path (str): Path where the aligned raster will be written.
+        target_res (Tuple[float, float]): Target pixel resolution as ``(xres, yres)``.
+        resampling_method (Literal["nearest", "bilinear", "cubic"]): Resampling algorithm.
+        tap (bool): If True, snaps bounds to target-aligned pixels (GDAL -tap behavior).
+        window_size (int): Tile size in pixels for output blocks (BLOCKXSIZE/BLOCKYSIZE).
+        tile_threads (Optional[int | str]): Number of threads for GTiff/COG writer and Warp tile processing. If None, defaults to GDAL's internal behavior.
+        debug_logs (bool): If True, print debug information during processing.
 
     Returns:
-        tuple[int, Window, np.ndarray]: Band index, destination window, and processed data block (or None if fully masked).
+        None
     """
+    if debug_logs:
+        print(f"Aligning: {image_name}")
 
-    # Read the block from the source image
-    ds = WorkerContext.get(image_name)
-    block = ds.read(band_idx + 1, window=window).astype(dtype)
+    # Resolve metadata (extent, transform) via GDAL
+    ds = gdal.Open(in_path, gdal.GA_ReadOnly)
+    proj_wkt = ds.GetProjectionRef()
+    ds = None
 
-    if nodata_value is not None:
-        mask = block == nodata_value
-        if mask.all():
-            return band_idx, None, None
-        block[mask] = nodata_value
+    xres, yres = float(target_res[0]), float(target_res[1])
 
-    row_off, col_off = int(window.row_off), int(window.col_off)
-    x, y = src_transform * (col_off, row_off)
+    # Writer creation options
+    co = [
+        "TILED=YES",
+        "BIGTIFF=IF_SAFER",
+        "COMPRESS=DEFLATE",
+        "PREDICTOR=2",
+        "ZLEVEL=6",
+        f"BLOCKXSIZE={window_size}",
+        f"BLOCKYSIZE={window_size}",
+    ]
+    if tile_threads is not None and str(tile_threads).strip():
+        co.append(f"NUM_THREADS={tile_threads}")
 
-    # Convert world coordinates to destination pixel space
-    dst_col_off, dst_row_off = ~dst_transform * (x, y)
+    # Resampling map
+    resamp = {
+        "nearest": gdal.GRIORA_NearestNeighbour,
+        "bilinear": gdal.GRIORA_Bilinear,
+        "cubic": gdal.GRIORA_Cubic,
+    }[resampling_method]
 
-    # Reuse original width/height
-    dst_window = Window(
-        col_off=int(round(dst_col_off)),
-        row_off=int(round(dst_row_off)),
-        width=window.width,
-        height=window.height,
+    # Perform alignment with GDAL Warp
+    try:
+        if os.path.exists(out_path):
+            gdal.Unlink(out_path)
+    except Exception:
+        pass
+
+    ods = gdal.Warp(
+        out_path,
+        in_path,
+        options=gdal.WarpOptions(
+            format="GTiff",
+            xRes=xres,
+            yRes=yres,
+            dstSRS=proj_wkt or None,
+            resampleAlg=resamp,
+            targetAlignedPixels=tap,
+            creationOptions=co,
+            multithread=True,
+            warpOptions=(["SKIP_NOSOURCE=YES"]),
+        )
     )
 
-    return band_idx, dst_window, block
+    if ods is None:
+        raise RuntimeError(f"gdal.Warp failed for {in_path}")
+    ods = None
+
+
+def compute_resolution(
+    paths: list[str],
+    strategy: str
+    ) -> Tuple[float, float]:
+    res = []
+    for p in paths:
+        ds = gdal.Open(p, gdal.GA_ReadOnly)
+        gt = ds.GetGeoTransform()
+        # Approximate pixel size (assume no rotation)
+        res.append((abs(gt[1]), abs(gt[5])))
+        ds = None
+    res_arr = np.asarray(res, dtype=float)
+    if strategy == "highest":
+        return float(res_arr[:, 0].min()), float(res_arr[:, 1].min())
+    if strategy == "lowest":
+        return float(res_arr[:, 0].max()), float(res_arr[:, 1].max())
+    return float(res_arr[:, 0].mean()), float(res_arr[:, 1].mean())
+
+
+def merge_rasters(
+    input_images: Universal.SearchFolderOrListFiles,
+    output_image_path: str,
+    *,
+    cache: Universal.Cache = None,
+    io_threads: Universal.Threads = None,
+    tile_threads: Universal.Threads = None,
+    debug_logs: Universal.DebugLogs = False,
+    output_dtype: Universal.CustomOutputDtype = None,
+    custom_nodata_value: Universal.CustomNodataValue = None,
+    resolution: Literal["highest", "average", "lowest"] = "highest",
+) -> str:
+    """
+    Merges multiple rasters into a single output using GDAL Warp (C++), aligning them to the union extent and a unified resolution. Supports parallelism via GDAL threading knobs.
+
+    Args:
+        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+        output_image_path (str): Path to output mosaic.
+        cache (int | Tuple[int, str] | None, optional): Controls GDAL cache size. Examples: 2048 (MB), (2, "GB"). Set None to use GDAL’s default. Applied via GDAL_CACHEMAX.        window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
+        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+        debug_logs (bool, optional): If True, prints progress. Defaults to False.
+        output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+        custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+        resolution ("highest" | "average" | "lowest", optional): Strategy for computing merge resolution.
+
+    Returns:
+        str: Path of the merged raster.
+
+    """
+
+    if debug_logs:
+        print("Start raster merging")
+
+    Universal.validate(
+        input_images=input_images,
+        debug_logs=debug_logs,
+        cache=cache,
+        io_threads=io_threads,
+        tile_threads=tile_threads,
+        output_dtype=output_dtype,
+        custom_nodata_value=custom_nodata_value,
+    )
+
+    input_image_paths = _resolve_paths(
+        "search", input_images, kwargs={"default_file_pattern": "*.tif"}
+    )
+
+    output_dtype = _resolve_gdal_dtype(output_dtype, input_image_paths[0], debug_logs)
+    nodata_val = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
+
+
+    # Setup parallel
+    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
+
+
+    _set_gdal_cache(cache, debug_logs)
+    _set_gdal_workers(io_threads, debug_logs)
+
+    if debug_logs:
+        print(f"Merging {len(input_image_paths)} rasters to: {output_image_path}")
+
+    # Compute resolution using strategy
+    xres, yres = compute_resolution(input_image_paths, resolution)
+
+    # Compute union bounds
+    bounds_list = []
+    for path in input_image_paths:
+        ds = gdal.Open(path, gdal.GA_ReadOnly)
+        gt = ds.GetGeoTransform()
+        w, h = ds.RasterXSize, ds.RasterYSize
+        xmin = gt[0]
+        ymax = gt[3]
+        xmax = xmin + w * gt[1]
+        ymin = ymax + h * gt[5]
+        bounds_list.append((xmin, ymin, xmax, ymax))
+        ds = None
+
+    xmin = min(b[0] for b in bounds_list)
+    ymin = min(b[1] for b in bounds_list)
+    xmax = max(b[2] for b in bounds_list)
+    ymax = max(b[3] for b in bounds_list)
+
+    kwargs = {
+        "format": "GTiff",
+        "outputBounds": (xmin, ymin, xmax, ymax),
+        "xRes": xres,
+        "yRes": yres,
+        "resampleAlg": "near",
+        "warpOptions": [
+            "SKIP_NOSOURCE=YES",
+            "UNIFIED_SRC_NODATA=YES",
+            "INIT_DEST=NO_DATA",
+        ],
+    }
+
+    if output_dtype:
+        dt = gdal.GetDataTypeByName(output_dtype)
+        if dt == gdal.GDT_Unknown:
+            raise ValueError(f"Invalid output_dtype: {output_dtype}")
+        kwargs["outputType"] = dt
+
+    if custom_nodata_value is not None:
+        kwargs["srcNodata"] = custom_nodata_value
+        kwargs["dstNodata"] = custom_nodata_value
+
+    if tile_thread_on:
+        kwargs["warpOptions"].append(f"NUM_THREADS={tile_threads}")
+        kwargs["multithread"] = True
+
+    warp_options = gdal.WarpOptions(**kwargs)
+
+    gdal.Warp(destNameOrDestDS=output_image_path,
+              srcDSOrSrcDSTab=input_image_paths,
+              options=warp_options)
+
+    return output_image_path
 
 
 def mask_rasters(
@@ -592,37 +439,47 @@ def mask_rasters(
     vector_mask: Universal.VectorMask = None,
     window_size: Universal.WindowSize = None,
     debug_logs: Universal.DebugLogs = False,
-    image_parallel_workers: Universal.ImageParallelWorkers = None,
-    window_parallel_workers: Universal.WindowParallelWorkers = None,
+    cache: Universal.Cache = None,
+    image_threads: Universal.Threads = None,
+    io_threads: Universal.Threads = None,
+    tile_threads: Universal.Threads = None,
     include_touched_pixels: bool = False,
     custom_nodata_value: Universal.CustomNodataValue = None,
-) -> None:
+    ) -> list:
     """
-    Applies a vector-based mask to one or more rasters, with support for image- and window-level parallelism.
+    Applies a vector-based mask to one or more rasters using GDAL Warp.
 
     Args:
         input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Clip.tif), ["/input/one.tif", "/input/two.tif"].
-        vector_mask (Universal.VectorMask, optional): Tuple ("include"/"exclude", vector path, optional field name) or None.
-        window_size (Universal.WindowSize, optional): Strategy for tiling rasters during processing.
-        debug_logs (Universal.DebugLogs, optional): If True, prints debug information.
-        image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level masking.
-        window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for parallelizing masking within windows.
-        include_touched_pixels (bool, optional): If True, includes pixels touched by mask geometry edges; default is False.
+        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
+        vector_mask (Universal.VectorMask, optional): Tuple ('include'|'exclude', vector_path, optional field name).
+        window_size (int | Tuple[int, int] | Literal["block"] | None): Tile size for processing: int for square tiles, (width, height) for custom size, or "block" to set as the size of the block map, None for full image. Defaults to None.
+        debug_logs (bool, optional): If True, prints progress. Defaults to False.
+        cache (int | Tuple[int, str] | None, optional): Controls GDAL cache size. Examples: 2048 (MB), (2, "GB"). Set None to use GDAL’s default. Applied via GDAL_CACHEMAX.        window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
+        image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+        include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask.
+        custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
 
     Returns:
-        None
+        list: Output image paths after masking.
     """
-    # Validate parameters
+
+    if debug_logs:
+        print("Start mask rasters")
+
     Universal.validate(
         input_images=input_images,
         output_images=output_images,
         debug_logs=debug_logs,
         vector_mask=vector_mask,
         window_size=window_size,
-        image_parallel_workers=image_parallel_workers,
-        window_parallel_workers=window_parallel_workers,
+        image_threads=image_threads,
+        io_threads=io_threads,
+        tile_threads=tile_threads,
         custom_nodata_value=custom_nodata_value,
+        cache=cache,
     )
 
     input_image_paths = _resolve_paths(
@@ -631,215 +488,455 @@ def mask_rasters(
     output_image_paths = _resolve_paths(
         "create",
         output_images,
-        kwargs={
-            "paths_or_bases": input_image_paths,
-            "default_file_pattern": "$_Clip.tif",
-        },
+        kwargs={"paths_or_bases": input_image_paths, "default_file_pattern": "$_Mask.tif"},
     )
-
-    if debug_logs:
-        print(f"Input images: {input_image_paths}")
-    if debug_logs:
-        print(f"Output images: {output_image_paths}")
 
     input_image_names = [
         os.path.splitext(os.path.basename(p))[0] for p in input_image_paths
     ]
-    input_image_path_pairs = dict(zip(input_image_names, input_image_paths))
-    output_image_path_pairs = dict(zip(input_image_names, output_image_paths))
 
-    image_parallel, image_backend, image_max_workers = _resolve_parallel_config(
-        image_parallel_workers
-    )
-    window_parallel, window_backend, window_max_workers = _resolve_parallel_config(
-        window_parallel_workers
+    _set_gdal_cache(cache, debug_logs)
+    _set_gdal_workers(io_threads, debug_logs)
+
+    # Determine multiprocessing and worker count
+    image_backend = "thread" # "thread" or "process"
+    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
+
+    mode, per_image_cutlines, original_vector_path, field_given = _prepare_cutline_sources(
+        vector_mask, input_image_names, debug_logs
     )
 
-    parallel_args = [
+    args = [
         (
-            window_parallel,
-            window_max_workers,
-            window_backend,
-            input_image_path_pairs[name],
-            output_image_path_pairs[name],
-            name,
-            vector_mask,
-            window_size,
+            input_image_paths[i],
+            output_image_paths[i],
+            input_image_names[i],
+            mode,
+            (per_image_cutlines[input_image_names[i]] if field_given else original_vector_path),
+            field_given,
             debug_logs,
             include_touched_pixels,
             custom_nodata_value,
+            tile_thread_workers,
+            tile_thread_on,
         )
-        for name in input_image_names
+        for i in range(len(input_image_paths))
     ]
 
-    if image_parallel:
-        with _get_executor(image_backend, image_max_workers) as executor:
-            futures = [
-                executor.submit(_mask_raster_process_image, *args)
-                for args in parallel_args
-            ]
+    if image_threads_on:
+        with _get_executor(image_backend, image_thread_workers) as executor:
+            futures = [executor.submit(_mask_raster_process_image, *arg) for arg in args]
             for future in as_completed(futures):
                 future.result()
     else:
-        for args in parallel_args:
-            _mask_raster_process_image(*args)
+        for arg in args:
+            _mask_raster_process_image(*arg)
+
+    return output_image_paths
 
 
 def _mask_raster_process_image(
-    window_parallel: bool,
-    max_workers: int,
-    backend: str,
     input_image_path: str,
     output_image_path: str,
     image_name: str,
-    vector_mask: Universal.VectorMask,
-    window_size: Universal.WindowSize,
+    mode: str | None,
+    cutline_path: str | None,
+    field_given: bool,
     debug_logs: bool,
     include_touched_pixels: bool,
     custom_nodata_value: Universal.CustomNodataValue,
-):
+    tile_threads: int | str | None,
+    tile_thread_on: bool,
+) -> None:
     """
-    Processes a single raster image by applying a vector mask, optionally in parallel by window.
+    Applies a GDAL Warp mask to a single image using cutline and nodata configuration.
 
     Args:
-        window_parallel (bool): Whether to use parallel processing at the window level.
-        max_workers (int): Maximum number of worker processes or threads.
-        backend (str): Execution backend, e.g., "process".
         input_image_path (str): Path to the input raster.
-        output_image_path (str): Path to save the masked output raster.
-        image_name (str): Identifier for the raster used in worker context.
-        vector_mask (Universal.VectorMask): Masking config as ("include"/"exclude", path, optional field).
-        window_size (Universal.WindowSize): Strategy for tiling the raster into windows.
-        debug_logs (bool): If True, enables debug output.
-        include_touched_pixels (bool): If True, includes pixels touched by mask geometry boundaries.
+        output_image_path (str): Path to the output masked raster.
+        image_name (str): Short name for logging/debugging.
+        mode (str | None): Weather to "include" or "exclude".
+        cutline_path (str | None): Path to the cutline.
+        field_given (bool): If a filter field was provided.
+        debug_logs (bool): If True, prints processing information.
+        include_touched_pixels (bool): If True, enables CUTLINE_ALL_TOUCHED for Warp.
+        custom_nodata_value (Universal.CustomNodataValue): Nodata value for masked-out pixels.
+        tile_threads (int | str | None): Number of threads for Warp block parallelism.
+        tile_thread_on (bool): Whether tile-level multithreading is enabled.
 
     Returns:
         None
     """
 
-    with rasterio.open(input_image_path) as src:
-        profile = src.profile.copy()
-        nodata_val = _resolve_nodata_value(src, custom_nodata_value)
-        assert (
-            nodata_val is not None
-        ), "Nodata value must be set via custom_nodata_value or in the raster metadata."
+    if debug_logs:
+        print(f"Masking image: {image_name}")
 
-        profile["nodata"] = nodata_val
-        num_bands = src.count
+    warp_options = {
+        "format": "GTiff",
+        "dstNodata": custom_nodata_value if custom_nodata_value is not None else None,
+        "warpOptions": [
+            "SKIP_NOSOURCE=YES",
+            "UNIFIED_SRC_NODATA=YES",
+        ],
+    }
 
-        geoms = None
-        invert = False
+    if tile_thread_on:
+        warp_options["multithread"] = True
+        warp_options["warpOptions"].append(f"NUM_THREADS={tile_threads}")
 
-        if vector_mask:
-            mode, path, *field = vector_mask
-            invert = mode == "exclude"
-            field_name = field[0] if field else None
-            with fiona.open(path, "r") as vector:
-                if field_name:
-                    geoms = [
-                        feat["geometry"]
-                        for feat in vector
-                        if field_name in feat["properties"]
-                        and image_name in str(feat["properties"][field_name])
-                    ]
-                else:
-                    geoms = [feat["geometry"] for feat in vector]
+    if cutline_path:
+        invert = (mode == "exclude")
+        warp_options.update({
+            "cutlineDSName": cutline_path,
+            "cropToCutline": not invert if field_given else not invert,  # same behavior
+            "cutlineBlend": 0,
+            "dstAlpha": False,
+            "copyMetadata": True,
+        })
+        if include_touched_pixels:
+            warp_options["warpOptions"].append("CUTLINE_ALL_TOUCHED=TRUE")
+    # Else no cutline for this image
 
-        with rasterio.open(output_image_path, "w", **profile) as dst:
-            for band_idx in range(num_bands):
-                windows = _resolve_windows(src, window_size)
-
-                args = [
-                    (
-                        win,
-                        band_idx,
-                        image_name,
-                        nodata_val,
-                        geoms,
-                        invert,
-                        include_touched_pixels,
-                    )
-                    for win in windows
-                ]
-
-                if window_parallel:
-                    with _get_executor(
-                        backend,
-                        max_workers,
-                        initializer=WorkerContext.init,
-                        initargs=({image_name: ("raster", input_image_path)},),
-                    ) as executor:
-                        futures = [
-                            executor.submit(_mask_raster_process_window, *arg)
-                            for arg in args
-                        ]
-                        for future in as_completed(futures):
-                            window, data = future.result()
-                            dst.write(data, band_idx + 1, window=window)
-                    WorkerContext.close()
-                else:
-                    WorkerContext.init({image_name: ("raster", input_image_path)})
-                    for arg in args:
-                        window, data = _mask_raster_process_window(*arg)
-                        dst.write(data, band_idx + 1, window=window)
-                    WorkerContext.close()
+    gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options))
 
 
-def _mask_raster_process_window(
-    win: Window,
-    band_idx: int,
-    image_name: str,
-    nodata: int | float,
-    geoms: list | None,
-    invert: bool,
-    include_touched_pixels: bool,
-):
+def _prepare_cutline_sources(vector_mask, image_names, debug_logs=False):
     """
-    Applies a vector-based mask to a single raster window and returns the masked data.
+    Returns: (mode, per_image_path_or_None, original_vector_path, field_given)
+      - If field is given: dict[image_name] -> '/vsimem/<name>.geojson' or None if no match
+      - If no field: returns None dict, and you should pass the original vector as-is.
+    """
+    if not vector_mask:
+        return None, None, None, False
+
+    mode, vector_path, *maybe_field = vector_mask
+    field_given = bool(maybe_field)
+    if not field_given:
+        return mode, None, vector_path, False
+
+    field_name = maybe_field[0]
+    vds = ogr.Open(vector_path)
+    if vds is None:
+        raise RuntimeError(f"Failed to open vector: {vector_path}")
+    layer = vds.GetLayer(0)
+    layer_srs = layer.GetSpatialRef()
+    defn = layer.GetLayerDefn()
+    fidx = defn.GetFieldIndex(field_name)
+    if fidx < 0:
+        raise ValueError(f"Field '{field_name}' not found in {vector_path}")
+
+    wanted = set(image_names)
+    out = {name: None for name in image_names}
+
+    drv = ogr.GetDriverByName("GeoJSON")
+    for feat in layer:
+        key = str(feat.GetField(fidx))
+        if key not in wanted:
+            continue
+        geom = feat.GetGeometryRef()
+        if not geom or geom.IsEmpty():
+            continue
+        # write single-feature GeoJSON in /vsimem
+        vs = f"/vsimem/{key}_cut.geojson"
+        try:
+            drv.DeleteDataSource(vs)
+        except:
+            pass
+        ds = drv.CreateDataSource(vs)
+        lyr = ds.CreateLayer("cut", srs=layer_srs, geom_type=geom.GetGeometryType())
+        of = ogr.Feature(lyr.GetLayerDefn()); of.SetGeometry(geom.Clone())
+        lyr.CreateFeature(of); of = None; ds = None
+        out[key] = vs
+        if debug_logs:
+            print(f"cutline[{key}] -> {vs}")
+
+    return mode, out, vector_path, True
+
+
+def create_masked_vrts(
+    input_image_path_pairs: Dict[str, str],
+    *,
+    vector_mask: Universal.VectorMask = None,
+    out_dir: Optional[str] = None,
+    debug_logs: bool = False,
+) -> Dict[str, str]:
+    """
+    For each (name -> image_path), write:
+      - mask_{name}.geojson  (cutline: include polys OR exclude complement)
+      - vrt_{name}.vrt       (alpha = band1 nodata U cutline-outside)
+    Returns: dict[name, vrt_path]
+    """
+    # temp dir for all masks+VRTs
+    workdir = out_dir or tempfile.mkdtemp(prefix="spectralmatch_masks_")
+    if debug_logs: print(f"Creating VRTs: {workdir}")
+
+    out_vrts: Dict[str, str] = {}
+
+    for image_name, image_path in input_image_path_pairs.items():
+        if debug_logs:
+            print(f"    {image_name}")
+
+        src = gdal.Open(image_path, gdal.GA_ReadOnly)
+        if src is None:
+            raise RuntimeError(f"Could not open {image_path}")
+
+        # raster geo + nodata
+        nodata = src.GetRasterBand(1).GetNoDataValue()
+        dst_wkt = src.GetProjectionRef() or ""
+        dst_srs = osr.SpatialReference(); dst_srs.ImportFromWkt(dst_wkt)
+        gt = src.GetGeoTransform()
+        xmin, xmax = gt[0], gt[0] + gt[1] * src.RasterXSize
+        ymax, ymin = gt[3], gt[3] + gt[5] * src.RasterYSize
+
+        # build cutline only if requested
+        cutline_ds = None
+        if vector_mask:
+            mode, vpath, *field = vector_mask
+            field_name = field[0] if field else None
+
+            vds = ogr.Open(vpath)
+            if vds is None:
+                raise RuntimeError(f"Could not open vector: {vpath}")
+            lyr = vds.GetLayer(0)
+            lyr.SetSpatialFilterRect(xmin, ymin, xmax, ymax)
+
+            src_srs = lyr.GetSpatialRef()
+            tx = osr.CoordinateTransformation(src_srs, dst_srs) if (src_srs and not src_srs.IsSame(dst_srs)) else None
+
+            # extent polygon once
+            ring = ogr.Geometry(ogr.wkbLinearRing)
+            ring.AddPoint(xmin, ymin); ring.AddPoint(xmin, ymax)
+            ring.AddPoint(xmax, ymax); ring.AddPoint(xmax, ymin); ring.AddPoint(xmin, ymin)
+            extent_poly = ogr.Geometry(ogr.wkbPolygon); extent_poly.AddGeometry(ring)
+
+            # collect selected geoms in raster CRS
+            selected = []
+            for feat in lyr:
+                if field_name:
+                    val = feat.GetField(field_name)
+                    if val is None or (image_name not in str(val)):
+                        continue
+                g = feat.GetGeometryRef()
+                if not g:
+                    continue
+                gc = g.Clone()
+                if tx: gc.Transform(tx)
+                if gc.GetGeometryType() not in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
+                    gc = gc.Buffer(0)
+                gc = gc.Intersection(extent_poly)
+                if gc and not gc.IsEmpty():
+                    selected.append(gc)
+
+            # decide what to write as the cutline geometry
+            if mode == "include":
+                geoms_to_write = selected
+                suffix = "include"
+            else:
+                if selected:
+                    mp = ogr.Geometry(ogr.wkbMultiPolygon)
+                    for g in selected: mp.AddGeometry(g)
+                    union_geom = mp.UnionCascaded()
+                else:
+                    union_geom = None
+                complement = extent_poly if union_geom is None else extent_poly.Difference(union_geom)
+                geoms_to_write = [complement]
+                suffix = "exclude_complement"
+
+            if geoms_to_write:
+                cutline_path = os.path.join(workdir, f"mask_{image_name}.geojson")
+                drv = ogr.GetDriverByName("GeoJSON")
+                ods = drv.CreateDataSource(cutline_path)
+                ol = ods.CreateLayer("cut", srs=dst_srs, geom_type=ogr.wkbPolygon)
+                defn = ol.GetLayerDefn()
+                for g in geoms_to_write:
+                    if g and not g.IsEmpty():
+                        of = ogr.Feature(defn); of.SetGeometry(g)
+                        ol.CreateFeature(of); of = None
+                ol = None; ods = None
+                cutline_ds = cutline_path
+
+            lyr = None; vds = None
+
+        # build the VRT with alpha (nodata + cutline-outside)
+        vrt_path = os.path.join(workdir, f"vrt_{image_name}.vrt")
+        warp_opts = gdal.WarpOptions(
+            format="VRT",
+            dstSRS=dst_wkt or None,
+            dstAlpha=True,
+            srcNodata=nodata if nodata is not None else None,
+            cutlineDSName=cutline_ds,
+            cropToCutline=False,
+            resampleAlg=gdal.GRA_NearestNeighbour,
+            multithread=True,
+            warpOptions=["SKIP_NOSOURCE=YES", "NUM_THREADS=ALL_CPUS"],
+        )
+        out_ds = gdal.Warp(vrt_path, image_path, options=warp_opts)
+        if out_ds is None:
+            raise RuntimeError(f"Failed to build masked VRT for {image_name}")
+        out_ds = None
+        src = None
+
+        out_vrts[image_name] = vrt_path
+    return out_vrts
+
+
+def _set_gdal_cache(
+    cache: float | None,
+    debug_logs: bool,
+    ):
+    if cache is not None:
+        gdal.SetCacheMax(int(cache * 1024 ** 3))
+    if debug_logs: print(f"Cache: {gdal.GetCacheMax() / (1024 ** 3):.2f} GB")
+
+def _set_gdal_workers(
+    io_threads: int | str | None,
+    debug_logs: bool,
+    ):
+    if io_threads is not None:
+        if io_threads == "cpu": io_threads = "ALL_CPUS"
+        else: io_threads = str(io_threads)
+        gdal.SetConfigOption("GDAL_NUM_THREADS", io_threads)
+    if debug_logs: print(f'GDAL num threads: {gdal.GetConfigOption("GDAL_NUM_THREADS", "Not set")}')
+
+
+def _resolve_gdal_dtype(
+    override_dtype: str | None = None,
+    input_image_path: str | None = None,
+    debug_logs: bool = False,
+    ) -> str:
+    """
+    Resolve a valid GDAL data type string or image path for output.
 
     Args:
-        win (Window): Raster window to process.
-        band_idx (int): Zero-based band index to read.
-        image_name (str): Identifier for the raster in the WorkerContext.
-        nodata (int | float): Value to assign to masked-out pixels.
-        geoms (list | None): List of geometries to mask with, or None to skip masking.
-        invert (bool): If True, masks outside the geometries (exclude mode).
-        include_touched_pixels (bool): If True, includes pixels touched by mask boundaries.
+        override_dtype (str | None): Desired GDAL dtype name (e.g., "UInt16"). If None, falls back to the dtype of the input image.
+        input_image_path (str): Path to the input raster for fallback.
+        debug_logs (bool): If True, prints debug information.
 
     Returns:
-        tuple[Window, np.ndarray]: The window and its corresponding masked data array.
+        str: GDAL data type name (e.g., "Byte", "UInt16", "Float32").
     """
-    src = WorkerContext.get(image_name)
-    mask_key = (
-        f"{int(win.col_off)}-{int(win.row_off)}-{int(win.width)}-{int(win.height)}"
-    )
+    if override_dtype is not None:
+        if debug_logs:
+            print(f"User-specified output data type: {override_dtype}")
+        return override_dtype
 
-    mask_cache = WorkerContext.cache.setdefault("_mask_cache", {})
-    mask_hits = WorkerContext.cache.setdefault("_mask_hits", {})
+    if input_image_path is None:
+        raise ValueError("input_image_path must be provided if override_dtype is None")
 
-    if geoms:
-        if mask_key not in mask_cache:
-            transform = src.window_transform(win)
-            mask = geometry_mask(
-                geoms,
-                transform=transform,
-                invert=not invert,
-                out_shape=(int(win.height), int(win.width)),
-                all_touched=include_touched_pixels,
-            )
-            mask_cache[mask_key] = mask
-            mask_hits[mask_key] = 0
+    ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
+    dtype_str = gdal.GetDataTypeName(ds.GetRasterBand(1).DataType)
+    if debug_logs:
+        print(f"Image-derived output data type: {dtype_str}")
+    ds = None
+    return dtype_str
 
-        mask = mask_cache[mask_key]
-        data = src.read(band_idx + 1, window=win)
-        data = np.where(mask, data, nodata)
 
-        # Track usage and clean up
-        mask_hits[mask_key] += 1
-        if mask_hits[mask_key] >= src.count:
-            del mask_cache[mask_key]
-            del mask_hits[mask_key]
+
+def _resolve_window_size(
+    window_size: int | None,
+    input_image_path: str,
+    debug_logs: bool,
+    ) -> int:
+    """
+    Resolve the output tile size (window size) for processing.
+
+    Args:
+        window_size (int | None): Desired tile size. If None, fall back to the block size of the input raster (or full image size if untiled).
+        input_image_path (str): Path to the input raster for fallback.
+        debug_logs: bool: If True, prints debug information.
+
+    Returns:
+        int: Tile size in pixels (square, width == height).
+    """
+    if window_size is not None:
+        if window_size <= 0:
+            raise ValueError("window_size must be a positive integer or None.")
+        if debug_logs: print("User-specified window size: ", window_size)
+        return int(window_size)
+
+    ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
+    if ds is None:
+        raise RuntimeError(f"Could not open {input_image_path}")
+    try:
+        band = ds.GetRasterBand(1)
+        if band is None:
+            raise RuntimeError(f"No bands found in {input_image_path}")
+
+        block_x, block_y = band.GetBlockSize()
+        if block_x > 1 and block_y > 1:
+            returned_window_size = block_x if block_x == block_y else max(block_x, block_y)
+            if debug_logs: print(f"    Found window size: {returned_window_size}")
+            return returned_window_size
+    finally:
+        ds = None
+
+
+_STR2ENUM = {
+    "byte": gdal.GDT_Byte,
+    "uint16": gdal.GDT_UInt16, "int16": gdal.GDT_Int16,
+    "uint32": gdal.GDT_UInt32, "int32": gdal.GDT_Int32,
+    "float32": gdal.GDT_Float32, "float64": gdal.GDT_Float64,
+}
+
+
+def _gdal_dtype_str_to_enum(s: str, default=gdal.GDT_Float32) -> int:
+    if s is None:
+        return default
+    return _STR2ENUM.get(str(s).strip().lower(), default)
+
+
+def _gdal_dtype_enum_to_name(dt: int) -> str:
+    return gdal.GetDataTypeName(int(dt))
+
+
+def _get_gdal_bounds(path: str) -> tuple[float, float, float, float]:
+    """
+    Compute spatial bounds of a raster.
+
+    Args:
+        path (str): Path to the raster file.
+
+    Returns:
+        tuple[float, float, float, float]: (min_x, min_y, max_x, max_y) bounds in dataset CRS.
+    """
+    ds = gdal.Open(path, gdal.GA_ReadOnly)
+    if ds is None:
+        raise RuntimeError(f"Could not open {path}")
+    w, h = ds.RasterXSize, ds.RasterYSize
+    gt = ds.GetGeoTransform()
+    corners = [gdal.ApplyGeoTransform(gt, x, y) for x, y in [(0,0), (w,0), (w,h), (0,h)]]
+    xs, ys = zip(*corners)
+    ds = None
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _get_valid_count(
+    band,
+    approx_ok=True,
+    force=True,
+):
+    """
+    Get the valid pixel count of a raster band.
+
+    Args:
+        band (gdal.Band): Raster band to compute stats for.
+        approx_ok (bool): Allow approximate statistics (fast, may be inaccurate).
+        force (bool): If True, force computation if stats are not cached.
+
+    Returns:
+        valid_count
+    """
+    # valid pixel count via mask-mean
+    flags = band.GetMaskFlags()
+    if flags & gdal.GMF_ALL_VALID:
+        n_valid = band.XSize * band.YSize
     else:
-        data = src.read(band_idx + 1, window=win)
+        _, _, m_mean, _ = band.GetMaskBand().GetStatistics(
+        1 if approx_ok else 0,
+            1 if force else 0
+        )
+        valid_frac = 0.0 if (m_mean is None) else (m_mean / 255.0)
+        n_valid = int(round(valid_frac * band.XSize * band.YSize))
 
-    return win, data
+    return n_valid
