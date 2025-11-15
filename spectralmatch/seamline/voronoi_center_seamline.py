@@ -1,26 +1,28 @@
+import math
 import os
-import rasterio
-import numpy as np
 import networkx as nx
 import fiona
 
 from fiona.errors import DriverError
-from rasterio.features import shapes
-from affine import Affine
-from shapely.geometry import MultiPoint
+from shapely.affinity import affine_transform
+from shapely.wkt import loads as wkt_loads
 from shapely.geometry import (
-    shape,
     Polygon,
     LineString,
     mapping,
     GeometryCollection,
     Point,
+    MultiPoint,
+    shape
 )
-from shapely.ops import split, voronoi_diagram
+from fiona import open as fopen
+from shapely.ops import split, voronoi_diagram, unary_union
 from itertools import combinations
-from typing import List, Tuple
+from typing import List
+from osgeo import gdal, ogr, osr
+gdal.UseExceptions()
 
-from ..handlers import search_paths, _resolve_paths
+from ..handlers import _resolve_paths
 from ..types_and_validation import Universal
 
 
@@ -28,6 +30,7 @@ def voronoi_center_seamline(
     input_images: Universal.CreateInFolderOrListFiles,
     output_mask: str,
     *,
+    aoi_path: str | None = None,
     image_field_name: str = "image",
     min_point_spacing: float = 10,
     min_cut_length: float = 0,
@@ -40,6 +43,7 @@ def voronoi_center_seamline(
     Args:
         input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
         output_mask (str): Output path for the final seamline polygon vector file.
+        aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.
         min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.
         min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.
         debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
@@ -61,17 +65,27 @@ def voronoi_center_seamline(
 
     emps = []
     crs = None
-    for p in input_image_paths:
-        mask, transform = _read_mask(p, debug_logs)
-        emp = _seamline_mask(mask, transform, debug_logs)
+    for path in input_image_paths:
+        emp = _emp_polygon_from_image(path)
         emps.append(emp)
         if crs is None:
-            with rasterio.open(p) as src:
-                crs = src.crs
+            ds = gdal.Open(path, gdal.GA_ReadOnly)
+            crs = ds.GetProjectionRef()
+            ds = None
 
     for i, emp in enumerate(emps):
         if debug_logs:
             print(f"EMP{i}: area={emp.area:.2f}, bounds={emp.bounds}")
+
+    if os.path.exists(debug_vectors_path): os.remove(debug_vectors_path)
+    if debug_vectors_path:
+        _save_emp_outlines(
+            emps,
+            input_image_paths,
+            debug_vectors_path,
+            crs,
+            image_field_name=image_field_name,
+        )
 
     cuts: List[LineString] = []
     for i, (a, b) in enumerate(combinations(emps, 2)):
@@ -99,7 +113,7 @@ def voronoi_center_seamline(
             debug_vectors_path,
             "w",
             driver="GPKG",
-            crs=crs,
+            crs_wkt=crs,
             schema=schema,
             layer="cutlines",
         ) as dst:
@@ -121,9 +135,12 @@ def voronoi_center_seamline(
             )
         segmented.append(seg)
 
+    if aoi_path is not None:
+        segmented = _mask_by_aoi(segmented, aoi_path)
+
     schema = {"geometry": "Polygon", "properties": {image_field_name: "str"}}
     with fiona.open(
-        output_mask, "w", driver="GPKG", crs=crs, schema=schema, layer="seamlines"
+        output_mask, "w", driver="GPKG", crs_wkt=crs, schema=schema, layer="seamlines"
     ) as dst:
         for img, poly in zip(input_image_paths, segmented):
             dst.write(
@@ -136,90 +153,93 @@ def voronoi_center_seamline(
             )
 
 
-def _read_mask(path: str, debug_logs: bool = False) -> Tuple[np.ndarray, Affine]:
-    """
-    Reads a raster mask and returns a binary array where valid data is True.
-
-    Args:
-        path (str): Path to the input raster file.
-        debug_logs (bool, optional): If True, enables debug output; default is False.
-
-    Returns:
-        Tuple[np.ndarray, Affine]: A binary mask array and the associated affine transform.
-    """
-
-    with rasterio.open(path) as src:
-        arr = src.read(1)
-        nod = src.nodatavals[0]
-        return arr != nod, src.transform
-
-
-def _seamline_mask(
-    mask: np.ndarray, transform: Affine, debug_logs: bool = False
-) -> Polygon:
-    """
-    Extracts polygons from a binary mask and returns the largest as the EMP.
-
-    Args:
-        mask (np.ndarray): Binary mask where True indicates valid area.
-        transform (Affine): Affine transform associated with the mask.
-        debug_logs (bool, optional): If True, prints debug info; default is False.
-
-    Returns:
-        Polygon: The largest extracted polygon from the mask.
-    """
-
-    polys = [
-        shape(geom)
-        for geom, val in shapes(mask.astype(np.uint8), mask=mask, transform=transform)
-        if val == 1
-    ]
-    if debug_logs:
-        print(f"Extracted {len(polys)} polygons from mask")
-    if not polys:
-        raise ValueError("No valid EMP polygons found")
-    largest = max(polys, key=lambda p: p.area)
-    return largest
-
-
 def _densify_polygon(
-    poly: Polygon | GeometryCollection, dist: float, debug_logs: bool = False
-) -> List[Tuple[float, float]]:
+    poly,
+    target_spacing: float,
+):
     """
-    Densifies the exterior of the largest polygon by inserting points at regular intervals.
+    Return evenly spaced points along a polygon's exterior by arc-length.
 
     Args:
-        poly (Polygon | GeometryCollection): Input geometry to densify.
-        dist (float): Maximum distance between inserted points.
-        debug_logs (bool, optional): If True, prints debug info; default is False.
+        poly: shapely Polygon
+        target_spacing: target arc-length spacing between seeds (density goal)
 
     Returns:
-        List[Tuple[float, float]]: List of (x, y) coordinates with added intermediate points.
+        list[(x, y)]  -- open list (first point not repeated at end)
     """
+    if target_spacing <= 0:
+        raise ValueError("target_spacing must be > 0")
 
-    # Extract coordinates from valid polygon geometries
-    if isinstance(poly, Polygon):
-        geometries = [poly]
-    elif isinstance(poly, GeometryCollection):
-        geometries = [g for g in poly.geoms if isinstance(g, Polygon)]
-    else:
-        raise TypeError(f"Unsupported geometry type: {type(poly)}")
+    coords = list(poly.exterior.coords)
+    if len(coords) < 2:
+        return coords
 
-    if not geometries:
-        raise ValueError("No polygon geometry found to densify")
+    # drop the duplicate closing vertex
+    coords = coords[:-1]
 
-    # Use the largest polygon
-    largest = max(geometries, key=lambda p: p.area)
-    coords = list(largest.exterior.coords)
+    pts = []
+    # seed with the very first vertex once
+    pts.append(tuple(coords[0]))
 
-    dense = []
-    for (x0, y0), (x1, y1) in zip(coords, coords[1:]):
-        d = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
-        n = max(int(d // dist), 1)
-        for j in range(n):
-            dense.append((x0 + (x1 - x0) * j / n, y0 + (y1 - y0) * j / n))
-    return dense
+    for (x0, y0), (x1, y1) in zip(coords, coords[1:] + coords[:1]):
+        dx, dy = (x1 - x0), (y1 - y0)
+        L = math.hypot(dx, dy)
+        if L == 0:
+            continue
 
+        # choose N to minimize |L - N*target_spacing|
+        n_floor = int(L // target_spacing)
+        if n_floor < 1:
+            n_floor = 1
+        n_ceil = n_floor + 1
+
+        # pick the better of {n_floor, n_ceil}
+        N = n_floor if abs(L - n_floor * target_spacing) <= abs(L - n_ceil * target_spacing) else n_ceil
+
+        # actual spacing along this edge
+        for k in range(1, N):
+            t = k / N  # fraction along this edge
+            x = x0 + dx * t
+            y = y0 + dy * t
+            pts.append((x, y))
+
+        # do NOT append (x1, y1); next edge starts from it
+
+    return pts
+
+
+def polygonal_intersection(a: Polygon, b: Polygon, buffer_eps: float = 1e-8):
+    """
+    Returns only the polygonal portion of a ∩ b. If the intersection is line-like or point-like, it buffers slightly to form a polygon.
+
+    Args:
+        a (Polygon): Input geometries.
+        b (Polygon): Input geometries.
+        buffer_eps (float): Small buffer distance to 'inflate' line/point intersections.
+
+    Returns:
+        Polygon or MultiPolygon
+    """
+    inter = a.intersection(b)
+
+    # Case 1: already polygonal
+    if inter.geom_type in ("Polygon", "MultiPolygon"):
+        return inter
+
+    # Case 2: geometry collection — extract polygonal parts
+    if inter.geom_type == "GeometryCollection":
+        polys = [g for g in inter.geoms if g.geom_type in ("Polygon", "MultiPolygon")]
+        if polys:
+            return unary_union(polys)
+
+    # Case 3: line or point — buffer to small polygon
+    if not inter.is_empty:
+        # use small fraction of bbox size as buffer
+        eps = max(a.bounds[2] - a.bounds[0], a.bounds[3] - a.bounds[1]) * buffer_eps
+        return inter.buffer(eps).buffer(0)
+
+    # Case 4: no overlap
+    return Polygon()
 
 def _compute_centerline(
     a: Polygon,
@@ -246,8 +266,8 @@ def _compute_centerline(
         LineString: Shortest centerline path computed through the Voronoi diagram of the overlap.
     """
 
-    voa = a.intersection(b)
-    pts = _densify_polygon(voa, min_point_spacing, debug_logs)
+    voa = polygonal_intersection(a, b)
+    pts = _densify_polygon(voa, min_point_spacing)
 
     # Compute intersection and extract both Voronoi and anchor points
     boundary_pts = a.boundary.intersection(b.boundary)
@@ -277,6 +297,17 @@ def _compute_centerline(
     if debug_logs:
         print(f"Densified {len(pts)} points")
         print(f"Convex hull area: {MultiPoint(pts).convex_hull.area}")
+
+    minx, miny, maxx, maxy = voa.bounds
+    w, h = maxx - minx, maxy - miny
+    eps = max(w, h) * 1e-9                 # very small offset
+    pts = [(x + (i & 1) * eps, y + ((i >> 1) & 1) * eps)
+           for i, (x, y) in enumerate(pts)]
+    if debug_logs:
+        print(f"Applied jitter of {eps} to {len(pts)} points")
+
+    if debug_vectors_path:
+        _save_seed_points(pts, debug_vectors_path, crs)
 
     multi = voronoi_diagram(GeometryCollection([Point(p) for p in pts]), edges=False)
 
@@ -412,7 +443,7 @@ def _save_intersection_points(
         mode = "w"
 
     with fiona.open(
-        path, mode=mode, driver="GPKG", crs=crs, schema=schema, layer=layer_name
+        path, mode=mode, driver="GPKG", crs_wkt=crs, schema=schema, layer=layer_name
     ) as dst:
         for pt in points:
             dst.write(
@@ -457,7 +488,7 @@ def _save_voronoi_cells(
     mode = "a" if layer_exists else "w"
 
     with fiona.open(
-        path, mode=mode, driver="GPKG", crs=crs, schema=schema, layer=layer_name
+        path, mode=mode, driver="GPKG", crs_wkt=crs, schema=schema, layer=layer_name
     ) as dst:
         for geom in voronoi_cells.geoms:
             if isinstance(geom, Polygon):
@@ -467,3 +498,124 @@ def _save_voronoi_cells(
                         "properties": {},
                     }
                 )
+
+
+def _save_emp_outlines(
+    emps: List[Polygon],
+    image_paths: List[str],
+    path: str,
+    crs,
+    image_field_name: str = "image",
+    layer_name: str = "emp_outline",
+) -> None:
+    """
+    Save initial EMP polygons (one per image) to a GPKG layer.
+    """
+    schema = {"geometry": "Polygon", "properties": {image_field_name: "str"}}
+
+    # decide append vs create layer
+    mode = "a"
+    if not os.path.exists(path) or layer_name not in fiona.listlayers(path):
+        mode = "w"
+
+    with fiona.open(
+        path, mode=mode, driver="GPKG", crs_wkt=crs, schema=schema, layer=layer_name
+    ) as dst:
+        for emp, img in zip(emps, image_paths):
+            dst.write(
+                {
+                    "geometry": mapping(emp),
+                    "properties": {
+                        image_field_name: os.path.splitext(os.path.basename(img))[0]
+                    },
+                }
+            )
+
+
+def _save_seed_points(
+    pts: list[tuple[float, float]],
+    path: str,
+    crs,
+    layer_name: str = "voronoi_seeds",
+) -> None:
+    """
+    Saves Voronoi seed points to a GeoPackage layer.
+
+    Args:
+        pts (list[tuple]): List of (x, y) seed coordinates.
+        path (str): Path to the output GeoPackage.
+        crs: Coordinate reference system.
+        layer_name (str, optional): Layer name. Defaults to 'voronoi_seeds'.
+    """
+    schema = {"geometry": "Point", "properties": {}}
+
+    mode = "a"
+    if not os.path.exists(path) or layer_name not in fiona.listlayers(path):
+        mode = "w"
+
+    with fiona.open(path, mode=mode, driver="GPKG", crs_wkt=crs, schema=schema, layer=layer_name) as dst:
+        for x, y in pts:
+            dst.write({"geometry": mapping(Point(x, y)), "properties": {}})
+
+
+def _emp_polygon_from_image(
+    path: str,
+    eight_connected: bool = True
+):
+    """
+    Extract the largest valid EMP polygon from a raster mask using GDAL.
+
+    Args:
+        path (str): Path to the input raster file.
+        eight_connected (bool, optional): Use 8-connectedness for polygonization. Default is True.
+
+    Returns:
+        shapely.geometry.Polygon | ogr.Geometry: The largest EMP polygon.
+    """
+    ds = gdal.Open(path, gdal.GA_ReadOnly)
+    if ds is None:
+        raise RuntimeError(f"Cannot open {path}")
+    gt = ds.GetGeoTransform()
+    band = ds.GetRasterBand(1)
+    mask = band.GetMaskBand()
+
+    vds = ogr.GetDriverByName("MEM").CreateDataSource("mem")
+    lyr = vds.CreateLayer("emp", geom_type=ogr.wkbPolygon)
+    lyr.CreateField(ogr.FieldDefn("val", ogr.OFTInteger))
+
+    opts = ["8CONNECTED=8"] if eight_connected else None
+    gdal.Polygonize(mask, None, lyr, 0, options=opts, callback=None)
+
+    lyr.ResetReading()
+    best_area, best_geom = -1, None
+    for feat in lyr:
+        if feat.GetField("val") == 255:  # 255 = valid
+            geom = feat.GetGeometryRef()
+            if geom and geom.GetArea() > best_area:
+                best_area = geom.GetArea()
+                best_geom = geom.Clone()
+
+    if best_geom is None:
+        raise ValueError("No valid EMP polygon found")
+
+    poly_px = wkt_loads(best_geom.ExportToWkt())
+    poly_map = affine_transform(poly_px, (gt[1], gt[2], gt[4], gt[5], gt[0], gt[3]))
+
+    ds = None
+    return poly_map
+
+
+def _mask_by_aoi(polygons: list[Polygon], aoi_path: str) -> list[Polygon]:
+    """Clip polygons by an AOI layer from file.
+
+    Args:
+        polygons (list[Polygon]): Input seamline polygons.
+        aoi_path (str): Path to vector file containing AOI polygon(s).
+
+    Returns:
+        list[Polygon]: List of clipped polygons (empties dropped).
+    """
+    with fopen(aoi_path, "r") as src:
+        aoi = unary_union([shape(feat["geometry"]) for feat in src])
+
+    return [poly.intersection(aoi) for poly in polygons if not poly.is_empty]
