@@ -77,8 +77,8 @@ def voronoi_center_seamline(
         if debug_logs:
             print(f"EMP{i}: area={emp.area:.2f}, bounds={emp.bounds}")
 
-    if os.path.exists(debug_vectors_path): os.remove(debug_vectors_path)
     if debug_vectors_path:
+        if os.path.exists(debug_vectors_path): os.remove(debug_vectors_path)
         _save_emp_outlines(
             emps,
             input_image_paths,
