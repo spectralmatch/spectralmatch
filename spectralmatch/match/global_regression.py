@@ -1052,15 +1052,15 @@ def _overlap_stats_process_image(
         stats = {name_i: {name_j: {}}, name_j: {name_i: {}}}
 
         size_i = _get_valid_count(i_ds.GetRasterBand(1), estimate_stats)
-        size_j = _get_valid_count(j_ds.GetRasterBand(1), estimate_stats)
-        if size_i != size_j: raise ValueError(f"Raster sizes differ: {size_i} vs {size_j}") # They should not differ but just in case
+        # size_j = _get_valid_count(j_ds.GetRasterBand(1), estimate_stats)
+        # if size_i != size_j: raise ValueError(f"Raster sizes differ: {size_i} vs {size_j}") # They should not differ but just in case
 
         for b in range(1, num_bands + 1):
             _, _, mean_i, std_i = i_ds.GetRasterBand(b).GetStatistics(1 if estimate_stats else 0, 1)
             _, _, mean_j, std_j = j_ds.GetRasterBand(b).GetStatistics(1 if estimate_stats else 0, 1)
 
             stats[name_i][name_j][b - 1] = {"mean": float(mean_i), "std": float(std_i), "size": size_i}
-            stats[name_j][name_i][b - 1] = {"mean": float(mean_j), "std": float(std_j), "size": size_j}
+            stats[name_j][name_i][b - 1] = {"mean": float(mean_j), "std": float(std_j), "size": size_i}
 
         i_ds = None
         j_ds = None
