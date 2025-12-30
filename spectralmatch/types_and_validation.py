@@ -243,7 +243,7 @@ class Match:
                 raise ValueError("alpha must be a float or int.")
 
         if correction_method is not _UNSET:
-            if correction_method not in {"gamma", "linear"}:
+            if correction_method not in {"gamma", "linear", "offset"}:
                 raise ValueError(
                     "correction_method must be either 'gamma' or 'linear'."
                 )

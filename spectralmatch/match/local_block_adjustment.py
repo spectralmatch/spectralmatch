@@ -32,7 +32,7 @@ def local_block_adjustment(
     save_as_cog: Universal.SaveAsCog = False,
     number_of_blocks: int | Tuple[int, int] | Literal["coefficient_of_variation"] = 100,
     alpha: float = 1.0,
-    correction_method: Literal["gamma", "linear"] = "linear",
+    correction_method: Literal["gamma", "linear", "offset"] = "linear",
     save_block_maps: Tuple[str, str] | None = None,
     load_block_maps: (
         Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None
@@ -59,7 +59,7 @@ def local_block_adjustment(
         save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
         number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
         alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.
-        correction_method (Literal["gamma", "linear"], optional): Local correction method. Defaults to "gamma".
+        correction_method (Literal["gamma", "linear", "offset"], optional): Local correction method. Defaults to "gamma". Offset is commended for images with negative values.
         save_block_maps (tuple(str, str) | None): If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.
             - First str is the path to save the global block map.
             - Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).
@@ -559,13 +559,14 @@ def _apply_adjustment_process_image(
     num_col: int,
     nodata_val: float,
     alpha: float,
-    correction_method: Literal["gamma", "linear"],
+    correction_method: Literal["gamma", "linear", "offset"],
     calculation_dtype: str,
     output_dtype,
     debug_logs: bool,
     tile_thread_on: bool,
     tile_thread_workers: int,
     save_as_cog: bool,
+    estimate_stats: bool = False,
 ):
     """
     Apply local radiometric adjustment (linear or gamma) to a raster image using block-based reference and local mean surfaces. Builds parameter surfaces as rasters, warps them to the image grid, and creates a VRT with per-pixel expressions, then materializes the output as GTiff or COG.
@@ -641,6 +642,23 @@ def _apply_adjustment_process_image(
         if ds_out is None:
             raise RuntimeError("Warp failed building parameter surface")
 
+    # Build offset if enabled
+    if correction_method == "offset":
+        global_min = np.inf
+        src = gdal.Open(img_path, gdal.GA_ReadOnly)
+        for b in range(1, num_bands + 1):
+            band = src.GetRasterBand(b)
+            min_val, _, _, _ = band.GetStatistics(1 if estimate_stats else 0, 1)
+            global_min = min(global_min, min_val)
+        src = None
+        global_min = min(
+            global_min,
+            np.nanmin(block_reference_mean),
+            np.nanmin(block_local_mean),
+        )
+        offset = abs(global_min) + 1.0 if global_min <= 0 else 0.0
+        offsets = [offset] * num_bands
+
     # Build full-resolution *single* parameter surfaces
     param_surfaces = []  # per-band path to VRT of G (linear) or GG (gamma)
     for b in range(num_bands):
@@ -651,10 +669,14 @@ def _apply_adjustment_process_image(
             # G = r / l ; invalid when l==0 or NaN
             with np.errstate(divide="ignore", invalid="ignore"):
                 param_blk = ref_blk / loc_blk
-        else:
+        elif correction_method == "gamma":
             # GG = log(r) / log(l) ; invalid when r<=0 or l<=0
             with np.errstate(divide="ignore", invalid="ignore"):
                 param_blk = np.log(ref_blk) / np.log(loc_blk)
+        elif correction_method == "offset":
+            offset = offsets[b]
+            with np.errstate(divide="ignore", invalid="ignore"):
+                param_blk = np.log(ref_blk + offset) / np.log(loc_blk + offset)
 
         # keep invalids as NaN so they propagate
         param_blk[~np.isfinite(param_blk)] = np.nan
@@ -666,62 +688,73 @@ def _apply_adjustment_process_image(
         _warp_to_image_grid(param_blk_tif, param_full_vrt)
         param_surfaces.append(param_full_vrt)
 
+        # Debug full resolution adjustments per pixel
+        # gdal.Translate(
+        #     f"/path/to/test/FullResMap_{name}_b{b + 1}.tif",
+        #     param_full_vrt,
+        #     options=gdal.TranslateOptions(format="GTiff")
+        # )
+
     # --- VRT using the built-in expression pixel function --------------------
     out_vrt = os.path.join(tmpdir, f"{name}_local_adjust.vrt")
     calc_dtype_enum = _gdal_dtype_str_to_enum(calculation_dtype)
     calc_dtype_name = gdal.GetDataTypeName(calc_dtype_enum)
 
-    # math expressions with guards (NaNs propagate automatically)
-    if correction_method == "linear":
-        if nodata_val is None:
-            # Fastest case: no nodata check at all
-            expr = "(v * P)"
-        else:
-            # Guard with mask for nodata handling
-            expr = f"(m==0) ? {nodata_val} : (v * P)"
-    else:  # "gamma"
-        if nodata_val is None:
-            expr = f"({alpha} * pow(v, P))"
-        else:
-            expr = f"(m==0) ? {nodata_val} : ({alpha} * pow(v, P))"
-
     bands_xml = []
     for b in range(1, num_bands + 1):
+        if correction_method == "linear":
+            if nodata_val is None:
+                expr = "(v * P)"
+            else:
+                expr = f"(m==0) ? {nodata_val} : (v * P)"
+        elif correction_method == "gamma":  # "gamma"
+            if nodata_val is None:
+                expr = f"({alpha} * (v^P))"
+            else:
+                expr = f"(m==0) ? {nodata_val} : ({alpha} * (v^P))"
+        elif correction_method == "offset":
+            # Apply offset to each band
+            offset = offsets[b - 1]
+            if nodata_val is None:
+                expr = f"({alpha} * ((v + {offset}) ^ P) - {offset})"
+            else:
+                expr = f"(m==0) ? {nodata_val} : ({alpha} * ((v + {offset}) ^ P) - {offset})"
+
         bands_xml.append(f"""
-    <VRTRasterBand dataType="{calc_dtype_name}" subClass="VRTDerivedRasterBand" band="{b}">
-      <PixelFunctionType>expression</PixelFunctionType>
-      <PixelFunctionArguments dialect="muparser" expression="{expr}"/>
-      {f"<NoDataValue>{nodata_val}</NoDataValue>" if nodata_val is not None else ""}
-      <!-- input band v -->
-      <SimpleSource name="v">
-        <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
-        <SourceBand>{b}</SourceBand>
-        <SourceTransferType>{calc_dtype_name}</SourceTransferType>
-        <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-        <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-      </SimpleSource>
-      <!-- parameter surface P: G (linear) or GG (gamma) -->
-      <SimpleSource name="P">
-        <SourceFilename relativeToVRT="0">{param_surfaces[b-1]}</SourceFilename>
-        <SourceBand>1</SourceBand>
-        <SourceTransferType>{calc_dtype_name}</SourceTransferType>
-        <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-        <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-      </SimpleSource>
-      <!-- input mask m (0 = invalid) -->
-      <SimpleSource name="m">
-        <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
-        <SourceBand>mask</SourceBand>
-        <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-        <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-      </SimpleSource>
-    </VRTRasterBand>""")
+        <VRTRasterBand dataType="{calc_dtype_name}" subClass="VRTDerivedRasterBand" band="{b}">
+          <PixelFunctionType>expression</PixelFunctionType>
+          <PixelFunctionArguments dialect="muparser" expression="{expr}"/>
+          {f"<NoDataValue>{nodata_val}</NoDataValue>" if nodata_val is not None else ""}
+          <!-- input band v -->
+          <SimpleSource name="v">
+            <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
+            <SourceBand>{b}</SourceBand>
+            <SourceTransferType>{calc_dtype_name}</SourceTransferType>
+            <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+            <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+          </SimpleSource>
+          <!-- parameter surface P: G (linear) or GG (gamma) -->
+          <SimpleSource name="P">
+            <SourceFilename relativeToVRT="0">{param_surfaces[b-1]}</SourceFilename>
+            <SourceBand>1</SourceBand>
+            <SourceTransferType>{calc_dtype_name}</SourceTransferType>
+            <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+            <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+          </SimpleSource>
+          <!-- input mask m (0 = invalid) -->
+          <SimpleSource name="m">
+            <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
+            <SourceBand>mask</SourceBand>
+            <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+            <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+          </SimpleSource>
+        </VRTRasterBand>""")
 
     vrt_xml = f"""<VRTDataset rasterXSize="{w}" rasterYSize="{h}">
-  <SRS>{proj_wkt or ''}</SRS>
-  <GeoTransform>{gt[0]}, {gt[1]}, {gt[2]}, {gt[3]}, {gt[4]}, {gt[5]}</GeoTransform>
-  {''.join(bands_xml)}
-</VRTDataset>"""
+    <SRS>{proj_wkt or ''}</SRS>
+    <GeoTransform>{gt[0]}, {gt[1]}, {gt[2]}, {gt[3]}, {gt[4]}, {gt[5]}</GeoTransform>
+    {''.join(bands_xml)}
+    </VRTDataset>"""
 
     with open(out_vrt, "w", encoding="utf-8") as f:
         f.write(vrt_xml)
