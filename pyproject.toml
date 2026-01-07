@@ -29,9 +29,8 @@ classifiers = [
 ]
 
 dependencies = [
+    "ipython", # Only to satisfy OmniCloudMask dependancies not explicitely listed upsteam
     "numpy>=2.2.3",
-    "rasterio>=1.4.3",
-    "gdal>=3.10.2",
     "scipy>=1.15.2",
     "fiona>=1.10.1",
     "omnicloudmask>=1.0.11",
@@ -42,6 +41,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+system-level = [
+    "gdal>=3.10.2",
+    "proj>=9.3",
+    "rasterio>=1.4.3",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-mock>=3.14.0",
