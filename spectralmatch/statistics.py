@@ -5,6 +5,8 @@ import rasterio
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+from osgeo import gdal
+
 
 def compare_image_spectral_profiles_pairs(
     image_groups_dict: dict,
@@ -13,6 +15,7 @@ def compare_image_spectral_profiles_pairs(
     xlabel: str,
     ylabel: str,
     line_width: float = 1,
+    estimate_stats: bool = True,
 ):
     """
     Plots paired spectral profiles for before-and-after image comparisons.
@@ -32,6 +35,7 @@ def compare_image_spectral_profiles_pairs(
         xlabel (str): X-axis label.
         ylabel (str): Y-axis label.
         line_width (float, optional): Width of the spectral profiles lines. Default is 1.
+        estimate_stats (bool, optional): Whether to estimate band statistics. Default is True.
 
     Outputs:
         Saves a spectral comparison plot showing pre- and post-processing profiles.
@@ -47,26 +51,37 @@ def compare_image_spectral_profiles_pairs(
             color = next(colors)
 
             for i, image_path in enumerate([image_path1, image_path2]):
-                with rasterio.open(image_path) as src:
-                    img = src.read()
-                    num_bands = img.shape[0]
-                    img_reshaped = img.reshape(num_bands, -1)
-                    nodata = src.nodata
-                    if nodata is not None:
-                        img_reshaped = np.where(
-                            img_reshaped == nodata, np.nan, img_reshaped
-                        )
-                    mean_spectral = np.nanmean(img_reshaped, axis=1)
-                    bands = np.arange(1, num_bands + 1)
-                    linestyle = "dashed" if i == 0 else "solid"
-                    plt.plot(
-                        bands,
-                        mean_spectral,
-                        linestyle=linestyle,
-                        color=color,
-                        linewidth=line_width,
-                        label=f"{label} - {'Before' if i == 0 else 'After'}",
-                    )
+                ds = gdal.Open(image_path, gdal.GA_ReadOnly)
+                if ds is None:
+                    continue
+
+                num_bands = ds.RasterCount
+                mean_spectral = np.zeros(num_bands, dtype=float)
+
+                for b in range(1, num_bands + 1):
+                    band = ds.GetRasterBand(b)
+
+                    # (min, max, mean, std)
+                    stats = band.GetStatistics(False, estimate_stats)
+
+                    # stats[2] is the mean
+                    mean_spectral[b - 1] = stats[2]
+
+                ds = None
+
+                bands = np.arange(1, num_bands + 1)
+                linestyle = "dashed" if i == 0 else "solid"
+
+                plt.plot(
+                    bands,
+                    mean_spectral,
+                    linestyle=linestyle,
+                    color=color,
+                    linewidth=line_width,
+                    label=f"{label} - {'Before' if i == 0 else 'After'}",
+                )
+
+                ds = None
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -74,7 +89,7 @@ def compare_image_spectral_profiles_pairs(
     plt.legend()
     plt.grid(True)
     plt.xticks(np.arange(1, num_bands + 1, 1))
-    plt.legend(frameon=True, facecolor='white', edgecolor='black', framealpha=1)
+    plt.legend(frameon=True, facecolor="white", edgecolor="black", framealpha=1)
     plt.savefig(output_figure_path, dpi=300)
     plt.close()
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
