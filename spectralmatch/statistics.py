@@ -86,10 +86,15 @@ def compare_image_spectral_profiles_pairs(
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
-    plt.legend()
+    plt.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        ncol=2,
+        frameon=True,
+    )
+    plt.tight_layout()
     plt.grid(True)
     plt.xticks(np.arange(1, num_bands + 1, 1))
-    plt.legend(frameon=True, facecolor="white", edgecolor="black", framealpha=1)
     plt.savefig(output_figure_path, dpi=300)
     plt.close()
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
