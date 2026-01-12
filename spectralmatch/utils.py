@@ -325,6 +325,7 @@ def merge_rasters(
     output_dtype: Universal.CustomOutputDtype = None,
     custom_nodata_value: Universal.CustomNodataValue = None,
     resolution: Literal["highest", "average", "lowest"] = "highest",
+    window_size: Universal.WindowSize = None,
 ) -> str:
     """
     Merges multiple rasters into a single output using GDAL Warp (C++), aligning them to the union extent and a unified resolution. Supports parallelism via GDAL threading knobs.
@@ -339,14 +340,11 @@ def merge_rasters(
         output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
         resolution ("highest" | "average" | "lowest", optional): Strategy for computing merge resolution.
-
+        window_size (int | None): Tile size for processing tiles. Defaults to None.
     Returns:
         str: Path of the merged raster.
 
     """
-
-    if debug_logs:
-        print("Start raster merging")
 
     Universal.validate(
         input_images=input_images,
@@ -355,81 +353,63 @@ def merge_rasters(
         io_threads=io_threads,
         tile_threads=tile_threads,
         output_dtype=output_dtype,
+        window_size=window_size,
         custom_nodata_value=custom_nodata_value,
     )
+
+    # Setup parallel
+    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
     input_image_paths = _resolve_paths(
         "search", input_images, kwargs={"default_file_pattern": "*.tif"}
     )
 
-    output_dtype = _resolve_gdal_dtype(output_dtype, input_image_paths[0], debug_logs)
-    nodata_val = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
-
-
-    # Setup parallel
-    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
-
+    # Dtype
+    output_dtype = _gdal_dtype_str_to_enum(_resolve_gdal_dtype(output_dtype, input_image_paths[0]))
 
     _set_gdal_cache(cache, debug_logs)
     _set_gdal_workers(io_threads, debug_logs)
 
     if debug_logs:
-        print(f"Merging {len(input_image_paths)} rasters to: {output_image_path}")
+        print(f"Building VRT from {len(input_image_paths)} rasters")
 
-    # Compute resolution using strategy
-    xres, yres = compute_resolution(input_image_paths, resolution)
+    vrt_opts = gdal.BuildVRTOptions(
+        resolution=resolution,
+        srcNodata=custom_nodata_value,
+        VRTNodata=custom_nodata_value,
+    )
 
-    # Compute union bounds
-    bounds_list = []
-    for path in input_image_paths:
-        ds = gdal.Open(path, gdal.GA_ReadOnly)
-        gt = ds.GetGeoTransform()
-        w, h = ds.RasterXSize, ds.RasterYSize
-        xmin = gt[0]
-        ymax = gt[3]
-        xmax = xmin + w * gt[1]
-        ymin = ymax + h * gt[5]
-        bounds_list.append((xmin, ymin, xmax, ymax))
-        ds = None
+    vrt_ds = gdal.BuildVRT("", input_image_paths, options=vrt_opts)
 
-    xmin = min(b[0] for b in bounds_list)
-    ymin = min(b[1] for b in bounds_list)
-    xmax = max(b[2] for b in bounds_list)
-    ymax = max(b[3] for b in bounds_list)
+    creation_options = [
+        "TILED=YES",
+        "BIGTIFF=YES",
+        "COMPRESS=ZSTD",
+    ]
 
-    kwargs = {
-        "format": "GTiff",
-        "outputBounds": (xmin, ymin, xmax, ymax),
-        "xRes": xres,
-        "yRes": yres,
-        "resampleAlg": "near",
-        "warpOptions": [
-            "SKIP_NOSOURCE=YES",
-            "UNIFIED_SRC_NODATA=YES",
-            "INIT_DEST=NO_DATA",
-        ],
-    }
+    if window_size:
+        creation_options += [
+            f"BLOCKXSIZE={window_size}",
+            f"BLOCKYSIZE={window_size}",
+        ]
 
-    if output_dtype:
-        dt = gdal.GetDataTypeByName(output_dtype)
-        if dt == gdal.GDT_Unknown:
-            raise ValueError(f"Invalid output_dtype: {output_dtype}")
-        kwargs["outputType"] = dt
+    if tile_thread_workers is not None and str(tile_thread_workers).strip():
+        creation_options.append(f"NUM_THREADS={tile_thread_workers}")
 
-    if custom_nodata_value is not None:
-        kwargs["srcNodata"] = custom_nodata_value
-        kwargs["dstNodata"] = custom_nodata_value
+    translate_opts = gdal.TranslateOptions(
+        format="GTiff",
+        outputType=output_dtype,
+        noData=custom_nodata_value,
+        creationOptions=creation_options,
+    )
 
-    if tile_thread_on:
-        kwargs["warpOptions"].append(f"NUM_THREADS={tile_threads}")
-        kwargs["multithread"] = True
+    gdal.Translate(
+        destName=output_image_path,
+        srcDS=vrt_ds,
+        options=translate_opts,
+    )
 
-    warp_options = gdal.WarpOptions(**kwargs)
-
-    gdal.Warp(destNameOrDestDS=output_image_path,
-              srcDSOrSrcDSTab=input_image_paths,
-              options=warp_options)
-
+    vrt_ds = None
     return output_image_path
 
 
@@ -453,7 +433,7 @@ def mask_rasters(
         input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
         output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
         vector_mask (Universal.VectorMask, optional): Tuple ('include'|'exclude', vector_path, optional field name).
-        window_size (int | Tuple[int, int] | Literal["block"] | None): Tile size for processing: int for square tiles, (width, height) for custom size, or "block" to set as the size of the block map, None for full image. Defaults to None.
+        window_size (int | None): Tile size for processing tiles. Defaults to None.
         debug_logs (bool, optional): If True, prints progress. Defaults to False.
         cache (int | Tuple[int, str] | None, optional): Controls GDAL cache size. Examples: 2048 (MB), (2, "GB"). Set None to use GDAL’s default. Applied via GDAL_CACHEMAX.        window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
         image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
