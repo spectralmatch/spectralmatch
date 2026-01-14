@@ -34,7 +34,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate docs_env
-          pip install -e ".[docs]"
+          pip install --no-cache-dir -e ".[docs]"
 
       - name: Build docs
         shell: bash -l {0}

@@ -43,7 +43,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate spectralmatch_env
-          pip install -e ".[qgis-build]"
+          pip install --no-cache-dir -e ".[qgis-build]"
 
       - name: Build QGIS plugin
         shell: bash -l {0}

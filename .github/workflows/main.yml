@@ -37,7 +37,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate spectralmatch_env
-          pip install -e ".[dev]"
+          pip install --no-cache-dir -e ".[dev]"
 
       - name: Run tests
         shell: bash -l {0}
