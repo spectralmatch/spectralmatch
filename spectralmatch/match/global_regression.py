@@ -426,6 +426,21 @@ def _solve_global_model(
     Returns:
         np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1).
     """
+
+    # prune zero-size overlaps
+    valid_pairs = []
+
+    for i, j in overlapping_pairs:
+        stats = all_overlap_stats.get(i, {}).get(j)
+        if not stats or not any(b["size"] > 0 for b in stats.values()):
+            all_overlap_stats.get(i, {}).pop(j, None)
+            all_overlap_stats.get(j, {}).pop(i, None)
+            continue
+        valid_pairs.append((i, j))
+
+    overlapping_pairs = tuple(valid_pairs)
+
+    # Calculate
     all_params = np.zeros((num_bands, 2 * num_total, 1), dtype=float)
     image_names_with_id = [(i, name) for i, name in enumerate(all_image_names)]
     for b in range(num_bands):
@@ -912,7 +927,7 @@ def _overlap_stats_process_image(
     Args:
         tile_thread_on (bool): Enable multithreaded GDAL warp/translate operations for per-tile work.
         tile_thread_workers (int): Number of worker threads when `tile_thread_on=True`.
-        num_bands (int): Number of data bands to analyze (alpha not included).
+        num_bands (int): Number of data bands to analyze.
         input_image_path_i (str): Path to image I.
         input_image_path_j (str): Path to image J.
         name_i (str): Basename (no extension) for image I; used as a key in outputs.
@@ -954,7 +969,7 @@ def _overlap_stats_process_image(
         return {name_i: {name_j: {}}, name_j: {name_i: {}}}
 
     with tempfile.TemporaryDirectory(prefix="spectralmatch_adjust_") as tmpdir:
-        # J Base: Warp J to I grid over bbox with alpha
+        # J Base: Warp J to I grid over bbox
         j_base = os.path.join(tmpdir, f"{name_j}_on_{name_i}.vrt")
         j_ds = gdal.Warp(
             j_base,
@@ -965,7 +980,6 @@ def _overlap_stats_process_image(
                 outputBounds=(x_min, y_min, x_max, y_max),
                 xRes=px_w_i, yRes=px_h_i,
                 resampleAlg=gdal.GRIORA_NearestNeighbour,
-                dstAlpha=True,
                 multithread=tile_thread_on,
                 warpOptions=(["SKIP_NOSOURCE=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
             ),
@@ -990,23 +1004,21 @@ def _overlap_stats_process_image(
         RX, RY = ds.RasterXSize, ds.RasterYSize
         ds = None
 
-        # Combined mask VRT: alpha = min(I.mask, J.mask) ---
+        # Combined mask VRT: mask = min(I.mask, J.mask)
         mask_vrt = os.path.join(tmpdir, "combined_mask.vrt")
         mask_xml = f"""<VRTDataset rasterXSize="{RX}" rasterYSize="{RY}">
       <SRS>{proj_i}</SRS>
       <VRTRasterBand dataType="Byte" subClass="VRTDerivedRasterBand" band="1">
         <ColorInterp>Alpha</ColorInterp>
         <PixelFunctionType>min</PixelFunctionType>
-        <ComplexSource>
+        <SimpleSource>
           <SourceFilename relativeToVRT="1">{os.path.basename(i_base)}</SourceFilename>
-          <SourceBand>mask</SourceBand>
-          <NODATA>0</NODATA>
-        </ComplexSource>
-        <ComplexSource>
+          <SourceBand>mask,1</SourceBand>
+        </SimpleSource>
+        <SimpleSource>
           <SourceFilename relativeToVRT="1">{os.path.basename(j_base)}</SourceFilename>
-          <SourceBand>mask</SourceBand>
-          <NODATA>0</NODATA>
-        </ComplexSource>
+          <SourceBand>mask,1</SourceBand>
+        </SimpleSource>
       </VRTRasterBand>
     </VRTDataset>
     """
@@ -1017,12 +1029,14 @@ def _overlap_stats_process_image(
         def _make_stats_vrt(base_vrt: str, out_vrt: str):
             with open(base_vrt, "r", encoding="utf-8") as f:
                 xml = f.read()
-            # alpha-only semantics: strip any NoDataValue
+
+            # Remove any existing NoDataValue tags
             xml = re.sub(r"<NoDataValue>.*?</NoDataValue>", "", xml)
+
+            # Create mask band block referencing the combined mask
             mask_block = (
                 "<MaskBand>\n"
                 '  <VRTRasterBand dataType="Byte" subClass="VRTSourcedRasterBand">\n'
-                "    <ColorInterp>Alpha</ColorInterp>\n"
                 "    <SimpleSource>\n"
                 f'      <SourceFilename relativeToVRT="1">{os.path.basename(mask_vrt)}</SourceFilename>\n'
                 "      <SourceBand>1</SourceBand>\n"
@@ -1033,10 +1047,13 @@ def _overlap_stats_process_image(
                 "  </VRTRasterBand>\n"
                 "</MaskBand>\n"
             )
+
+            # Replace existing MaskBand or add it after VRTDataset opening tag
             if "<MaskBand>" in xml:
                 xml = re.sub(r"<MaskBand>.*?</MaskBand>", mask_block, xml, flags=re.S)
             else:
                 xml = re.sub(r"(<VRTDataset[^>]*>)", r"\1\n" + mask_block, xml, count=1)
+
             with open(out_vrt, "w", encoding="utf-8") as f:
                 f.write(xml)
 
@@ -1045,19 +1062,29 @@ def _overlap_stats_process_image(
         _make_stats_vrt(i_base, i_stats)
         _make_stats_vrt(j_base, j_stats)
 
-        # Open masked VRTs
+        # Open masked VRTs and compute statistics
         i_ds = gdal.Open(i_stats, gdal.GA_ReadOnly)
         j_ds = gdal.Open(j_stats, gdal.GA_ReadOnly)
 
         stats = {name_i: {name_j: {}}, name_j: {name_i: {}}}
 
+        # Get valid pixel count from the first band's mask
         size_i = _get_valid_count(i_ds.GetRasterBand(1), estimate_stats)
+
+        # No valid overlap pixels
+        if size_i == 0:
+            i_ds = None
+            j_ds = None
+            mean_i, std_i, mean_j, std_j = 0, 0, 0, 0
+
         # size_j = _get_valid_count(j_ds.GetRasterBand(1), estimate_stats)
         # if size_i != size_j: raise ValueError(f"Raster sizes differ: {size_i} vs {size_j}") # They should not differ but just in case
 
+        # Compute statistics for each band
         for b in range(1, num_bands + 1):
-            _, _, mean_i, std_i = i_ds.GetRasterBand(b).GetStatistics(1 if estimate_stats else 0, 1)
-            _, _, mean_j, std_j = j_ds.GetRasterBand(b).GetStatistics(1 if estimate_stats else 0, 1)
+            if size_i != 0:
+                _, _, mean_i, std_i = i_ds.GetRasterBand(b).GetStatistics(1 if estimate_stats else 0, 1)
+                _, _, mean_j, std_j = j_ds.GetRasterBand(b).GetStatistics(1 if estimate_stats else 0, 1)
 
             stats[name_i][name_j][b - 1] = {"mean": float(mean_i), "std": float(std_i), "size": size_i}
             stats[name_j][name_i][b - 1] = {"mean": float(mean_j), "std": float(std_j), "size": size_i}
