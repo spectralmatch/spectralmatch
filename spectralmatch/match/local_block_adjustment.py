@@ -974,8 +974,6 @@ def _calculate_block_process_image(
             height=num_row,
             resampleAlg=gdal.GRIORA_Average,
             outputType=_gdal_dtype_str_to_enum(calculation_dtype),
-            srcAlpha=False,
-            srcNodata=nodata_value if nodata_value is not None else None,
             dstNodata=float("nan"),
             warpOptions=([
                 "SKIP_NOSOURCE=YES",

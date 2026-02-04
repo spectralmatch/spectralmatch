@@ -743,8 +743,8 @@ def create_masked_vrts(
         warp_opts = gdal.WarpOptions(
             format="VRT",
             dstSRS=dst_wkt or None,
-            dstAlpha=False,
-            srcNodata=nodata if nodata is not None else None,
+            dstAlpha=True,
+            dstNodata=None,
             cutlineDSName=cutline_ds,
             cropToCutline=False,
             resampleAlg=gdal.GRA_NearestNeighbour,
