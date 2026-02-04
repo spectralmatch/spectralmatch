@@ -977,11 +977,12 @@ def _overlap_stats_process_image(
             options=gdal.WarpOptions(
                 format="VRT",
                 dstSRS=proj_i,
+                dstAlpha=True,
                 outputBounds=(x_min, y_min, x_max, y_max),
                 xRes=px_w_i, yRes=px_h_i,
                 resampleAlg=gdal.GRIORA_NearestNeighbour,
                 multithread=tile_thread_on,
-                warpOptions=(["SKIP_NOSOURCE=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
+                warpOptions=(["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
             ),
         )
         if j_ds is None:

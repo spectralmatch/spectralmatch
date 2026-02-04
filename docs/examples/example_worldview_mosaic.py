@@ -19,10 +19,10 @@ clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 
 
-window_size = 128
-image_threads = "cpu"
-io_threads = "cpu"
-tile_threads = "cpu"
+window_size = 1024
+image_threads = 3
+io_threads = 3
+tile_threads = 3
 debug_mode = True
 
 # %% Global matching
@@ -31,7 +31,7 @@ global_regression(
     input_images=input_folder, # Automatically searches for all *.tif files if passed this way
     output_images=global_folder,
     debug_logs=debug_mode,
-    custom_nodata_value=-9999,
+    # custom_nodata_value=-9999,
     window_size=window_size,
     image_threads=image_threads,
     io_threads=io_threads,
@@ -40,7 +40,7 @@ global_regression(
     estimate_stats=True,
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
     # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)
-    custom_std_factor=3,
+    # custom_std_factor=3,
     save_adjustments=os.path.join(
         global_folder, "GlobalAdjustments.json"
     ),  # Start from precomputed statistics for images whole and overlap stats
@@ -61,6 +61,7 @@ local_block_adjustment(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
+    correction_method="gamma",
     number_of_blocks=50,  # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
     save_block_maps=(reference_map_path, local_maps_path),
@@ -73,7 +74,7 @@ align_rasters(
     input_images=local_folder,
     output_images=aligned_folder,
     tap=True,
-    resolution="lowest",
+    resolution="highest",
     debug_logs=debug_mode,
     window_size=window_size,
     image_threads=image_threads,
