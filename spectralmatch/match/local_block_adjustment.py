@@ -974,11 +974,10 @@ def _calculate_block_process_image(
             height=num_row,
             resampleAlg=gdal.GRIORA_Average,
             outputType=_gdal_dtype_str_to_enum(calculation_dtype),
-            dstNodata=float("nan"),
+            dstAlpha=True,
             warpOptions=([
                 "SKIP_NOSOURCE=YES",
                 "UNIFIED_SRC_NODATA=YES",
-                "INIT_DEST=NO_DATA",
             ] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
             multithread=tile_thread_on,
         )
@@ -987,9 +986,13 @@ def _calculate_block_process_image(
         raise RuntimeError("Warp failed computing block means")
 
     block_mean = np.empty((num_row, num_col, num_bands), dtype=calculation_dtype)
+
+    alpha = mem_ds.GetRasterBand(num_bands + 1).ReadAsArray()
+    valid_mask = alpha != 0
     for b in range(1, num_bands + 1):
-        arr = mem_ds.GetRasterBand(b).ReadAsArray()
-        block_mean[:, :, b - 1] = arr.astype(calculation_dtype, copy=False)
+        arr = mem_ds.GetRasterBand(b).ReadAsArray().astype(calculation_dtype, copy=False)
+        arr[~valid_mask] = np.nan
+        block_mean[:, :, b - 1] = arr
 
     mem_ds = None
     return name, block_mean
