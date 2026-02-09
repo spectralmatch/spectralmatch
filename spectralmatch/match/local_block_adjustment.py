@@ -9,7 +9,7 @@ from typing import Tuple, Optional, List, Literal
 from osgeo import gdal, osr
 
 from ..utils import create_masked_vrts, _set_gdal_cache, _set_gdal_workers, _resolve_gdal_dtype, _resolve_window_size, \
-    _gdal_dtype_str_to_enum, _get_valid_count
+    _gdal_dtype_str_to_enum, _get_valid_count, compute_overviews
 from ..handlers import _resolve_paths, _resolve_nodata_value, _check_raster_requirements
 from ..utils_multiprocessing import _resolve_parallel_config, _get_executor
 from ..types_and_validation import Universal, Match
@@ -38,7 +38,7 @@ def local_block_adjustment(
         Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None
     ) = None,
     override_bounds_canvas_coords: Tuple[float, float, float, float] | None = None,
-    block_valid_pixel_threshold: float = 0.001,
+    build_overviews: bool = False,
 ) -> list:
     """
     Performs local radiometric adjustment on a set of raster images using block-based statistics.
@@ -75,7 +75,7 @@ def local_block_adjustment(
                 - The reference map defines the reference block statistics and the local maps define per-image local block statistics.
                 - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.
         override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.
-        block_valid_pixel_threshold (float): Minimum fraction of valid pixels required to include a block (0–1).
+        build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
     Returns:
         List[str]: Paths to the locally adjusted output raster images.
@@ -107,7 +107,6 @@ def local_block_adjustment(
         save_block_maps=save_block_maps,
         load_block_maps=load_block_maps,
         override_bounds_canvas_coords=override_bounds_canvas_coords,
-        block_valid_pixel_threshold=block_valid_pixel_threshold,
     )
 
     # Setup gdal
@@ -387,6 +386,14 @@ def local_block_adjustment(
         for arg in args:
             _apply_adjustment_process_image(*arg)
 
+    if build_overviews: compute_overviews(
+        input_images_paths=output_image_paths,
+        cache=cache,
+        io_threads=io_threads,
+        image_threads=image_threads,
+        tile_threads=tile_threads,
+        debug_logs=debug_logs,
+        )
     return output_image_paths
 
 

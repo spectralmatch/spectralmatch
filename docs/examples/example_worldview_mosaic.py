@@ -114,6 +114,7 @@ merge_rasters(
     window_size=window_size,
     io_threads=io_threads,
     tile_threads=tile_threads,
+    build_overviews=True,
 )
 
 # %% Pre-coded quick Statistics
