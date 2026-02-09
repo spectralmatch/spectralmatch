@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import tempfile
 
-from typing import Optional, Literal, Tuple, Dict
+from typing import Optional, Literal, Tuple, Dict, List
 from concurrent.futures import as_completed
 from osgeo import gdal, ogr, osr
 
@@ -326,9 +326,10 @@ def merge_rasters(
     custom_nodata_value: Universal.CustomNodataValue = None,
     resolution: Literal["highest", "average", "lowest"] = "highest",
     window_size: Universal.WindowSize = None,
+    build_overviews: bool = False,
 ) -> str:
     """
-    Merges multiple rasters into a single output using GDAL Warp (C++), aligning them to the union extent and a unified resolution. Supports parallelism via GDAL threading knobs.
+    Merges multiple rasters into a single output.
 
     Args:
         input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
@@ -341,6 +342,8 @@ def merge_rasters(
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
         resolution ("highest" | "average" | "lowest", optional): Strategy for computing merge resolution.
         window_size (int | None): Tile size for processing tiles. Defaults to None.
+        build_overviews (bool, optional): If True, computes overviews. Defaults to False.
+
     Returns:
         str: Path of the merged raster.
 
@@ -410,6 +413,14 @@ def merge_rasters(
     )
 
     vrt_ds = None
+
+    if build_overviews: compute_overviews(
+        input_images_paths=output_image_path,
+        cache=cache,
+        io_threads=io_threads,
+        tile_threads=tile_threads,
+        debug_logs=debug_logs,
+        )
     return output_image_path
 
 
@@ -924,3 +935,125 @@ def _get_valid_count(
         n_valid = int(round(valid_frac * band.XSize * band.YSize))
 
     return n_valid
+
+
+def compute_overviews(
+    input_images_paths: Universal.SearchFolderOrListFiles,
+    *,
+    output_image_paths: Universal.CreateInFolderOrListFiles | None = None,
+    window_scales: tuple[int] | None = (2, 4, 8, 16, 32),
+    cache: Universal.Cache = None,
+    image_threads: Universal.Threads = None,
+    io_threads: Universal.Threads = None,
+    tile_threads: Universal.Threads = None,
+    debug_logs: bool = False,
+):
+    """
+    Compute and attach GDAL overviews for one or more raster images.
+
+    Args:
+        input_images_paths (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+        output_image_paths (str | List[str] | None): Defines output files as None to update input images or from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
+        window_scales: Overview decimation factors (default: (2, 4, 8, 16, 32)).
+        cache: GDAL cache size configuration.
+        image_threads: Number of parallel workers for image-level processing.
+        io_threads: GDAL IO worker configuration.
+        tile_threads: GDAL internal threads for overview computation.
+        debug_logs: Enable verbose logging.
+
+    Returns:
+        List[str]: Paths of images that received overviews.
+    """
+    print("Start overviews computation")
+    if debug_logs: print(f"Input images: {input_images_paths}")
+    if debug_logs and output_image_paths: print(f"Output images: {output_image_paths}")
+    if debug_logs: print(f"Window scales: {window_scales}")
+
+    Universal.validate(
+        input_images=input_images_paths,
+        cache=cache,
+        image_threads=image_threads,
+        io_threads=io_threads,
+        tile_threads=tile_threads,
+    )
+
+    # Worker
+    def _process_image_overview(path: str):
+        ds = gdal.Open(path, gdal.GA_Update)
+        if ds is None:
+            raise RuntimeError(f"Cannot open {path}")
+
+        opts = []
+        if tile_thread_on:
+            opts.append(f"NUM_THREADS={tile_workers}")
+
+        ds.BuildOverviews(
+            "AVERAGE",
+            window_scales,
+            options=opts,
+        )
+        ds = None
+
+        if debug_logs:
+            print(f"Overviews built for: {path}")
+
+    def _copy_files_if_needed(
+            src_paths: List[str],
+            dst_paths: List[str],
+        ) -> List[str]:
+        """
+        Copy src to dst.
+        """
+        out: List[str] = []
+
+        for src, dst in zip(src_paths, dst_paths):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            ds = gdal.Translate(dst, src)
+            if ds is None:
+                raise RuntimeError(f"Failed copying {src} to {dst}")
+            ds = None
+            out.append(dst)
+
+        return out
+
+
+    # Paths
+    input_paths = _resolve_paths(
+        "search",
+        input_images_paths,
+        kwargs={"default_file_pattern": "*.tif"},
+    )
+
+    if output_image_paths is None:
+        target_paths = input_paths
+    else:
+        target_paths = _resolve_paths(
+            "create",
+            output_image_paths,
+            kwargs={
+                "paths_or_bases": input_paths,
+                "default_file_pattern": "$.tif",
+            },
+        )
+        _copy_files_if_needed(input_paths, target_paths)
+
+    # GDAL config
+    _set_gdal_cache(cache, debug_logs)
+    _set_gdal_workers(io_threads, debug_logs)
+
+    image_backend = "thread"
+    image_threads_on, image_workers = _resolve_parallel_config(image_threads)
+    tile_thread_on, tile_workers = _resolve_parallel_config(tile_threads)
+
+
+    # Execute
+    if image_threads_on:
+        with _get_executor(image_backend, image_workers) as ex:
+            futures = [ex.submit(_process_image_overview, p) for p in target_paths]
+            for f in as_completed(futures):
+                f.result()
+    else:
+        for p in target_paths:
+            _process_image_overview(p)
+
+    return target_paths

@@ -13,7 +13,7 @@ from numpy import ndarray
 from scipy.optimize import least_squares
 
 from ..utils import create_masked_vrts, _set_gdal_cache, _set_gdal_workers, _resolve_gdal_dtype, _resolve_window_size, \
-    _get_gdal_bounds, _get_valid_count
+    _get_gdal_bounds, _get_valid_count, compute_overviews
 from ..handlers import _resolve_paths, _resolve_nodata_value, _check_raster_requirements
 from ..utils_multiprocessing import (_resolve_parallel_config, _get_executor)
 from ..types_and_validation import Universal, Match
@@ -40,6 +40,7 @@ def global_regression(
     custom_std_factor: float = 1.0,
     save_adjustments: str | None = None,
     load_adjustments: str | None = None,
+    build_overviews: bool = False,
 ) -> list:
     """
     Performs global radiometric normalization across overlapping images using least squares regression.
@@ -64,6 +65,7 @@ def global_regression(
         custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
         save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
         load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
+        build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
     Returns:
         List[str]: Paths to the globally adjusted output raster images.
@@ -389,6 +391,14 @@ def global_regression(
         for args in parallel_args:
             _apply_adjustments_process_image(*args)
 
+    if build_overviews: compute_overviews(
+        input_images_paths=output_image_paths,
+        cache=cache,
+        io_threads=io_threads,
+        image_threads=image_threads,
+        tile_threads=tile_threads,
+        debug_logs=debug_logs,
+        )
     return output_image_paths
 
 
