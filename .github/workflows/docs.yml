@@ -28,7 +28,7 @@ jobs:
 
       - name: Create Conda environment for docs
         run: |
-          conda create --name docs_env python=3.12 "gdal=3.10.2" "proj>=9.3" --override-channels -c conda-forge -v
+          conda create --name docs_env python=3.12 "gdal=3.11" "proj>=9.3" --override-channels -c conda-forge -v
 
       - name: Activate environment and install docs dependencies
         shell: bash -l {0}

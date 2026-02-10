@@ -15,7 +15,7 @@ install-docs:
 
 install-setup:
 	bash -c "\
-		conda create -y -n $(ENV_NAME) python>=3.10 gdal>=3.6 proj>=9.3 -c conda-forge && \
+		conda create -y -n $(ENV_NAME) python>=3.10 gdal>=3.11 proj>=9.3 -c conda-forge && \
 		source $$(conda info --base)/etc/profile.d/conda.sh && \
 		conda activate $(ENV_NAME) && \
 		pip install . && \

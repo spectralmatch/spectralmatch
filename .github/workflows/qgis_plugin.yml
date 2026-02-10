@@ -37,7 +37,7 @@ jobs:
 
       - name: Create Conda environment
         run: |
-          conda create --name spectralmatch_env python=3.12 "gdal=3.10.2" "proj>=9.3" --override-channels -c conda-forge -v
+          conda create --name spectralmatch_env python=3.12 "gdal=3.11" "proj>=9.3" --override-channels -c conda-forge -v
 
       - name: Activate Conda and install project
         shell: bash -l {0}
