@@ -29,15 +29,12 @@ classifiers = [
 ]
 
 dependencies = [
-    "ipython", # Only to satisfy OmniCloudMask dependancies not explicitely listed upsteam
     "numpy>=2.2.3",
     "gdal>=3.11",
     "scipy>=1.15.2",
     "fiona>=1.10.1",
     "omnicloudmask>=1.0.11",
     "geopandas>=1.0.1",
-    "scikit-image>=0.25.2",
-    "opencv-python>=4.11.0.86",
     "fire>=0.7.0",
     "matplotlib>=3.8",
 ]
