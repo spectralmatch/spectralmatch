@@ -222,7 +222,6 @@ class Match:
         save_block_maps=_UNSET,
         load_block_maps=_UNSET,
         override_bounds_canvas_coords=_UNSET,
-        block_valid_pixel_threshold=_UNSET,
     ):
         if number_of_blocks is not _UNSET:
             if not (
@@ -292,11 +291,3 @@ class Match:
                     raise ValueError(
                         "override_bounds_canvas_coords must be a tuple of four floats or ints, or None."
                     )
-
-        if block_valid_pixel_threshold is not _UNSET:
-            if not isinstance(block_valid_pixel_threshold, (float, int)) or not (
-                0 <= block_valid_pixel_threshold <= 1
-            ):
-                raise ValueError(
-                    "block_valid_pixel_threshold must be a float between 0 and 1."
-                )

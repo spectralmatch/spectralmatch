@@ -79,7 +79,7 @@ lint:
 
 # Testing
 test:
-	pytest $(MAKEFILE_DIR)
+	pytest
 
 test-file:
 	pytest $(path)
