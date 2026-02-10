@@ -77,6 +77,11 @@ jobs:
         run: |
           conda create --name spectralmatch_env python=${{ matrix.python-version }} "gdal=3.11" "proj>=9.3" "rasterio>=1.4.3" --override-channels -c conda-forge -v
 
+      - name: Install CPU-only torch
+        run: |
+          conda activate spectralmatch_env
+          conda install pytorch cpuonly -c pytorch -y
+
       - name: Activate Conda environment and install package
         run: |
           conda activate spectralmatch_env
