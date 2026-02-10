@@ -20,9 +20,10 @@ masked_folder = os.path.join(working_directory, "Masked")
 stats_folder = os.path.join(working_directory, "Stats")
 
 window_size = 128
-num_image_workers = 3
-num_window_workers = 5
-debug_mode = False
+image_threads = "cpu"
+io_threads = "cpu"
+tile_threads = "cpu"
+debug_mode = True
 
 # %% Create cloud masks
 
@@ -33,19 +34,19 @@ create_cloud_mask_with_omnicloudmask(
     green_band_index=3,
     nir_band_index=7,
     debug_logs=debug_mode,
-    image_parallel_workers=("thread", num_image_workers),
+    image_threads=image_threads,
     omnicloud_kwargs={"patch_size": 200, "patch_overlap": 100},
 )
 
 process_raster_values_to_vector_polygons(
     input_images=mask_cloud_folder,
     output_vectors=mask_cloud_folder,
-    extraction_expression="b1==1",
+    extraction_expression="B1==1",
     value_mapping={0: None, 1: 1, 2: 1, 3: 1},
     polygon_buffer=50,
-    image_parallel_workers=("process", num_image_workers),
-    window_parallel_workers=("process", num_window_workers),
-    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads = tile_threads,
     debug_logs=debug_mode,
 )
 
@@ -72,18 +73,19 @@ mask_rasters(
 
 # %% Create vegetation mask for isolated analysis of vegetation. This will be used to mask statistics for adjustment model not to directly clip images. This is just a simple example of creating PIFs based on NDVI values, for a more robust methodology use other techniques to create a better mask vector file.
 
-create_ndvi_raster(
+band_math(
     input_images=input_folder,
     output_images=mask_vegetation_folder,
-    nir_band_index=5,
-    red_band_index=4,
+    threshold_math="(B5 - B4) / (B5 + B4 + 1e-9)",
+    custom_output_dtype="float32",
+    calculation_dtype="float32",
     debug_logs=debug_mode,
 )
 
 process_raster_values_to_vector_polygons(
     input_images=mask_vegetation_folder,
     output_vectors=mask_vegetation_folder,
-    extraction_expression="b1>=0.1",
+    extraction_expression="B1>=0.1",
     debug_logs=debug_mode,
 )
 
@@ -106,7 +108,9 @@ global_regression(
         "image",
     ),  # Use unique mask per image
     window_size=window_size,
-    save_as_cog=True,  # Save output as a Cloud Optimized GeoTIFF
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads = tile_threads,
     debug_logs=debug_mode,
 )
 
@@ -116,13 +120,15 @@ local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
     number_of_blocks=100,
-    window_size=window_size,
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "VegetationMasks.gpkg"),
         "image",
     ),
-    save_as_cog=True,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
     debug_logs=debug_mode,
     save_block_maps=(
         os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"),
