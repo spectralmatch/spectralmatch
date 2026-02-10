@@ -93,6 +93,9 @@ This is an example mosaic workflow using folders for each step:
 
 
 ```python
+import os
+from spectralmatch import *
+
 working_directory = "/path/to/working/directory"
 input_folder = os.path.join(working_directory, "Input")
 global_folder = os.path.join(working_directory, "GlobalMatch")
