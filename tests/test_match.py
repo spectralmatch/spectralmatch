@@ -121,7 +121,6 @@ def test_local_block_adjustment_all_params_save(tmp_path):
         correction_method="linear",
         save_block_maps=(str(block_dir / "ref.tif"), str(block_dir / "$_block.tif")),
         override_bounds_canvas_coords=(0, 0, 16, 16),
-        block_valid_pixel_threshold=0.01,
         debug_logs=True,
     )
 
