@@ -74,11 +74,11 @@ In the [QGIS](https://qgis.org/download/) plugin manager, install 'spectralmatch
 
 ### Installation as a Python Library and CLI
 
-Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`; then use pip to install the library:
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.11`; then use pip to install the library:
 
 
 ```bash
-conda create -n spectralmatch python=3.12 "gdal>=3.10.2" "proj>=9.3" -c conda-forge
+conda create -n spectralmatch python=3.12 "gdal>=3.11" "proj>=9.3" -c conda-forge
 conda activate spectralmatch
 pip install spectralmatch
 ```

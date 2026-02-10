@@ -44,9 +44,8 @@ dependencies = [
 
 [project.optional-dependencies]
 system-level = [
-    "gdal>=3.10.2",
+    "gdal>=3.11",
     "proj>=9.3",
-    "rasterio>=1.4.3",
 ]
 
 dev = [
