@@ -3,9 +3,9 @@ FROM mambaorg/micromamba:latest
 ENV MAMBA_DOCKERFILE_ACTIVATE=1
 
 RUN micromamba create -y -n spectralmatch -c conda-forge \
-    python=3.13 \
-    gdal>=3.11 \
-    proj>=9.3 \
+    python=3.10 \
+    gdal>=3.6 \
+    rasterio \
     numpy \
     scipy \
     pip

@@ -1566,7 +1566,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=10091c29">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=fa7c70b3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1597,7 +1597,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e7f94672">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0dac4daa">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1630,11 +1630,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="n">stats_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"Stats"</span><span class="p">)</span>
 
 
-<span class="n">window_size</span> <span class="o">=</span> <span class="mi">1024</span>
-<span class="n">image_threads</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="n">io_threads</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="n">tile_threads</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="n">debug_mode</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">window_size</span> <span class="o">=</span> <span class="mi">128</span>
+<span class="n">num_image_workers</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">num_window_workers</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">debug_mode</span> <span class="o">=</span> <span class="kc">False</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import os
 from spectralmatch import *
@@ -1651,18 +1650,17 @@ clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 
 
-window_size = 1024
-image_threads = 3
-io_threads = 3
-tile_threads = 3
-debug_mode = True</div>
+window_size = 128
+num_image_workers = 3
+num_window_workers = 5
+debug_mode = False</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a2403403">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=996801df">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1684,16 +1682,12 @@ debug_mode = True</div>
     <span class="n">input_images</span><span class="o">=</span><span class="n">input_folder</span><span class="p">,</span> <span class="c1"># Automatically searches for all *.tif files if passed this way</span>
     <span class="n">output_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
-    <span class="c1"># custom_nodata_value=-9999,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
-    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
-    <span class="n">tile_threads</span> <span class="o">=</span> <span class="n">tile_threads</span><span class="p">,</span>
-    <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Save output as a Cloud Optimized GeoTIFF</span>
-    <span class="n">estimate_stats</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
     <span class="c1"># specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)</span>
     <span class="c1"># custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)</span>
-    <span class="c1"># custom_std_factor=3,</span>
+    <span class="n">custom_std_factor</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="n">save_adjustments</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">global_folder</span><span class="p">,</span> <span class="s2">"GlobalAdjustments.json"</span>
     <span class="p">),</span>  <span class="c1"># Start from precomputed statistics for images whole and overlap stats</span>
@@ -1705,16 +1699,12 @@ global_regression(
     input_images=input_folder, # Automatically searches for all *.tif files if passed this way
     output_images=global_folder,
     debug_logs=debug_mode,
-    # custom_nodata_value=-9999,
     window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads = tile_threads,
-    save_as_cog=True,  # Save output as a Cloud Optimized GeoTIFF
-    estimate_stats=True,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
     # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)
-    # custom_std_factor=3,
+    custom_std_factor=3,
     save_adjustments=os.path.join(
         global_folder, "GlobalAdjustments.json"
     ),  # Start from precomputed statistics for images whole and overlap stats
@@ -1726,7 +1716,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=43c3a16d">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ae5c4085">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1752,12 +1742,9 @@ global_regression(
     <span class="n">input_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
     <span class="n">output_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
-    <span class="c1"># custom_nodata_value=-9999,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
-    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
-    <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
-    <span class="n">correction_method</span><span class="o">=</span><span class="s2">"gamma"</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
     <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c1"># Target number of blocks</span>
     <span class="c1"># override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)</span>
     <span class="n">save_block_maps</span><span class="o">=</span><span class="p">(</span><span class="n">reference_map_path</span><span class="p">,</span> <span class="n">local_maps_path</span><span class="p">),</span>
@@ -1772,12 +1759,9 @@ local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
     debug_logs=debug_mode,
-    # custom_nodata_value=-9999,
     window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
-    correction_method="gamma",
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
     number_of_blocks=50,  # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
     save_block_maps=(reference_map_path, local_maps_path),
@@ -1789,7 +1773,7 @@ local_block_adjustment(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4d7c8bd6">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=36ef0200">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1811,12 +1795,11 @@ local_block_adjustment(
     <span class="n">input_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
     <span class="n">output_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
     <span class="n">tap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">resolution</span><span class="o">=</span><span class="s2">"highest"</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="s2">"lowest"</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
-    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
-    <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-5">
@@ -1824,12 +1807,11 @@ align_rasters(
     input_images=local_folder,
     output_images=aligned_folder,
     tap=True,
-    resolution="highest",
+    resolution="lowest",
     debug_logs=debug_mode,
     window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
 )</div>
 </div>
 </div>
@@ -1837,7 +1819,7 @@ align_rasters(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=f4747b78">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=07c9d706">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1877,7 +1859,7 @@ voronoi_center_seamline(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a2810be3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=fba14bc3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1901,9 +1883,8 @@ voronoi_center_seamline(
     <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">"include"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"ImageMasks.gpkg"</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">),</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
-    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
-    <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-7">
@@ -1913,9 +1894,8 @@ mask_rasters(
     vector_mask=("include", os.path.join(working_directory, "ImageMasks.gpkg"), "image"),
     debug_logs=debug_mode,
     window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
 )</div>
 </div>
 </div>
@@ -1923,7 +1903,7 @@ mask_rasters(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=7981442f">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e7537852">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1946,9 +1926,8 @@ mask_rasters(
     <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"MergedImage.tif"</span><span class="p">),</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
     <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
-    <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
-    <span class="n">build_overviews</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">image_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_image_workers</span><span class="p">),</span>
+    <span class="n">window_parallel_workers</span><span class="o">=</span><span class="p">(</span><span class="s2">"process"</span><span class="p">,</span> <span class="n">num_window_workers</span><span class="p">),</span>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-8">
@@ -1957,9 +1936,8 @@ merge_rasters(
     output_image_path=os.path.join(working_directory, "MergedImage.tif"),
     debug_logs=debug_mode,
     window_size=window_size,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
-    build_overviews=True,
+    image_parallel_workers=("process", num_image_workers),
+    window_parallel_workers=("process", num_window_workers),
 )</div>
 </div>
 </div>
@@ -1967,7 +1945,7 @@ merge_rasters(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a4dac95d">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0e056505">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2026,6 +2004,7 @@ merge_rasters(
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-9">
+
 # Compare image spectral profiles pairs
 image_pairs = {
     os.path.splitext(os.path.basename(b))[0]: [b, a]
@@ -2094,7 +2073,7 @@ compare_before_after_all_images(
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 9, 2026 20:09:34 UTC">February 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 20, 2025 08:37:21 UTC">July 20, 2025</span>
   </span>
 
     
