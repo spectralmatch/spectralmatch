@@ -47,7 +47,7 @@ jobs:
         run: |
           conda activate spectralmatch_env
           pip install build git-changelog
-          pip install .
+          pip install --no-cache-dir .
       - name: Generate changelog
         shell: bash -l {0}
         run: |

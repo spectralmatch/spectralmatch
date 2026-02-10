@@ -48,7 +48,10 @@ pip install spectralmatch
 Installing via pixi can be easier as it handles the system level dependencies:
 
 ```bash
-pixi init myproject && cd myproject && pixi add "python>=3.9,<3.13" "gdal>=3.10.2" spectralmatch --pypi
+pixi init myproject
+cd myproject
+pixi add "python>=3.9,<3.13" "gdal>=3.10.2"
+pixi add spectralmatch --pypi
 ```
 
 ## Installation from Source
