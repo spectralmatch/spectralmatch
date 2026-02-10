@@ -21,7 +21,7 @@ maintainers = [
     {name = "Joseph Emile Honour Percival", email = "ipercival@gmail.com"}
 ]
 keywords = ['histogram matching', 'spectral matching', 'image enhancement', 'remote sensing', 'geographic information systems(gis)', 'radiometric correction', 'raster statistics', 'QGIS plugin', 'image normalization', 'contrast adjustment', 'satellite imagery', 'uas/drone imagery', 'multispectral', 'geospatial', 'raster transformation', 'digital image processing', 'environmental monitoring', 'seamlines', 'mosaicing']
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.10, <3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -30,7 +30,6 @@ classifiers = [
 
 dependencies = [
     "numpy>=2.2.3",
-    "rasterio>=1.4.3",
     "gdal>=3.11",
     "scipy>=1.15.2",
     "fiona>=1.10.1",
@@ -54,7 +53,8 @@ dev = [
     "pytest-cov>=4.0.0",
     "flake8>=6.0.0",
     "black>=23.0.0",
-    "pre-commit>=4.1.0"
+    "pre-commit>=4.1.0",
+    "rasterio>=1.4.3",
 ]
 
 docs = [
