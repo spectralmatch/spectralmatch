@@ -871,135 +871,181 @@ def align_rasters(input_images, output_images):
 
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Align.tif), ["/input/one.tif", "/input/two.tif"].
-    resampling_method (Literal["nearest", "bilinear", "cubic"], optional): Resampling method to use; default is "bilinear".
-    tap (bool, optional): If True, aligns outputs to target-aligned pixels (GDAL's -tap); default is False.
-    resolution (Literal["highest", "average", "lowest"], optional): Strategy for choosing target resolution; default is "highest".
-    window_size (Universal.WindowSize, optional): Tiling strategy for windowed alignment.
-    debug_logs (Universal.DebugLogs, optional): If True, prints debug output.
-    image_parallel_workers (Universal.ImageParallelWorkers, optional): Parallelization strategy for image-level alignment.
-    window_parallel_workers (Universal.WindowParallelWorkers, optional): Parallelization strategy for within-image window alignment.
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
+    resampling_method: "nearest" | "bilinear" | "cubic".
+    tap: If True, snap output extent to target-aligned pixels (GDAL -tap behavior).
+    resolution: "highest" (min px size), "average", or "lowest" (max px size).
+    window_size: Tile size for output blocks; used for GTiff creation options.
+    debug_logs: Verbose logging.
+    cache: Cache for processing.
+    image_threads: Python-level parallelism over images (e.g., ("process", 4)).
+    io_threads: Sets GDAL_NUM_THREADS for internal GDAL multithreading (int or str).
+    tile_threads: Sets GTiff/COG writer NUM_THREADS and Warp’s NUM_THREADS (int or str).
+
+Returns:
+    List[str]: Paths to the locally adjusted output raster images."""
+
+def _align_process_image(image_name, in_path, out_path, target_res, resampling_method, tap, window_size, tile_threads, debug_logs):
+    """Align a single raster to a target resolution and grid using GDAL Warp.
+
+Args:
+    image_name (str): Identifier for the raster, used for logging.
+    in_path (str): Path to the input raster file.
+    out_path (str): Path where the aligned raster will be written.
+    target_res (Tuple[float, float]): Target pixel resolution as ``(xres, yres)``.
+    resampling_method (Literal["nearest", "bilinear", "cubic"]): Resampling algorithm.
+    tap (bool): If True, snaps bounds to target-aligned pixels (GDAL -tap behavior).
+    window_size (int): Tile size in pixels for output blocks (BLOCKXSIZE/BLOCKYSIZE).
+    tile_threads (Optional[int | str]): Number of threads for GTiff/COG writer and Warp tile processing. If None, defaults to GDAL's internal behavior.
+    debug_logs (bool): If True, print debug information during processing.
 
 Returns:
     None"""
 
-def _align_process_image(image_name, window_parallel, in_path, out_path, target_res, resampling_method, tap, window_size, debug_logs):
-    """Aligns a single raster image to a target resolution and grid, optionally in parallel by window.
-
-Args:
-    image_name (str): Identifier for the image, used for worker context management.
-    window_parallel (Universal.WindowParallelWorkers): Optional multiprocessing config for window-level alignment.
-    in_path (str): Path to the input raster.
-    out_path (str): Path to save the aligned output raster.
-    target_res (Tuple[float, float]): Target resolution (x, y) to resample the raster to.
-    resampling_method (str): Resampling method: "nearest", "bilinear", or "cubic".
-    tap (bool): If True, aligns raster to target-aligned pixels (GDAL-style -tap).
-    window_size (Universal.WindowSize): Tiling strategy for dividing the image into windows.
-    debug_logs (bool): If True, prints debug output.
-
-Returns:
-    None"""
-
-def _align_process_window(src_window, dst_window, band_idx, dst_transform, resampling_method, nodata, debug_logs, image_name):
-    """Aligns a single raster window for one band using reproject with a shared dataset.
-
-Args:
-    src_window (Window): Source window to read.
-    dst_window (Window): Output window (used to compute offset transform and for saving).
-    band_idx (int): Band index to read.
-    dst_transform: The full transform of the output raster.
-    resampling_method: Reprojection resampling method.
-    nodata: NoData value.
-    debug_logs: Print debug info if True.
-    image_name: Key to fetch the raster from WorkerContext.
-
-Returns:
-    Tuple[int, Window, np.ndarray]: Band index, destination window, and aligned data buffer."""
+def compute_resolution(paths, strategy):
 
 def merge_rasters(input_images, output_image_path):
-    """Merges multiple rasters into a single mosaic aligned to the union extent and minimum resolution.
+    """Merges multiple rasters into a single output.
 
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_image_path (str): Path to save the merged output raster.
-    image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level merging.
-    window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for within-image window merging.
-    window_size (Universal.WindowSize, optional): Tiling strategy for processing windows.
-    debug_logs (Universal.DebugLogs, optional): If True, prints debug output.
-    output_dtype (Universal.CustomOutputDtype, optional): Output data type; defaults to input type if None.
-    custom_nodata_value (Universal.CustomNodataValue, optional): NoData value to use; defaults to first input's value.
+    output_image_path (str): Path to output mosaic.
+    cache (int | Tuple[int, str] | None, optional): Controls GDAL cache size. Examples: 2048 (MB), (2, "GB"). Set None to use GDAL’s default. Applied via GDAL_CACHEMAX.        window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    debug_logs (bool, optional): If True, prints progress. Defaults to False.
+    output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+    resolution ("highest" | "average" | "lowest", optional): Strategy for computing merge resolution.
+    window_size (int | None): Tile size for processing tiles. Defaults to None.
+    build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
 Returns:
-    None"""
+    str: Path of the merged raster."""
 
-def _merge_raster_process_window(window, band_idx, dtype, debug_logs, image_name, src_transform, dst_transform, nodata_value):
-    """Processes a single raster window for merging by reading, masking, and mapping it to the destination grid.
-
-Args:
-    window (Window): Source window to read.
-    band_idx (int): Zero-based band index to process.
-    dtype (str): Data type to cast the read block to.
-    debug_logs (bool): If True, prints debug output.
-    image_name (str): Identifier for accessing the source dataset from WorkerContext.
-    src_transform: Affine transform of the source image.
-    dst_transform: Affine transform of the destination mosaic.
-    nodata_value (Universal.CustomNodataValue): Value representing NoData pixels.
-
-Returns:
-    tuple[int, Window, np.ndarray]: Band index, destination window, and processed data block (or None if fully masked)."""
-
-def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, image_parallel_workers, window_parallel_workers, include_touched_pixels, custom_nodata_value):
-    """Applies a vector-based mask to one or more rasters, with support for image- and window-level parallelism.
+def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, cache, image_threads, io_threads, tile_threads, include_touched_pixels, custom_nodata_value):
+    """Applies a vector-based mask to one or more rasters using GDAL Warp.
 
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Clip.tif), ["/input/one.tif", "/input/two.tif"].
-    vector_mask (Universal.VectorMask, optional): Tuple ("include"/"exclude", vector path, optional field name) or None.
-    window_size (Universal.WindowSize, optional): Strategy for tiling rasters during processing.
-    debug_logs (Universal.DebugLogs, optional): If True, prints debug information.
-    image_parallel_workers (Universal.ImageParallelWorkers, optional): Strategy for parallelizing image-level masking.
-    window_parallel_workers (Universal.WindowParallelWorkers, optional): Strategy for parallelizing masking within windows.
-    include_touched_pixels (bool, optional): If True, includes pixels touched by mask geometry edges; default is False.
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
+    vector_mask (Universal.VectorMask, optional): Tuple ('include'|'exclude', vector_path, optional field name).
+    window_size (int | None): Tile size for processing tiles. Defaults to None.
+    debug_logs (bool, optional): If True, prints progress. Defaults to False.
+    cache (int | Tuple[int, str] | None, optional): Controls GDAL cache size. Examples: 2048 (MB), (2, "GB"). Set None to use GDAL’s default. Applied via GDAL_CACHEMAX.        window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask.
+    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
 
 Returns:
-    None"""
+    list: Output image paths after masking."""
 
-def _mask_raster_process_image(window_parallel, max_workers, backend, input_image_path, output_image_path, image_name, vector_mask, window_size, debug_logs, include_touched_pixels, custom_nodata_value):
-    """Processes a single raster image by applying a vector mask, optionally in parallel by window.
+def _mask_raster_process_image(input_image_path, output_image_path, image_name, mode, cutline_path, field_given, debug_logs, include_touched_pixels, custom_nodata_value, tile_threads, tile_thread_on):
+    """Applies a GDAL Warp mask to a single image using cutline and nodata configuration.
 
 Args:
-    window_parallel (bool): Whether to use parallel processing at the window level.
-    max_workers (int): Maximum number of worker processes or threads.
-    backend (str): Execution backend, e.g., "process".
     input_image_path (str): Path to the input raster.
-    output_image_path (str): Path to save the masked output raster.
-    image_name (str): Identifier for the raster used in worker context.
-    vector_mask (Universal.VectorMask): Masking config as ("include"/"exclude", path, optional field).
-    window_size (Universal.WindowSize): Strategy for tiling the raster into windows.
-    debug_logs (bool): If True, enables debug output.
-    include_touched_pixels (bool): If True, includes pixels touched by mask geometry boundaries.
+    output_image_path (str): Path to the output masked raster.
+    image_name (str): Short name for logging/debugging.
+    mode (str | None): Weather to "include" or "exclude".
+    cutline_path (str | None): Path to the cutline.
+    field_given (bool): If a filter field was provided.
+    debug_logs (bool): If True, prints processing information.
+    include_touched_pixels (bool): If True, enables CUTLINE_ALL_TOUCHED for Warp.
+    custom_nodata_value (Universal.CustomNodataValue): Nodata value for masked-out pixels.
+    tile_threads (int | str | None): Number of threads for Warp block parallelism.
+    tile_thread_on (bool): Whether tile-level multithreading is enabled.
 
 Returns:
     None"""
 
-def _mask_raster_process_window(win, band_idx, image_name, nodata, geoms, invert, include_touched_pixels):
-    """Applies a vector-based mask to a single raster window and returns the masked data.
+def _prepare_cutline_sources(vector_mask, image_names, debug_logs):
+    """Returns: (mode, per_image_path_or_None, original_vector_path, field_given)
+  - If field is given: dict[image_name] -> '/vsimem/<name>.geojson' or None if no match
+  - If no field: returns None dict, and you should pass the original vector as-is."""
+
+def create_masked_vrts(input_image_path_pairs):
+    """For each (name -> image_path), write:
+  - mask_{name}.geojson  (cutline: include polys OR exclude complement)
+  - vrt_{name}.vrt       (alpha = band1 nodata U cutline-outside)
+Returns: dict[name, vrt_path]"""
+
+def _set_gdal_cache(cache, debug_logs):
+
+def _set_gdal_workers(io_threads, debug_logs):
+
+def _resolve_gdal_dtype(override_dtype, input_image_path, debug_logs):
+    """Resolve a valid GDAL data type string or image path for output.
 
 Args:
-    win (Window): Raster window to process.
-    band_idx (int): Zero-based band index to read.
-    image_name (str): Identifier for the raster in the WorkerContext.
-    nodata (int | float): Value to assign to masked-out pixels.
-    geoms (list | None): List of geometries to mask with, or None to skip masking.
-    invert (bool): If True, masks outside the geometries (exclude mode).
-    include_touched_pixels (bool): If True, includes pixels touched by mask boundaries.
+    override_dtype (str | None): Desired GDAL dtype name (e.g., "UInt16"). If None, falls back to the dtype of the input image.
+    input_image_path (str): Path to the input raster for fallback.
+    debug_logs (bool): If True, prints debug information.
 
 Returns:
-    tuple[Window, np.ndarray]: The window and its corresponding masked data array."""
+    str: GDAL data type name (e.g., "Byte", "UInt16", "Float32")."""
+
+def _resolve_window_size(window_size, input_image_path, debug_logs):
+    """Resolve the output tile size (window size) for processing.
+
+Args:
+    window_size (int | None): Desired tile size. If None, fall back to the block size of the input raster (or full image size if untiled).
+    input_image_path (str): Path to the input raster for fallback.
+    debug_logs: bool: If True, prints debug information.
+
+Returns:
+    int: Tile size in pixels (square, width == height)."""
+
+def _gdal_dtype_str_to_enum(s, default):
+
+def _gdal_dtype_enum_to_name(dt):
+
+def _get_gdal_bounds(path):
+    """Compute spatial bounds of a raster.
+
+Args:
+    path (str): Path to the raster file.
+
+Returns:
+    tuple[float, float, float, float]: (min_x, min_y, max_x, max_y) bounds in dataset CRS."""
+
+def _get_valid_count(band, approx_ok, force):
+    """Get the valid pixel count of a raster band.
+
+Args:
+    band (gdal.Band): Raster band to compute stats for.
+    approx_ok (bool): Allow approximate statistics (fast, may be inaccurate).
+    force (bool): If True, force computation if stats are not cached.
+
+Returns:
+    valid_count"""
+
+def compute_overviews(input_images_paths):
+    """Compute and attach GDAL overviews for one or more raster images.
+
+Args:
+    input_images_paths (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_image_paths (str | List[str] | None): Defines output files as None to update input images or from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
+    window_scales: Overview decimation factors (default: (2, 4, 8, 16, 32)).
+    cache: GDAL cache size configuration.
+    image_threads: Number of parallel workers for image-level processing.
+    io_threads: GDAL IO worker configuration.
+    tile_threads: GDAL internal threads for overview computation.
+    debug_logs: Enable verbose logging.
+
+Returns:
+    List[str]: Paths of images that received overviews."""
+
+def _process_image_overview(path):
+
+def _copy_files_if_needed(src_paths, dst_paths):
+    """Copy src to dst."""
 
 ### File: statistics.py
 
-def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel, line_width):
+def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel, line_width, estimate_stats):
     """Plots paired spectral profiles for before-and-after image comparisons.
 
 Args:
@@ -1017,6 +1063,7 @@ Args:
     xlabel (str): X-axis label.
     ylabel (str): Y-axis label.
     line_width (float, optional): Width of the spectral profiles lines. Default is 1.
+    estimate_stats (bool, optional): Whether to estimate band statistics. Default is True.
 
 Outputs:
     Saves a spectral comparison plot showing pre- and post-processing profiles."""
@@ -1053,6 +1100,8 @@ Raises:
 Output:
     Saves a PNG file with the comparison figure."""
 
+def read_as_3band(ds):
+
 def compute_row_stretch(paths):
 
 ### File: cli.py
@@ -1065,6 +1114,8 @@ def main():
 
 ### File: types_and_validation.py
 
+def _validate_threads(x, name):
+
 def validate():
 
 def validate_match():
@@ -1073,31 +1124,7 @@ def validate_global_regression():
 
 def validate_local_block_adjustment():
 
-def _validate_window_param(val):
-
 ### File: handlers.py
-
-def _resolve_output_dtype(dataset, custom_output_dtype):
-    """Resolves the output dtype for a raster operation.
-
-Args:
-    dataset (rasterio.io.DatasetReader): The input dataset to derive default dtype from.
-    custom_output_dtype (str | None): A user-specified output dtype, or None to use dataset dtype.
-
-Returns:
-    str: The resolved output dtype."""
-
-def _resolve_nodata_value(dataset, custom_nodata_value):
-    """Determine the appropriate nodata value for a raster dataset.
-
-Priority is given to a user-provided custom nodata value. If not provided, the function attempts to use the nodata value defined in the dataset metadata. Returns None if neither is available.
-
-Args:
-    dataset (rasterio.io.DatasetReader): The opened raster dataset.
-    custom_nodata_value (float | int | None): Optional user-defined nodata value.
-
-Returns:
-    float | int | None: The resolved nodata value, or None if unavailable."""
 
 def _resolve_paths(mode, input):
     """Resolves a list of input based on the mode and input format.
@@ -1177,18 +1204,15 @@ Returns:
 Raises:
     ValueError: If any check fails."""
 
-def _get_nodata_value(input_image_paths, custom_nodata_value):
-    """Determines the NoData value to use from a list of raster images or a custom override.
+def _resolve_nodata_value(image_path, custom_nodata_value):
+    """Get the NoData value for a raster.
 
 Args:
-    input_image_paths (List[str]): List of raster image paths.
-    custom_nodata_value (float, optional): User-defined NoData value.
+    image_path (str): Path to the raster image.
+    custom_nodata_value (float | int | None, optional): If provided, overrides the image's NoData.
 
 Returns:
-    float | None: The determined NoData value, or None if unavailable.
-
-Warnings:
-    Emits a warning if a custom value overrides the image value or if no value is found."""
+    float | None: The chosen NoData value."""
 
 ### File: utils_multiprocessing.py
 
@@ -1201,16 +1225,18 @@ Args:
 Returns:
     mp.context.BaseContext: Selected multiprocessing context ("fork", "forkserver", or "spawn")."""
 
-def _resolve_parallel_config(config):
+def _resolve_parallel_config(workers):
     """Parses a parallel worker config into execution flags and worker count.
 
 Args:
-    config (Tuple["process" | "thread", "cpu" | int] | None): Parallelization strategy; None disables parallelism.
+    workers ("cpu" | int | None): Number of workers.
+        - "cpu" → use os.cpu_count()
+        - int   → use that many workers
+        - None  → disables parallelism
 
 Returns:
-    Tuple[bool, Optional[str], Optional[int]]:
+    Tuple[bool, Optional[int]]:
         - Whether to run in parallel,
-        - The backend ("process" or "thread"),
         - Number of workers."""
 
 def _get_executor(backend, max_workers, initializer, initargs):
@@ -1228,86 +1254,6 @@ Returns:
 Raises:
     ValueError: If the backend is not "process" or "thread"."""
 
-def _run_parallel_images(image_paths, run_parallel_windows, image_parallel_workers, window_parallel_workers):
-    """Runs a window-level processing function across multiple images, with optional image-level parallelism.
-
-Args:
-    image_paths (List[str]): List of input image file paths.
-    run_parallel_windows (Callable): Function to run on each image, accepting (path, window_parallel_workers).
-    image_parallel_workers (Tuple["process" | "thread", "cpu" | int] | None): Strategy for image-level parallelism.
-    window_parallel_workers (Tuple["process" | "thread", "cpu" | int] | None): Passed to `run_parallel_windows` for window-level parallelism.
-
-Returns:
-    None"""
-
-def _run_parallel_windows(windows, process_fn, window_parallel_workers):
-    """Runs a processing function on a list of windows, with optional parallel execution.
-
-Args:
-    windows (List[Any]): List of window-like objects to process.
-    process_fn (Callable[[Any], Any]): Function to run on each window.
-    window_parallel_workers (Tuple["process" | "thread", "cpu" | int] | None): Parallel execution strategy; None disables parallelism.
-
-Returns:
-    None"""
-
-def _resolve_windows(dataset, window_size):
-    """Generates a list of windows for reading a raster dataset based on the given tiling strategy.
-
-Args:
-    dataset (rasterio.DatasetReader): Open raster dataset.
-    window_size (int | Tuple[int, int] | Literal["internal", "block"] | None):
-        Tiling strategy:
-        - int: square tile size,
-        - (int, int): custom width and height in pixels,
-        - "internal": use native tiling of dataset,
-        - "block": tile by block layout defined in `block_params`,
-        - None: single full-image window.
-
-    block_params (Tuple[int, int, Tuple[float, float, float, float]] | None, optional):
-        Required if window_size is "block". A tuple of:
-        - number of block rows (int),
-        - number of block columns (int),
-        - bounding box (minx, miny, maxx, maxy) of canvas extent in image coordinates.
-
-Returns:
-    List[Window]: List of rasterio Windows that cover the dataset."""
-
-def _create_windows(width, height, tile_width, tile_height):
-    """Generates tiled windows across a raster based on specified dimensions.
-
-Args:
-    width (int): Total width of the raster.
-    height (int): Total height of the raster.
-    tile_width (int): Width of each tile.
-    tile_height (int): Height of each tile.
-
-Yields:
-    rasterio.windows.Window: A window representing a tile's position and size."""
-
-def init(cls, config):
-    """Initializes per-process context from a typed config dictionary.
-
-Each entry maps a key to a tuple describing how to initialize a resource:
-
-    - ('raster', filepath): Open raster with rasterio.
-    - ('shm', shm_name): Attach to shared memory.
-    - ('array', shm_name, shape, dtype): Create NumPy array from shared memory.
-    - ('value', literal): Store a direct Python value.
-
-Examples:
-    {
-        "input": ("raster", "/path/to/image.tif"),
-        "weights": ("array", "shm_weights", (512, 512), "float32"),
-        "debug": ("value", True)
-    }
-
-Resources are stored in WorkerContext.cache and accessed via WorkerContext.get(key)."""
-
-def get(cls, key):
-
-def close(cls):
-
 ### File: seamline/voronoi_center_seamline.py
 
 def voronoi_center_seamline(input_images, output_mask):
@@ -1316,6 +1262,7 @@ def voronoi_center_seamline(input_images, output_mask):
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_mask (str): Output path for the final seamline polygon vector file.
+    aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.
     min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.
     min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.
     debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
@@ -1325,37 +1272,26 @@ Args:
 Outputs:
     Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""
 
-def _read_mask(path, debug_logs):
-    """Reads a raster mask and returns a binary array where valid data is True.
+def _densify_polygon(poly, target_spacing):
+    """Return evenly spaced points along a polygon's exterior by arc-length.
 
 Args:
-    path (str): Path to the input raster file.
-    debug_logs (bool, optional): If True, enables debug output; default is False.
+    poly: shapely Polygon
+    target_spacing: target arc-length spacing between seeds (density goal)
 
 Returns:
-    Tuple[np.ndarray, Affine]: A binary mask array and the associated affine transform."""
+    list[(x, y)]  -- open list (first point not repeated at end)"""
 
-def _seamline_mask(mask, transform, debug_logs):
-    """Extracts polygons from a binary mask and returns the largest as the EMP.
+def polygonal_intersection(a, b, buffer_eps):
+    """Returns only the polygonal portion of a ∩ b. If the intersection is line-like or point-like, it buffers slightly to form a polygon.
 
 Args:
-    mask (np.ndarray): Binary mask where True indicates valid area.
-    transform (Affine): Affine transform associated with the mask.
-    debug_logs (bool, optional): If True, prints debug info; default is False.
+    a (Polygon): Input geometries.
+    b (Polygon): Input geometries.
+    buffer_eps (float): Small buffer distance to 'inflate' line/point intersections.
 
 Returns:
-    Polygon: The largest extracted polygon from the mask."""
-
-def _densify_polygon(poly, dist, debug_logs):
-    """Densifies the exterior of the largest polygon by inserting points at regular intervals.
-
-Args:
-    poly (Polygon | GeometryCollection): Input geometry to densify.
-    dist (float): Maximum distance between inserted points.
-    debug_logs (bool, optional): If True, prints debug info; default is False.
-
-Returns:
-    List[Tuple[float, float]]: List of (x, y) coordinates with added intermediate points."""
+    Polygon or MultiPolygon"""
 
 def _compute_centerline(a, b, min_point_spacing, min_cut_length, debug_logs, crs, debug_vectors_path):
     """Computes a Voronoi-based centerline between two overlapping polygons.
@@ -1408,6 +1344,38 @@ Args:
 Returns:
     None"""
 
+def _save_emp_outlines(emps, image_paths, path, crs, image_field_name, layer_name):
+    """Save initial EMP polygons (one per image) to a GPKG layer."""
+
+def _save_seed_points(pts, path, crs, layer_name):
+    """Saves Voronoi seed points to a GeoPackage layer.
+
+Args:
+    pts (list[tuple]): List of (x, y) seed coordinates.
+    path (str): Path to the output GeoPackage.
+    crs: Coordinate reference system.
+    layer_name (str, optional): Layer name. Defaults to 'voronoi_seeds'."""
+
+def _emp_polygon_from_image(path, eight_connected):
+    """Extract the largest valid EMP polygon from a raster mask using GDAL.
+
+Args:
+    path (str): Path to the input raster file.
+    eight_connected (bool, optional): Use 8-connectedness for polygonization. Default is True.
+
+Returns:
+    shapely.geometry.Polygon | ogr.Geometry: The largest EMP polygon."""
+
+def _mask_by_aoi(polygons, aoi_path):
+    """Clip polygons by an AOI layer from file.
+
+Args:
+    polygons (list[Polygon]): Input seamline polygons.
+    aoi_path (str): Path to vector file containing AOI polygon(s).
+
+Returns:
+    list[Polygon]: List of clipped polygons (empties dropped)."""
+
 ### File: mask/mask.py
 
 def create_cloud_mask_with_omnicloudmask(input_images, output_images, red_band_index, green_band_index, nir_band_index):
@@ -1419,9 +1387,9 @@ Args:
     red_band_index (int): Index of red band in the image.
     green_band_index (int): Index of green band in the image.
     nir_band_index (int): Index of NIR band in the image.
-    down_sample_m (float, optional): If set, resamples input to this resolution in meters.
+    down_sample_m (float, optional): If set, resamples input to this resolution in meters. Recommended to use a target resolution of 10 m or lower.
     debug_logs (bool, optional): If True, prints progress and debug info.
-    image_parallel_workers (ImageParallelWorkers, optional): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
+    image_threads (Literal["cpu"] | int | None): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
     omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.
 
 Raises:
@@ -1443,93 +1411,27 @@ Args:
 Raises:
     Exception: If any step in reading, prediction, or writing fails."""
 
-def create_ndvi_raster(input_images, output_images, nir_band_index, red_band_index):
-    """Computes NDVI masks for one or more images and writes them to disk.
-
-Args:
-    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Vegetation.tif), ["/input/one.tif", "/input/two.tif"].
-    nir_band_index: Band index for NIR (1-based).
-    red_band_index: Band index for Red (1-based).
-    custom_output_dtype: Optional output data type (e.g., "float32").
-    window_size: Tile size or mode for window-based processing.
-    debug_logs: Whether to print debug messages.
-    image_parallel_workers: Parallelism strategy for image-level processing.
-    window_parallel_workers: Parallelism strategy for window-level processing.
-
-Output:
-    NDVI raster saved to output_images."""
-
-def _ndvi_process_image(input_path, output_path, image_name, nir_band_index, red_band_index, custom_output_dtype, window_size, debug_logs, window_parallel_workers):
-    """Processes a single image for NDVI using windowed strategy."""
-
-def _ndvi_process_window(image_name, window, nir_band_index, red_band_index, debug_logs):
-    """Computes NDVI for a single window of a raster."""
-
-def band_math(input_images, output_images, custom_math):
-    """Applies custom band math expression to a list of input images and writes the results.
-
-Args:
-    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Math.tif), ["/input/one.tif", "/input/two.tif"].
-    custom_math (str): Python-compatible math expression using bands (e.g., "b1 + b2 / 2").
-    debug_logs (bool, optional): If True, prints debug messages.
-    custom_nodata_value (Any, optional): Override nodata value in source image.
-    image_parallel_workers (int | str | None, optional): Controls image-level parallelism.
-    window_parallel_workers (int | str | None, optional): Controls window-level parallelism.
-    window_size (tuple[int, int] | None, optional): Size of processing windows (width, height).
-    custom_output_dtype (str | None, optional): Output image data type (e.g., "uint16").
-    calculation_dtype (str | None, optional): Computation data type (e.g., "float32")."""
-
-def _band_math_process_image(input_image_path, output_image_path, name, custom_math, debug_logs, nodata_value, window_parallel_workers, window_size, band_indices, output_dtype, calculation_dtype):
-    """Processes a single image by evaluating a custom math expression per pixel block.
-
-Args:
-    input_image_path (str): Path to the input image.
-    output_image_path (str): Path to save the result.
-    name (str): Dataset identifier for use in worker context.
-    custom_math (str): Math expression using band variables (e.g., "b1 - b2").
-    debug_logs (bool): If True, prints debug information.
-    nodata_value (Any): Value to treat as nodata during processing.
-    window_parallel_workers (int | str | None): Parallelism setting for window processing.
-    window_size (tuple[int, int]): Size of the processing window (width, height).
-    band_indices (list[int]): List of 1-based band indices used in the expression.
-    output_dtype (str): Output data type (e.g., "uint16").
-    calculation_dtype (str): Intermediate computation data type (e.g., "float32")."""
-
-def _band_math_process_window(name, window, custom_math, debug_logs, nodata_value, band_indices, calculation_dtype):
-    """Computes the result of a band math expression within a raster window.
-
-Args:
-    name (str): Dataset identifier to retrieve the open raster.
-    window (rasterio.windows.Window): Raster window to process.
-    custom_math (str): Math expression to evaluate (e.g., "b1 * b2").
-    debug_logs (bool): If True, prints window-level debug messages.
-    nodata_value (Any): Value representing nodata in the input bands.
-    band_indices (list[int]): Band indices referenced in the expression.
-    calculation_dtype (str): Data type used for evaluation.
-
-Returns:
-    tuple: (band index, window, computed result as ndarray)"""
-
-### File: mask/utils_mask.py
-
-def threshold_raster(input_images, output_images, threshold_math):
+def band_math(input_images, output_images, threshold_math):
     """Applies a thresholding operation to input raster images using a mathematical expression string.
 
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Threshold.tif), ["/input/one.tif", "/input/two.tif"].
-    threshold_math (str): A logical expression string using bands (e.g., "b1 > 5", "b1 > 5 & b2 < 10"). Supports: Band references: b1, b2, ...; Operators: >, <, >=, <=, ==, !=, &, |, ~, and (); Percentile-based thresholds: use e.g. "5%b1" to use the 5th percentile of band 1.
+    threshold_math (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as >, <, >=, <=, ==, !=, &&, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 > 5) && (B2 < 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.
     debug_logs (bool, optional): If True, prints debug messages.
     custom_nodata_value (float | int | None, optional): Override the dataset's nodata value.
-    image_parallel_workers (ImageParallelWorkers, optional): Parallelism config for image-level processing.
-    window_parallel_workers (WindowParallelWorkers, optional): Parallelism config for window-level processing.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
     window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.
     custom_output_dtype (CustomOutputDtype, optional): Output data type override.
-    calculation_dtype (CalculationDtype, optional): Internal computation dtype."""
+    calculation_dtype (CalculationDtype, optional): Internal computation dtype.
 
-def _threshold_process_image(input_image_path, output_image_path, name, threshold_math, debug_logs, nodata_value, window_parallel_workers, window_size, output_dtype, calculation_dtype):
+Returns:
+    List[str]: Paths to the thresholded output images."""
+
+def _band_math_process_image(input_image_path, output_image_path, name, threshold_math, debug_logs, nodata_value, tile_threads_on, tile_thread_workers, window_size, output_dtype, calculation_dtype):
     """Processes a single input raster image using a threshold expression and writes the result to disk.
 
 Args:
@@ -1539,41 +1441,33 @@ Args:
     threshold_math (str): Expression string to evaluate pixel-wise conditions.
     debug_logs (bool): Enable debug logging.
     nodata_value (float | int | None): Value considered as nodata.
-    window_parallel_workers: Parallel config for window-level processing.
+    tile_threads_on (bool): Enable GDAL multithreaded tiling if ``True``.
+    tile_thread_workers (int): Number of worker threads for GDAL tiling.
     window_size: Window tiling size for memory efficiency.
     output_dtype: Output raster data type.
-    calculation_dtype: Data type used for internal calculations."""
-
-def _threshold_process_window(name, window, threshold_math, debug_logs, nodata_value, calculation_dtype):
-    """Applies the threshold logic to a single image window.
-
-Args:
-    name (str): Image identifier for WorkerContext access.
-    window (rasterio.windows.Window): Window to read and process.
-    threshold_math (str): Logical expression for thresholding using b1, b2, etc.
-    debug_logs (bool): Enable debug logs.
-    nodata_value (float | int | None): Value considered as nodata.
-    calculation_dtype: Dtype to cast bands for threshold computation.
+    calculation_dtype: Data type used for internal calculations.
 
 Returns:
-    Tuple[int, rasterio.windows.Window, np.ndarray]: Band index, processed window, thresholded data mask (1 for true, 0 for false)."""
+    None"""
 
-def _calculate_threshold_from_percent(input_image_path, threshold, band_index):
-    """Calculates a threshold value based on a percentile of valid (non-nodata) pixel values in a raster.
+def _calculate_threshold_from_percent(input_image_path, threshold, band_index, debug_logs, nodata_value, bins, estimate_statistics):
+    """Compute a percentile value for a raster band using GDAL.
 
 Args:
-    input_image_path (str): Path to input raster image.
-    threshold (str): Percent string (e.g., "5%") indicating the percentile to compute.
-    band_index (int): Band index to evaluate.
-    debug_logs (bool, optional): If True, prints debug info.
-    nodata_value (float | int | None, optional): Value treated as nodata.
-    window_parallel_workers: Optional parallel config.
-    window_size: Tiling strategy.
-    calculation_dtype (str): Internal dtype used for calculations.
-    bins (int): Number of bins for histogram.
+    input_image_path: Path to the input raster file.
+    threshold: Desired percentile (e.g., 95 for the 95th percentile).
+    band_index: 1-based index of the band to process.
+    debug_logs: If True, print debug information.
+    nodata_value: Value to be treated as nodata.
+    bins: Number of histogram bins (default is 1000).
+    estimate_statistics: If True, allow GDAL to approximate min/max and histogram for speed.
 
 Returns:
-    float: Threshold value corresponding to the requested percentile."""
+    float: The pixel value corresponding to the requested percentile."""
+
+def replace_percent_with_threshold(match):
+
+### File: mask/utils_mask.py
 
 def process_raster_values_to_vector_polygons(input_images, output_vectors):
     """Converts raster values into vector polygons based on an expression and optional filtering logic.
@@ -1581,18 +1475,20 @@ def process_raster_values_to_vector_polygons(input_images, output_vectors):
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_vectors (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.gpkg", "/input/folder" (assumes $_Vectorized.gpkg), ["/input/one.gpkg", "/input/two.gpkg"].
+    extraction_expression (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as >, <, >=, <=, ==, !=, &&, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 > 5) && (B2 < 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.
     custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.
     custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.
-    image_parallel_workers (Universal.ImageParallelWorkers, optional): Controls parallelism across input images. Can be an integer, executor string, or boolean.
-    window_parallel_workers (Universal.WindowParallelWorkers, optional): Controls parallelism within a single image by processing windows in parallel.
-    window_size (Universal.WindowSizeWithBlock, optional): Size of each processing block (width, height), or a strategy string such as "block" or "whole".
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
     debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
-    extraction_expression (str): Logical expression to identify pixels of interest using band references (e.g., "b1 > 10 & b2 < 50").
     filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., ">95%").
     polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.
-    value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData."""
+    value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData.
+    estimate_statistics (bool, optional): Whether to estimate statistics for percentile thresholds. Defaults to True."""
 
-def _process_image_to_polygons(input_image_path, output_vector_path, extraction_expression, filter_by_polygon_size, polygon_buffer, value_mapping, custom_nodata_value, custom_output_dtype, window_parallel, window_backend, window_max_workers, window_size, debug_logs):
+def _process_image_to_polygons(input_image_path, output_vector_path, extraction_expression, filter_by_polygon_size, polygon_buffer, value_mapping, custom_nodata_value, debug_logs, estimate_statistics, tile_thread_on, tile_thread_workers):
     """Processes a single raster file and extracts polygons based on logical expressions and optional filters.
 
 Args:
@@ -1603,27 +1499,16 @@ Args:
     polygon_buffer (float): Amount of buffer to apply to polygons in projection units.
     value_mapping (dict): Dictionary mapping original raster values to new ones. Set value to `None` to mark as NoData.
     custom_nodata_value: Custom NoData value to use during processing.
-    custom_output_dtype: Output data type for raster if relevant in future I/O steps.
-    window_parallel: Whether to parallelize over raster windows.
-    window_backend: Backend used for window-level parallelism (e.g., "thread", "process").
-    window_max_workers: Max number of parallel workers for window-level processing.
-    window_size: Tuple or strategy defining how the raster should be split into windows.
-    debug_logs (bool): Whether to print debug logging information."""
+    debug_logs (bool): Whether to print debug logging information.
+    estimate_statistics (bool): Whether to estimate statistics for percentile thresholds.
+    tile_thread_on (bool): Whether to use tiled processing.
+    tile_thread_workers (int): Number of worker threads to use for tiled processing."""
 
-def _process_window(window, band_indices, expression, value_mapping, nodata_value):
-    """Processes a single window of a raster image to extract polygons matching an expression.
+def _sub(m):
 
-Args:
-    window (rasterio.windows.Window): Raster window to process.
-    band_indices (list[int]): List of band indices required by the expression (e.g., [1, 2]).
-    expression (str): Logical expression involving bands (e.g., "b1 > 10 & b2 < 50").
-    value_mapping (dict): Dictionary mapping original raster values to new ones or to NoData.
-    nodata_value (int | float): NoData value to exclude from analysis.
+def _apply_mapping_feat(feat):
 
-Returns:
-    list[dict]: List of dictionaries with keys `"value"` and `"geometry"` representing polygons."""
-
-def replace_percent_with_threshold(match):
+def _area_ok(geom_area, areas):
 
 ### File: match/global_regression.py
 
@@ -1633,26 +1518,29 @@ def global_regression(input_images, output_images):
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
-    calculation_dtype (str, optional): Data type used for internal calculations. Defaults to "float32".
+    calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
     output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
     vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
-    debug_logs (bool, optional): If True, prints debug information and constraint matrices. Defaults to False.
+    debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
     custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
-    image_parallel_workers (Tuple[Literal["process", "thread"], Literal["cpu"] | int] | None = None): Parallelization strategy at the image level. Provide a tuple like ("process", "cpu") to use multiprocessing with all available cores. Threads are supported too. Set to None to disable.
-    window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
-    window_size (int | Tuple[int, int] | Literal["internal"] | None): Tile size for reading and writing: int for square tiles, tuple for (width, height), "internal" to use raster's native tiling, or None for full image. "internal" enables efficient streaming from COGs.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    estimate_stats (bool): If True, use an estimate algorithm to calculate the mean and sd to increase processing speeds. If False, use the exact algorithm. Defaults to True.
+    window_size (int | None): Output image tile size. Defaults to input image tile size.
     save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.
     custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
     custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
     save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
     load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
-    min_overlap_size: Minimum overlap size for each overlap. Defaults to None for no minimum overlap size.
+    build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
 Returns:
     List[str]: Paths to the globally adjusted output raster images."""
 
-def _solve_global_model(num_bands, num_total, all_image_names, included_names, input_image_names, all_overlap_stats, all_whole_stats, custom_mean_factor, custom_std_factor, overlapping_pairs, min_overlap_size, debug_logs, weight_by_size):
+def _solve_global_model(num_bands, num_total, all_image_names, included_names, input_image_names, all_overlap_stats, all_whole_stats, custom_mean_factor, custom_std_factor, overlapping_pairs, debug_logs, apply_size_weighting):
     """Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.
 
 Args:
@@ -1666,30 +1554,30 @@ Args:
     custom_mean_factor: Weight for mean constraints.
     custom_std_factor: Weight for std constraints.
     overlapping_pairs: Pairs of overlapping images.
-    min_overlap_size: Minimum overlap size for each overlap. Defaults to None for no minimum overlap size.
     debug_logs: If True, prints debug information.
+    apply_size_weighting (bool): Whether to use the overlap size to weight its influence.
 
 Returns:
     np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1)."""
 
-def _apply_adjustments_process_image(image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, calculation_dtype, output_dtype, window_parallel, window_backend, window_max_workers, save_as_cog, debug_logs):
-    """Applies scale and offset adjustments to each band of an input image and writes the result to the output path.
+def _apply_adjustments_process_image(tile_thread_on, tile_thread_workers, image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, output_dtype, calculation_dtype, save_as_cog, debug_logs):
+    """Applies per-band linear radiometric adjustments to an image using GDAL VRT metadata and materializes the result as a GeoTIFF or COG. Each band is transformed according to: y = a * x + b, where `a` = scale and `b` = offset.
 
 Args:
-    image_name: Identifier for the image in the worker context.
-    input_image_path: Path to the input raster image.
-    output_image_path: Path to save the adjusted output image.
-    scale: Per-band scale factors (1D array of length num_bands).
-    offset: Per-band offset values (1D array of length num_bands).
-    num_bands: Number of image bands.
-    nodata_val: NoData value to preserve during adjustment.
-    window_size: Tiling strategy for processing (None, int, tuple, or "internal").
-    calculation_dtype: Data type for computation.
-    output_dtype: Output data type (defaults to input type if None).
-    window_parallel: Whether to parallelize over windows.
-    window_backend: Backend to use for window-level parallelism ("process").
-    window_max_workers: Number of parallel workers for window processing.
-    debug_logs: If True, prints debug info during processing.
+    tile_thread_on (bool): Enable multithreaded GDAL translation for tile-level work.
+    tile_thread_workers (int): Number of worker threads if `tile_thread_on=True`.
+    image_name (str): Basename (no extension) of the input image; used for temporary files.
+    input_image_path (str): Path to the input image to adjust.
+    output_image_path (str): Path where the adjusted raster will be written.
+    scale (np.ndarray): 1D array of per-band scale coefficients (length = num_bands).
+    offset (np.ndarray): 1D array of per-band offset coefficients (length = num_bands).
+    num_bands (int): Number of data bands to adjust (alpha not included).
+    nodata_val (int | float | None): NoData value to assign to output bands, if provided.
+    window_size: Window size used for tiling (currently not applied at pixel level).
+    output_dtype (str | None): Desired GDAL output data type (e.g., "UInt16"). If None, preserves source dtype.
+    calculation_dtype (str | None): Desired GDAL calculation dtype.
+    save_as_cog (bool): If True, writes output as Cloud-Optimized GeoTIFF (COG); otherwise, writes a standard tiled GeoTIFF.
+    debug_logs (bool, optional): If True, print detailed logging about the process. Defaults to False.
 
 Returns:
     None"""
@@ -1752,22 +1640,6 @@ Args:
 Raises:
     ValueError: If any structural issues or missing keys are detected."""
 
-def _apply_adjustments_process_window(window, band_idx, a, b, nodata, calculation_dtype, debug_logs, image_name):
-    """Applies a global linear transformation (scale and offset) to a raster tile.
-
-Args:
-    window (Window): Rasterio window specifying the region to process.
-    band_idx (int): Band index to read and adjust.
-    a (float): Multiplicative factor for normalization.
-    b (float): Additive offset for normalization.
-    nodata (int | float): NoData value to ignore during processing.
-    calculation_dtype (str): Data type to cast the block for computation.
-    debug_logs (bool): If True, prints processing information.
-    image_name (str): Key to fetch the raster from WorkerContext.
-
-Returns:
-    Tuple[Window, np.ndarray]: Window and the adjusted data block."""
-
 def _print_constraint_system(constraint_matrix, adjustment_params, observed_values_vector, overlap_pairs, image_names_with_id):
     """Prints the constraint matrix system with labeled rows and columns for debugging regression inputs.
 
@@ -1785,98 +1657,67 @@ def _find_overlaps(image_bounds_dict):
     """Finds all pairs of image names with overlapping spatial bounds.
 
 Args:
-    image_bounds_dict (dict): Dictionary mapping image names to their rasterio bounds.
+    image_bounds_dict: Map of image name -> (minx, miny, maxx, maxy).
 
 Returns:
-    Tuple[Tuple[str, str], ...]: Pairs of image names with overlapping extents."""
+    Tuple of (name_i, name_j) pairs with overlapping extents."""
 
-def _overlap_stats_process_image(parallel, max_workers, backend, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, nodata_i, nodata_j, vector_mask, window_size, debug_logs):
-    """Computes per-band overlap statistics (mean, std, pixel count) between two images over their intersecting area.
+def _overlap_stats_process_image(tile_thread_on, tile_thread_workers, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, estimate_stats, debug_logs):
+    """Computes per-band overlap statistics between two images using alpha masks, without VRT recursion.
 
 Args:
-    parallel: Whether to use multiprocessing for window processing.
-    max_workers: Number of workers for parallel processing.
-    backend: Parallelization backend ("process").
-    num_bands: Number of image bands.
-    input_image_path_i: Path to the first image.
-    input_image_path_j: Path to the second image.
-    name_i: Identifier for the first image.
-    name_j: Identifier for the second image.
-    bound_i: BoundingBox of the first image.
-    bound_j: BoundingBox of the second image.
-    nodata_i: NoData value for the first image.
-    nodata_j: NoData value for the second image.
-    vector_mask: Optional mask to include/exclude regions, with optional field filter.
-    window_size: Windowing strategy for tile processing.
-    debug_logs: If True, prints overlap bounds and status.
+    tile_thread_on (bool): Enable multithreaded GDAL warp/translate operations for per-tile work.
+    tile_thread_workers (int): Number of worker threads when `tile_thread_on=True`.
+    num_bands (int): Number of data bands to analyze.
+    input_image_path_i (str): Path to image I.
+    input_image_path_j (str): Path to image J.
+    name_i (str): Basename (no extension) for image I; used as a key in outputs.
+    name_j (str): Basename (no extension) for image J; used as a key in outputs.
+    bound_i: (minx, miny, maxx, maxy) bounds for image I (dataset CRS).
+    bound_j: (minx, miny, maxx, maxy) bounds for image J (dataset CRS).
+    estimate_stats (bool): If True, use GDAL’s approximate statistics; if False, use exact.
+    debug_logs (bool, optional): If True, print progress and intermediate details. Defaults to False.
 
 Returns:
-    dict: Nested stats dictionary for each image pair and band."""
+    Dict[str, Dict[str, Dict[int, Dict[str, float]]]]: Nested mapping of overlap stats:
+        {
+          name_i: {
+            name_j: {
+              band_index: {"mean": float, "std": float, "size": int},  # band_index is 0-based
+              ...
+            }
+          },
+          name_j: {
+            name_i: { ... }  # symmetric entries
+          }
+        }"""
 
-def _overlap_stats_process_window(win, band, col_min_i, row_min_i, name_i, name_j, nodata_i, nodata_j, geoms_i, geoms_j, invert, interpolation_method):
-    """Processes a single overlapping window between two images, applying masks and interpolation if needed,
-and returns valid pixel pairs for statistical comparison.
+def _whole_stats_process_image(tile_thread_on, tile_thread_worker, input_image_path, num_bands, image_name, estimate_stats, debug_logs):
+    """Computes whole-image statistics (mean, standard deviation, valid pixel count) for each band of a masked raster.
 
 Args:
-    win: Window in image i's coordinate space.
-    band: Band index to process.
-    col_min_i: Column offset of overlap region in image i.
-    row_min_i: Row offset of overlap region in image i.
-    name_i: Image i identifier in WorkerContext.
-    name_j: Image j identifier in WorkerContext.
-    nodata_i: NoData value for image i.
-    nodata_j: NoData value for image j.
-    geoms_i: Optional list of geometries for masking image i.
-    geoms_j: Optional list of geometries for masking image j.
-    invert: Whether to invert the mask logic (exclude vs include).
-    interpolation_method: OpenCV interpolation method for resampling. 1 is bilinear interpolation.
+    tile_thread_on (bool): Enable multithreaded GDAL operations for tile-level work.
+    tile_thread_worker (int): Number of worker threads if `tile_thread_on=True`.
+    input_image_path (str): Path to an input raster (VRT with alpha/nodata applied).
+    num_bands (int): Number of data bands to compute stats for (alpha excluded).
+    image_name (str): Basename (no extension) of the image; used as key in output.
+    estimate_stats (bool): If True, use GDAL’s approximate statistics; if False, compute exact statistics.
+    debug_logs (bool): If True, print detailed per-band statistics.
 
 Returns:
-    Tuple of valid pixel arrays (image_i_values, image_j_values), or None if no valid pixels found."""
+    Dict[str, Dict[int, Dict[str, float]]]: Mapping of image name to per-band stats:
+        {
+          image_name: {
+            band_index: {
+              "mean": float,  # band mean
+              "std": float,   # band standard deviation
+              "size": int     # count of valid pixels (shared across bands)
+            },
+            ...
+          }
+        }"""
 
-def _fit_windows_to_pixel_bounds(windows, row_min, row_max, col_min, col_max, row_offset, col_offset):
-    """Adjusts a list of image-relative windows to ensure they fit within specified pixel bounds, based on a global offset.
-
-Args:
-    windows: List of rasterio Window objects (relative to an image region).
-    row_min, row_max: Global pixel row bounds to clip against.
-    col_min, col_max: Global pixel column bounds to clip against.
-    row_offset, col_offset: Offsets to convert window-relative coordinates to global coordinates.
-
-Returns:
-    List[Window]: Windows cropped to the specified global bounds."""
-
-def _whole_stats_process_image(parallel, max_workers, backend, input_image_path, nodata, num_bands, image_name, vector_mask, window_size, debug_logs):
-    """Calculates whole-image statistics (mean, std, and valid pixel count) per band, with optional masking and window-level parallelism.
-
-Args:
-    parallel: Whether to enable multiprocessing for window processing.
-    max_workers: Number of parallel workers to use.
-    backend: Multiprocessing backend ("process").
-    input_image_path: Path to the input raster.
-    nodata: NoData value to exclude from stats.
-    num_bands: Number of bands to process.
-    image_name: Identifier for use in WorkerContext.
-    vector_mask: Optional mask tuple to include/exclude specific regions, with optional field filter.
-    window_size: Tiling strategy (None, int, tuple, or "internal").
-    debug_logs: If True, prints debug messages.
-
-Returns:
-    dict: Per-band statistics {image_name: {band: {mean, std, size}}}."""
-
-def _whole_stats_process_window(win, band_idx, image_name, nodata, geoms, invert):
-    """Extracts valid pixel values from a raster window, optionally applying a geometry mask.
-
-Args:
-    win: Rasterio window to read.
-    band_idx: Band index to read (0-based).
-    image_name: Identifier for the image in WorkerContext.
-    nodata: NoData value to exclude.
-    geoms: Optional list of geometries for masking.
-    invert: If True, inverts the mask (exclude instead of include).
-
-Returns:
-    np.ndarray or None: 1D array of valid pixel values, or None if none found."""
+def _make_stats_vrt(base_vrt, out_vrt):
 
 ### File: match/local_block_adjustment.py
 
@@ -1885,19 +1726,21 @@ def local_block_adjustment(input_images, output_images):
 
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
     calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
     output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
     vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): A mask limiting pixels to include when calculating stats for each block in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. It is only applied when calculating local blocks, as the reference map is calculated as the mean of all local blocks. Loaded block maps won't have this applied unless it was used when calculating them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
-    debug_logs (bool, optional): If True, prints progress. Defaults to False.
+    debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
     custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
-    image_parallel_workers (Tuple[Literal["process", "thread"], Literal["cpu"] | int] | None = None): Parallelization strategy at the image level. Provide a tuple like ("process", "cpu") to use multiprocessing with all available cores. Threads are supported too. Set to None to disable.
-    window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.
-    window_size (int | Tuple[int, int] | Literal["block"] | None): Tile size for processing: int for square tiles, (width, height) for custom size, or "block" to set as the size of the block map, None for full image. Defaults to None.
-    save_as_cog (bool, optional): If True, saves as COG. Defaults to False.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    window_size (int | None): Output image tile size. Defaults to input image tile size.
+    save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
     alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.
-    correction_method (Literal["gamma", "linear"], optional): Local correction method. Defaults to "gamma".
+    correction_method (Literal["gamma", "linear", "offset"], optional): Local correction method. Defaults to "gamma". Offset is commended for images with negative values.
     save_block_maps (tuple(str, str) | None): If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.
         - First str is the path to save the global block map.
         - Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).
@@ -1913,16 +1756,10 @@ Args:
             - The reference map defines the reference block statistics and the local maps define per-image local block statistics.
             - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.
     override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.
-    block_valid_pixel_threshold (float): Minimum fraction of valid pixels required to include a block (0–1).
+    build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
 Returns:
     List[str]: Paths to the locally adjusted output raster images."""
-
-def _validate_input_params(input_images, output_images, custom_nodata_value, number_of_blocks, alpha, calculation_dtype, output_dtype, debug_logs, window_size, save_as_cog, correction_method, image_parallel_workers, window_parallel_workers, save_block_maps, load_block_maps, override_bounds_canvas_coords, vector_mask, block_valid_pixel_threshold):
-    """Validates input parameters for `local_block_adjustment`.
-
-Raises:
-    TypeError or ValueError with a concise message if any parameter is improperly set."""
 
 def _get_pre_computed_block_maps(load_block_maps, calculation_dtype, debug_logs):
     """Load pre-computed block mean maps from files.
@@ -1965,62 +1802,43 @@ Args:
 Returns:
     np.ndarray: Reference block map of shape (num_row, num_col, num_bands)"""
 
-def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_image_block_space, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, parallel, backend, max_workers, save_as_cog):
-    """Applies local radiometric adjustment to a single image using reference and local block statistics.
+def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, tile_thread_on, tile_thread_workers, save_as_cog, estimate_stats):
+    """Apply local radiometric adjustment (linear or gamma) to a raster image using block-based reference and local mean surfaces. Builds parameter surfaces as rasters, warps them to the image grid, and creates a VRT with per-pixel expressions, then materializes the output as GTiff or COG.
 
 Args:
-    name (str): Image identifier.
-    img_path (str): Path to the input image.
-    out_path (str): Path to save the adjusted output image.
-    num_bands (int): Number of bands in the image.
-    block_reference_mean (np.ndarray): Global reference block mean array.
-    block_local_mean (np.ndarray): Image-specific local block mean array.
-    bounds_image_block_space (tuple): Block-space bounding box for the image.
-    bounds_canvas_coords (tuple): Full canvas extent for normalization.
-    window_size: Tiling strategy for processing.
+    name (str): Identifier for the image (basename, no extension).
+    img_path (str): Path to the input raster image.
+    out_path (str): Path where the adjusted raster will be written.
+    num_bands (int): Number of spectral bands to process.
+    block_reference_mean (np.ndarray): Block-level reference mean values per band.
+    block_local_mean (np.ndarray): Block-level local mean values per band.
+    bounds_canvas_coords (tuple): Geographic bounds of the image canvas (xmin, ymin, xmax, ymax).
+    window_size (int | None): Output block size used for tiling.
     num_row (int): Number of block rows.
     num_col (int): Number of block columns.
-    nodata_val (float): Value representing missing data.
-    alpha (float): Blending factor for adjustment.
-    correction_method (str): Method to apply ("gamma" or "linear").
-    calculation_dtype (str): Dtype used for internal computation.
-    output_dtype (str): Dtype used for writing output.
-    debug_logs (bool): If True, logs progress.
-    parallel (bool): Whether to use multiprocessing for window-level processing.
-    backend (str): Backend to use for parallelism.
-    max_workers (int): Number of workers to use if parallel.
-
-Writes:
-    The adjusted image to `out_path`."""
-
-def _apply_adjustment_process_window(name, window, band_idx, num_row, num_col, bounds_canvas_coords, nodata_val, alpha, correction_method, calculation_dtype):
-    """Applies radiometric correction to a single raster window using bilinear-interpolated block statistics.
-
-Args:
-    name (str): Image identifier.
-    window (Window): Raster window to process.
-    band_idx (int): Band index (0-based).
-    num_row (int): Number of block rows in the canvas.
-    num_col (int): Number of block columns in the canvas.
-    bounds_canvas_coords (tuple): Spatial extent of the full block canvas.
-    nodata_val (float | int): NoData value in the raster.
-    alpha (float): Blending factor for correction.
-    correction_method (str): Either "gamma" or "linear".
-    calculation_dtype (str): Data type for intermediate calculations.
+    nodata_val (float): NoData value to assign to output bands.
+    alpha (float): Scaling factor applied in gamma correction formula.
+    correction_method (Literal["gamma", "linear"]): Radiometric correction method.
+    calculation_dtype (str): Intermediate calculation data type (GDAL type string).
+    output_dtype: GDAL output data type (enum or string).
+    debug_logs (bool): If True, print debug information.
+    tile_thread_on (bool): If True, enable multithreaded warp/translate operations.
+    tile_thread_workers (int): Number of worker threads if `tile_thread_on=True`.
+    save_as_cog (bool): If True, write output as Cloud-Optimized GeoTIFF (COG).
 
 Returns:
-    Tuple[Window, int, np.ndarray]: The window, band index, and corrected data array."""
+    None"""
 
-def _get_bounding_rectangle(image_paths):
-    """Calculates the bounding rectangle that encompasses all input raster images.
+def _get_bounding_rectangle(images):
+    """Return the combined extent (minx, miny, maxx, maxy) of rasters. Accepts a list of file paths, single path, or single GDAL dataset.
 
 Args:
-    image_paths (List[str]): List of raster file paths.
+    images (List[str] | gdal.Dataset): List of raster file paths, single path, or single GDAL dataset.
 
 Returns:
     Tuple[float, float, float, float]: (min_x, min_y, max_x, max_y) of the combined extent."""
 
-def _compute_mosaic_coefficient_of_variation(image_paths, nodata_value, reference_std, reference_mean, base_block_size, band_index, calculation_dtype, debug_logs):
+def _compute_mosaic_coefficient_of_variation(image_paths, nodata_value, reference_std, reference_mean, base_block_size, band_index, estimate_statistics, debug_logs):
     """Estimates block size for local adjustment using the coefficient of variation across input images.
 
 Args:
@@ -2030,78 +1848,44 @@ Args:
     reference_mean (float, optional): Reference mean for comparison. Defaults to 125.0.
     base_block_size (Tuple[int, int], optional): Base block size (rows, cols). Defaults to (10, 10).
     band_index (int, optional): Band index to use for statistics (1-based). Defaults to 1.
-    calculation_dtype (str, optional): Data type for computation. Defaults to "float32".
+    estimate_statistics (bool, optional): If True, estimates statistics for each block. Defaults to True.
+    debug_logs (bool, optional): If True, print logs.
 
 Returns:
     Tuple[int, int]: Estimated block size (rows, cols) adjusted based on coefficient of variation."""
 
-def _calculate_block_process_image(name, image_path, bounds_canvas_coords, num_row, num_col, num_bands, window_size, debug_logs, nodata_value, calculation_dtype, vector_mask, block_valid_pixel_threshold, parallel, backend, max_workers):
-    """Computes per-block mean statistics for a single image by aggregating pixel values into a block grid.
+def _calculate_block_process_image(name, image_path, bounds_canvas_coords, num_row, num_col, num_bands, debug_logs, nodata_value, calculation_dtype, tile_thread_on, tile_thread_workers):
+    """Compute area-weighted block means over a target grid using GDAL Warp.
 
 Args:
-    name (str): Image identifier.
-    image_path (str): Path to the input raster.
-    bounds_canvas_coords (tuple): Full extent of the block canvas (minx, miny, maxx, maxy).
-    num_row (int): Number of block rows.
-    num_col (int): Number of block columns.
-    num_bands (int): Number of image bands.
-    window_size (tuple or "block" or None): Tiling strategy for processing.
-    debug_logs (bool): If True, prints progress info.
-    nodata_value (float): Value used to identify invalid pixels.
-    calculation_dtype (str): Numpy dtype for internal arrays.
-    vector_mask (tuple or None): Optional spatial mask to include/exclude regions.
-    block_valid_pixel_threshold (float): Minimum valid pixel ratio to include block.
-    parallel (bool): Whether to use multiprocessing for tiles.
-    backend (str): Parallel execution backend ("process" or "thread").
-    max_workers (int): Number of parallel workers.
+  name: Identifier carried through to the return tuple.
+  image_path: Path to the source raster (VRT/GeoTIFF/etc.).
+  bounds_canvas_coords: (x_min, y_min, x_max, y_max) in the source CRS (projection taken from `image_path`).
+  num_row: Output grid height (rows).
+  num_col: Output grid width (columns).
+  num_bands: Number of bands to read from the warped raster.
+  debug_logs: If True, emit progress and NaN counts to stdout.
+  nodata_value: Source NoData value to treat as invalid (if present).
+  calculation_dtype: Target NumPy dtype for the output array (e.g., "float32").
+  tile_thread_on: If True, enable multithreaded warping.
+  tile_thread_workers: Number of worker threads when `tile_thread_on` is True.
 
 Returns:
-    Tuple[str, np.ndarray, np.ndarray]: (Image name, block mean array, block pixel count array)"""
+  Tuple[str, np.ndarray]: `(name, block_mean)` where `block_mean` has shape `(num_row, num_col, num_bands)` and dtype `calculation_dtype`. Cells with no valid input samples are NaN."""
 
-def _calculate_block_process_window(band_index, window, name, geoms, invert, nodata_value, calculation_dtype, transform, block_shape, bounds_canvas_coords):
-    """Aggregates pixel values within a raster window into a block grid for one band.
-
-Args:
-    band_index (int): Band index to process (0-based).
-    window (Window): Raster window to read.
-    name (str): Image identifier used to retrieve dataset.
-    geoms (list or None): Optional vector geometries for masking.
-    invert (bool): Whether to invert the mask.
-    nodata_value (float): NoData value in the raster.
-    calculation_dtype (str): Data type for computation.
-    transform: Affine transform of the dataset.
-    block_shape (tuple): (num_row, num_col) of the block grid.
-    bounds_canvas_coords (tuple): Extent of the full canvas (minx, miny, maxx, maxy).
-
-Returns:
-    Optional[Tuple[np.ndarray, np.ndarray]]: (Sum of values per block, count of valid pixels per block),
-    or None if the window has no valid pixels."""
-
-def _weighted_bilinear_interpolation(C_B, x_frac, y_frac):
-    """Performs bilinear interpolation on a 2D array while handling NaN values using a validity mask.
-
-Args:
-    C_B (np.ndarray): 2D array with possible NaNs to interpolate.
-    x_frac (np.ndarray): Fractional x-coordinates for interpolation.
-    y_frac (np.ndarray): Fractional y-coordinates for interpolation.
-
-Returns:
-    np.ndarray: Interpolated values at the specified fractional coordinates, with NaNs preserved where data is invalid."""
-
-def _download_block_map(block_map, bounding_rect, output_image_path, projection, dtype, nodata_value, width, height, write_bands, window, delete_output):
+def _download_block_map(block_map, bounding_rect, output_image_path, srs, dtype, nodata_value, width, height, write_bands, delete_output):
     """Writes a 3D block map to a raster file, creating or updating specified bands within a target window.
 
 Args:
     block_map (np.ndarray): Block data of shape (rows, cols, bands).
     bounding_rect (tuple): Spatial extent (minx, miny, maxx, maxy).
     output_image_path (str): Path to the output raster file.
-    projection (rasterio.CRS): Coordinate reference system.
+    srs (str): SRS to save image with.
     dtype (str): Data type for output.
     nodata_value (float): NoData value to write.
     width (int): Full raster width.
     height (int): Full raster height.
     write_bands (tuple[int] | None): 0-based band indices to write; all if None.
-    window (Window | None): Raster window to write into; defaults to full image.
 
 Output:
     Writes the `block_map` array to `output_image_path`, either creating a new raster or updating an existing one."""
@@ -2117,23 +1901,6 @@ Args:
 Returns:
     Tuple[int, int]: Number of rows (num_row) and columns (num_col) for the block grid."""
 
-def _apply_gamma_correction(arr_in, Mrefs, Mins, alpha):
-    """Applies gamma correction to input pixel values based on reference and input block means.
-
-Args:
-    arr_in (np.ndarray): Input pixel values to be corrected.
-    Mrefs (np.ndarray): Reference block means.
-    Mins (np.ndarray): Local block means of the input image.
-    alpha (float, optional): Scaling factor applied to the corrected output. Defaults to 1.0.
-
-Returns:
-    Tuple[np.ndarray, np.ndarray]:
-        - Gamma-corrected pixel values.
-        - Gamma values used in the correction.
-
-Raises:
-    ValueError: If any value in Mins is zero or negative."""
-
 def _smooth_array(input_array, nodata_value, scale_factor):
     """Applies Gaussian smoothing to an array while preserving NoData regions.
 
@@ -2144,6 +1911,10 @@ Args:
 
 Returns:
     np.ndarray: Smoothed array with NoData regions preserved or restored."""
+
+def _write_block_raster(arr2d, path, dtype):
+
+def _warp_to_image_grid(src_path, dst_path):
 
 ## Markdown Section
 ### File: rrn_methods.md
@@ -2258,12 +2029,12 @@ Before installing, ensure you have the following system-level prerequisites:
 
 - Python ≥ 3.10 and ≤ 3.12
 - PROJ ≥ 9.3
-- GDAL ≥ 3.10.2
+- GDAL ≥ 3.11
 - pip
 
 An easy way to install these dependancies is to use [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions):
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.11&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
 
@@ -2285,7 +2056,7 @@ Installing via pixi can be easier as it handles the system level dependencies:
 <span class="normal">3</span>
 <span class="normal">4</span></pre></div></td><td class="code"><div><pre><span></span><code>pixi<span class="w"> </span>init<span class="w"> </span>myproject
 <span class="nb">cd</span><span class="w"> </span>myproject
-pixi<span class="w"> </span>add<span class="w"> </span><span class="s2">&quot;python&gt;=3.9,&lt;3.13&quot;</span><span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10.2&quot;</span>
+pixi<span class="w"> </span>add<span class="w"> </span><span class="s2">&quot;python&gt;=3.9,&lt;3.13&quot;</span><span class="w"> </span><span class="s2">&quot;gdal&gt;=3.11&quot;</span>
 pixi<span class="w"> </span>add<span class="w"> </span>spectralmatch<span class="w"> </span>--pypi
 </code></pre></div></td></tr></table></div>
 
@@ -2304,11 +2075,11 @@ Before installing, ensure you have the following system-level prerequisites:
 
 - Python ≥ 3.10 and ≤ 3.12
 - PROJ ≥ 9.3
-- GDAL = 3.10.2
+- GDAL = 3.11
 
 An easy way to install these dependancies is to use [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions):
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.11&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
 
@@ -2442,7 +2213,7 @@ The custom_output_dtype parameter specifies the data type for output rasters and
 <span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="c1"># Default: None</span>
 
 <span class="c1"># Resolve</span>
-<span class="n">output_dtype</span> <span class="o">=</span> <span class="n">_resolve_output_dtype</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">DatasetReader</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="p">)</span>
+<span class="n">output_dtype</span> <span class="o">=</span> <span class="n">_resolve_output_dtype</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">custom_output_dtype</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 
 
@@ -2462,7 +2233,7 @@ The custom_nodata_value parameter overrides the input nodata value from the firs
 <span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="c1"># Default: None</span>
 
 <span class="c1"># Resolve</span>
-<span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">DatasetReader</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
+<span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 
 ### Debug Logs
@@ -2501,7 +2272,7 @@ The vector_mask parameter limits statistics calculations to specific areas and i
 </code></pre></div></td></tr></table></div>
 
 ### Parallel Workers
-The image_parallel_workers parameter defines the parallelization strategy at the image level. It accepts a tuple such as ("process", "cpu") to enable multiprocessing across all available CPU cores, or you can use "thread" as the backend if threading is preferred. Set it to None to disable image-level parallelism. The window_parallel_workers parameter controls parallelization within each image at the window level and follows the same format. Setting it to None disables window-level parallelism. Processing windows should be done one band at a time for scalability.
+The image_threads parameter defines the parallelization strategy at the image level. It accepts "cpu" or an int to enable multiprocessing across all available CPU cores or the number specified, respectively. Set it to None to disable image-level parallelism. io_threads determines reading and writing threads via the GDAL GDAL_NUM_THREADS command. tile_threads is passed into the GDAL commands as the NUM_THREADS param to determine tile level threading. The cache param is used to set the GDAL cache (input as GB) via SetCacheMax.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
 <span class="normal"> 2</span>
 <span class="normal"> 3</span>
@@ -2532,83 +2303,41 @@ The image_parallel_workers parameter defines the parallelization strategy at the
 <span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
-<span class="n">image_parallel_workers</span>
-<span class="n">window_parallel_workers</span>
+<span class="normal">31</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="n">cache</span>
+<span class="n">image_threads</span> 
+<span class="n">io_threads</span>
+<span class="n">tile_threads</span>
 
 <span class="c1"># Types</span>
-<span class="n">ImageParallelWorkers</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;thread&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
-<span class="n">WindowParallelWorkers</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">Threads</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">Cache</span> <span class="o">=</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
 
 <span class="c1"># Resolve</span>
-<span class="n">image_parallel</span><span class="p">,</span> <span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_parallel_workers</span><span class="p">)</span>
-<span class="n">window_parallel</span><span class="p">,</span> <span class="n">window_backend</span><span class="p">,</span> <span class="n">window_max_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">window_parallel_workers</span><span class="p">)</span>
+<span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
+<span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
 
+<span class="n">image_backend</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span> <span class="c1"># &quot;thread&quot; or &quot;process&quot;</span>
+<span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
+<span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
 
 <span class="c1"># Main process example</span>
-<span class="n">image_args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">arg</span><span class="p">,</span> <span class="n">other_args</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
-<span class="k">if</span> <span class="n">image_parallel</span><span class="p">:</span>
-    <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_name_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
+<span class="n">image_args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span><span class="p">,</span> <span class="n">other_args</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
+<span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_thread_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_name_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
-                <span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 <span class="k">else</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">_name_process_image</span><span class="p">(</span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
+        <span class="n">_name_process_image</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_name_process_image</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="n">arg_1</span><span class="p">,</span> <span class="n">arg_2</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_image_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
-        <span class="c1"># Open output image as well if saving to image</span>
-        <span class="n">windows</span> <span class="o">=</span> <span class="n">_resolve_windows</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span>
-        <span class="n">window_args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">window</span><span class="p">,</span> <span class="n">other_args</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">window</span> <span class="ow">in</span> <span class="n">windows</span><span class="p">]</span>
-
-        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
-            <span class="n">window_backend</span><span class="p">,</span> 
-            <span class="n">window_max_workers</span><span class="p">,</span>
-            <span class="n">initializer</span><span class="o">=</span><span class="n">WorkerContext</span><span class="o">.</span><span class="n">init</span><span class="p">,</span>
-            <span class="n">initargs</span><span class="o">=</span><span class="p">({</span><span class="n">image_name</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;raster&quot;</span><span class="p">,</span> <span class="n">input_image_path</span><span class="p">)},)</span>
-            <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_name_process_window</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">window_args</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
-                <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-                <span class="c1"># Save result to variable or dataset</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">WorkerContext</span><span class="o">.</span><span class="n">init</span><span class="p">({</span><span class="n">image_name</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;raster&quot;</span><span class="p">,</span> <span class="n">input_image_path</span><span class="p">)})</span>
-            <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">window_args</span><span class="p">:</span>
-                <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">buf</span> <span class="o">=</span> <span class="n">_name_process_window</span><span class="p">(</span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
-                <span class="c1"># Save result to variable or dataset</span>
-            <span class="n">WorkerContext</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_name_process_window</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="n">arg_1</span><span class="p">,</span> <span class="n">arg_2</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">WorkerContext</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">image_name</span><span class="p">)</span>
-    <span class="c1"># Process result to return</span>
-
-    <span class="k">return</span> <span class="n">band</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">data</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_name_process_image</span><span class="p">(</span><span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span><span class="p">,</span> <span class="n">other_args</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+    <span class="c1"># Process image</span>
 </code></pre></div></td></tr></table></div>
 
 ### Windows
-The window_size parameter sets the tile size for reading and writing, using an integer for square tiles, a tuple for custom dimensions, "internal" to use the raster’s native tiling (ideal for efficient streaming from COGs), or None to process the full image at once.
+The window_size parameter sets the output tile size and if not set will default to the input tile size. It should be an int or None.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
 <span class="normal">3</span>
@@ -2616,16 +2345,14 @@ The window_size parameter sets the tile size for reading and writing, using an i
 <span class="normal">5</span>
 <span class="normal">6</span>
 <span class="normal">7</span>
-<span class="normal">8</span>
-<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Param</span>
 <span class="n">window_size</span>
 
 <span class="c1"># Types</span>
-<span class="n">WindowSize</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;internal&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
-<span class="n">WindowSizeWithBlock</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;internal&quot;</span><span class="p">,</span> <span class="s2">&quot;block&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">WindowSize</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
 
-<span class="c1"># Resolve</span>
-<span class="n">windows</span> <span class="o">=</span> <span class="n">_resolve_windows</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">DatasetReader</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span>
+<span class="c1"># Resolve within image process if possible</span>
+<span class="n">window_size</span> <span class="o">=</span> <span class="n">_resolve_window_size</span><span class="p">(</span><span class="n">window_size</span><span class="p">,</span> <span class="n">input_image_path</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 
 ### COGs
@@ -2840,7 +2567,7 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 [![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
 [![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15312878.svg)](https://doi.org/10.5281/zenodo.15312878)
-
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.08974/status.svg)](https://doi.org/10.21105/joss.08974)
 
 ## Overview
 
@@ -2848,7 +2575,7 @@ Both block maps have the shape: `num_row, num_col, num_bands`, however, there ar
 
 Spectralmatch provides algorithms to perform relative radiometric normalization (RRN) to enhance spectral consistency across raster mosaics and time series. It is built for geoscientific use, with a sensor- and unit-agnostic design, optimized for automation and efficiency on arbitrarily many images and bands, and works well with Very High Resolution Imagery (VHRI) as it does not require pixel co-registration. In addition to matching algorithms, the software supports cloud and vegetation masking, pseudo invariant feature (PIF) based exclusion, seamline network generation, raster merging, and plotting statistics. The toolkit is available as an open-source Python library, command line interface, and QGIS plugin.
 
-> Please cite as: Lindiwe, K., Percival, J. E. H., & Perroy, R. (2025). spectralmatch. Zenodo. https://doi.org/10.5281/zenodo.15312878
+> Please cite as: Lindiwe et al., (2026). Spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series. Journal of Open Source Software, 11(117), 8974, https://doi.org/10.21105/joss.08974
 
 ## Features
 
@@ -2907,12 +2634,12 @@ In the [QGIS](https://qgis.org/download/) plugin manager, install 'spectralmatch
 
 ### Installation as a Python Library and CLI
 
-Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`; then use pip to install the library:
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.11`; then use pip to install the library:
 
 
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
-<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.11&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
@@ -3027,6 +2754,9 @@ Contributing Guide is available at [spectralmatch.github.io/spectralmatch/contri
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](https://github.com/spectralmatch/spectralmatch/blob/main/LICENSE) for details.
+
+## Project Support
+This library was developed at the [Spatial Data Analysis and Visualization Lab (SDAV)](https://hilo.hawaii.edu/sdav/) at the University of Hawaii at Hilo by Kanoa Lindiwe. Funding was partly provided by the [Hau‘oli Mau Loa Foundation](https://www.hauolimauloa.org/), in addition to the National Science Foundation EPSCoR grant 2149133, Change Hawaiʻi: Harnessing the Data Revolution for Island Resilience.
 
 
 ### File: api/utils.md

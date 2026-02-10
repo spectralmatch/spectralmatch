@@ -1566,7 +1566,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=cd9a4db8">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5c06eb91">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1584,18 +1584,24 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">shutil</span><span class="o">,</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span><span class="o">,</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">glob</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">osgeo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gdal</span><span class="p">,</span> <span class="n">osr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">global_regression</span><span class="p">,</span> <span class="n">local_block_adjustment</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import os, shutil, tempfile, time
-from pathlib import Path</div>
+<div class="clipboard-copy-txt" id="cell-1">import os, time, tempfile, glob
+import numpy as np
+import matplotlib.pyplot as plt
+from osgeo import gdal, osr
+from spectralmatch import global_regression, local_block_adjustment</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=849f9b76">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=92b86174">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1613,22 +1619,62 @@ from pathlib import Path</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">rasterio</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">rasterio.transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">from_origin</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">make_two_rasters</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create two square rasters that overlap by 50% in X."""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">x0</span><span class="p">):</span>
+        <span class="n">drv</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">"GTiff"</span><span class="p">)</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">drv</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">NUM_BANDS</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GDT_UInt16</span><span class="p">,</span>
+                        <span class="n">options</span><span class="o">=</span><span class="p">[</span>
+                            <span class="s2">"TILED=YES"</span><span class="p">,</span>
+                            <span class="sa">f</span><span class="s2">"BLOCKXSIZE=</span><span class="si">{</span><span class="n">BLOCK</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"BLOCKYSIZE=</span><span class="si">{</span><span class="n">BLOCK</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                            <span class="s2">"COMPRESS=LZW"</span><span class="p">,</span> <span class="s2">"BIGTIFF=YES"</span>
+                        <span class="p">])</span>
+        <span class="n">srs</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span><span class="p">();</span> <span class="n">srs</span><span class="o">.</span><span class="n">ImportFromEPSG</span><span class="p">(</span><span class="n">EPSG</span><span class="p">)</span>
+        <span class="n">ds</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">srs</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">())</span>
+        <span class="n">ds</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">((</span><span class="n">x0</span><span class="p">,</span> <span class="n">PIX</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">PIX</span><span class="p">))</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">NUM_BANDS</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">WriteArray</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">))</span>
+        <span class="n">ds</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">();</span> <span class="n">ds</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"A_</span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">.tif"</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"B_</span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">.tif"</span><span class="p">)</span>
+    <span class="n">make_input</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">xoff</span><span class="p">:</span> <span class="n">_create</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">xoff</span><span class="p">)</span>
+    <span class="n">make_input</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">make_input</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="n">size</span> <span class="o">*</span> <span class="n">PIX</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>  <span class="c1"># 50% overlap shift</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">import matplotlib.pyplot as plt
-import numpy as np
-import rasterio
-from rasterio.transform import from_origin</div>
+<div class="clipboard-copy-txt" id="cell-2">def make_two_rasters(size, out_dir):
+    """Create two square rasters that overlap by 50% in X."""
+    def _create(path, x0):
+        drv = gdal.GetDriverByName("GTiff")
+        ds = drv.Create(path, size, size, NUM_BANDS, gdal.GDT_UInt16,
+                        options=[
+                            "TILED=YES",
+                            f"BLOCKXSIZE={BLOCK}", f"BLOCKYSIZE={BLOCK}",
+                            "COMPRESS=LZW", "BIGTIFF=YES"
+                        ])
+        srs = osr.SpatialReference(); srs.ImportFromEPSG(EPSG)
+        ds.SetProjection(srs.ExportToWkt())
+        ds.SetGeoTransform((x0, PIX, 0, 0, 0, -PIX))
+        rng = np.random.default_rng(42)
+        for b in range(1, NUM_BANDS+1):
+            ds.GetRasterBand(b).WriteArray(rng.integers(1, 1000, size=(size, size), dtype=np.uint16))
+        ds.FlushCache(); ds = None
+
+    a = os.path.join(out_dir, f"A_{size}.tif")
+    b = os.path.join(out_dir, f"B_{size}.tif")
+    make_input = lambda p, xoff: _create(p, xoff)
+    make_input(a, 0.0)
+    make_input(b, (size * PIX) / 2.0)  # 50% overlap shift
+    return [a, b]</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=015afe06">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b3477ac8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1646,16 +1692,96 @@ from rasterio.transform import from_origin</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">global_regression</span><span class="p">,</span> <span class="n">local_block_adjustment</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">run_one</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create inputs, run global+local, return (t_global, t_local)."""</span>
+    <span class="n">inp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s2">"Input"</span><span class="p">);</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">gdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s2">"GlobalMatch"</span><span class="p">);</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">gdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ldir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s2">"LocalMatch"</span><span class="p">);</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">ldir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">make_two_rasters</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">inp</span><span class="p">)</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">global_regression</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">=</span><span class="n">inp</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="o">=</span><span class="n">gdir</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">custom_nodata_value</span><span class="o">=</span><span class="mi">9999</span><span class="p">,</span>
+        <span class="n">window_size</span><span class="o">=</span><span class="n">BLOCK</span><span class="p">,</span>
+        <span class="n">image_threads</span><span class="o">=</span><span class="n">IMAGE_THREADS</span><span class="p">,</span>
+        <span class="n">io_threads</span><span class="o">=</span><span class="n">IO_THREADS</span><span class="p">,</span>
+        <span class="n">tile_threads</span><span class="o">=</span><span class="n">TILE_THREADS</span><span class="p">,</span>
+        <span class="n">custom_std_factor</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">save_adjustments</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gdir</span><span class="p">,</span> <span class="s2">"GlobalAdjustments.json"</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+    <span class="n">ref_map</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ldir</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap"</span><span class="p">,</span> <span class="s2">"ReferenceBlockMap.tif"</span><span class="p">);</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">ref_map</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">local_maps_tpl</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ldir</span><span class="p">,</span> <span class="s2">"LocalBlockMap"</span><span class="p">,</span> <span class="s2">"$_LocalBlockMap.tif"</span><span class="p">);</span> <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">local_maps_tpl</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">local_block_adjustment</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">=</span><span class="n">gdir</span><span class="p">,</span>
+        <span class="n">output_images</span><span class="o">=</span><span class="n">ldir</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">custom_nodata_value</span><span class="o">=</span><span class="mi">9999</span><span class="p">,</span>
+        <span class="n">image_threads</span><span class="o">=</span><span class="n">IMAGE_THREADS</span><span class="p">,</span>
+        <span class="n">io_threads</span><span class="o">=</span><span class="n">IO_THREADS</span><span class="p">,</span>
+        <span class="n">tile_threads</span><span class="o">=</span><span class="n">TILE_THREADS</span><span class="p">,</span>
+        <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="c1"># save_block_maps=(ref_map, local_maps_tpl),</span>
+    <span class="p">)</span>
+    <span class="n">t3</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">,</span> <span class="n">t3</span> <span class="o">-</span> <span class="n">t2</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">from spectralmatch import global_regression, local_block_adjustment</div>
+<div class="clipboard-copy-txt" id="cell-3">def run_one(size, base):
+    """Create inputs, run global+local, return (t_global, t_local)."""
+    inp = os.path.join(base, "Input"); os.makedirs(inp, exist_ok=True)
+    gdir = os.path.join(base, "GlobalMatch"); os.makedirs(gdir, exist_ok=True)
+    ldir = os.path.join(base, "LocalMatch"); os.makedirs(ldir, exist_ok=True)
+
+    make_two_rasters(size, inp)
+
+    t0 = time.perf_counter()
+    global_regression(
+        input_images=inp,
+        output_images=gdir,
+        debug_logs=True,
+        custom_nodata_value=9999,
+        window_size=BLOCK,
+        image_threads=IMAGE_THREADS,
+        io_threads=IO_THREADS,
+        tile_threads=TILE_THREADS,
+        custom_std_factor=3,
+        save_adjustments=os.path.join(gdir, "GlobalAdjustments.json"),
+    )
+    t1 = time.perf_counter()
+
+    ref_map = os.path.join(ldir, "ReferenceBlockMap", "ReferenceBlockMap.tif"); os.makedirs(ref_map, exist_ok=True)
+    local_maps_tpl = os.path.join(ldir, "LocalBlockMap", "$_LocalBlockMap.tif"); os.makedirs(local_maps_tpl, exist_ok=True)
+
+    t2 = time.perf_counter()
+    local_block_adjustment(
+        input_images=gdir,
+        output_images=ldir,
+        debug_logs=True,
+        custom_nodata_value=9999,
+        image_threads=IMAGE_THREADS,
+        io_threads=IO_THREADS,
+        tile_threads=TILE_THREADS,
+        number_of_blocks=50,
+        # save_block_maps=(ref_map, local_maps_tpl),
+    )
+    t3 = time.perf_counter()
+
+    return (t1 - t0, t3 - t2)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=950783b5">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6e89af2f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1673,70 +1799,62 @@ from rasterio.transform import from_origin</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">make_fake_rasters</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">n_images</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">nodata</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="n">out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
-    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">profile</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">driver</span><span class="o">=</span><span class="s2">"GTiff"</span><span class="p">,</span>
-        <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
-        <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
-        <span class="n">count</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="s2">"uint16"</span><span class="p">,</span>
-        <span class="n">nodata</span><span class="o">=</span><span class="n">nodata</span><span class="p">,</span>
-        <span class="n">crs</span><span class="o">=</span><span class="s2">"EPSG:3857"</span><span class="p">,</span>
-        <span class="n">transform</span><span class="o">=</span><span class="n">from_origin</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-        <span class="n">tiled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">blockxsize</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
-        <span class="n">blockysize</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
-        <span class="n">compress</span><span class="o">=</span><span class="s2">"LZW"</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-    <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_images</span><span class="p">):</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"fake_</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px.tif"</span>
-        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">9</span><span class="p">):</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"uint16"</span><span class="p">)</span>
-                <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodata</span>
-                <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">indexes</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
-        <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">paths</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"spectralmatch_"</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp</span><span class="p">:</span>
+        <span class="n">t_g</span><span class="p">,</span> <span class="n">t_l</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sz</span> <span class="ow">in</span> <span class="n">SIZES</span><span class="p">:</span>
+            <span class="c1"># fresh subfolders each size</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"Input"</span><span class="p">,</span> <span class="s2">"GlobalMatch"</span><span class="p">,</span> <span class="s2">"LocalMatch"</span><span class="p">]:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s2">"**"</span><span class="p">,</span> <span class="s2">"*"</span><span class="p">),</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                        <span class="k">try</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                        <span class="k">except</span><span class="p">:</span> <span class="k">pass</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">tg</span><span class="p">,</span> <span class="n">tl</span> <span class="o">=</span> <span class="n">run_one</span><span class="p">(</span><span class="n">sz</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sz</span><span class="si">:</span><span class="s2">6d</span><span class="si">}</span><span class="s2">: global=</span><span class="si">{</span><span class="n">tg</span><span class="si">:</span><span class="s2">7.2f</span><span class="si">}</span><span class="s2">s  local=</span><span class="si">{</span><span class="n">tl</span><span class="si">:</span><span class="s2">7.2f</span><span class="si">}</span><span class="s2">s"</span><span class="p">)</span>
+            <span class="n">t_g</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tg</span><span class="p">);</span> <span class="n">t_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tl</span><span class="p">)</span>
+
+        <span class="c1"># Plot</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">SIZES</span><span class="p">,</span> <span class="n">t_g</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">"o"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Global"</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">SIZES</span><span class="p">,</span> <span class="n">t_l</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">"s"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Local"</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Raster size (pixels)"</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Time (s)"</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"spectralmatch timings vs size"</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">();</span> <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">":"</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">();</span> <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">OUTPUT_PATH</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Plot:"</span><span class="p">,</span> <span class="n">OUTPUT_PATH</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">def make_fake_rasters(out_dir, n_images, width, height, nodata=0):
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    profile = dict(
-        driver="GTiff",
-        width=width,
-        height=height,
-        count=8,
-        dtype="uint16",
-        nodata=nodata,
-        crs="EPSG:3857",
-        transform=from_origin(0, 0, 1, 1),
-        tiled=True,
-        blockxsize=512,
-        blockysize=512,
-        compress="LZW",
-    )
-    rng = np.random.default_rng(seed=42)
-    paths = []
-    for i in range(n_images):
-        p = out_dir / f"fake_{i+1}_{width}px.tif"
-        with rasterio.open(p, "w", **profile) as dst:
-            for b in range(1, 9):
-                data = rng.integers(1, 1000, size=(height, width), dtype="uint16")
-                data[0, 0] = nodata
-                dst.write(data, indexes=b)
-        paths.append(str(p))
-    return paths</div>
+<div class="clipboard-copy-txt" id="cell-4">def main():
+    with tempfile.TemporaryDirectory(prefix="spectralmatch_") as tmp:
+        t_g, t_l = [], []
+        for sz in SIZES:
+            # fresh subfolders each size
+            for d in ["Input", "GlobalMatch", "LocalMatch"]:
+                p = os.path.join(tmp, d)
+                if os.path.isdir(p):
+                    for f in glob.glob(os.path.join(p, "**", "*"), recursive=True):
+                        try: os.remove(f)
+                        except: pass
+                os.makedirs(p, exist_ok=True)
+            tg, tl = run_one(sz, tmp)
+            print(f"{sz:6d}: global={tg:7.2f}s  local={tl:7.2f}s")
+            t_g.append(tg); t_l.append(tl)
+
+        # Plot
+        plt.figure()
+        plt.plot(SIZES, t_g, marker="o", label="Global")
+        plt.plot(SIZES, t_l, marker="s", label="Local")
+        plt.xlabel("Raster size (pixels)"); plt.ylabel("Time (s)")
+        plt.title("spectralmatch timings vs size"); plt.legend(); plt.grid(True, linestyle=":")
+        plt.tight_layout(); plt.savefig(OUTPUT_PATH, dpi=150)
+        print("Plot:", OUTPUT_PATH)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=948de177">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6f1ce5c2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1754,265 +1872,35 @@ from rasterio.transform import from_origin</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">SIZES</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2_048</span><span class="p">,</span> <span class="mi">4_096</span><span class="p">,</span> <span class="mi">6_144</span><span class="p">,</span> <span class="mi">8_192</span><span class="p">,</span> <span class="mi">10_240</span><span class="p">,</span> <span class="mi">12_288</span><span class="p">]</span>
-<span class="n">NUM_IMAGES</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="n">TILE_SIZE</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">)</span>
-<span class="n">MAX_WORKERS</span> <span class="o">=</span> <span class="mi">32</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">SIZES</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2048</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,]</span><span class="c1"># 6144, 8192, 10240, 12288]</span>
+    <span class="n">NUM_BANDS</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">EPSG</span> <span class="o">=</span> <span class="mi">3857</span>
+    <span class="n">PIX</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="n">BLOCK</span> <span class="o">=</span> <span class="mi">512</span>
+    <span class="n">IMAGE_THREADS</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">IO_THREADS</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">TILE_THREADS</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="n">OUTPUT_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">"benchmark_results.png"</span><span class="p">)</span>
+
+    <span class="n">main</span><span class="p">()</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-5">SIZES = [2_048, 4_096, 6_144, 8_192, 10_240, 12_288]
-NUM_IMAGES = 2
-TILE_SIZE = (1024, 1024)
-MAX_WORKERS = 32</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=1024cd78">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">WORK_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">"bench_output"</span>
-<span class="n">WORK_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-6">WORK_DIR = Path(__file__).parent / "bench_output"
-WORK_DIR.mkdir(exist_ok=True)</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ea6f614a">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-7">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">SERIAL</span><span class="p">,</span> <span class="n">PARALLEL</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-7">SERIAL, PARALLEL = [], []</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=25895fa9">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-8">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">for</span> <span class="n">sz</span> <span class="ow">in</span> <span class="n">SIZES</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">=== </span><span class="si">{</span><span class="n">sz</span><span class="si">}</span><span class="s2"> × </span><span class="si">{</span><span class="n">sz</span><span class="si">}</span><span class="s2"> px  (</span><span class="si">{</span><span class="n">NUM_IMAGES</span><span class="si">}</span><span class="s2"> images) ==="</span><span class="p">)</span>
-    <span class="n">tmp</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">"fake_</span><span class="si">{</span><span class="n">sz</span><span class="si">}</span><span class="s2">px_"</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">WORK_DIR</span><span class="p">))</span>
-    <span class="n">imgs</span> <span class="o">=</span> <span class="n">make_fake_rasters</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">NUM_IMAGES</span><span class="p">,</span> <span class="n">sz</span><span class="p">,</span> <span class="n">sz</span><span class="p">)</span>
+<div class="clipboard-copy-txt" id="cell-5">if __name__ == "__main__":
+    SIZES = [2048, 4096,]# 6144, 8192, 10240, 12288]
+    NUM_BANDS = 8
+    EPSG = 3857
+    PIX = 1.0
 
-    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="n">g_dir</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">/</span> <span class="s2">"serial_g"</span>
-    <span class="n">l_dir</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">/</span> <span class="s2">"serial_l"</span>
+    BLOCK = 512
+    IMAGE_THREADS = 2
+    IO_THREADS = 2
+    TILE_THREADS = 2
 
-    <span class="n">global_regression</span><span class="p">(</span>
-        <span class="n">imgs</span><span class="p">,</span>
-        <span class="n">g_dir</span><span class="p">,</span>
-        <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">custom_std_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">window_size</span><span class="o">=</span><span class="n">TILE_SIZE</span><span class="p">,</span>
-        <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">glob_imgs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">g_dir</span> <span class="o">/</span> <span class="s2">"Images"</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.tif"</span><span class="p">))</span>
+    OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "benchmark_results.png")
 
-    <span class="n">local_block_adjustment</span><span class="p">(</span>
-        <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">glob_imgs</span><span class="p">],</span>
-        <span class="n">l_dir</span><span class="p">,</span>
-        <span class="n">target_blocks_per_image</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">window_size</span><span class="o">=</span><span class="n">TILE_SIZE</span><span class="p">,</span>
-        <span class="n">custom_nodata_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span>
-        <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">SERIAL</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"serial   : </span><span class="si">{</span><span class="n">SERIAL</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> s"</span><span class="p">)</span>
-
-    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="n">g_dir</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">/</span> <span class="s2">"parallel_g"</span>
-    <span class="n">l_dir</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">/</span> <span class="s2">"parallel_l"</span>
-
-    <span class="n">global_regression</span><span class="p">(</span>
-        <span class="n">imgs</span><span class="p">,</span>
-        <span class="n">g_dir</span><span class="p">,</span>
-        <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">custom_std_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">window_size</span><span class="o">=</span><span class="n">TILE_SIZE</span><span class="p">,</span>
-        <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">max_workers</span><span class="o">=</span><span class="n">MAX_WORKERS</span><span class="p">,</span>
-        <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">glob_imgs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">g_dir</span> <span class="o">/</span> <span class="s2">"Images"</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.tif"</span><span class="p">))</span>
-
-    <span class="n">local_block_adjustment</span><span class="p">(</span>
-        <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">glob_imgs</span><span class="p">],</span>
-        <span class="n">l_dir</span><span class="p">,</span>
-        <span class="n">target_blocks_per_image</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">window_size</span><span class="o">=</span><span class="n">TILE_SIZE</span><span class="p">,</span>
-        <span class="n">custom_nodata_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span>
-        <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">max_workers</span><span class="o">=</span><span class="n">MAX_WORKERS</span><span class="p">,</span>
-        <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">PARALLEL</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parallel : </span><span class="si">{</span><span class="n">PARALLEL</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> s"</span><span class="p">)</span>
-
-    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-8">for sz in SIZES:
-    print(f"\n=== {sz} × {sz} px  ({NUM_IMAGES} images) ===")
-    tmp = Path(tempfile.mkdtemp(prefix=f"fake_{sz}px_", dir=WORK_DIR))
-    imgs = make_fake_rasters(tmp, NUM_IMAGES, sz, sz)
-
-    t0 = time.time()
-    g_dir = tmp / "serial_g"
-    l_dir = tmp / "serial_l"
-
-    global_regression(
-        imgs,
-        g_dir,
-        custom_mean_factor=3,
-        custom_std_factor=1,
-        window_size=TILE_SIZE,
-        parallel=False,
-        debug_logs=False,
-    )
-    glob_imgs = sorted((g_dir / "Images").glob("*.tif"))
-
-    local_block_adjustment(
-        [str(p) for p in glob_imgs],
-        l_dir,
-        target_blocks_per_image=100,
-        window_size=TILE_SIZE,
-        custom_nodata_value=-9999,
-        parallel=False,
-        debug_logs=False,
-    )
-    SERIAL.append(time.time() - t0)
-    print(f"serial   : {SERIAL[-1]:.1f} s")
-
-    t0 = time.time()
-    g_dir = tmp / "parallel_g"
-    l_dir = tmp / "parallel_l"
-
-    global_regression(
-        imgs,
-        g_dir,
-        custom_mean_factor=3,
-        custom_std_factor=1,
-        window_size=TILE_SIZE,
-        parallel=True,
-        max_workers=MAX_WORKERS,
-        debug_logs=False,
-    )
-    glob_imgs = sorted((g_dir / "Images").glob("*.tif"))
-
-    local_block_adjustment(
-        [str(p) for p in glob_imgs],
-        l_dir,
-        target_blocks_per_image=100,
-        window_size=TILE_SIZE,
-        custom_nodata_value=-9999,
-        parallel=True,
-        max_workers=MAX_WORKERS,
-        debug_logs=False,
-    )
-    PARALLEL.append(time.time() - t0)
-    print(f"parallel : {PARALLEL[-1]:.1f} s")
-
-    shutil.rmtree(tmp, ignore_errors=True)</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=591289b1">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">SIZES</span><span class="p">,</span> <span class="n">SERIAL</span><span class="p">,</span> <span class="s2">"-o"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"serial"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">SIZES</span><span class="p">,</span> <span class="n">PARALLEL</span><span class="p">,</span> <span class="s2">"-o"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">"parallel (</span><span class="si">{</span><span class="n">MAX_WORKERS</span><span class="si">}</span><span class="s2"> workers)"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Raster width = height (pixels)"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Total runtime: global + local (seconds)"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"Pipeline runtime vs. image size (8-band, 2 images)"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-9">plt.figure(figsize=(8, 5))
-plt.plot(SIZES, SERIAL, "-o", label="serial")
-plt.plot(SIZES, PARALLEL, "-o", label=f"parallel ({MAX_WORKERS} workers)")
-plt.xlabel("Raster width = height (pixels)")
-plt.ylabel("Total runtime: global + local (seconds)")
-plt.title("Pipeline runtime vs. image size (8-band, 2 images)")
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-plt.show()</div>
+    main()</div>
 </div>
 </div>
 </div>
@@ -2042,7 +1930,7 @@ plt.show()</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 14, 2025 01:22:34 UTC">June 14, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 10, 2026 12:01:31 UTC">February 10, 2026</span>
   </span>
 
     

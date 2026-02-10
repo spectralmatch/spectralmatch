@@ -377,6 +377,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#project-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Support
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1048,6 +1059,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#project-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Support
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1075,12 +1097,13 @@
 <a href="https://codecov.io/gh/spectralmatch/spectralmatch"><img alt="codecov" src="https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C" /></a>
 <a href="https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&amp;cloudshell_working_dir=."><img alt="Open in Cloud Shell" src="https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud" /></a>
 <a href="https://spectralmatch.github.io/spectralmatch/llm_prompt"><img alt="📋 Copy LLM Prompt" src="https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen" /></a>
-<a href="https://doi.org/10.5281/zenodo.15312878"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.15312878.svg" /></a></p>
+<a href="https://doi.org/10.5281/zenodo.15312878"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.15312878.svg" /></a>
+<a href="https://doi.org/10.21105/joss.08974"><img alt="DOI" src="https://joss.theoj.org/papers/10.21105/joss.08974/status.svg" /></a></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p><img alt="Global and Local Matching" src="images/spectralmatch.png" /></p>
 <p>Spectralmatch provides algorithms to perform relative radiometric normalization (RRN) to enhance spectral consistency across raster mosaics and time series. It is built for geoscientific use, with a sensor- and unit-agnostic design, optimized for automation and efficiency on arbitrarily many images and bands, and works well with Very High Resolution Imagery (VHRI) as it does not require pixel co-registration. In addition to matching algorithms, the software supports cloud and vegetation masking, pseudo invariant feature (PIF) based exclusion, seamline network generation, raster merging, and plotting statistics. The toolkit is available as an open-source Python library, command line interface, and QGIS plugin.</p>
 <blockquote>
-<p>Please cite as: Lindiwe, K., Percival, J. E. H., &amp; Perroy, R. (2025). spectralmatch. Zenodo. https://doi.org/10.5281/zenodo.15312878</p>
+<p>Please cite as: Lindiwe et al., (2026). Spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series. Journal of Open Source Software, 11(117), 8974, https://doi.org/10.21105/joss.08974</p>
 </blockquote>
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1149,10 +1172,10 @@ However, global correction alone cannot capture intra-image variability so a sec
 <h3 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h3>
 <p>In the <a href="https://qgis.org/download/">QGIS</a> plugin manager, install 'spectralmatch' and find it in the Processing Toolbox.</p>
 <h3 id="installation-as-a-python-library-and-cli">Installation as a Python Library and CLI<a class="headerlink" href="#installation-as-a-python-library-and-cli" title="Permanent link">&para;</a></h3>
-<p>Ensure you have the following system-level prerequisites: <code>Python ≥ 3.10 and ≤ 3.12</code>, <code>pip</code>, <code>PROJ ≥ 9.3</code>, and <code>GDAL ≥ 3.10.2</code>; then use pip to install the library:</p>
+<p>Ensure you have the following system-level prerequisites: <code>Python ≥ 3.10 and ≤ 3.12</code>, <code>pip</code>, <code>PROJ ≥ 9.3</code>, and <code>GDAL ≥ 3.11</code>; then use pip to install the library:</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
-<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10.2&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.11&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
 conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
 pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
@@ -1253,6 +1276,8 @@ pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 <hr />
 <h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
 <p>This project is licensed under the MIT License. See <a href="https://github.com/spectralmatch/spectralmatch/blob/main/LICENSE">LICENSE</a> for details.</p>
+<h2 id="project-support">Project Support<a class="headerlink" href="#project-support" title="Permanent link">&para;</a></h2>
+<p>This library was developed at the <a href="https://hilo.hawaii.edu/sdav/">Spatial Data Analysis and Visualization Lab (SDAV)</a> at the University of Hawaii at Hilo by Kanoa Lindiwe. Funding was partly provided by the <a href="https://www.hauolimauloa.org/">Hau‘oli Mau Loa Foundation</a>, in addition to the National Science Foundation EPSCoR grant 2149133, Change Hawaiʻi: Harnessing the Data Revolution for Island Resilience.</p>
 
 
 
@@ -1273,7 +1298,7 @@ pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="January 7, 2026 23:36:31 UTC">January 7, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 10, 2026 12:01:31 UTC">February 10, 2026</span>
   </span>
 
     

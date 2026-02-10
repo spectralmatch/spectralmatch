@@ -979,15 +979,11 @@
 <p>Performs local radiometric adjustment on a set of raster images using block-based statistics.</p>
 <h3 id="mask">Mask<a class="headerlink" href="#mask" title="Permanent link">&para;</a></h3>
 <h4 id="band_math"><code>band_math</code><a class="headerlink" href="#band_math" title="Permanent link">&para;</a></h4>
-<p>Applies custom band math expression to a list of input images and writes the results.</p>
+<p>Applies a thresholding operation to input raster images using a mathematical expression string.</p>
 <h4 id="create_cloud_mask_with_omnicloudmask"><code>create_cloud_mask_with_omnicloudmask</code><a class="headerlink" href="#create_cloud_mask_with_omnicloudmask" title="Permanent link">&para;</a></h4>
 <p>Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.</p>
-<h4 id="create_ndvi_raster"><code>create_ndvi_raster</code><a class="headerlink" href="#create_ndvi_raster" title="Permanent link">&para;</a></h4>
-<p>Computes NDVI masks for one or more images and writes them to disk.</p>
 <h4 id="process_raster_values_to_vector_polygons"><code>process_raster_values_to_vector_polygons</code><a class="headerlink" href="#process_raster_values_to_vector_polygons" title="Permanent link">&para;</a></h4>
 <p>Converts raster values into vector polygons based on an expression and optional filtering logic.</p>
-<h4 id="threshold_raster"><code>threshold_raster</code><a class="headerlink" href="#threshold_raster" title="Permanent link">&para;</a></h4>
-<p>Applies a thresholding operation to input raster images using a mathematical expression string.</p>
 <h3 id="seamline">Seamline<a class="headerlink" href="#seamline" title="Permanent link">&para;</a></h3>
 <h4 id="voronoi_center_seamline"><code>voronoi_center_seamline</code><a class="headerlink" href="#voronoi_center_seamline" title="Permanent link">&para;</a></h4>
 <p>Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.</p>
@@ -1000,13 +996,15 @@
 <p>Match <code>reference_paths</code> to <code>input_match_paths</code> using a regex applied to the basenames of <code>input_match_paths</code>. The extracted key must be a substring of the reference filename.</p>
 <h3 id="utils">Utils<a class="headerlink" href="#utils" title="Permanent link">&para;</a></h3>
 <h4 id="merge_rasters"><code>merge_rasters</code><a class="headerlink" href="#merge_rasters" title="Permanent link">&para;</a></h4>
-<p>Merges multiple rasters into a single mosaic aligned to the union extent and minimum resolution.</p>
+<p>Merges multiple rasters into a single output.</p>
 <h4 id="mask_rasters"><code>mask_rasters</code><a class="headerlink" href="#mask_rasters" title="Permanent link">&para;</a></h4>
-<p>Applies a vector-based mask to one or more rasters, with support for image- and window-level parallelism.</p>
+<p>Applies a vector-based mask to one or more rasters using GDAL Warp.</p>
 <h4 id="merge_vectors"><code>merge_vectors</code><a class="headerlink" href="#merge_vectors" title="Permanent link">&para;</a></h4>
 <p>Merge multiple vector files using the specified geometric method.</p>
 <h4 id="align_rasters"><code>align_rasters</code><a class="headerlink" href="#align_rasters" title="Permanent link">&para;</a></h4>
 <p>Aligns multiple rasters to a common resolution and grid using specified resampling.</p>
+<h4 id="compute_overviews"><code>compute_overviews</code><a class="headerlink" href="#compute_overviews" title="Permanent link">&para;</a></h4>
+<p>Compute and attach GDAL overviews for one or more raster images.</p>
 <h3 id="statistics">Statistics<a class="headerlink" href="#statistics" title="Permanent link">&para;</a></h3>
 <h4 id="compare_image_spectral_profiles_pairs"><code>compare_image_spectral_profiles_pairs</code><a class="headerlink" href="#compare_image_spectral_profiles_pairs" title="Permanent link">&para;</a></h4>
 <p>Plots paired spectral profiles for before-and-after image comparisons.</p>
@@ -1034,7 +1032,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 10, 2026 11:20:15 UTC">February 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 10, 2026 12:04:56 UTC">February 10, 2026</span>
   </span>
 
     
