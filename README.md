@@ -7,7 +7,7 @@
 [![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
 [![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15312878.svg)](https://doi.org/10.5281/zenodo.15312878)
-
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.08974/status.svg)](https://doi.org/10.21105/joss.08974)
 
 ## Overview
 
@@ -15,7 +15,7 @@
 
 Spectralmatch provides algorithms to perform relative radiometric normalization (RRN) to enhance spectral consistency across raster mosaics and time series. It is built for geoscientific use, with a sensor- and unit-agnostic design, optimized for automation and efficiency on arbitrarily many images and bands, and works well with Very High Resolution Imagery (VHRI) as it does not require pixel co-registration. In addition to matching algorithms, the software supports cloud and vegetation masking, pseudo invariant feature (PIF) based exclusion, seamline network generation, raster merging, and plotting statistics. The toolkit is available as an open-source Python library, command line interface, and QGIS plugin.
 
-> Please cite as: Lindiwe, K., Percival, J. E. H., & Perroy, R. (2025). spectralmatch. Zenodo. https://doi.org/10.5281/zenodo.15312878
+> Please cite as: Lindiwe et al., (2026). Spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series. Journal of Open Source Software, 11(117), 8974, https://doi.org/10.21105/joss.08974
 
 ## Features
 
@@ -74,11 +74,11 @@ In the [QGIS](https://qgis.org/download/) plugin manager, install 'spectralmatch
 
 ### Installation as a Python Library and CLI
 
-Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.10.2`; then use pip to install the library:
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.11`; then use pip to install the library:
 
 
 ```bash
-conda create -n spectralmatch python=3.12 "gdal>=3.10.2" "proj>=9.3" -c conda-forge
+conda create -n spectralmatch python=3.12 "gdal>=3.11" "proj>=9.3" -c conda-forge
 conda activate spectralmatch
 pip install spectralmatch
 ```
@@ -153,3 +153,6 @@ Contributing Guide is available at [spectralmatch.github.io/spectralmatch/contri
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](https://github.com/spectralmatch/spectralmatch/blob/main/LICENSE) for details.
+
+## Project Support
+This library was developed at the [Spatial Data Analysis and Visualization Lab (SDAV)](https://hilo.hawaii.edu/sdav/) at the University of Hawaii at Hilo by Kanoa Lindiwe. Funding was partly provided by the [Hau‘oli Mau Loa Foundation](https://www.hauolimauloa.org/), in addition to the National Science Foundation EPSCoR grant 2149133, Change Hawaiʻi: Harnessing the Data Revolution for Island Resilience.

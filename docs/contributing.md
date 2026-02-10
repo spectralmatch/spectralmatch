@@ -97,7 +97,7 @@ custom_output_dtype
 CustomOutputDtype = str | None # Default: None
 
 # Resolve
-output_dtype = _resolve_output_dtype(rasterio.DatasetReader, custom_output_dtype)
+output_dtype = _resolve_output_dtype(input_image_paths[0], custom_output_dtype)
 ```
 
 
@@ -111,7 +111,7 @@ custom_nodata_value
 CustomNodataValue = float | int | None # Default: None
 
 # Resolve
-nodata_value = _resolve_nodata_value(rasterio.DatasetReader, custom_nodata_value)
+nodata_value = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
 ```
 
 ### Debug Logs
@@ -140,74 +140,52 @@ VectorMask = Tuple[Literal["include", "exclude"], str, Optional[str]] | None
 ```
 
 ### Parallel Workers
-The image_parallel_workers parameter defines the parallelization strategy at the image level. It accepts a tuple such as ("process", "cpu") to enable multiprocessing across all available CPU cores, or you can use "thread" as the backend if threading is preferred. Set it to None to disable image-level parallelism. The window_parallel_workers parameter controls parallelization within each image at the window level and follows the same format. Setting it to None disables window-level parallelism. Processing windows should be done one band at a time for scalability.
+The image_threads parameter defines the parallelization strategy at the image level. It accepts "cpu" or an int to enable multiprocessing across all available CPU cores or the number specified, respectively. Set it to None to disable image-level parallelism. io_threads determines reading and writing threads via the GDAL GDAL_NUM_THREADS command. tile_threads is passed into the GDAL commands as the NUM_THREADS param to determine tile level threading. The cache param is used to set the GDAL cache (input as GB) via SetCacheMax.
 ```python
 # Params
-image_parallel_workers
-window_parallel_workers
+cache
+image_threads 
+io_threads
+tile_threads
 
 # Types
-ImageParallelWorkers = Tuple[Literal["process", "thread"], Literal["cpu"] | int] | None
-WindowParallelWorkers = Tuple[Literal["process"], Literal["cpu"] | int] | None
+Threads = Literal["cpu"] | int | None
+Cache = float | None
 
 # Resolve
-image_parallel, image_backend, image_max_workers = _resolve_parallel_config(image_parallel_workers)
-window_parallel, window_backend, window_max_workers = _resolve_parallel_config(window_parallel_workers)
+_set_gdal_cache(cache, debug_logs)
+_set_gdal_workers(io_threads, debug_logs)
 
+image_backend = "thread" # "thread" or "process"
+image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
 # Main process example
-image_args = [(arg, other_args, ...) for arg in inputs]
-if image_parallel:
-    with _get_executor(image_backend, image_max_workers) as executor:
-        futures = [executor.submit(_name_process_image, *arg) for arg in image_args]
+image_args = [(tile_thread_on, tile_thread_workers, other_args, ...) for arg in inputs]
+if image_threads_on:
+    with _get_executor(image_backend, image_thread_workers) as executor:
+        futures = [executor.submit(_name_process_image, *args) for args in image_args]
         for future in as_completed(futures):
-                result = future.result()
+            future.result()
 else:
-        for arg in image_args:
-            result = _name_process_image(*arg)
+    for args in image_args:
+        _name_process_image(*args)
 
-def _name_process_image(image_name, arg_1, arg_2, ...):
-    with rasterio.open(input_image_path) as src:
-        # Open output image as well if saving to image
-        windows = _resolve_windows(src, window_size)
-        window_args = [(window, other_args, ...) for window in windows]
-
-        with _get_executor(
-            window_backend, 
-            window_max_workers,
-            initializer=WorkerContext.init,
-            initargs=({image_name: ("raster", input_image_path)},)
-            ) as executor:
-            futures = [executor.submit(_name_process_window, *arg) for arg in window_args]
-            for future in as_completed(futures):
-                band, window, result = future.result()
-                # Save result to variable or dataset
-        else:
-            WorkerContext.init({image_name: ("raster", input_image_path)})
-            for arg in window_args:
-                band, window, buf = _name_process_window(*arg)
-                # Save result to variable or dataset
-            WorkerContext.close()
-
-def _name_process_window(image_name, arg_1, arg_2, ...):
-    ds = WorkerContext.get(image_name)
-    # Process result to return
-    
-    return band, window, data
+def _name_process_image(tile_thread_on, tile_thread_workers, other_args, ...):
+    # Process image
 ```
 
 ### Windows
-The window_size parameter sets the tile size for reading and writing, using an integer for square tiles, a tuple for custom dimensions, "internal" to use the raster’s native tiling (ideal for efficient streaming from COGs), or None to process the full image at once.
+The window_size parameter sets the output tile size and if not set will default to the input tile size. It should be an int or None.
 ```python
 # Param
 window_size
 
 # Types
-WindowSize = int | Tuple[int, int] | Literal["internal"] | None
-WindowSizeWithBlock = int | Tuple[int, int] | Literal["internal", "block"] | None
+WindowSize = int | None
 
-# Resolve
-windows = _resolve_windows(rasterio.DatasetReader, window_size)
+# Resolve within image process if possible
+window_size = _resolve_window_size(window_size, input_image_path, debug_logs)
 ```
 
 ### COGs

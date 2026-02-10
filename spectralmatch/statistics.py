@@ -1,9 +1,10 @@
 import itertools
 import os
 import numpy as np
-import rasterio
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+
+from osgeo import gdal
 
 
 def compare_image_spectral_profiles_pairs(
@@ -13,6 +14,7 @@ def compare_image_spectral_profiles_pairs(
     xlabel: str,
     ylabel: str,
     line_width: float = 1,
+    estimate_stats: bool = True,
 ):
     """
     Plots paired spectral profiles for before-and-after image comparisons.
@@ -32,6 +34,7 @@ def compare_image_spectral_profiles_pairs(
         xlabel (str): X-axis label.
         ylabel (str): Y-axis label.
         line_width (float, optional): Width of the spectral profiles lines. Default is 1.
+        estimate_stats (bool, optional): Whether to estimate band statistics. Default is True.
 
     Outputs:
         Saves a spectral comparison plot showing pre- and post-processing profiles.
@@ -47,34 +50,50 @@ def compare_image_spectral_profiles_pairs(
             color = next(colors)
 
             for i, image_path in enumerate([image_path1, image_path2]):
-                with rasterio.open(image_path) as src:
-                    img = src.read()
-                    num_bands = img.shape[0]
-                    img_reshaped = img.reshape(num_bands, -1)
-                    nodata = src.nodata
-                    if nodata is not None:
-                        img_reshaped = np.where(
-                            img_reshaped == nodata, np.nan, img_reshaped
-                        )
-                    mean_spectral = np.nanmean(img_reshaped, axis=1)
-                    bands = np.arange(1, num_bands + 1)
-                    linestyle = "dashed" if i == 0 else "solid"
-                    plt.plot(
-                        bands,
-                        mean_spectral,
-                        linestyle=linestyle,
-                        color=color,
-                        linewidth=line_width,
-                        label=f"{label} - {'Before' if i == 0 else 'After'}",
-                    )
+                ds = gdal.Open(image_path, gdal.GA_ReadOnly)
+                if ds is None:
+                    continue
+
+                num_bands = ds.RasterCount
+                mean_spectral = np.zeros(num_bands, dtype=float)
+
+                for b in range(1, num_bands + 1):
+                    band = ds.GetRasterBand(b)
+
+                    # (min, max, mean, std)
+                    stats = band.GetStatistics(False, estimate_stats)
+
+                    # stats[2] is the mean
+                    mean_spectral[b - 1] = stats[2]
+
+                ds = None
+
+                bands = np.arange(1, num_bands + 1)
+                linestyle = "dashed" if i == 0 else "solid"
+
+                plt.plot(
+                    bands,
+                    mean_spectral,
+                    linestyle=linestyle,
+                    color=color,
+                    linewidth=line_width,
+                    label=f"{label} - {'Before' if i == 0 else 'After'}",
+                )
+
+                ds = None
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
-    plt.legend()
+    plt.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        ncol=2,
+        frameon=True,
+    )
+    plt.tight_layout()
     plt.grid(True)
     plt.xticks(np.arange(1, num_bands + 1, 1))
-    plt.legend(frameon=True, facecolor='white', edgecolor='black', framealpha=1)
     plt.savefig(output_figure_path, dpi=300)
     plt.close()
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
@@ -107,48 +126,63 @@ def compare_spatial_spectral_difference_band_average(
 
     path1, path2 = input_images
 
-    with rasterio.open(path1) as src1, rasterio.open(path2) as src2:
-        img1 = src1.read().astype("float32")
-        img2 = src2.read().astype("float32")
-        nodata = src1.nodata
+    ds1 = gdal.Open(path1, gdal.GA_ReadOnly)
+    ds2 = gdal.Open(path2, gdal.GA_ReadOnly)
 
-        if img1.shape != img2.shape:
-            raise ValueError("Images must have the same dimensions.")
+    if ds1 is None or ds2 is None:
+        raise RuntimeError("Failed to open one or both input images.")
 
-        diff = img2 - img1
+    bands1, rows1, cols1 = ds1.RasterCount, ds1.RasterYSize, ds1.RasterXSize
+    bands2, rows2, cols2 = ds2.RasterCount, ds2.RasterYSize, ds2.RasterXSize
 
-        if nodata is not None:
-            mask = np.full(diff.shape[1:], True)
-            for b in range(diff.shape[0]):
-                mask &= (img1[b] != nodata) & (img2[b] != nodata)
-            diff[:, ~mask] = np.nan
+    if (bands1, rows1, cols1) != (bands2, rows2, cols2):
+        raise ValueError("Images must have the same dimensions.")
 
-        with np.errstate(invalid="ignore"):
-            mean_diff = np.full(diff.shape[1:], np.nan)
-            valid_mask = ~np.all(np.isnan(diff), axis=0)
-            mean_diff[valid_mask] = np.nanmean(diff[:, valid_mask], axis=0)
+    # Read all bands
+    img1 = np.stack(
+        [ds1.GetRasterBand(i + 1).ReadAsArray() for i in range(bands1)]
+    ).astype("float32")
 
-        fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
+    img2 = np.stack(
+        [ds2.GetRasterBand(i + 1).ReadAsArray() for i in range(bands2)]
+    ).astype("float32")
 
-        vmin, vmax = scale if scale else (np.nanmin(mean_diff), np.nanmax(mean_diff))
-        max_abs = max(abs(vmin), abs(vmax))
-        im = ax.imshow(mean_diff, cmap="coolwarm", vmin=-max_abs, vmax=max_abs)
+    nodata = ds1.GetRasterBand(1).GetNoDataValue()
 
-        cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.set_label(diff_label)
+    diff = img2 - img1
 
-        ax.set_title(title, fontsize=14, pad=12)
-        if subtitle:
-            ax.text(
-                0.5, -0.1, subtitle, fontsize=10, ha="center", transform=ax.transAxes
-            )
+    if nodata is not None:
+        mask = np.full(diff.shape[1:], True)
+        for b in range(diff.shape[0]):
+            mask &= (img1[b] != nodata) & (img2[b] != nodata)
+        diff[:, ~mask] = np.nan
 
-        ax.axis("off")
-        plt.savefig(output_figure_path, dpi=300, bbox_inches="tight")
-        plt.close()
+    with np.errstate(invalid="ignore"):
+        mean_diff = np.full(diff.shape[1:], np.nan)
+        valid_mask = ~np.all(np.isnan(diff), axis=0)
+        mean_diff[valid_mask] = np.nanmean(diff[:, valid_mask], axis=0)
 
-        print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
+    fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
 
+    vmin, vmax = scale if scale else (np.nanmin(mean_diff), np.nanmax(mean_diff))
+    max_abs = max(abs(vmin), abs(vmax))
+    im = ax.imshow(mean_diff, cmap="coolwarm", vmin=-max_abs, vmax=max_abs)
+
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label(diff_label)
+
+    ax.set_title(title, fontsize=14, pad=12)
+    if subtitle:
+        ax.text(0.5, -0.1, subtitle, fontsize=10, ha="center", transform=ax.transAxes)
+
+    ax.axis("off")
+    plt.savefig(output_figure_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    ds1 = None
+    ds2 = None
+
+    print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
 
 def compare_before_after_all_images(
     input_images_1: list,
@@ -177,23 +211,37 @@ def compare_before_after_all_images(
     Output:
         Saves a PNG file with the comparison figure.
     """
+    def read_as_3band(ds):
+        count = ds.RasterCount
+        if count >= 3:
+            arr = np.stack(
+                [ds.GetRasterBand(i + 1).ReadAsArray() for i in range(3)]
+            )
+        else:
+            single = ds.GetRasterBand(1).ReadAsArray()
+            arr = np.repeat(single[np.newaxis, ...], 3, axis=0)
+        return arr.astype("float32")
+
     def compute_row_stretch(paths):
         all_valid = [[] for _ in range(3)]
         for path in paths:
-            with rasterio.open(path) as src:
-                nodata = src.nodata
-                img = (
-                    src.read([1, 2, 3])
-                    if src.count >= 3
-                    else np.repeat(src.read(1)[np.newaxis, ...], 3, axis=0)
-                )
-                img = img.astype("float32")
-                mask = np.full(img.shape[1:], False)
-                if nodata is not None:
-                    for b in range(img.shape[0]):
-                        mask |= img[b] == nodata
+            ds = gdal.Open(path, gdal.GA_ReadOnly)
+            if ds is None:
+                raise RuntimeError(f"Failed to open {path}")
+
+            nodata = ds.GetRasterBand(1).GetNoDataValue()
+            img = read_as_3band(ds)
+
+            mask = np.full(img.shape[1:], False)
+            if nodata is not None:
                 for b in range(img.shape[0]):
-                    all_valid[b].append(img[b][~mask])
+                    mask |= img[b] == nodata
+
+            for b in range(img.shape[0]):
+                all_valid[b].append(img[b][~mask])
+
+            ds = None
+
         return [
             np.percentile(np.concatenate(valid), (2, 98))
             if valid else (0, 1)
@@ -205,6 +253,7 @@ def compare_before_after_all_images(
         assert len(image_names) == len(input_images_1)
 
     os.makedirs(os.path.dirname(output_figure_path), exist_ok=True)
+
     num_images = len(input_images_1)
     fig = plt.figure(figsize=(5 * num_images, 10))
     gs = gridspec.GridSpec(2, num_images + 1, width_ratios=[0.05] + [1] * num_images)
@@ -217,28 +266,34 @@ def compare_before_after_all_images(
             [(path1, stretch_1), (path2, stretch_2)]
         ):
             ax = fig.add_subplot(gs[row_idx, col_idx + 1])
-            with rasterio.open(path) as src:
-                nodata = src.nodata
-                img = (
-                    src.read([1, 2, 3])
-                    if src.count >= 3
-                    else np.repeat(src.read(1)[np.newaxis, ...], 3, axis=0)
-                )
-                img = img.astype("float32")
-                mask = np.full(img.shape[1:], False)
-                if nodata is not None:
-                    for b in range(img.shape[0]):
-                        mask |= img[b] == nodata
+
+            ds = gdal.Open(path, gdal.GA_ReadOnly)
+            if ds is None:
+                raise RuntimeError(f"Failed to open {path}")
+
+            nodata = ds.GetRasterBand(1).GetNoDataValue()
+            img = read_as_3band(ds)
+
+            mask = np.full(img.shape[1:], False)
+            if nodata is not None:
                 for b in range(img.shape[0]):
-                    vmin, vmax = stretch[b]
-                    img[b] = np.clip((img[b] - vmin) / (vmax - vmin), 0, 1)
-                img = img.transpose(1, 2, 0)
-                alpha = (~mask).astype("float32")
-                rgba = np.dstack((img, alpha))
-                ax.imshow(rgba)
-                if row_idx == 0 and image_names:
-                    ax.set_title(image_names[col_idx])
-                ax.axis("off")
+                    mask |= img[b] == nodata
+
+            for b in range(img.shape[0]):
+                vmin, vmax = stretch[b]
+                img[b] = np.clip((img[b] - vmin) / (vmax - vmin), 0, 1)
+
+            img = img.transpose(1, 2, 0)
+            alpha = (~mask).astype("float32")
+            rgba = np.dstack((img, alpha))
+
+            ax.imshow(rgba)
+
+            if row_idx == 0 and image_names:
+                ax.set_title(image_names[col_idx])
+
+            ax.axis("off")
+            ds = None
 
     for i, label in enumerate([ylabel_1, ylabel_2]):
         ax = fig.add_subplot(gs[i, 0])
@@ -252,4 +307,5 @@ def compare_before_after_all_images(
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig(output_figure_path, dpi=300)
     plt.close()
+
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")

@@ -24,12 +24,12 @@ Before installing, ensure you have the following system-level prerequisites:
 
 - Python ≥ 3.10 and ≤ 3.12
 - PROJ ≥ 9.3
-- GDAL ≥ 3.10.2
+- GDAL ≥ 3.11
 - pip
 
 An easy way to install these dependancies is to use [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions):
 ```bash
-conda create -n spectralmatch python=3.12 "gdal>=3.10.2" "proj>=9.3" -c conda-forge
+conda create -n spectralmatch python=3.12 "gdal>=3.11" "proj>=9.3" -c conda-forge
 conda activate spectralmatch
 ```
 
@@ -50,7 +50,7 @@ Installing via pixi can be easier as it handles the system level dependencies:
 ```bash
 pixi init myproject
 cd myproject
-pixi add "python>=3.9,<3.13" "gdal>=3.10.2"
+pixi add "python>=3.9,<3.13" "gdal>=3.11"
 pixi add spectralmatch --pypi
 ```
 
@@ -69,11 +69,11 @@ Before installing, ensure you have the following system-level prerequisites:
 
 - Python ≥ 3.10 and ≤ 3.12
 - PROJ ≥ 9.3
-- GDAL = 3.10.2
+- GDAL = 3.11
 
 An easy way to install these dependancies is to use [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions):
 ```bash
-conda create -n spectralmatch python=3.12 "gdal>=3.10.2" "proj>=9.3" -c conda-forge
+conda create -n spectralmatch python=3.12 "gdal>=3.11" "proj>=9.3" -c conda-forge
 conda activate spectralmatch
 ```
 

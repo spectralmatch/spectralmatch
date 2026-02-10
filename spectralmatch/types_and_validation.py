@@ -10,13 +10,10 @@ class Universal:
     SaveAsCog = bool  # Default: True
     DebugLogs = bool  # Default: False
     VectorMask = Tuple[Literal["include", "exclude"], str, Optional[str]] | None
-    WindowSize = int | Tuple[int, int] | Literal["internal"] | None
-    WindowSizeWithBlock = int | Tuple[int, int] | Literal["internal", "block"] | None
+    WindowSize = int | None
     CustomNodataValue = float | int | None
-    ImageParallelWorkers = (
-        Tuple[Literal["process", "thread"], Literal["cpu"] | int] | None
-    )
-    WindowParallelWorkers = Tuple[Literal["process"], Literal["cpu"] | int] | None
+    Threads = Literal["cpu"] | int | None
+    Cache = float | None
     CalculationDtype = str
     CustomOutputDtype = str | None
     CreateNameAttribute: Tuple[str, str] | None
@@ -31,12 +28,15 @@ class Universal:
         vector_mask=_UNSET,
         window_size=_UNSET,
         custom_nodata_value=_UNSET,
-        image_parallel_workers=_UNSET,
-        window_parallel_workers=_UNSET,
         calculation_dtype=_UNSET,
         custom_output_dtype=_UNSET,
         create_name_attribute=_UNSET,
         output_dtype=_UNSET,
+        cache=_UNSET,
+        image_threads=_UNSET,
+        io_threads=_UNSET,
+        tile_threads=_UNSET,
+        estimate_stats=_UNSET,
     ):
         if input_images is not _UNSET:
             if not isinstance(input_images, (str, list)):
@@ -65,20 +65,8 @@ class Universal:
             if save_as_cog:
                 if window_size is _UNSET or window_size is None:
                     raise ValueError("When save_as_cog=True, window_size must be set.")
-                if isinstance(window_size, int):
-                    if window_size % 16 != 0:
-                        raise ValueError(
-                            "When save_as_cog=True, window_size must be a multiple of 16."
-                        )
-                elif isinstance(window_size, tuple):
-                    if len(window_size) != 2 or window_size[0] != window_size[1]:
-                        raise ValueError(
-                            "When save_as_cog=True, window_size must be square (width == height)."
-                        )
-                    if any(w % 16 != 0 for w in window_size):
-                        raise ValueError(
-                            "When save_as_cog=True, window_size dimensions must be multiples of 16."
-                        )
+                if window_size % 16 != 0:
+                    raise ValueError("When save_as_cog=True, window_size must be a multiple of 16.")
 
         if debug_logs is not _UNSET:
             if not isinstance(debug_logs, bool):
@@ -101,59 +89,19 @@ class Universal:
                 )
 
         if window_size is not _UNSET:
-
-            def _validate_window_param(val):
-                if val is None or isinstance(val, int):
-                    return
-                if (
-                    isinstance(val, tuple)
-                    and len(val) == 2
-                    and all(isinstance(i, int) for i in val)
-                ):
-                    return
-                if val == "internal":
-                    return
-                raise ValueError(
-                    "window_size must be an int, (w, h) tuple, 'internal', or None."
-                )
-
-            _validate_window_param(window_size)
+            if window_size is None:
+                pass
+            elif isinstance(window_size, int):
+                if window_size <= 0:
+                    raise ValueError("window_size must be > 0.")
+            else:
+                raise ValueError("window_size must be an int or None.")
 
         if custom_nodata_value is not _UNSET:
             if custom_nodata_value is not None and not isinstance(
                 custom_nodata_value, (int, float)
             ):
                 raise ValueError("custom_nodata_value must be a number or None.")
-
-        if image_parallel_workers is not _UNSET:
-            if image_parallel_workers is not None:
-                if (
-                    not isinstance(image_parallel_workers, tuple)
-                    or len(image_parallel_workers) != 2
-                    or image_parallel_workers[0] not in {"process", "thread"}
-                    or (
-                        image_parallel_workers[1] != "cpu"
-                        and not isinstance(image_parallel_workers[1], int)
-                    )
-                ):
-                    raise ValueError(
-                        "image_parallel_workers must be a tuple like ('process'|'thread', 'cpu'|int) or None."
-                    )
-
-        if window_parallel_workers is not _UNSET:
-            if window_parallel_workers is not None:
-                if (
-                    not isinstance(window_parallel_workers, tuple)
-                    or len(window_parallel_workers) != 2
-                    or window_parallel_workers[0] != "process"
-                    or (
-                        window_parallel_workers[1] != "cpu"
-                        and not isinstance(window_parallel_workers[1], int)
-                    )
-                ):
-                    raise ValueError(
-                        "window_parallel_workers must be a tuple like ('process', 'cpu'|int) or None."
-                    )
 
         if calculation_dtype is not _UNSET:
             if not isinstance(calculation_dtype, str):
@@ -178,6 +126,46 @@ class Universal:
         if output_dtype is not _UNSET and output_dtype is not None:
             if not isinstance(output_dtype, str):
                 raise ValueError("output_dtype must be a string or None.")
+
+        if cache is not _UNSET:
+            if cache is None:
+                return
+            if isinstance(cache, int):
+                if cache <= 0:
+                    raise ValueError("cache int value must be > 0 (in MB).")
+                return
+            if (isinstance(cache, tuple) and len(cache) == 2
+                    and isinstance(cache[0], int) and isinstance(cache[1], str)):
+                if cache[0] <= 0:
+                    raise ValueError("cache size must be > 0.")
+                if cache[1].upper() not in {"KB", "MB", "GB"}:
+                    raise ValueError('cache unit must be one of {"KB","MB","GB"}.')
+                return
+            raise ValueError("cache must be an int (MB) or (size:int, unit:str) like (2, 'GB'), or None.")
+
+        if image_threads is not _UNSET:
+            _validate_threads(image_threads, "image_threads")
+
+        if io_threads is not _UNSET:
+            _validate_threads(io_threads, "io_threads")
+
+        if tile_threads is not _UNSET:
+            _validate_threads(tile_threads, "tile_threads")
+
+        if estimate_stats is not _UNSET:
+            if not isinstance(estimate_stats, bool):
+                raise ValueError("estimate_stats must be a boolean.")
+
+def _validate_threads(x, name):
+    if x is None:
+        return
+    if isinstance(x, int):
+        if x < 1:
+            raise ValueError(f"{name} must be a positive integer, got {x}.")
+        return
+    if isinstance(x, str) and x == "cpu":
+        return
+    raise ValueError(f'{name} must be "cpu", an int, or None.')
 
 
 # Match-specific only
@@ -234,7 +222,6 @@ class Match:
         save_block_maps=_UNSET,
         load_block_maps=_UNSET,
         override_bounds_canvas_coords=_UNSET,
-        block_valid_pixel_threshold=_UNSET,
     ):
         if number_of_blocks is not _UNSET:
             if not (
@@ -255,7 +242,7 @@ class Match:
                 raise ValueError("alpha must be a float or int.")
 
         if correction_method is not _UNSET:
-            if correction_method not in {"gamma", "linear"}:
+            if correction_method not in {"gamma", "linear", "offset"}:
                 raise ValueError(
                     "correction_method must be either 'gamma' or 'linear'."
                 )
@@ -304,11 +291,3 @@ class Match:
                     raise ValueError(
                         "override_bounds_canvas_coords must be a tuple of four floats or ints, or None."
                     )
-
-        if block_valid_pixel_threshold is not _UNSET:
-            if not isinstance(block_valid_pixel_threshold, (float, int)) or not (
-                0 <= block_valid_pixel_threshold <= 1
-            ):
-                raise ValueError(
-                    "block_valid_pixel_threshold must be a float between 0 and 1."
-                )

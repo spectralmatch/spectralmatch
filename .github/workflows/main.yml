@@ -31,7 +31,7 @@ jobs:
 
       - name: Create Conda environment with Python and GDAL
         run: |
-          conda create --name spectralmatch_env python=${{ matrix.python-version }} "gdal=3.10.2" "proj>=9.3" "rasterio>=1.4.3" --override-channels -c conda-forge -v
+          conda create --name spectralmatch_env python=${{ matrix.python-version }} "gdal=3.11" "proj>=9.3" "rasterio>=1.4.3" --override-channels -c conda-forge -v
 
       - name: Activate Conda environment and install dependencies
         shell: bash -l {0}
@@ -75,7 +75,12 @@ jobs:
 
       - name: Create Conda environment with GDAL (Windows)
         run: |
-          conda create --name spectralmatch_env python=${{ matrix.python-version }} "gdal=3.10.2" "proj>=9.3" "rasterio>=1.4.3" --override-channels -c conda-forge -v
+          conda create --name spectralmatch_env python=${{ matrix.python-version }} "gdal=3.11" "proj>=9.3" "rasterio>=1.4.3" --override-channels -c conda-forge -v
+
+      - name: Install CPU-only torch
+        run: |
+          conda activate spectralmatch_env
+          conda install pytorch cpuonly -c pytorch -y
 
       - name: Activate Conda environment and install package
         run: |
