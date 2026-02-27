@@ -1,5 +1,6 @@
 from .match.global_regression import global_regression
 from .match.local_block_adjustment import local_block_adjustment
+from .match.lirrn_normalization import lirrn_normalization
 from .handlers import search_paths, create_paths, match_paths
 from .utils import merge_rasters, mask_rasters, merge_vectors, align_rasters, compute_overviews
 from .mask.mask import create_cloud_mask_with_omnicloudmask, band_math
@@ -15,6 +16,7 @@ __all__ = [
     # Match
     "global_regression",
     "local_block_adjustment",
+    "lirrn_normalization",
     # Mask
     "band_math",
     "create_cloud_mask_with_omnicloudmask",
