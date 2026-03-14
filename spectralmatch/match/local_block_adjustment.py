@@ -131,11 +131,6 @@ def local_block_adjustment(
     if debug_logs: print(f"Input images: {input_image_paths}")
     if debug_logs: print(f"Output images: {output_image_paths}")
 
-    input_image_path_pairs_masked = create_masked_vrts(input_image_path_pairs, vector_mask=vector_mask, debug_logs=debug_logs)
-
-    # Dtype
-    output_dtype = _resolve_gdal_dtype(output_dtype, input_image_paths[0])
-
     _check_raster_requirements(
         input_image_paths,
         debug_logs,
@@ -146,6 +141,16 @@ def local_block_adjustment(
     )
 
     nodata_val = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
+
+    input_image_path_pairs_masked = create_masked_vrts(
+        input_image_path_pairs,
+        vector_mask=vector_mask,
+        nodata_value=nodata_val,
+        debug_logs=debug_logs,
+    )
+
+    # Dtype
+    output_dtype = _resolve_gdal_dtype(output_dtype, input_image_paths[0])
 
     # Determine multiprocessing and worker count
     image_backend = "thread" # "thread" or "process"

@@ -22,7 +22,7 @@ def test_voronoi_center_seamline_all_params(tmp_path, image_prefix, fill_value):
             width=256,
             height=256,
             count=1,
-            transform=(1, 0, 10 if name == "A" else 20, 0, -1, -10),
+            transform=(10 if name == "A" else 20, 1, 0, -10, 0, -1),
             fill_value=fill_value if name == image_prefix else fill_value + 50,
         )
         input_paths.append(str(path))

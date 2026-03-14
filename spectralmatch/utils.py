@@ -649,22 +649,27 @@ def create_masked_vrts(
     input_image_path_pairs: Dict[str, str],
     *,
     vector_mask: Universal.VectorMask = None,
+    nodata_value: Optional[float] = None,
     out_dir: Optional[str] = None,
     debug_logs: bool = False,
 ) -> Dict[str, str]:
-    """
-    For each (name -> image_path), write:
-      - mask_{name}.geojson  (cutline: include polys OR exclude complement)
-      - vrt_{name}.vrt       (alpha = band1 nodata U cutline-outside)
-    Returns: dict[name, vrt_path]
-    """
-    # temp dir for all masks+VRTs
+
     workdir = out_dir or tempfile.mkdtemp(prefix="spectralmatch_masks_")
     if debug_logs: print(f"Creating VRTs: {workdir}")
+
+    # Pre-parse mask configuration once
+    mask_mode = None
+    mask_path = None
+    mask_field = None
+
+    if vector_mask:
+        mask_mode, mask_path, *field = vector_mask
+        mask_field = field[0] if field else None
 
     out_vrts: Dict[str, str] = {}
 
     for image_name, image_path in input_image_path_pairs.items():
+
         if debug_logs:
             print(f"    {image_name}")
 
@@ -672,107 +677,50 @@ def create_masked_vrts(
         if src is None:
             raise RuntimeError(f"Could not open {image_path}")
 
-        # raster geo + nodata
-        nodata = src.GetRasterBand(1).GetNoDataValue()
         dst_wkt = src.GetProjectionRef() or ""
-        dst_srs = osr.SpatialReference(); dst_srs.ImportFromWkt(dst_wkt)
-        gt = src.GetGeoTransform()
-        xmin, xmax = gt[0], gt[0] + gt[1] * src.RasterXSize
-        ymax, ymin = gt[3], gt[3] + gt[5] * src.RasterYSize
+        src = None
 
-        # build cutline only if requested
-        cutline_ds = None
-        if vector_mask:
-            mode, vpath, *field = vector_mask
-            field_name = field[0] if field else None
-
-            vds = ogr.Open(vpath)
-            if vds is None:
-                raise RuntimeError(f"Could not open vector: {vpath}")
-            lyr = vds.GetLayer(0)
-            lyr.SetSpatialFilterRect(xmin, ymin, xmax, ymax)
-
-            src_srs = lyr.GetSpatialRef()
-            tx = osr.CoordinateTransformation(src_srs, dst_srs) if (src_srs and not src_srs.IsSame(dst_srs)) else None
-
-            # extent polygon once
-            ring = ogr.Geometry(ogr.wkbLinearRing)
-            ring.AddPoint(xmin, ymin); ring.AddPoint(xmin, ymax)
-            ring.AddPoint(xmax, ymax); ring.AddPoint(xmax, ymin); ring.AddPoint(xmin, ymin)
-            extent_poly = ogr.Geometry(ogr.wkbPolygon); extent_poly.AddGeometry(ring)
-
-            # collect selected geoms in raster CRS
-            selected = []
-            for feat in lyr:
-                if field_name:
-                    val = feat.GetField(field_name)
-                    if val is None or (image_name not in str(val)):
-                        continue
-                g = feat.GetGeometryRef()
-                if not g:
-                    continue
-                gc = g.Clone()
-                if tx: gc.Transform(tx)
-                if gc.GetGeometryType() not in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
-                    gc = gc.Buffer(0)
-                gc = gc.Intersection(extent_poly)
-                if gc and not gc.IsEmpty():
-                    selected.append(gc)
-
-            # decide what to write as the cutline geometry
-            if mode == "include":
-                geoms_to_write = selected
-                suffix = "include"
-            else:
-                if selected:
-                    mp = ogr.Geometry(ogr.wkbMultiPolygon)
-                    for g in selected: mp.AddGeometry(g)
-                    union_geom = mp.UnionCascaded()
-                else:
-                    union_geom = None
-                complement = extent_poly if union_geom is None else extent_poly.Difference(union_geom)
-                geoms_to_write = [complement]
-                suffix = "exclude_complement"
-
-            if geoms_to_write:
-                cutline_path = os.path.join(workdir, f"mask_{image_name}.geojson")
-                drv = ogr.GetDriverByName("GeoJSON")
-                ods = drv.CreateDataSource(cutline_path)
-                ol = ods.CreateLayer("cut", srs=dst_srs, geom_type=ogr.wkbPolygon)
-                defn = ol.GetLayerDefn()
-                for g in geoms_to_write:
-                    if g and not g.IsEmpty():
-                        of = ogr.Feature(defn); of.SetGeometry(g)
-                        ol.CreateFeature(of); of = None
-                ol = None; ods = None
-                cutline_ds = cutline_path
-
-            lyr = None; vds = None
-
-        # build the VRT with alpha (nodata + cutline-outside)
         vrt_path = os.path.join(workdir, f"vrt_{image_name}.vrt")
-        warp_opts = gdal.WarpOptions(
-            format="VRT",
-            dstSRS=dst_wkt or None,
-            dstAlpha=True,
-            dstNodata=None,
-            cutlineDSName=cutline_ds,
-            cropToCutline=False,
-            resampleAlg=gdal.GRA_NearestNeighbour,
-            multithread=True,
-            warpOptions=[
+
+        warp_kwargs = {
+            "format": "VRT",
+            "dstSRS": dst_wkt or None,
+            "dstAlpha": True,
+            "dstNodata": nodata_value,
+            "cropToCutline": False,
+            "resampleAlg": gdal.GRA_NearestNeighbour,
+            "multithread": True,
+            "warpOptions": [
                 "SKIP_NOSOURCE=YES",
                 "NUM_THREADS=ALL_CPUS",
                 "UNIFIED_SRC_NODATA=YES",
             ],
-        )
+        }
+
+        # Attach cutline
+        if mask_path:
+            warp_kwargs["cutlineDSName"] = mask_path
+
+            # Attribute filter
+            if mask_field:
+                safe_name = image_name.replace("'", "''")
+                warp_kwargs["cutlineWhere"] = (
+                    f"{mask_field} LIKE '%{safe_name}%'"
+                )
+
+            # Exclude mode uses invert flag
+            if mask_mode == "exclude":
+                warp_kwargs["cutlineInvert"] = True
+
+        warp_opts = gdal.WarpOptions(**warp_kwargs)
+
         out_ds = gdal.Warp(vrt_path, image_path, options=warp_opts)
         if out_ds is None:
             raise RuntimeError(f"Failed to build masked VRT for {image_name}")
-        out_ds = None
-        src = None
 
+        out_ds = None
         out_vrts[image_name] = vrt_path
+
     return out_vrts
 
 

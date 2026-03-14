@@ -1,9 +1,7 @@
 import pytest
 import os
 import geopandas as gpd
-import rasterio
-
-from rasterio.transform import from_origin
+from osgeo import gdal
 
 from .utils_test import create_dummy_raster, create_dummy_vector
 from spectralmatch import merge_rasters, merge_vectors, align_rasters, mask_rasters
@@ -95,13 +93,13 @@ def misaligned_raster_set(tmp_path):
 
     # Raster 1: 1x1 meter
     path1 = os.path.join(input_dir, "raster1.tif")
-    create_dummy_raster(path1, width=16, height=16, transform=from_origin(0, 16, 1, 1))
+    create_dummy_raster(path1, width=16, height=16, transform=(0, 1, 0, 16, 0, -1))
     input_paths.append(path1)
     output_paths.append(os.path.join(output_dir, "aligned1.tif"))
 
     # Raster 2: 2x2 meter
     path2 = os.path.join(input_dir, "raster2.tif")
-    create_dummy_raster(path2, width=8, height=8, transform=from_origin(0, 16, 2, 2))
+    create_dummy_raster(path2, width=8, height=8, transform=(0, 2, 0, 16, 0, -2))
     input_paths.append(path2)
     output_paths.append(os.path.join(output_dir, "aligned2.tif"))
 
@@ -155,11 +153,6 @@ def test_merge_rasters_minimal(basic_raster_set):
 def test_mask_rasters_parametrized(raster_and_vector_mask, kwargs):
     input_rasters, output_rasters, vector_mask = raster_and_vector_mask
 
-    # Ensure initial nodata for minimal test
-    if not kwargs:
-        with rasterio.open(input_rasters[0], "r+") as src:
-            src.nodata = 255
-
     mask_rasters(
         input_images=input_rasters,
         output_images=output_rasters,
@@ -169,11 +162,12 @@ def test_mask_rasters_parametrized(raster_and_vector_mask, kwargs):
 
     assert os.path.exists(output_rasters[0])
 
-    with rasterio.open(output_rasters[0]) as src:
-        expected_nodata = kwargs.get("custom_nodata_value", 255)
-        assert src.nodata == expected_nodata
-        data = src.read(1)
-        assert data.shape == (32, 32)
+    ds = gdal.Open(output_rasters[0])
+    expected_nodata = kwargs.get("custom_nodata_value", 0)
+    assert ds.GetRasterBand(1).GetNoDataValue() == expected_nodata
+    data = ds.GetRasterBand(1).ReadAsArray()
+    assert data.shape == (32, 32)
+    ds = None
 
 
 # merge_vectors
@@ -216,8 +210,9 @@ def test_align_rasters_minimal(misaligned_raster_set):
 
     for out_path in output_paths:
         assert os.path.exists(out_path)
-        with rasterio.open(out_path) as src:
-            assert src.width > 0 and src.height > 0
+        ds = gdal.Open(out_path)
+        assert ds.RasterXSize > 0 and ds.RasterYSize > 0
+        ds = None
 
 
 def test_align_rasters_all_options(misaligned_raster_set):
@@ -237,5 +232,6 @@ def test_align_rasters_all_options(misaligned_raster_set):
 
     for out_path in output_paths:
         assert os.path.exists(out_path)
-        with rasterio.open(out_path) as src:
-            assert src.width > 0 and src.height > 0
+        ds = gdal.Open(out_path)
+        assert ds.RasterXSize > 0 and ds.RasterYSize > 0
+        ds = None

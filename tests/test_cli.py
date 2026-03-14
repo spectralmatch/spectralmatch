@@ -1,6 +1,14 @@
 import subprocess
 import re
-from .utils_test import create_dummy_raster
+import sys
+
+
+def _run_cli(*args):
+    return subprocess.run(
+        [sys.executable, "-m", "spectralmatch", *args],
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_cli_general_help():
@@ -23,7 +31,7 @@ def test_cli_general_help():
         "create_paths",
     ]
 
-    result = subprocess.run(["spectralmatch", "--help"], capture_output=True, text=True)
+    result = _run_cli("--help")
     output = result.stdout + result.stderr
     assert result.returncode == 0
     for name in cli_function_names:
@@ -31,17 +39,13 @@ def test_cli_general_help():
 
 
 def test_cli_command_help():
-    result = subprocess.run(
-        ["spectralmatch", "global_regression", "--help"], capture_output=True, text=True
-    )
+    result = _run_cli("global_regression", "--help")
     assert result.returncode == 0
     assert "global_regression" in (result.stdout + result.stderr)
 
 
 def test_cli_version():
-    result = subprocess.run(
-        ["spectralmatch", "--version"], capture_output=True, text=True
-    )
+    result = _run_cli("--version")
     assert result.returncode == 0
     assert re.search(
         r"\b\d+\.\d+\.\d+\b", result.stdout
