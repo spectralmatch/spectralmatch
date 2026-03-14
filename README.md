@@ -35,6 +35,8 @@ Spectralmatch provides algorithms to perform relative radiometric normalization 
 
 - **Open Source and Collaborative:** Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows. Accessible through a python library, command line interface, and QGIS plugin.
 
+![Poster_AGU.pdf](./images/Poster.webp)
+
 ---
 
 ## Current Matching Algorithms
@@ -44,9 +46,6 @@ This technique is derived from 'An auto-adapting global-to-local color balancing
 First, this method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
 However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion.
 
-
-![Histogram matching graph](./images/matching_histogram.png)
-*Comparison of three WorldView-3 images from Puʻu Waʻawaʻa, Hawaiʻi before and after processing with global regression and local block adjustment using spectralmatch. The top left shows images before processing, the middle left shows images after process, the bottom left shows images mosaiced before and after processing, and lastly, the right shows the spectral profile of all images.*
 
 #### Assumptions
 
