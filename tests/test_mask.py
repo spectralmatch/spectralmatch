@@ -1,10 +1,9 @@
 import numpy as np
-import rasterio
 import os
 import pytest
 import geopandas as gpd
 
-from rasterio.transform import from_origin
+from osgeo import gdal
 
 from spectralmatch import (
     band_math,
@@ -31,22 +30,16 @@ def dummy_rgbn_raster(tmp_path):
 @pytest.fixture
 def dummy_red_nir_raster(tmp_path):
     path = tmp_path / "rgbn.tif"
-    width, height = 32, 32
-    transform = from_origin(0, 32, 1, 1)
-
-    with rasterio.open(
+    create_dummy_raster(
         path,
-        "w",
-        driver="GTiff",
-        height=height,
-        width=width,
-        count=2,
         dtype="uint16",
-        transform=transform,
-        crs="EPSG:4326",
-    ) as dst:
-        dst.write(np.full((height, width), 1000, dtype="uint16"), 1)  # NIR
-        dst.write(np.full((height, width), 500, dtype="uint16"), 2)  # Red
+        nodata=0,
+        transform=(0, 1, 0, 32, 0, -1),
+        band_data=[
+            np.full((32, 32), 1000, dtype="uint16"),
+            np.full((32, 32), 500, dtype="uint16"),
+        ],
+    )
     return path
 
 
@@ -54,23 +47,17 @@ def dummy_red_nir_raster(tmp_path):
 def dummy_raster_for_vector(tmp_path):
     path = tmp_path / "input.tif"
     width, height = 16, 16
-    transform = from_origin(0, 16, 1, 1)
     data = np.zeros((height, width), dtype="uint8")
     data[2:6, 2:6] = 1
     data[10:14, 10:14] = 2
 
-    with rasterio.open(
+    create_dummy_raster(
         path,
-        "w",
-        driver="GTiff",
-        height=height,
-        width=width,
-        count=1,
         dtype="uint8",
-        transform=transform,
-        crs="EPSG:4326",
-    ) as dst:
-        dst.write(data, 1)
+        nodata=0,
+        transform=(0, 1, 0, 16, 0, -1),
+        band_data=data,
+    )
     return path
 
 
@@ -78,20 +65,13 @@ def dummy_raster_for_vector(tmp_path):
 def dummy_gradient_raster(tmp_path):
     path = tmp_path / "input.tif"
     data = np.tile(np.arange(16, dtype="uint8"), (16, 1))  # Horizontal gradient
-    transform = from_origin(0, 16, 1, 1)
-
-    with rasterio.open(
+    create_dummy_raster(
         path,
-        "w",
-        driver="GTiff",
-        height=16,
-        width=16,
-        count=1,
         dtype="uint8",
-        crs="EPSG:4326",
-        transform=transform,
-    ) as dst:
-        dst.write(data, 1)
+        nodata=0,
+        transform=(0, 1, 0, 16, 0, -1),
+        band_data=data,
+    )
 
     return path
 
@@ -104,10 +84,11 @@ def test_band_math_basic(dummy_multiband_raster, tmp_path):
         input_images=[input_path], output_images=[output_path], threshold_math="B1 + B2"
     )
 
-    with rasterio.open(output_path) as out:
-        result = out.read(1)
-        assert result.shape == (64, 64)
-        assert np.all(result == 20)
+    ds = gdal.Open(output_path)
+    result = ds.GetRasterBand(1).ReadAsArray()
+    assert result.shape == (64, 64)
+    assert np.all(result == 20)
+    ds = None
 
 
 def test_band_math_dtype(dummy_multiband_raster, tmp_path):
@@ -120,8 +101,9 @@ def test_band_math_dtype(dummy_multiband_raster, tmp_path):
         custom_output_dtype="uint16",
     )
 
-    with rasterio.open(output_path) as out:
-        assert out.dtypes[0] == "uint16"
+    ds = gdal.Open(output_path)
+    assert gdal.GetDataTypeName(ds.GetRasterBand(1).DataType) == "UInt16"
+    ds = None
 
 
 def test_band_math_nodata(dummy_multiband_raster, tmp_path):
@@ -134,8 +116,9 @@ def test_band_math_nodata(dummy_multiband_raster, tmp_path):
         custom_nodata_value=99,
     )
 
-    with rasterio.open(output_path) as out:
-        assert out.nodata == 99
+    ds = gdal.Open(output_path)
+    assert ds.GetRasterBand(1).GetNoDataValue() == 99
+    ds = None
 
 
 # create_cloud_mask_with_omnicloudmask
@@ -154,8 +137,9 @@ def test_create_cloud_mask(dummy_rgbn_raster, tmp_path):
     )
 
     assert os.path.exists(output_path)
-    with rasterio.open(output_path) as out:
-        assert out.read(1).shape == (128, 128)
+    ds = gdal.Open(output_path)
+    assert ds.GetRasterBand(1).ReadAsArray().shape == (128, 128)
+    ds = None
 
 
 # process_raster_values_to_vector_polygons
