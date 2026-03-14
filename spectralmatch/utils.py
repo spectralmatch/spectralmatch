@@ -649,6 +649,7 @@ def create_masked_vrts(
     input_image_path_pairs: Dict[str, str],
     *,
     vector_mask: Universal.VectorMask = None,
+    nodata_value: Optional[float] = None,
     out_dir: Optional[str] = None,
     debug_logs: bool = False,
 ) -> Dict[str, str]:
@@ -685,7 +686,7 @@ def create_masked_vrts(
             "format": "VRT",
             "dstSRS": dst_wkt or None,
             "dstAlpha": True,
-            "dstNodata": None,
+            "dstNodata": nodata_value,
             "cropToCutline": False,
             "resampleAlg": gdal.GRA_NearestNeighbour,
             "multithread": True,

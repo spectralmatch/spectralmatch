@@ -293,4 +293,6 @@ def _resolve_nodata_value(
         ds = gdal.Open(image_path, gdal.GA_ReadOnly)
         nodata = ds.GetRasterBand(1).GetNoDataValue()
         ds = None
+        if nodata is None:
+            raise ValueError(f"No NoData value found on rasters and custom_nodata_value was not provided. One of these is required.")
         return nodata

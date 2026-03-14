@@ -200,7 +200,12 @@ def global_regression(
             print(f"    Excluded from model (0): []")
 
     # Change to VRT datasets
-    input_image_masked_path_pairs = create_masked_vrts(input_image_path_pairs, vector_mask=vector_mask, debug_logs=debug_logs)
+    input_image_masked_path_pairs = create_masked_vrts(
+        input_image_path_pairs,
+        vector_mask=vector_mask,
+        nodata_value=nodata_val,
+        debug_logs=debug_logs,
+    )
 
     if debug_logs:
         print("Calculating statistics")
