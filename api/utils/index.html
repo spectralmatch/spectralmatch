@@ -798,17 +798,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.utils.create_masked_vrts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        create_masked_vrts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#spectralmatch.utils.mask_rasters" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -952,17 +941,6 @@
     <span class="md-ellipsis">
       
         compute_overviews
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.utils.create_masked_vrts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        create_masked_vrts
       
     </span>
   </a>
@@ -1705,7 +1683,59 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 940</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 888</span>
+<span class="normal"> 889</span>
+<span class="normal"> 890</span>
+<span class="normal"> 891</span>
+<span class="normal"> 892</span>
+<span class="normal"> 893</span>
+<span class="normal"> 894</span>
+<span class="normal"> 895</span>
+<span class="normal"> 896</span>
+<span class="normal"> 897</span>
+<span class="normal"> 898</span>
+<span class="normal"> 899</span>
+<span class="normal"> 900</span>
+<span class="normal"> 901</span>
+<span class="normal"> 902</span>
+<span class="normal"> 903</span>
+<span class="normal"> 904</span>
+<span class="normal"> 905</span>
+<span class="normal"> 906</span>
+<span class="normal"> 907</span>
+<span class="normal"> 908</span>
+<span class="normal"> 909</span>
+<span class="normal"> 910</span>
+<span class="normal"> 911</span>
+<span class="normal"> 912</span>
+<span class="normal"> 913</span>
+<span class="normal"> 914</span>
+<span class="normal"> 915</span>
+<span class="normal"> 916</span>
+<span class="normal"> 917</span>
+<span class="normal"> 918</span>
+<span class="normal"> 919</span>
+<span class="normal"> 920</span>
+<span class="normal"> 921</span>
+<span class="normal"> 922</span>
+<span class="normal"> 923</span>
+<span class="normal"> 924</span>
+<span class="normal"> 925</span>
+<span class="normal"> 926</span>
+<span class="normal"> 927</span>
+<span class="normal"> 928</span>
+<span class="normal"> 929</span>
+<span class="normal"> 930</span>
+<span class="normal"> 931</span>
+<span class="normal"> 932</span>
+<span class="normal"> 933</span>
+<span class="normal"> 934</span>
+<span class="normal"> 935</span>
+<span class="normal"> 936</span>
+<span class="normal"> 937</span>
+<span class="normal"> 938</span>
+<span class="normal"> 939</span>
+<span class="normal"> 940</span>
 <span class="normal"> 941</span>
 <span class="normal"> 942</span>
 <span class="normal"> 943</span>
@@ -1772,59 +1802,7 @@
 <span class="normal">1004</span>
 <span class="normal">1005</span>
 <span class="normal">1006</span>
-<span class="normal">1007</span>
-<span class="normal">1008</span>
-<span class="normal">1009</span>
-<span class="normal">1010</span>
-<span class="normal">1011</span>
-<span class="normal">1012</span>
-<span class="normal">1013</span>
-<span class="normal">1014</span>
-<span class="normal">1015</span>
-<span class="normal">1016</span>
-<span class="normal">1017</span>
-<span class="normal">1018</span>
-<span class="normal">1019</span>
-<span class="normal">1020</span>
-<span class="normal">1021</span>
-<span class="normal">1022</span>
-<span class="normal">1023</span>
-<span class="normal">1024</span>
-<span class="normal">1025</span>
-<span class="normal">1026</span>
-<span class="normal">1027</span>
-<span class="normal">1028</span>
-<span class="normal">1029</span>
-<span class="normal">1030</span>
-<span class="normal">1031</span>
-<span class="normal">1032</span>
-<span class="normal">1033</span>
-<span class="normal">1034</span>
-<span class="normal">1035</span>
-<span class="normal">1036</span>
-<span class="normal">1037</span>
-<span class="normal">1038</span>
-<span class="normal">1039</span>
-<span class="normal">1040</span>
-<span class="normal">1041</span>
-<span class="normal">1042</span>
-<span class="normal">1043</span>
-<span class="normal">1044</span>
-<span class="normal">1045</span>
-<span class="normal">1046</span>
-<span class="normal">1047</span>
-<span class="normal">1048</span>
-<span class="normal">1049</span>
-<span class="normal">1050</span>
-<span class="normal">1051</span>
-<span class="normal">1052</span>
-<span class="normal">1053</span>
-<span class="normal">1054</span>
-<span class="normal">1055</span>
-<span class="normal">1056</span>
-<span class="normal">1057</span>
-<span class="normal">1058</span>
-<span class="normal">1059</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
+<span class="normal">1007</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
     <span class="n">input_images_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">output_image_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1944,288 +1922,6 @@
             <span class="n">_process_image_overview</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">target_paths</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="spectralmatch.utils.create_masked_vrts" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_masked_vrts</span><span class="p">(</span><span class="n">input_image_path_pairs</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
-
-<a href="#spectralmatch.utils.create_masked_vrts" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>For each (name -&gt; image_path), write:
-  - mask_{name}.geojson  (cutline: include polys OR exclude complement)
-  - vrt_{name}.vrt       (alpha = band1 nodata U cutline-outside)
-Returns: dict[name, vrt_path]</p>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">648</span>
-<span class="normal">649</span>
-<span class="normal">650</span>
-<span class="normal">651</span>
-<span class="normal">652</span>
-<span class="normal">653</span>
-<span class="normal">654</span>
-<span class="normal">655</span>
-<span class="normal">656</span>
-<span class="normal">657</span>
-<span class="normal">658</span>
-<span class="normal">659</span>
-<span class="normal">660</span>
-<span class="normal">661</span>
-<span class="normal">662</span>
-<span class="normal">663</span>
-<span class="normal">664</span>
-<span class="normal">665</span>
-<span class="normal">666</span>
-<span class="normal">667</span>
-<span class="normal">668</span>
-<span class="normal">669</span>
-<span class="normal">670</span>
-<span class="normal">671</span>
-<span class="normal">672</span>
-<span class="normal">673</span>
-<span class="normal">674</span>
-<span class="normal">675</span>
-<span class="normal">676</span>
-<span class="normal">677</span>
-<span class="normal">678</span>
-<span class="normal">679</span>
-<span class="normal">680</span>
-<span class="normal">681</span>
-<span class="normal">682</span>
-<span class="normal">683</span>
-<span class="normal">684</span>
-<span class="normal">685</span>
-<span class="normal">686</span>
-<span class="normal">687</span>
-<span class="normal">688</span>
-<span class="normal">689</span>
-<span class="normal">690</span>
-<span class="normal">691</span>
-<span class="normal">692</span>
-<span class="normal">693</span>
-<span class="normal">694</span>
-<span class="normal">695</span>
-<span class="normal">696</span>
-<span class="normal">697</span>
-<span class="normal">698</span>
-<span class="normal">699</span>
-<span class="normal">700</span>
-<span class="normal">701</span>
-<span class="normal">702</span>
-<span class="normal">703</span>
-<span class="normal">704</span>
-<span class="normal">705</span>
-<span class="normal">706</span>
-<span class="normal">707</span>
-<span class="normal">708</span>
-<span class="normal">709</span>
-<span class="normal">710</span>
-<span class="normal">711</span>
-<span class="normal">712</span>
-<span class="normal">713</span>
-<span class="normal">714</span>
-<span class="normal">715</span>
-<span class="normal">716</span>
-<span class="normal">717</span>
-<span class="normal">718</span>
-<span class="normal">719</span>
-<span class="normal">720</span>
-<span class="normal">721</span>
-<span class="normal">722</span>
-<span class="normal">723</span>
-<span class="normal">724</span>
-<span class="normal">725</span>
-<span class="normal">726</span>
-<span class="normal">727</span>
-<span class="normal">728</span>
-<span class="normal">729</span>
-<span class="normal">730</span>
-<span class="normal">731</span>
-<span class="normal">732</span>
-<span class="normal">733</span>
-<span class="normal">734</span>
-<span class="normal">735</span>
-<span class="normal">736</span>
-<span class="normal">737</span>
-<span class="normal">738</span>
-<span class="normal">739</span>
-<span class="normal">740</span>
-<span class="normal">741</span>
-<span class="normal">742</span>
-<span class="normal">743</span>
-<span class="normal">744</span>
-<span class="normal">745</span>
-<span class="normal">746</span>
-<span class="normal">747</span>
-<span class="normal">748</span>
-<span class="normal">749</span>
-<span class="normal">750</span>
-<span class="normal">751</span>
-<span class="normal">752</span>
-<span class="normal">753</span>
-<span class="normal">754</span>
-<span class="normal">755</span>
-<span class="normal">756</span>
-<span class="normal">757</span>
-<span class="normal">758</span>
-<span class="normal">759</span>
-<span class="normal">760</span>
-<span class="normal">761</span>
-<span class="normal">762</span>
-<span class="normal">763</span>
-<span class="normal">764</span>
-<span class="normal">765</span>
-<span class="normal">766</span>
-<span class="normal">767</span>
-<span class="normal">768</span>
-<span class="normal">769</span>
-<span class="normal">770</span>
-<span class="normal">771</span>
-<span class="normal">772</span>
-<span class="normal">773</span>
-<span class="normal">774</span>
-<span class="normal">775</span>
-<span class="normal">776</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_masked_vrts</span><span class="p">(</span>
-    <span class="n">input_image_path_pairs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">out_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    For each (name -&gt; image_path), write:</span>
-<span class="sd">      - mask_{name}.geojson  (cutline: include polys OR exclude complement)</span>
-<span class="sd">      - vrt_{name}.vrt       (alpha = band1 nodata U cutline-outside)</span>
-<span class="sd">    Returns: dict[name, vrt_path]</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># temp dir for all masks+VRTs</span>
-    <span class="n">workdir</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="ow">or</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;spectralmatch_masks_&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Creating VRTs: </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="n">out_vrts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">for</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="n">input_image_path_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">image_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="n">src</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">src</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not open </span><span class="si">{</span><span class="n">image_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="c1"># raster geo + nodata</span>
-        <span class="n">nodata</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">GetNoDataValue</span><span class="p">()</span>
-        <span class="n">dst_wkt</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">GetProjectionRef</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
-        <span class="n">dst_srs</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span><span class="p">();</span> <span class="n">dst_srs</span><span class="o">.</span><span class="n">ImportFromWkt</span><span class="p">(</span><span class="n">dst_wkt</span><span class="p">)</span>
-        <span class="n">gt</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">()</span>
-        <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">gt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">gt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">gt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">src</span><span class="o">.</span><span class="n">RasterXSize</span>
-        <span class="n">ymax</span><span class="p">,</span> <span class="n">ymin</span> <span class="o">=</span> <span class="n">gt</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">gt</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">gt</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="n">src</span><span class="o">.</span><span class="n">RasterYSize</span>
-
-        <span class="c1"># build cutline only if requested</span>
-        <span class="n">cutline_ds</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">vector_mask</span><span class="p">:</span>
-            <span class="n">mode</span><span class="p">,</span> <span class="n">vpath</span><span class="p">,</span> <span class="o">*</span><span class="n">field</span> <span class="o">=</span> <span class="n">vector_mask</span>
-            <span class="n">field_name</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">field</span> <span class="k">else</span> <span class="kc">None</span>
-
-            <span class="n">vds</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">vpath</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">vds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not open vector: </span><span class="si">{</span><span class="n">vpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">lyr</span> <span class="o">=</span> <span class="n">vds</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">lyr</span><span class="o">.</span><span class="n">SetSpatialFilterRect</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
-
-            <span class="n">src_srs</span> <span class="o">=</span> <span class="n">lyr</span><span class="o">.</span><span class="n">GetSpatialRef</span><span class="p">()</span>
-            <span class="n">tx</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">CoordinateTransformation</span><span class="p">(</span><span class="n">src_srs</span><span class="p">,</span> <span class="n">dst_srs</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="n">src_srs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">src_srs</span><span class="o">.</span><span class="n">IsSame</span><span class="p">(</span><span class="n">dst_srs</span><span class="p">))</span> <span class="k">else</span> <span class="kc">None</span>
-
-            <span class="c1"># extent polygon once</span>
-            <span class="n">ring</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Geometry</span><span class="p">(</span><span class="n">ogr</span><span class="o">.</span><span class="n">wkbLinearRing</span><span class="p">)</span>
-            <span class="n">ring</span><span class="o">.</span><span class="n">AddPoint</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">);</span> <span class="n">ring</span><span class="o">.</span><span class="n">AddPoint</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
-            <span class="n">ring</span><span class="o">.</span><span class="n">AddPoint</span><span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span><span class="p">);</span> <span class="n">ring</span><span class="o">.</span><span class="n">AddPoint</span><span class="p">(</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">);</span> <span class="n">ring</span><span class="o">.</span><span class="n">AddPoint</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">)</span>
-            <span class="n">extent_poly</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Geometry</span><span class="p">(</span><span class="n">ogr</span><span class="o">.</span><span class="n">wkbPolygon</span><span class="p">);</span> <span class="n">extent_poly</span><span class="o">.</span><span class="n">AddGeometry</span><span class="p">(</span><span class="n">ring</span><span class="p">)</span>
-
-            <span class="c1"># collect selected geoms in raster CRS</span>
-            <span class="n">selected</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="n">lyr</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">field_name</span><span class="p">:</span>
-                    <span class="n">val</span> <span class="o">=</span> <span class="n">feat</span><span class="o">.</span><span class="n">GetField</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">image_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)):</span>
-                        <span class="k">continue</span>
-                <span class="n">g</span> <span class="o">=</span> <span class="n">feat</span><span class="o">.</span><span class="n">GetGeometryRef</span><span class="p">()</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">g</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">gc</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">Clone</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">tx</span><span class="p">:</span> <span class="n">gc</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tx</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">gc</span><span class="o">.</span><span class="n">GetGeometryType</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ogr</span><span class="o">.</span><span class="n">wkbPolygon</span><span class="p">,</span> <span class="n">ogr</span><span class="o">.</span><span class="n">wkbMultiPolygon</span><span class="p">):</span>
-                    <span class="n">gc</span> <span class="o">=</span> <span class="n">gc</span><span class="o">.</span><span class="n">Buffer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                <span class="n">gc</span> <span class="o">=</span> <span class="n">gc</span><span class="o">.</span><span class="n">Intersection</span><span class="p">(</span><span class="n">extent_poly</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">gc</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">gc</span><span class="o">.</span><span class="n">IsEmpty</span><span class="p">():</span>
-                    <span class="n">selected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gc</span><span class="p">)</span>
-
-            <span class="c1"># decide what to write as the cutline geometry</span>
-            <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;include&quot;</span><span class="p">:</span>
-                <span class="n">geoms_to_write</span> <span class="o">=</span> <span class="n">selected</span>
-                <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;include&quot;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">selected</span><span class="p">:</span>
-                    <span class="n">mp</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Geometry</span><span class="p">(</span><span class="n">ogr</span><span class="o">.</span><span class="n">wkbMultiPolygon</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">:</span> <span class="n">mp</span><span class="o">.</span><span class="n">AddGeometry</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
-                    <span class="n">union_geom</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">UnionCascaded</span><span class="p">()</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">union_geom</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">complement</span> <span class="o">=</span> <span class="n">extent_poly</span> <span class="k">if</span> <span class="n">union_geom</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">extent_poly</span><span class="o">.</span><span class="n">Difference</span><span class="p">(</span><span class="n">union_geom</span><span class="p">)</span>
-                <span class="n">geoms_to_write</span> <span class="o">=</span> <span class="p">[</span><span class="n">complement</span><span class="p">]</span>
-                <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;exclude_complement&quot;</span>
-
-            <span class="k">if</span> <span class="n">geoms_to_write</span><span class="p">:</span>
-                <span class="n">cutline_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mask_</span><span class="si">{</span><span class="n">image_name</span><span class="si">}</span><span class="s2">.geojson&quot;</span><span class="p">)</span>
-                <span class="n">drv</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s2">&quot;GeoJSON&quot;</span><span class="p">)</span>
-                <span class="n">ods</span> <span class="o">=</span> <span class="n">drv</span><span class="o">.</span><span class="n">CreateDataSource</span><span class="p">(</span><span class="n">cutline_path</span><span class="p">)</span>
-                <span class="n">ol</span> <span class="o">=</span> <span class="n">ods</span><span class="o">.</span><span class="n">CreateLayer</span><span class="p">(</span><span class="s2">&quot;cut&quot;</span><span class="p">,</span> <span class="n">srs</span><span class="o">=</span><span class="n">dst_srs</span><span class="p">,</span> <span class="n">geom_type</span><span class="o">=</span><span class="n">ogr</span><span class="o">.</span><span class="n">wkbPolygon</span><span class="p">)</span>
-                <span class="n">defn</span> <span class="o">=</span> <span class="n">ol</span><span class="o">.</span><span class="n">GetLayerDefn</span><span class="p">()</span>
-                <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">geoms_to_write</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">g</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">g</span><span class="o">.</span><span class="n">IsEmpty</span><span class="p">():</span>
-                        <span class="n">of</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">defn</span><span class="p">);</span> <span class="n">of</span><span class="o">.</span><span class="n">SetGeometry</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
-                        <span class="n">ol</span><span class="o">.</span><span class="n">CreateFeature</span><span class="p">(</span><span class="n">of</span><span class="p">);</span> <span class="n">of</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">ol</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="n">ods</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">cutline_ds</span> <span class="o">=</span> <span class="n">cutline_path</span>
-
-            <span class="n">lyr</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="n">vds</span> <span class="o">=</span> <span class="kc">None</span>
-
-        <span class="c1"># build the VRT with alpha (nodata + cutline-outside)</span>
-        <span class="n">vrt_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;vrt_</span><span class="si">{</span><span class="n">image_name</span><span class="si">}</span><span class="s2">.vrt&quot;</span><span class="p">)</span>
-        <span class="n">warp_opts</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">WarpOptions</span><span class="p">(</span>
-            <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;VRT&quot;</span><span class="p">,</span>
-            <span class="n">dstSRS</span><span class="o">=</span><span class="n">dst_wkt</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">dstAlpha</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">dstNodata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">cutlineDSName</span><span class="o">=</span><span class="n">cutline_ds</span><span class="p">,</span>
-            <span class="n">cropToCutline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">resampleAlg</span><span class="o">=</span><span class="n">gdal</span><span class="o">.</span><span class="n">GRA_NearestNeighbour</span><span class="p">,</span>
-            <span class="n">multithread</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">warpOptions</span><span class="o">=</span><span class="p">[</span>
-                <span class="s2">&quot;SKIP_NOSOURCE=YES&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;NUM_THREADS=ALL_CPUS&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;UNIFIED_SRC_NODATA=YES&quot;</span><span class="p">,</span>
-            <span class="p">],</span>
-        <span class="p">)</span>
-        <span class="n">out_ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Warp</span><span class="p">(</span><span class="n">vrt_path</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">warp_opts</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">out_ds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to build masked VRT for </span><span class="si">{</span><span class="n">image_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">out_ds</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">src</span> <span class="o">=</span> <span class="kc">None</span>
-
-        <span class="n">out_vrts</span><span class="p">[</span><span class="n">image_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">vrt_path</span>
-    <span class="k">return</span> <span class="n">out_vrts</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

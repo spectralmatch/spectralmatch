@@ -1028,10 +1028,6 @@ def _prepare_cutline_sources(vector_mask, image_names, debug_logs):
   - If no field: returns None dict, and you should pass the original vector as-is."""
 
 def create_masked_vrts(input_image_path_pairs):
-    """For each (name -> image_path), write:
-  - mask_{name}.geojson  (cutline: include polys OR exclude complement)
-  - vrt_{name}.vrt       (alpha = band1 nodata U cutline-outside)
-Returns: dict[name, vrt_path]"""
 
 def _set_gdal_cache(cache, debug_logs):
 
