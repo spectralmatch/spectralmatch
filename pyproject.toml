@@ -10,7 +10,7 @@ packages = { find = { include = ["spectralmatch*"], exclude = ["spectralmatch_qg
 
 [project]
 name = "spectralmatch"
-version = "1.1.0"
+version = "1.1.1"
 description = "Global and local spectral matching of 2 or more overlapping rasters"
 readme = "README.md"
 license = {text = "MIT"}
