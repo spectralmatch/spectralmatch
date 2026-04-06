@@ -32,7 +32,7 @@ def local_block_adjustment(
     save_as_cog: Universal.SaveAsCog = False,
     number_of_blocks: int | Tuple[int, int] | Literal["coefficient_of_variation"] = 100,
     alpha: float = 1.0,
-    correction_method: Literal["gamma", "linear", "offset"] = "linear",
+    correction_method: Literal["gamma", "linear", "offset"] = "offset",
     save_block_maps: Tuple[str, str] | None = None,
     load_block_maps: (
         Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None

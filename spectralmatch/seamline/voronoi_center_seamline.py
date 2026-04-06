@@ -31,6 +31,7 @@ def voronoi_center_seamline(
     output_mask: str,
     *,
     aoi_path: str | None = None,
+    vector_mask: tuple[str, str] | None = None,
     image_field_name: str = "image",
     min_point_spacing: float = 10,
     min_cut_length: float = 0,
@@ -44,6 +45,7 @@ def voronoi_center_seamline(
         input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
         output_mask (str): Output path for the final seamline polygon vector file.
         aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.
+        vector_mask (Tuple[str, str] | None, optional): Optional polygon source to use instead of extracting EMPs from rasters. The tuple is (vector_path, field_name). For each input image, polygons are selected when the field value is included anywhere in the image name. Matching polygons for the same image are unioned together.
         min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.
         min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.
         debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
@@ -55,6 +57,13 @@ def voronoi_center_seamline(
     """
 
     print("Start voronoi center seamline")
+    output_dir = os.path.dirname(output_mask)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    if debug_vectors_path:
+        debug_dir = os.path.dirname(debug_vectors_path)
+        if debug_dir:
+            os.makedirs(debug_dir, exist_ok=True)
 
     Universal.validate(
         input_images=input_images,
@@ -62,16 +71,25 @@ def voronoi_center_seamline(
     input_image_paths = _resolve_paths(
         "search", input_images, kwargs={"default_file_pattern": "*.tif"}
     )
+    input_image_names = _resolve_paths("name", input_image_paths)
 
-    emps = []
-    crs = None
-    for path in input_image_paths:
-        emp = _emp_polygon_from_image(path)
-        emps.append(emp)
-        if crs is None:
-            ds = gdal.Open(path, gdal.GA_ReadOnly)
-            crs = ds.GetProjectionRef()
-            ds = None
+    if vector_mask is None:
+        emps = []
+        crs = None
+        for path in input_image_paths:
+            emp = _emp_polygon_from_image(path)
+            emps.append(emp)
+            if crs is None:
+                ds = gdal.Open(path, gdal.GA_ReadOnly)
+                crs = ds.GetProjectionRef()
+                ds = None
+    else:
+        emps, crs = _load_emp_polygons_from_vector(
+            input_image_paths=input_image_paths,
+            input_image_names=input_image_names,
+            vector_mask=vector_mask,
+            debug_logs=debug_logs,
+        )
 
     for i, emp in enumerate(emps):
         if debug_logs:
@@ -142,15 +160,81 @@ def voronoi_center_seamline(
     with fiona.open(
         output_mask, "w", driver="GPKG", crs_wkt=crs, schema=schema, layer="seamlines"
     ) as dst:
-        for img, poly in zip(input_image_paths, segmented):
+        for image_name, poly in zip(input_image_names, segmented):
             dst.write(
                 {
                     "geometry": mapping(poly),
                     "properties": {
-                        image_field_name: os.path.splitext(os.path.basename(img))[0]
+                        image_field_name: image_name
                     },
                 }
             )
+
+
+def _load_emp_polygons_from_vector(
+    input_image_paths: list[str],
+    input_image_names: list[str],
+    vector_mask: tuple[str, str],
+    debug_logs: bool,
+) -> tuple[list[Polygon], str | None]:
+    """
+    Load one polygon footprint per image from a vector source by substring matching.
+    """
+    if (
+        not isinstance(vector_mask, tuple)
+        or len(vector_mask) != 2
+        or not all(isinstance(value, str) for value in vector_mask)
+    ):
+        raise ValueError(
+            "vector_mask must be a tuple of (vector_path, field_name)."
+        )
+
+    vector_path, field_name = vector_mask
+    matched_geometries: dict[str, list[Polygon]] = {name: [] for name in input_image_names}
+    crs = None
+
+    with fiona.open(vector_path, "r") as src:
+        crs = src.crs_wkt
+        for feature in src:
+            properties = feature["properties"] or {}
+            if field_name not in properties:
+                raise ValueError(
+                    f"Field '{field_name}' was not found in {vector_path}."
+                )
+            field_value = properties[field_name]
+            if field_value is None:
+                continue
+            match_value = str(field_value)
+            geom = shape(feature["geometry"])
+            if geom.is_empty:
+                continue
+
+            for image_name in input_image_names:
+                if match_value in image_name:
+                    matched_geometries[image_name].append(geom)
+
+    emps = []
+    for image_path, image_name in zip(input_image_paths, input_image_names):
+        geometries = matched_geometries[image_name]
+        if not geometries:
+            raise ValueError(
+                f"No polygons from {vector_path} matched image '{image_name}'. "
+                "Expected the field value to be included in the image name."
+            )
+        merged = unary_union(geometries)
+        if merged.geom_type == "MultiPolygon":
+            merged = max(merged.geoms, key=lambda polygon: polygon.area)
+        if not isinstance(merged, Polygon):
+            raise ValueError(
+                f"Matched geometry for image '{image_name}' is not polygonal."
+            )
+        if debug_logs:
+            print(
+                f"Loaded {len(geometries)} polygon(s) from vector mask for {image_name}"
+            )
+        emps.append(merged)
+
+    return emps, crs
 
 
 def _densify_polygon(
