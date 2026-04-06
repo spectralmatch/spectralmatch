@@ -61,7 +61,7 @@ local_block_adjustment(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
-    correction_method="gamma",
+    correction_method="offset",
     number_of_blocks=50,  # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
     save_block_maps=(reference_map_path, local_maps_path),
