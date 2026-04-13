@@ -291,3 +291,120 @@ class Match:
                     raise ValueError(
                         "override_bounds_canvas_coords must be a tuple of four floats or ints, or None."
                     )
+
+
+class Pipeline:
+    @staticmethod
+    def validate_shared_pipeline(
+        *,
+        shared_output_image_path=_UNSET,
+        shared_temp_dir=_UNSET,
+        delete_temp_dir=_UNSET,
+    ):
+        if shared_output_image_path is not _UNSET:
+            if not isinstance(shared_output_image_path, str):
+                raise ValueError("shared_output_image_path must be a string.")
+        if shared_temp_dir is not _UNSET and shared_temp_dir is not None:
+            if not isinstance(shared_temp_dir, str):
+                raise ValueError("shared_temp_dir must be a string or None.")
+        if delete_temp_dir is not _UNSET:
+            if not isinstance(delete_temp_dir, bool):
+                raise ValueError("delete_temp_dir must be a boolean.")
+
+    @staticmethod
+    def validate_method_choice(
+        *,
+        method_name: str,
+        method_value: str | None,
+        allowed_values: set[str | None],
+    ):
+        if method_value not in allowed_values:
+            raise ValueError(
+                f"{method_name} must be one of {sorted(allowed_values, key=str)}."
+            )
+
+
+class Utils:
+    @staticmethod
+    def validate_align_rasters(
+        *,
+        resampling_method=_UNSET,
+        tap=_UNSET,
+        resolution=_UNSET,
+    ):
+        if resampling_method is not _UNSET:
+            if resampling_method not in {"nearest", "bilinear", "cubic"}:
+                raise ValueError(
+                    "resampling_method must be one of 'nearest', 'bilinear', or 'cubic'."
+                )
+        if tap is not _UNSET:
+            if not isinstance(tap, bool):
+                raise ValueError("tap must be a boolean.")
+        if resolution is not _UNSET:
+            if resolution not in {"highest", "average", "lowest"}:
+                raise ValueError(
+                    "resolution must be one of 'highest', 'average', or 'lowest'."
+                )
+
+    @staticmethod
+    def validate_mask_rasters(
+        *,
+        include_touched_pixels=_UNSET,
+    ):
+        if include_touched_pixels is not _UNSET:
+            if not isinstance(include_touched_pixels, bool):
+                raise ValueError("include_touched_pixels must be a boolean.")
+
+    @staticmethod
+    def validate_merge_rasters(
+        *,
+        resolution=_UNSET,
+    ):
+        if resolution is not _UNSET:
+            if resolution not in {"highest", "average", "lowest"}:
+                raise ValueError(
+                    "resolution must be one of 'highest', 'average', or 'lowest'."
+                )
+
+
+class Seamline:
+    @staticmethod
+    def validate_voronoi_center_seamline(
+        *,
+        output_mask=_UNSET,
+        aoi_path=_UNSET,
+        vector_mask=_UNSET,
+        image_field_name=_UNSET,
+        min_point_spacing=_UNSET,
+        min_cut_length=_UNSET,
+        debug_vectors_path=_UNSET,
+    ):
+        if output_mask is not _UNSET:
+            if not isinstance(output_mask, str):
+                raise ValueError("output_mask must be a string.")
+        if aoi_path is not _UNSET and aoi_path is not None:
+            if not isinstance(aoi_path, str):
+                raise ValueError("aoi_path must be a string or None.")
+        if vector_mask is not _UNSET and vector_mask is not None:
+            if (
+                not isinstance(vector_mask, tuple)
+                or len(vector_mask) != 2
+                or not all(isinstance(value, str) for value in vector_mask)
+            ):
+                raise ValueError(
+                    "vector_mask must be a tuple of (vector_path, field_name) or None."
+                )
+        if image_field_name is not _UNSET:
+            if not isinstance(image_field_name, str):
+                raise ValueError("image_field_name must be a string.")
+        if min_point_spacing is not _UNSET:
+            if not isinstance(min_point_spacing, (int, float)):
+                raise ValueError("min_point_spacing must be a number.")
+            if min_point_spacing <= 0:
+                raise ValueError("min_point_spacing must be > 0.")
+        if min_cut_length is not _UNSET:
+            if not isinstance(min_cut_length, (int, float)):
+                raise ValueError("min_cut_length must be a number.")
+        if debug_vectors_path is not _UNSET and debug_vectors_path is not None:
+            if not isinstance(debug_vectors_path, str):
+                raise ValueError("debug_vectors_path must be a string or None.")

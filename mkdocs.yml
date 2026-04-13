@@ -63,6 +63,7 @@ nav:
         - Create Seamlines: api/seamline.md
         - Utilities: api/utils.md
         - Statistical Figures: api/statistics.md
+        - Pipeline: api/pipeline.md
     - Command Line Interface: cli.md
 
 extra_css:

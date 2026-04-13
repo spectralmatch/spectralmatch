@@ -85,10 +85,8 @@ pip install spectralmatch
 ---
 
 ## Usage
-
-Example scripts and sample data are provided to verify a successful installation and help you get started quickly in the repository at [`/docs/examples`](https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/) and downloadable [here](https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&filename=spectralmatch_examples).
-
-This is an example mosaic workflow using folders for each step:
+### Python
+Example scripts and sample data are provided to verify a successful installation and help you get started quickly in the repository at [`/docs/examples`](https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/) and downloadable [here](https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&filename=spectralmatch_examples). This is an example mosaic workflow using folders for each step:
 
 
 ```python
@@ -135,6 +133,16 @@ merge_rasters(
     output_image_path=os.path.join(working_directory, "MergedImage.tif"),
 )
 ```
+
+### CLI
+There is a CLI that can be used for each function individually or with the [pipeline](https://spectralmatch.github.io/spectralmatch/api/pipeline) function (also available in python):
+
+```commandline
+spectralmatch pipeline /input/folder /output/file.tif --shared_debug_logs=True
+```
+
+### QGIS Plugin
+There is a QGIS plugin available that wraps the library to provide an easy to use gui available [here](https://plugins.qgis.org/plugins/spectralmatch_qgis).
 
 ---
 

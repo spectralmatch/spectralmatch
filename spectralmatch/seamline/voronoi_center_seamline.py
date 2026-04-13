@@ -23,7 +23,7 @@ from osgeo import gdal, ogr, osr
 gdal.UseExceptions()
 
 from ..handlers import _resolve_paths
-from ..types_and_validation import Universal
+from ..types_and_validation import Universal, Seamline
 
 
 def voronoi_center_seamline(
@@ -67,6 +67,15 @@ def voronoi_center_seamline(
 
     Universal.validate(
         input_images=input_images,
+    )
+    Seamline.validate_voronoi_center_seamline(
+        output_mask=output_mask,
+        aoi_path=aoi_path,
+        vector_mask=vector_mask,
+        image_field_name=image_field_name,
+        min_point_spacing=min_point_spacing,
+        min_cut_length=min_cut_length,
+        debug_vectors_path=debug_vectors_path,
     )
     input_image_paths = _resolve_paths(
         "search", input_images, kwargs={"default_file_pattern": "*.tif"}

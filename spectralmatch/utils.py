@@ -9,7 +9,7 @@ from concurrent.futures import as_completed
 from osgeo import gdal, ogr, osr
 
 from .handlers import _resolve_paths, _check_raster_requirements, _resolve_nodata_value
-from .types_and_validation import Universal
+from .types_and_validation import Universal, Utils as UtilsValidation
 from .utils_multiprocessing import _get_executor, _resolve_parallel_config
 
 
@@ -133,6 +133,11 @@ def align_rasters(
         image_threads=image_threads,
         io_threads=io_threads,
         tile_threads=tile_threads,
+    )
+    UtilsValidation.validate_align_rasters(
+        resampling_method=resampling_method,
+        tap=tap,
+        resolution=resolution,
     )
 
     input_image_paths = _resolve_paths(
@@ -359,6 +364,9 @@ def merge_rasters(
         window_size=window_size,
         custom_nodata_value=custom_nodata_value,
     )
+    UtilsValidation.validate_merge_rasters(
+        resolution=resolution,
+    )
 
     # Setup parallel
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
@@ -471,6 +479,9 @@ def mask_rasters(
         tile_threads=tile_threads,
         custom_nodata_value=custom_nodata_value,
         cache=cache,
+    )
+    UtilsValidation.validate_mask_rasters(
+        include_touched_pixels=include_touched_pixels,
     )
 
     input_image_paths = _resolve_paths(
