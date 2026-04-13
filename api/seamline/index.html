@@ -834,6 +834,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1064,16 +1092,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/seamline/voronoi_center_seamline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">295</span>
-<span class="normal">296</span>
-<span class="normal">297</span>
-<span class="normal">298</span>
-<span class="normal">299</span>
-<span class="normal">300</span>
-<span class="normal">301</span>
-<span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">304</span>
 <span class="normal">305</span>
 <span class="normal">306</span>
 <span class="normal">307</span>
@@ -1095,7 +1114,16 @@
 <span class="normal">323</span>
 <span class="normal">324</span>
 <span class="normal">325</span>
-<span class="normal">326</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">polygonal_intersection</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span> <span class="n">buffer_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">):</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">polygonal_intersection</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span> <span class="n">buffer_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns only the polygonal portion of a ∩ b. If the intersection is line-like or point-like, it buffers slightly to form a polygon.</span>
 
@@ -1455,7 +1483,16 @@
 <span class="normal">168</span>
 <span class="normal">169</span>
 <span class="normal">170</span>
-<span class="normal">171</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">voronoi_center_seamline</span><span class="p">(</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">voronoi_center_seamline</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_mask</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1496,6 +1533,15 @@
 
     <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">Seamline</span><span class="o">.</span><span class="n">validate_voronoi_center_seamline</span><span class="p">(</span>
+        <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
+        <span class="n">aoi_path</span><span class="o">=</span><span class="n">aoi_path</span><span class="p">,</span>
+        <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
+        <span class="n">image_field_name</span><span class="o">=</span><span class="n">image_field_name</span><span class="p">,</span>
+        <span class="n">min_point_spacing</span><span class="o">=</span><span class="n">min_point_spacing</span><span class="p">,</span>
+        <span class="n">min_cut_length</span><span class="o">=</span><span class="n">min_cut_length</span><span class="p">,</span>
+        <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">debug_vectors_path</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
         <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
