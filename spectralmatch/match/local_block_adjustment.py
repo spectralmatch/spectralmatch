@@ -995,7 +995,7 @@ def _calculate_block_process_image(
         "height": sub_num_row,
         "resampleAlg": gdal.GRIORA_Average,
         "outputType": _gdal_dtype_str_to_enum(calculation_dtype),
-        "dstNodata": 5,
+        "dstNodata": nodata_value,
         "warpOptions": ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else []),
         "multithread": tile_thread_on,
     }
@@ -1005,6 +1005,8 @@ def _calculate_block_process_image(
 
     for b in range(1, num_bands + 1):
         arr = mem_ds.GetRasterBand(b).ReadAsArray().astype(calculation_dtype, copy=False)
+        if nodata_value is not None:
+            arr[arr == nodata_value] = np.nan
         block_mean[row_start:row_end, col_start:col_end, b - 1] = arr
 
     mem_ds = None
