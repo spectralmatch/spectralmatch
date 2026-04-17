@@ -970,44 +970,86 @@ def _calculate_block_process_image(
     if src_ds is None:
         raise RuntimeError(f"Could not open {image_path}")
     proj_wkt = src_ds.GetProjectionRef()
+    image_bounds = _get_bounding_rectangle(src_ds)
     src_ds = None
 
-    x_min, y_min, x_max, y_max = bounds_canvas_coords
-
-    # Force float output so we can use NaN as dst nodata.
-    mem_ds = gdal.Warp(
-        "",
-        image_path,
-        options=gdal.WarpOptions(
-            format="MEM",
-            dstSRS=proj_wkt or None,
-            outputBounds=(x_min, y_min, x_max, y_max),
-            width=num_col,
-            height=num_row,
-            resampleAlg=gdal.GRIORA_Average,
-            outputType=_gdal_dtype_str_to_enum(calculation_dtype),
-            dstAlpha=True,
-            warpOptions=([
-                "SKIP_NOSOURCE=YES",
-                "UNIFIED_SRC_NODATA=YES",
-            ] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
-            multithread=tile_thread_on,
-        )
+    block_mean = np.full((num_row, num_col, num_bands), np.nan, dtype=calculation_dtype)
+    block_window = _get_intersecting_block_window(
+        bounds_canvas_coords,
+        image_bounds,
+        num_row,
+        num_col,
     )
+    if block_window is None:
+        return name, block_mean
+
+    row_start, row_end, col_start, col_end, sub_bounds = block_window
+    sub_num_row = row_end - row_start
+    sub_num_col = col_end - col_start
+
+    warp_kwargs = {
+        "format": "MEM",
+        "dstSRS": proj_wkt or None,
+        "outputBounds": sub_bounds,
+        "width": sub_num_col,
+        "height": sub_num_row,
+        "resampleAlg": gdal.GRIORA_Average,
+        "outputType": _gdal_dtype_str_to_enum(calculation_dtype),
+        "dstNodata": 5,
+        "warpOptions": ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else []),
+        "multithread": tile_thread_on,
+    }
+    mem_ds = gdal.Warp("", image_path, options=gdal.WarpOptions(**warp_kwargs))
     if mem_ds is None:
         raise RuntimeError("Warp failed computing block means")
 
-    block_mean = np.empty((num_row, num_col, num_bands), dtype=calculation_dtype)
-
-    alpha = mem_ds.GetRasterBand(num_bands + 1).ReadAsArray()
-    valid_mask = alpha != 0
     for b in range(1, num_bands + 1):
         arr = mem_ds.GetRasterBand(b).ReadAsArray().astype(calculation_dtype, copy=False)
-        arr[~valid_mask] = np.nan
-        block_mean[:, :, b - 1] = arr
+        block_mean[row_start:row_end, col_start:col_end, b - 1] = arr
 
     mem_ds = None
     return name, block_mean
+
+
+def _get_intersecting_block_window(
+    global_bounds: Tuple[float, float, float, float],
+    image_bounds: Tuple[float, float, float, float],
+    num_row: int,
+    num_col: int,
+) -> Tuple[int, int, int, int, Tuple[float, float, float, float]] | None:
+    """
+    Return the block-window indices and aligned bounds for the portion of the
+    global block grid that intersects the image bounds.
+    """
+    global_x_min, global_y_min, global_x_max, global_y_max = global_bounds
+    image_x_min, image_y_min, image_x_max, image_y_max = image_bounds
+
+    intersect_x_min = max(global_x_min, image_x_min)
+    intersect_y_min = max(global_y_min, image_y_min)
+    intersect_x_max = min(global_x_max, image_x_max)
+    intersect_y_max = min(global_y_max, image_y_max)
+
+    if intersect_x_min >= intersect_x_max or intersect_y_min >= intersect_y_max:
+        return None
+
+    pixel_width = (global_x_max - global_x_min) / num_col
+    pixel_height = (global_y_max - global_y_min) / num_row
+
+    col_start = max(0, min(num_col, int(math.floor((intersect_x_min - global_x_min) / pixel_width))))
+    col_end = max(col_start, min(num_col, int(math.ceil((intersect_x_max - global_x_min) / pixel_width))))
+    row_start = max(0, min(num_row, int(math.floor((global_y_max - intersect_y_max) / pixel_height))))
+    row_end = max(row_start, min(num_row, int(math.ceil((global_y_max - intersect_y_min) / pixel_height))))
+
+    if row_start == row_end or col_start == col_end:
+        return None
+
+    sub_bounds = (
+        global_x_min + (col_start * pixel_width),
+        global_y_max - (row_end * pixel_height),
+        global_x_min + (col_end * pixel_width),
+        global_y_max - (row_start * pixel_height),
+    )
+    return row_start, row_end, col_start, col_end, sub_bounds
 
 
 def _download_block_map(
