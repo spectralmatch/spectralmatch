@@ -1802,6 +1802,10 @@ Args:
 Returns:
   Tuple[str, np.ndarray]: `(name, block_mean)` where `block_mean` has shape `(num_row, num_col, num_bands)` and dtype `calculation_dtype`. Cells with no valid input samples are NaN."""
 
+def _get_intersecting_block_window(global_bounds, image_bounds, num_row, num_col):
+    """Return the block-window indices and aligned bounds for the portion of the
+global block grid that intersects the image bounds."""
+
 def _download_block_map(block_map, bounding_rect, output_image_path, srs, dtype, nodata_value, width, height, write_bands, delete_output):
     """Writes a 3D block map to a raster file, creating or updating specified bands within a target window.
 
