@@ -2,6 +2,7 @@ import tempfile
 import re
 import os
 import numpy as np
+from html import escape
 
 from typing import List
 from omnicloudmask import predict_from_array
@@ -333,112 +334,57 @@ def _band_math_process_image(
         print(f"    Processing: {input_image_path}")
 
     ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
-
-    # Metadata
     xsize = ds.RasterXSize
     ysize = ds.RasterYSize
     num_bands = ds.RasterCount
     geotransform = ds.GetGeoTransform()
     projection = ds.GetProjectionRef() or ""
 
-    # Substitute percentile references (e.g. 5%b1) with numeric thresholds
-    percent_pattern = re.compile(r"(\d+(\.\d+)?)%B(\d+)")
-
-    def replace_percent_with_threshold(match):
-        percent, _, band_num = match.groups()
-        value = _calculate_threshold_from_percent(
+    with tempfile.TemporaryDirectory(prefix="threshold_") as tmpdir:
+        evaluated_threshold_math = _resolve_percentile_expressions(
+            expression=threshold_math,
             input_image_path=input_image_path,
-            threshold=percent,
-            band_index=int(band_num),
-            debug_logs=debug_logs,
+            xsize=xsize,
+            ysize=ysize,
+            gt=geotransform,
+            srs_wkt=projection,
+            num_bands=num_bands,
             nodata_value=nodata_value,
+            debug_logs=debug_logs,
+            estimate_statistics=True,
+            tmpdir=tmpdir,
         )
-        return str(value)
 
-    evaluated_threshold_math = percent_pattern.sub(
-        replace_percent_with_threshold, threshold_math
-    )
-
-    # The expression is already in muparser syntax – use it directly
-    expr = evaluated_threshold_math
-
-    # Optionally wrap with a nodata guard
-    if nodata_value is not None:
-        nodata_checks = " || ".join([f"(B{i}=={nodata_value})" for i in range(1, num_bands + 1)])
-        final_expr = f"({nodata_checks}) ? {nodata_value} : ({expr})"
-    else:
-        final_expr = expr
-
-    # Escape XML characters when embedding in the VRT
-    xml_final_expr = final_expr.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-    # Create a temporary VRT
-    tmpdir = tempfile.mkdtemp(prefix="threshold_")
-    vrt_path = os.path.join(tmpdir, f"{name}_threshold.vrt")
-
-    # Build the list of SimpleSource entries in one shot
-    vrt_xml = (
-            f"<VRTDataset rasterXSize=\"{xsize}\" rasterYSize=\"{ysize}\">\n"
-            f"  <SRS>{projection}</SRS>\n"
-            f"  <GeoTransform>{', '.join(str(v) for v in geotransform)}</GeoTransform>\n"
-            f"  <VRTRasterBand dataType=\"{calculation_dtype}\" band=\"1\" subClass=\"VRTDerivedRasterBand\">\n"
-            + (f"    <NoDataValue>{nodata_value}</NoDataValue>\n" if nodata_value is not None else "")
-            + "    <PixelFunctionType>expression</PixelFunctionType>\n"
-            + f"    <PixelFunctionArguments dialect=\"muparser\" expression=\"{xml_final_expr}\"/>\n"
-            + "\n".join(
-        f"    <SimpleSource>\n"
-        f"      <SourceFilename relativeToVRT=\"0\">{input_image_path}</SourceFilename>\n"
-        f"      <SourceBand>{i}</SourceBand>\n"
-        f"      <SrcRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
-        f"      <DstRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
-        f"    </SimpleSource>"
-        for i in range(1, num_bands + 1)
-    ) + "\n"
-            + "  </VRTRasterBand>\n"
-            + "</VRTDataset>\n"
-    )
-
-    # Write the VRT to disk
-    with open(vrt_path, "w", encoding="utf-8") as f:
-        f.write(vrt_xml)
-
-    # Determine block size for output tiling
-    window_size = _resolve_window_size(window_size, input_image_path, debug_logs)
-
-    # Assemble creation options and include block sizes and thread count if needed
-    creation_options = [
-        "TILED=YES",
-        "COMPRESS=DEFLATE",
-        "PREDICTOR=2",
-        "ZLEVEL=6",
-        "BIGTIFF=IF_SAFER",
-    ]
-    if window_size:
-        creation_options += [f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"]
-    if tile_threads_on:
-        creation_options.append(f"NUM_THREADS={tile_thread_workers}")
-
-    # Remove pre‑existing output file, if any
-    if os.path.exists(output_image_path):
-        try:
-            gdal.Unlink(output_image_path)
-        except Exception:
-            pass
-
-    # Translate VRT to a tiled GeoTIFF
-    out_ds = gdal.Translate(
-        output_image_path,
-        vrt_path,
-        options=gdal.TranslateOptions(
-            format="GTiff",
-            creationOptions=creation_options,
-            bandList=[1],
-            noData=nodata_value if nodata_value is not None else None,
-            outputType=gdal.GetDataTypeByName(output_dtype),
+        final_expr = _wrap_expression_with_nodata_guard(
+            evaluated_threshold_math,
+            nodata_value,
+            num_bands,
         )
-    )
+        vrt_path = os.path.join(tmpdir, f"{name}_threshold.vrt")
+        _write_expression_vrt(
+            vrt_path=vrt_path,
+            input_image_path=input_image_path,
+            xsize=xsize,
+            ysize=ysize,
+            gt=geotransform,
+            srs_wkt=projection,
+            num_bands=num_bands,
+            expression=final_expr,
+            nodata_value=nodata_value,
+            data_type=calculation_dtype,
+        )
+        _write_expression_raster(
+            expr_vrt_path=vrt_path,
+            output_path=output_image_path,
+            nodata_value=nodata_value,
+            output_dtype=output_dtype,
+            tile_thread_on=tile_threads_on,
+            tile_thread_workers=tile_thread_workers,
+            window_size=window_size,
+            reference_image_path=input_image_path,
+            debug_logs=debug_logs,
+        )
 
-    out_ds = None
     ds = None
 
     if debug_logs:
@@ -503,3 +449,279 @@ def _calculate_threshold_from_percent(
 
     ds = None
     return value
+
+
+def _resolve_percentile_expressions(
+    expression: str,
+    input_image_path: str,
+    xsize: int,
+    ysize: int,
+    gt,
+    srs_wkt: str,
+    num_bands: int,
+    nodata_value,
+    debug_logs: bool,
+    estimate_statistics: bool,
+    tmpdir: str,
+) -> str:
+    output_parts = []
+    idx = 0
+    while idx < len(expression):
+        number_match = re.match(r"\d+(?:\.\d+)?", expression[idx:])
+        if not number_match:
+            output_parts.append(expression[idx])
+            idx += 1
+            continue
+
+        number_text = number_match.group(0)
+        number_end = idx + len(number_text)
+        if number_end >= len(expression) or expression[number_end] != "%":
+            output_parts.append(expression[idx:number_end])
+            idx = number_end
+            continue
+
+        next_index = number_end + 1
+        if next_index < len(expression) and expression[next_index] == "B":
+            band_match = re.match(r"B(\d+)", expression[next_index:])
+            if band_match:
+                percentile_value = _calculate_threshold_from_percent(
+                    input_image_path=input_image_path,
+                    threshold=float(number_text),
+                    band_index=int(band_match.group(1)),
+                    debug_logs=debug_logs,
+                    nodata_value=nodata_value,
+                    estimate_statistics=estimate_statistics,
+                )
+                output_parts.append(str(percentile_value))
+                idx = next_index + len(band_match.group(0))
+                continue
+
+        if next_index < len(expression) and expression[next_index] == "(":
+            close_index = _find_matching_paren(expression, next_index)
+            inner_expression = expression[next_index + 1:close_index]
+            resolved_inner_expression = _resolve_percentile_expressions(
+                expression=inner_expression,
+                input_image_path=input_image_path,
+                xsize=xsize,
+                ysize=ysize,
+                gt=gt,
+                srs_wkt=srs_wkt,
+                num_bands=num_bands,
+                nodata_value=nodata_value,
+                debug_logs=debug_logs,
+                estimate_statistics=estimate_statistics,
+                tmpdir=tmpdir,
+            )
+            percentile_value = _calculate_expression_percentile(
+                input_image_path=input_image_path,
+                expression=resolved_inner_expression,
+                percentile=float(number_text),
+                xsize=xsize,
+                ysize=ysize,
+                gt=gt,
+                srs_wkt=srs_wkt,
+                num_bands=num_bands,
+                nodata_value=nodata_value,
+                debug_logs=debug_logs,
+                estimate_statistics=estimate_statistics,
+                tmpdir=tmpdir,
+            )
+            output_parts.append(str(percentile_value))
+            idx = close_index + 1
+            continue
+
+        output_parts.append(expression[idx:number_end])
+        idx = number_end
+
+    return "".join(output_parts)
+
+
+def _find_matching_paren(text: str, open_index: int) -> int:
+    depth = 0
+    for idx in range(open_index, len(text)):
+        if text[idx] == "(":
+            depth += 1
+        elif text[idx] == ")":
+            depth -= 1
+            if depth == 0:
+                return idx
+    raise ValueError(f"Unmatched parenthesis in expression: {text}")
+
+
+def _wrap_expression_with_nodata_guard(
+    expression: str,
+    nodata_value,
+    num_bands: int,
+) -> str:
+    if nodata_value is None:
+        return expression
+    nodata_checks = " || ".join(
+        [f"(B{i}=={nodata_value})" for i in range(1, num_bands + 1)]
+    )
+    return f"({nodata_checks}) ? {nodata_value} : ({expression})"
+
+
+def _build_expression_vrt_xml(
+    input_image_path: str,
+    xsize: int,
+    ysize: int,
+    gt,
+    srs_wkt: str,
+    num_bands: int,
+    expression: str,
+    nodata_value,
+    data_type: str,
+) -> str:
+    xml_expr = escape(expression)
+    sources = "\n".join(
+        f"    <SimpleSource>\n"
+        f"      <SourceFilename relativeToVRT=\"0\">{escape(input_image_path)}</SourceFilename>\n"
+        f"      <SourceBand>{i}</SourceBand>\n"
+        f"      <SrcRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
+        f"      <DstRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
+        f"    </SimpleSource>"
+        for i in range(1, num_bands + 1)
+    )
+    return (
+        f"<VRTDataset rasterXSize=\"{xsize}\" rasterYSize=\"{ysize}\">\n"
+        f"  <SRS>{escape(srs_wkt)}</SRS>\n"
+        f"  <GeoTransform>{', '.join(str(v) for v in gt)}</GeoTransform>\n"
+        f"  <VRTRasterBand dataType=\"{data_type}\" band=\"1\" subClass=\"VRTDerivedRasterBand\">\n"
+        + (f"    <NoDataValue>{nodata_value}</NoDataValue>\n" if nodata_value is not None else "")
+        + "    <PixelFunctionType>expression</PixelFunctionType>\n"
+        + f"    <PixelFunctionArguments dialect=\"muparser\" expression=\"{xml_expr}\"/>\n"
+        + sources + "\n  </VRTRasterBand>\n</VRTDataset>\n"
+    )
+
+
+def _write_expression_vrt(
+    vrt_path: str,
+    input_image_path: str,
+    xsize: int,
+    ysize: int,
+    gt,
+    srs_wkt: str,
+    num_bands: int,
+    expression: str,
+    nodata_value,
+    data_type: str,
+) -> None:
+    with open(vrt_path, "w", encoding="utf-8") as f:
+        f.write(
+            _build_expression_vrt_xml(
+                input_image_path=input_image_path,
+                xsize=xsize,
+                ysize=ysize,
+                gt=gt,
+                srs_wkt=srs_wkt,
+                num_bands=num_bands,
+                expression=expression,
+                nodata_value=nodata_value,
+                data_type=data_type,
+            )
+        )
+
+
+def _calculate_expression_percentile(
+    input_image_path: str,
+    expression: str,
+    percentile: float,
+    xsize: int,
+    ysize: int,
+    gt,
+    srs_wkt: str,
+    num_bands: int,
+    nodata_value,
+    debug_logs: bool,
+    estimate_statistics: bool,
+    tmpdir: str,
+) -> float:
+    percentile_vrt = os.path.join(
+        tmpdir,
+        f"percentile_{abs(hash((expression, percentile))) & 0xffffffff}.vrt",
+    )
+    percentile_tif = os.path.join(
+        tmpdir,
+        f"percentile_{abs(hash((expression, percentile, 'tif'))) & 0xffffffff}.tif",
+    )
+    final_expr = _wrap_expression_with_nodata_guard(expression, nodata_value, num_bands)
+    _write_expression_vrt(
+        vrt_path=percentile_vrt,
+        input_image_path=input_image_path,
+        xsize=xsize,
+        ysize=ysize,
+        gt=gt,
+        srs_wkt=srs_wkt,
+        num_bands=num_bands,
+        expression=final_expr,
+        nodata_value=nodata_value,
+        data_type="Float32",
+    )
+    _write_expression_raster(
+        expr_vrt_path=percentile_vrt,
+        output_path=percentile_tif,
+        nodata_value=nodata_value,
+        output_dtype="Float32",
+        tile_thread_on=False,
+        tile_thread_workers=1,
+        window_size=None,
+        reference_image_path=input_image_path,
+        debug_logs=False,
+    )
+    return _calculate_threshold_from_percent(
+        input_image_path=percentile_tif,
+        threshold=percentile,
+        band_index=1,
+        debug_logs=debug_logs,
+        nodata_value=nodata_value,
+        estimate_statistics=estimate_statistics,
+    )
+
+
+def _write_expression_raster(
+    expr_vrt_path: str,
+    output_path: str,
+    nodata_value,
+    output_dtype: str,
+    tile_thread_on: bool,
+    tile_thread_workers: int,
+    window_size,
+    reference_image_path: str,
+    debug_logs: bool,
+) -> None:
+    resolved_window_size = _resolve_window_size(window_size, reference_image_path, debug_logs)
+    creation_options = [
+        "TILED=YES",
+        "COMPRESS=DEFLATE",
+        "PREDICTOR=2",
+        "ZLEVEL=6",
+        "BIGTIFF=IF_SAFER",
+    ]
+    if resolved_window_size:
+        creation_options += [
+            f"BLOCKXSIZE={resolved_window_size}",
+            f"BLOCKYSIZE={resolved_window_size}",
+        ]
+    if tile_thread_on:
+        creation_options.append(f"NUM_THREADS={tile_thread_workers}")
+
+    if os.path.exists(output_path):
+        try:
+            gdal.Unlink(output_path)
+        except Exception:
+            pass
+
+    out_ds = gdal.Translate(
+        output_path,
+        expr_vrt_path,
+        options=gdal.TranslateOptions(
+            format="GTiff",
+            creationOptions=creation_options,
+            bandList=[1],
+            noData=nodata_value if nodata_value is not None else None,
+            outputType=gdal.GetDataTypeByName(output_dtype),
+        ),
+    )
+    if out_ds is None:
+        raise RuntimeError(f"Failed to materialize expression raster: {output_path}")
+    out_ds = None
