@@ -424,13 +424,15 @@ def _calculate_threshold_from_percent(
         band.SetNoDataValue(nodata_value)
 
     # Compute min/max
-    min_val, max_val, _, _ = band.GetStatistics(approx_ok=estimate_statistics, force=True)
+    min_val, max_val, _, _ = band.GetStatistics(1 if estimate_statistics else 0, 1)
 
     # Build a histogram
     hist = band.GetHistogram(
-        min_val, max_val, bins,
-        include_out_of_range=False,
-        approx_ok=estimate_statistics,
+        min_val,
+        max_val,
+        bins,
+        False,
+        1 if estimate_statistics else 0,
     )
     if hist is None: raise RuntimeError("GDAL failed to compute histogram.")
 
