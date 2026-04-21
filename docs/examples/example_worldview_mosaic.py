@@ -36,6 +36,7 @@ global_regression(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads = tile_threads,
+    pif_method='conjugate',
     save_as_cog=True,  # Save output as a Cloud Optimized GeoTIFF
     estimate_stats=True,
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)

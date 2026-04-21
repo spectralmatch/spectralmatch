@@ -196,7 +196,12 @@ class Match:
         custom_std_factor=_UNSET,
         save_adjustments=_UNSET,
         load_adjustments=_UNSET,
+        pif_method=_UNSET,
     ):
+        if pif_method is not _UNSET:
+            if pif_method not in {"entire", "conjugate"}:
+                raise ValueError("pif_method must be 'entire' or 'conjugate'.")
+
         if custom_mean_factor is not _UNSET:
             if not isinstance(custom_mean_factor, (int, float)):
                 raise ValueError("custom_mean_factor must be a number.")

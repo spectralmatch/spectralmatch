@@ -49,6 +49,14 @@ def pipeline(
     global_regression_custom_std_factor: float = 1.0,
     global_regression_save_adjustments: str | None = None,
     global_regression_load_adjustments: str | None = None,
+    global_regression_pif_method: Literal["entire", "conjugate"] = "entire",
+    global_regression_pif_red_band_index: int | None = None,
+    global_regression_pif_nir_band_index: int | None = None,
+    global_regression_pif_vegetation_threshold: float = 0.2,
+    global_regression_pif_inz_threshold: float = 0.25,
+    global_regression_pif_region_radius: int = 5,
+    global_regression_pif_max_samples: int = 100000,
+    global_regression_pif_min_samples: int = 32,
     global_regression_build_overviews: bool = False,
     local_block_adjustment_output_images: Universal.CreateInFolderOrListFiles | None = None,
     local_block_adjustment_vector_mask: Universal.VectorMask = None,
@@ -152,6 +160,7 @@ def pipeline(
             custom_std_factor=global_regression_custom_std_factor,
             save_adjustments=global_regression_save_adjustments,
             load_adjustments=global_regression_load_adjustments,
+            pif_method=global_regression_pif_method,
         )
     if matching_local_method == "local_block_adjustment":
         Universal.validate(
@@ -290,6 +299,14 @@ def pipeline(
                 custom_std_factor=global_regression_custom_std_factor,
                 save_adjustments=global_regression_save_adjustments,
                 load_adjustments=global_regression_load_adjustments,
+                pif_method=global_regression_pif_method,
+                pif_red_band_index=global_regression_pif_red_band_index,
+                pif_nir_band_index=global_regression_pif_nir_band_index,
+                pif_vegetation_threshold=global_regression_pif_vegetation_threshold,
+                pif_inz_threshold=global_regression_pif_inz_threshold,
+                pif_region_radius=global_regression_pif_region_radius,
+                pif_max_samples=global_regression_pif_max_samples,
+                pif_min_samples=global_regression_pif_min_samples,
                 build_overviews=global_regression_build_overviews,
             )
             results["global_regression"] = current_images

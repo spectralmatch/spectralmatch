@@ -4,6 +4,7 @@ from .handlers import search_paths, create_paths, match_paths
 from .utils import merge_rasters, mask_rasters, merge_vectors, align_rasters, compute_overviews
 from .mask.mask import create_cloud_mask_with_omnicloudmask, band_math
 from .mask.utils_mask import process_raster_values_to_vector_polygons
+from .mask.pif import generate_pifs
 from .pipeline import pipeline
 from .statistics import (
     compare_image_spectral_profiles_pairs,
@@ -19,6 +20,7 @@ __all__ = [
     # Mask
     "band_math",
     "create_cloud_mask_with_omnicloudmask",
+    "generate_pifs",
     "process_raster_values_to_vector_polygons",
     "pipeline",
     # Seamlines

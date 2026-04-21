@@ -8,7 +8,7 @@ import re
 from osgeo import gdal
 gdal.UseExceptions()
 from concurrent.futures import as_completed
-from typing import List, Dict
+from typing import List, Dict, Literal
 from numpy import ndarray
 from scipy.optimize import least_squares
 
@@ -17,6 +17,7 @@ from ..utils import create_masked_vrts, _set_gdal_cache, _set_gdal_workers, _res
 from ..handlers import _resolve_paths, _resolve_nodata_value, _check_raster_requirements
 from ..utils_multiprocessing import (_resolve_parallel_config, _get_executor)
 from ..types_and_validation import Universal, Match
+from ..mask.pif import generate_pifs
 
 
 def global_regression(
@@ -40,6 +41,14 @@ def global_regression(
     custom_std_factor: float = 1.0,
     save_adjustments: str | None = None,
     load_adjustments: str | None = None,
+    pif_method: Literal["entire", "conjugate"] = "entire",
+    pif_red_band_index: int | None = None,
+    pif_nir_band_index: int | None = None,
+    pif_vegetation_threshold: float = 0.2,
+    pif_inz_threshold: float = 0.25,
+    pif_region_radius: int = 5,
+    pif_max_samples: int = 100000,
+    pif_min_samples: int = 32,
     build_overviews: bool = False,
 ) -> list:
     """
@@ -65,6 +74,14 @@ def global_regression(
         custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
         save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
         load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
+        pif_method (Literal["entire", "conjugate"]): "entire" uses the existing overlap/whole-image statistics model. "conjugate" uses CP-seeded PIFs to estimate gain and offset.
+        pif_red_band_index (int | None): 1-based red band used for NDVI vegetation filtering.
+        pif_nir_band_index (int | None): 1-based NIR band used for NDVI vegetation filtering.
+        pif_vegetation_threshold (float): NDVI threshold above which pixels are excluded from PIFs.
+        pif_inz_threshold (float): Integrated normalized Z-score threshold for stable PIF candidates.
+        pif_region_radius (int): Pixel radius used to grow PIF candidates around conjugate point seeds.
+        pif_max_samples (int): Maximum number of PIF samples used per image pair.
+        pif_min_samples (int): Minimum number of PIF samples required per image pair.
         build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
     Returns:
@@ -101,6 +118,7 @@ def global_regression(
         custom_std_factor=custom_std_factor,
         save_adjustments=save_adjustments,
         load_adjustments=load_adjustments,
+        pif_method=pif_method,
     )
 
     # Set gdal params
@@ -335,19 +353,41 @@ def global_regression(
             print(f"    {i:<4}\t{source:<6}\t{included:<8}\t{name}")
 
     # Build model
-    all_params = _solve_global_model(
-        num_bands,
-        num_total,
-        all_image_names,
-        included_names,
-        input_image_names,
-        all_overlap_stats,
-        all_whole_stats,
-        custom_mean_factor,
-        custom_std_factor,
-        overlapping_pairs,
-        debug_logs,
-    )
+    if pif_method == "conjugate":
+        if debug_logs:
+            print("Using conjugate PIF adjustment parameters")
+        all_params = generate_pifs(
+            input_images=input_image_paths,
+            input_image_names=input_image_names,
+            included_names=included_names,
+            overlapping_pairs=overlapping_pairs,
+            calculation_dtype=calculation_dtype,
+            custom_nodata_value=custom_nodata_value,
+            red_band_index=pif_red_band_index,
+            nir_band_index=pif_nir_band_index,
+            vegetation_threshold=pif_vegetation_threshold,
+            inz_threshold=pif_inz_threshold,
+            region_radius=pif_region_radius,
+            max_samples=pif_max_samples,
+            min_samples=pif_min_samples,
+            custom_mean_factor=custom_mean_factor,
+            custom_std_factor=custom_std_factor,
+            debug_logs=debug_logs,
+        )
+    else:
+        all_params = _solve_global_model(
+            num_bands,
+            num_total,
+            all_image_names,
+            included_names,
+            input_image_names,
+            all_overlap_stats,
+            all_whole_stats,
+            custom_mean_factor,
+            custom_std_factor,
+            overlapping_pairs,
+            debug_logs,
+        )
 
     # Save adjustments
     if save_adjustments:
