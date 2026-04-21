@@ -49,6 +49,7 @@ def global_regression(
     pif_region_radius: int = 5,
     pif_max_samples: int = 100000,
     pif_min_samples: int = 32,
+    pif_feature_method: Literal["orb"] = "orb",
     build_overviews: bool = False,
 ) -> list:
     """
@@ -82,6 +83,7 @@ def global_regression(
         pif_region_radius (int): Pixel radius used to grow PIF candidates around conjugate point seeds.
         pif_max_samples (int): Maximum number of PIF samples used per image pair.
         pif_min_samples (int): Minimum number of PIF samples required per image pair.
+        pif_feature_method (Literal["orb"]): Feature matcher used to seed conjugate PIF regions.
         build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
     Returns:
@@ -119,6 +121,7 @@ def global_regression(
         save_adjustments=save_adjustments,
         load_adjustments=load_adjustments,
         pif_method=pif_method,
+        pif_feature_method=pif_feature_method,
     )
 
     # Set gdal params
@@ -370,6 +373,7 @@ def global_regression(
             region_radius=pif_region_radius,
             max_samples=pif_max_samples,
             min_samples=pif_min_samples,
+            feature_method=pif_feature_method,
             custom_mean_factor=custom_mean_factor,
             custom_std_factor=custom_std_factor,
             debug_logs=debug_logs,

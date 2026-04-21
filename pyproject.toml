@@ -37,6 +37,7 @@ dependencies = [
     "geopandas>=1.0.1",
     "fire>=0.7.0",
     "matplotlib>=3.8",
+    "opencv-python-headless>=4.10",
 ]
 
 [project.optional-dependencies]

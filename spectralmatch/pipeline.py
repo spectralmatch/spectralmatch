@@ -57,6 +57,7 @@ def pipeline(
     global_regression_pif_region_radius: int = 5,
     global_regression_pif_max_samples: int = 100000,
     global_regression_pif_min_samples: int = 32,
+    global_regression_pif_feature_method: Literal["orb"] = "orb",
     global_regression_build_overviews: bool = False,
     local_block_adjustment_output_images: Universal.CreateInFolderOrListFiles | None = None,
     local_block_adjustment_vector_mask: Universal.VectorMask = None,
@@ -161,6 +162,7 @@ def pipeline(
             save_adjustments=global_regression_save_adjustments,
             load_adjustments=global_regression_load_adjustments,
             pif_method=global_regression_pif_method,
+            pif_feature_method=global_regression_pif_feature_method,
         )
     if matching_local_method == "local_block_adjustment":
         Universal.validate(
@@ -307,6 +309,7 @@ def pipeline(
                 pif_region_radius=global_regression_pif_region_radius,
                 pif_max_samples=global_regression_pif_max_samples,
                 pif_min_samples=global_regression_pif_min_samples,
+                pif_feature_method=global_regression_pif_feature_method,
                 build_overviews=global_regression_build_overviews,
             )
             results["global_regression"] = current_images
