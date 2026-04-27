@@ -91,7 +91,13 @@ Example scripts and sample data are provided to verify a successful installation
 
 ```python
 import os
-from spectralmatch import *
+from spectralmatch import (
+    Match,
+    Seamline,
+    align_rasters,
+    mask_rasters,
+    merge_rasters,
+)
 
 working_directory = "/path/to/working/directory"
 input_folder = os.path.join(working_directory, "Input")
@@ -100,12 +106,14 @@ local_folder = os.path.join(working_directory, "LocalMatch")
 aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 
-global_regression(
+match = Match()
+
+match.global_regression(
     input_images=input_folder,
     output_images=global_folder,
 )
 
-local_block_adjustment(
+match.local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
 )
@@ -116,7 +124,7 @@ align_rasters(
     tap=True,
 )
 
-voronoi_center_seamline(
+Seamline.voronoi(
     input_images=aligned_folder,
     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
     image_field_name="image",

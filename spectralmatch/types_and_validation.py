@@ -200,8 +200,8 @@ class Match:
         pif_feature_method=_UNSET,
     ):
         if pif_method is not _UNSET:
-            if pif_method not in {"entire", "conjugate"}:
-                raise ValueError("pif_method must be 'entire' or 'conjugate'.")
+            if pif_method not in {"entire", "flood_from_match_points"}:
+                raise ValueError("pif_method must be 'entire' or 'flood_from_match_points'.")
         if pif_feature_method is not _UNSET:
             if pif_feature_method not in {"orb"}:
                 raise ValueError("pif_feature_method must be 'orb'.")

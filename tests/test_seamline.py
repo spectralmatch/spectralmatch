@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from spectralmatch import voronoi_center_seamline
+from spectralmatch import Seamline
 from .test_utils import create_dummy_raster
 
 
@@ -30,7 +30,7 @@ def test_voronoi_center_seamline_all_params(tmp_path, image_prefix, fill_value):
     output_mask = str(output_dir / "seamlines.gpkg")
     debug_vectors = str(output_dir / "debug_vectors.gpkg")
 
-    voronoi_center_seamline(
+    Seamline.voronoi(
         input_images=input_paths,
         output_mask=output_mask,
         image_field_name="source",
@@ -56,6 +56,6 @@ def test_voronoi_center_seamline_minimal(tmp_path):
 
     out_path = str(output_dir / "seamlines.gpkg")
 
-    voronoi_center_seamline(input_images=paths, output_mask=out_path)
+    Seamline.voronoi(input_images=paths, output_mask=out_path)
 
     assert os.path.exists(out_path)

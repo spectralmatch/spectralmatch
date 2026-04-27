@@ -5,7 +5,18 @@
 
 # %% Setup
 import os
-from spectralmatch import *
+from spectralmatch import (
+    Match,
+    band_math,
+    compare_before_after_all_images,
+    compare_image_spectral_profiles_pairs,
+    compare_spatial_spectral_difference_band_average,
+    create_cloud_mask_with_omnicloudmask,
+    mask_rasters,
+    merge_vectors,
+    process_raster_values_to_vector_polygons,
+    search_paths,
+)
 
 # Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
 working_directory = os.path.join(os.getcwd(), "data_landsat")
@@ -24,6 +35,14 @@ image_threads = "cpu"
 io_threads = "cpu"
 tile_threads = "cpu"
 debug_mode = True
+
+match = Match(
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    debug_logs=debug_mode,
+)
 
 # %% Create cloud masks
 
@@ -99,7 +118,7 @@ merge_vectors(
 
 # %% Global matching
 
-global_regression(
+match.global_regression(
     input_images=masked_folder,
     output_images=global_folder,
     vector_mask=(
@@ -107,16 +126,11 @@ global_regression(
         os.path.join(working_directory, "VegetationMasks.gpkg"),
         "image",
     ),  # Use unique mask per image
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads = tile_threads,
-    debug_logs=debug_mode,
 )
 
 # %% Local matching
 
-local_block_adjustment(
+match.local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
     number_of_blocks=100,
@@ -125,11 +139,6 @@ local_block_adjustment(
         os.path.join(working_directory, "VegetationMasks.gpkg"),
         "image",
     ),
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
-    debug_logs=debug_mode,
     save_block_maps=(
         os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"),
         os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif"),

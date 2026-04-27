@@ -17,6 +17,12 @@ Print help for a specific command:
 spectralmatch COMMAND --help
 ```
 
+Print help for a class method:
+
+```bash
+spectralmatch Match global_regression --help
+```
+
 Print installed version:
 
 ```bash
@@ -27,6 +33,15 @@ Run a specific command:
 
 ```bash
 spectralmatch COMMAND [OPTIONS]
+```
+
+Run a class method:
+
+```bash
+spectralmatch Match global_regression [OPTIONS]
+spectralmatch Match local_block_adjustment [OPTIONS]
+spectralmatch Seamline voronoi [OPTIONS]
+spectralmatch Pif flood_from_match_points [OPTIONS]
 ```
 
 ## Pipeline Helper Function

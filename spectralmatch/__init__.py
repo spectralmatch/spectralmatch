@@ -1,30 +1,26 @@
-from .match.global_regression import global_regression
-from .match.local_block_adjustment import local_block_adjustment
+from .match import Match
 from .handlers import search_paths, create_paths, match_paths
 from .utils import merge_rasters, mask_rasters, merge_vectors, align_rasters, compute_overviews
 from .mask.mask import create_cloud_mask_with_omnicloudmask, band_math
 from .mask.utils_mask import process_raster_values_to_vector_polygons
-from .mask.pif import generate_pifs
+from .pif import Pif
 from .pipeline import pipeline
 from .statistics import (
     compare_image_spectral_profiles_pairs,
     compare_before_after_all_images,
     compare_spatial_spectral_difference_band_average,
 )
-from .seamline.voronoi_center_seamline import voronoi_center_seamline
+from .seamline import Seamline
 
 __all__ = [
-    # Match
-    "global_regression",
-    "local_block_adjustment",
+    "Match",
+    "Pif",
     # Mask
     "band_math",
     "create_cloud_mask_with_omnicloudmask",
-    "generate_pifs",
     "process_raster_values_to_vector_polygons",
     "pipeline",
-    # Seamlines
-    "voronoi_center_seamline",
+    "Seamline",
     # Handlers
     "search_paths",
     "create_paths",

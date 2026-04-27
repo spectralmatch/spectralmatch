@@ -8,122 +8,121 @@ import numpy as np
 from osgeo import gdal
 
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths
+from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal
 from ..utils import _get_gdal_bounds
 
 
-def generate_pifs(
-    input_images: Universal.SearchFolderOrListFiles,
-    *,
-    input_image_names: list[str] | None = None,
-    included_names: list[str] | None = None,
-    overlapping_pairs: tuple[tuple[str, str], ...] | None = None,
-    calculation_dtype: Universal.CalculationDtype = "float32",
-    custom_nodata_value: Universal.CustomNodataValue = None,
-    red_band_index: int | None = None,
-    nir_band_index: int | None = None,
-    vegetation_threshold: float = 0.2,
-    inz_threshold: float = 0.25,
-    region_radius: int = 5,
-    max_samples: int = 100000,
-    min_samples: int = 32,
-    custom_mean_factor: float = 1.0,
-    custom_std_factor: float = 1.0,
-    feature_method: Literal["orb"] = "orb",
-    debug_logs: Universal.DebugLogs = False,
-) -> np.ndarray:
-    """
-    Generate conjugate-point-based PIF correction parameters.
+class Pif:
+    @staticmethod
+    def flood_from_match_points(
+        input_images: Universal.SearchFolderOrListFiles,
+        *,
+        input_image_names: list[str] | None = None,
+        included_names: list[str] | None = None,
+        overlapping_pairs: tuple[tuple[str, str], ...] | None = None,
+        calculation_dtype: Universal.CalculationDtype = "float32",
+        custom_nodata_value: Universal.CustomNodataValue = None,
+        red_band_index: int | None = None,
+        nir_band_index: int | None = None,
+        vegetation_threshold: float = 0.2,
+        inz_threshold: float = 0.25,
+        region_radius: int = 5,
+        max_samples: int = 100000,
+        min_samples: int = 32,
+        custom_mean_factor: float = 1.0,
+        custom_std_factor: float = 1.0,
+        feature_method: Literal["orb"] = "orb",
+        debug_logs: Universal.DebugLogs = False,
+    ) -> np.ndarray:
+        """
+        Generate correction parameters using PIFs flooded from matched points.
 
-    This follows the main PIF ideas from Kim and Han (2021): use conjugate
-    points as seeds, remove vegetation-sensitive areas, identify stable pixels
-    with an integrated normalized Z-score image, grow PIFs around seed points,
-    and fit per-band linear radiometric corrections.
+        This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.
 
-    Returns:
-        np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
-        and band, entries are ``scale`` then ``offset`` such that
-        ``corrected = scale * image + offset``.
-    """
-    input_image_paths = _resolve_paths(
-        "search",
-        input_images,
-        kwargs={"default_file_pattern": "*.tif"},
-    )
-    if not input_image_paths:
-        raise ValueError("No input images found for PIF generation.")
+        Returns:
+            np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
+            and band, entries are ``scale`` then ``offset`` such that
+            ``corrected = scale * image + offset``.
+        """
+        input_image_paths = _resolve_paths(
+            "search",
+            input_images,
+            kwargs={"default_file_pattern": "*.tif"},
+        )
+        if not input_image_paths:
+            raise ValueError("No input images found for flood_from_match_points.")
 
-    _check_raster_requirements(
-        input_image_paths,
-        debug_logs,
-        check_geotransform=True,
-        check_crs=True,
-        check_bands=True,
-        check_nodata=True,
-    )
+        _check_raster_requirements(
+            input_image_paths,
+            debug_logs,
+            check_geotransform=True,
+            check_crs=True,
+            check_bands=True,
+            check_nodata=True,
+        )
 
-    if input_image_names is None:
-        input_image_names = _resolve_paths("name", input_image_paths)
-    if included_names is None:
-        included_names = list(input_image_names)
+        if input_image_names is None:
+            input_image_names = _resolve_paths("name", input_image_paths)
+        if included_names is None:
+            included_names = list(input_image_names)
 
-    nodata_value = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
-    first_ds = gdal.Open(input_image_paths[0], gdal.GA_ReadOnly)
-    num_bands = first_ds.RasterCount
-    first_ds = None
+        nodata_value = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
+        first_ds = gdal.Open(input_image_paths[0], gdal.GA_ReadOnly)
+        num_bands = first_ds.RasterCount
+        first_ds = None
 
-    image_path_pairs = dict(zip(input_image_names, input_image_paths))
-    if overlapping_pairs is None:
-        bounds = {
-            name: _get_gdal_bounds(path)
-            for name, path in image_path_pairs.items()
-        }
-        overlapping_pairs = _find_overlaps(bounds)
+        image_path_pairs = dict(zip(input_image_names, input_image_paths))
+        if overlapping_pairs is None:
+            bounds = {
+                name: _get_gdal_bounds(path)
+                for name, path in image_path_pairs.items()
+            }
+            overlapping_pairs = _find_overlaps(bounds)
 
-    all_overlap_stats = {}
-    all_whole_stats = {}
-    for name_i, name_j in overlapping_pairs:
-        if name_i not in image_path_pairs or name_j not in image_path_pairs:
-            continue
-        if name_i not in included_names and name_j not in included_names:
-            continue
-        if debug_logs:
-            print(f"Generating conjugate PIF stats: {name_i} <-> {name_j}")
+        all_overlap_stats = {}
+        all_whole_stats = {}
+        for name_i, name_j in overlapping_pairs:
+            if name_i not in image_path_pairs or name_j not in image_path_pairs:
+                continue
+            if name_i not in included_names and name_j not in included_names:
+                continue
+            if debug_logs:
+                print(f"Generating flood_from_match_points PIF stats: {name_i} <-> {name_j}")
 
-        pair_stats, whole_updates = _calculate_pair_pif_stats(
-            reference_path=image_path_pairs[name_i],
-            sensed_path=image_path_pairs[name_j],
-            reference_name=name_i,
-            sensed_name=name_j,
+            pair_stats, whole_updates = _calculate_pair_pif_stats(
+                reference_path=image_path_pairs[name_i],
+                sensed_path=image_path_pairs[name_j],
+                reference_name=name_i,
+                sensed_name=name_j,
+                num_bands=num_bands,
+                nodata_value=nodata_value,
+                calculation_dtype=calculation_dtype,
+                red_band_index=red_band_index,
+                nir_band_index=nir_band_index,
+                vegetation_threshold=vegetation_threshold,
+                inz_threshold=inz_threshold,
+                region_radius=region_radius,
+                max_samples=max_samples,
+                min_samples=min_samples,
+                feature_method=feature_method,
+                debug_logs=debug_logs,
+            )
+            for outer, inner in pair_stats.items():
+                all_overlap_stats.setdefault(outer, {}).update(inner)
+            _merge_whole_stat_updates(all_whole_stats, whole_updates)
+
+        return _solve_pif_global_model(
             num_bands=num_bands,
-            nodata_value=nodata_value,
-            calculation_dtype=calculation_dtype,
-            red_band_index=red_band_index,
-            nir_band_index=nir_band_index,
-            vegetation_threshold=vegetation_threshold,
-            inz_threshold=inz_threshold,
-            region_radius=region_radius,
-            max_samples=max_samples,
-            min_samples=min_samples,
-            feature_method=feature_method,
+            all_image_names=input_image_names,
+            included_names=included_names,
+            all_overlap_stats=all_overlap_stats,
+            all_whole_stats=all_whole_stats,
+            custom_mean_factor=custom_mean_factor,
+            custom_std_factor=custom_std_factor,
+            overlapping_pairs=overlapping_pairs,
             debug_logs=debug_logs,
         )
-        for outer, inner in pair_stats.items():
-            all_overlap_stats.setdefault(outer, {}).update(inner)
-        _merge_whole_stat_updates(all_whole_stats, whole_updates)
-
-    return _solve_pif_global_model(
-        num_bands=num_bands,
-        all_image_names=input_image_names,
-        included_names=included_names,
-        all_overlap_stats=all_overlap_stats,
-        all_whole_stats=all_whole_stats,
-        custom_mean_factor=custom_mean_factor,
-        custom_std_factor=custom_std_factor,
-        overlapping_pairs=overlapping_pairs,
-        debug_logs=debug_logs,
-    )
-
 
 def _find_overlaps(
     image_bounds_dict: dict[str, tuple[float, float, float, float]],
@@ -148,112 +147,6 @@ def _merge_whole_stat_updates(
         for band_index, stats in band_values.items():
             all_whole_stats[name].setdefault(band_index, [])
             all_whole_stats[name][band_index].append(stats)
-
-
-def _finalize_whole_stats(all_whole_stats: dict) -> dict:
-    finalized = {}
-    for name, band_values in all_whole_stats.items():
-        finalized[name] = {}
-        for band_index, stats_groups in band_values.items():
-            total_size = sum(stats["size"] for stats in stats_groups)
-            if total_size <= 0:
-                finalized[name][band_index] = {"mean": 0.0, "std": 0.0, "size": 0}
-                continue
-            mean = sum(stats["mean"] * stats["size"] for stats in stats_groups) / total_size
-            variance = sum(
-                stats["size"] * (stats["std"] ** 2 + (stats["mean"] - mean) ** 2)
-                for stats in stats_groups
-            ) / total_size
-            finalized[name][band_index] = {
-                "mean": float(mean),
-                "std": float(math.sqrt(max(variance, 0.0))),
-                "size": int(total_size),
-            }
-    return finalized
-
-
-def _solve_pif_global_model(
-    *,
-    num_bands: int,
-    all_image_names: list[str],
-    included_names: list[str],
-    all_overlap_stats: dict,
-    all_whole_stats: dict,
-    custom_mean_factor: float,
-    custom_std_factor: float,
-    overlapping_pairs: tuple[tuple[str, str], ...],
-    debug_logs: bool,
-) -> np.ndarray:
-    all_whole_stats = _finalize_whole_stats(all_whole_stats)
-    num_total = len(all_image_names)
-    all_params = np.zeros((num_bands, 2 * num_total, 1), dtype=float)
-    image_names_with_id = list(enumerate(all_image_names))
-
-    valid_pairs = []
-    for name_i, name_j in overlapping_pairs:
-        stats = all_overlap_stats.get(name_i, {}).get(name_j)
-        if stats and any(band_stats["size"] > 0 for band_stats in stats.values()):
-            valid_pairs.append((name_i, name_j))
-
-    if not valid_pairs:
-        raise ValueError("No valid conjugate PIF overlap pairs were found.")
-
-    for band_index in range(num_bands):
-        if debug_logs:
-            print(f"\nProcessing conjugate PIF band {band_index}:")
-
-        A, y, total_overlap = [], [], 0.0
-        for i, name_i in image_names_with_id:
-            for j, name_j in image_names_with_id[i + 1:]:
-                if (name_i, name_j) not in valid_pairs and (name_j, name_i) not in valid_pairs:
-                    continue
-                if name_i not in included_names and name_j not in included_names:
-                    continue
-
-                stat_i = all_overlap_stats.get(name_i, {}).get(name_j, {}).get(band_index)
-                stat_j = all_overlap_stats.get(name_j, {}).get(name_i, {}).get(band_index)
-                if not stat_i or not stat_j or stat_i["size"] <= 0:
-                    continue
-
-                row_m = [0] * (2 * num_total)
-                row_s = [0] * (2 * num_total)
-                row_m[2 * i: 2 * i + 2] = [stat_i["mean"], 1]
-                row_m[2 * j: 2 * j + 2] = [-stat_j["mean"], -1]
-                row_s[2 * i], row_s[2 * j] = stat_i["std"], -stat_j["std"]
-                A.extend(
-                    [
-                        [v * custom_mean_factor for v in row_m],
-                        [v * custom_std_factor for v in row_s],
-                    ]
-                )
-                y.extend([0, 0])
-                total_overlap += 1.0
-
-        anchor_weight = 1.0 if total_overlap == 0 else total_overlap / (2.0 * num_total)
-        for name in included_names:
-            if name not in all_whole_stats or band_index not in all_whole_stats[name]:
-                continue
-            image_index = all_image_names.index(name)
-            mean = all_whole_stats[name][band_index]["mean"]
-            std = all_whole_stats[name][band_index]["std"]
-            row_m = [0] * (2 * num_total)
-            row_s = [0] * (2 * num_total)
-            row_m[2 * image_index: 2 * image_index + 2] = [
-                mean * anchor_weight,
-                anchor_weight,
-            ]
-            row_s[2 * image_index] = std * anchor_weight
-            A.extend([row_m, row_s])
-            y.extend([mean * anchor_weight, std * anchor_weight])
-
-        if not A:
-            raise ValueError(f"No conjugate PIF constraints found for band {band_index + 1}.")
-
-        A_arr = np.asarray(A)
-        y_arr = np.asarray(y)
-        all_params[band_index, :, 0] = np.linalg.lstsq(A_arr, y_arr, rcond=None)[0]
-
-    return all_params
 
 
 def _calculate_pair_pif_stats(
@@ -350,7 +243,7 @@ def _calculate_pair_pif_stats(
             print(f"Conjugate PIF pixels found: {pif_count} for {reference_name} <-> {sensed_name}")
         if pif_count < min_samples:
             raise ValueError(
-                f"Not enough conjugate PIF samples between {reference_path} and "
+                f"Not enough flood_from_match_points PIF samples between {reference_path} and "
                 f"{sensed_path}: {pif_count} found, {min_samples} required."
             )
 
@@ -361,7 +254,7 @@ def _calculate_pair_pif_stats(
             sensed_stats = _masked_band_stats(sensed_vrt, band_index + 1, pif_mask_path)
             if ref_stats["size"] < min_samples:
                 raise ValueError(
-                    f"Band {band_index + 1} has {ref_stats['size']} conjugate PIF "
+                    f"Band {band_index + 1} has {ref_stats['size']} flood_from_match_points PIF "
                     f"samples between {reference_name} and {sensed_name}; "
                     f"{min_samples} required."
                 )

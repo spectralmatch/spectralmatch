@@ -1,1 +1,1 @@
-::: spectralmatch.seamline.voronoi_center_seamline
+::: spectralmatch.seamline.Seamline
