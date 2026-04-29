@@ -167,8 +167,8 @@ class Match:
         pif_vegetation_threshold: float = 0.2,
         pif_inz_threshold: float = 0.25,
         pif_region_radius: int = 5,
-        pif_max_samples: int = 100000,
-        pif_min_samples: int = 32,
+        pif_max_samples: int | None = 100000,
+        pif_min_samples: int | None = 32,
         pif_feature_method: Literal["orb"] = "orb",
         build_overviews: bool = False,
     ) -> list:

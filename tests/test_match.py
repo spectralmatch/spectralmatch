@@ -2,6 +2,7 @@ import os
 import pytest
 
 from spectralmatch import Match
+from spectralmatch.pif import pif as pif_module
 from .utils_test import create_dummy_raster
 
 
@@ -171,3 +172,55 @@ def test_local_block_adjustment_all_params_load(tmp_path):
     )
 
     assert all(os.path.exists(p) for p in result)
+
+
+def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
+    sampled = {"called": False}
+
+    monkeypatch.setattr(
+        pif_module,
+        "_build_overlap_vrts",
+        lambda reference_path, sensed_path, tmpdir: ("ref.vrt", "sensed.vrt", 10, 10, (0, 1, 0, 0, 0, -1), ""),
+    )
+    monkeypatch.setattr(pif_module, "_build_valid_mask_raster", lambda *args, **kwargs: "valid.tif")
+    monkeypatch.setattr(pif_module, "_build_inz_stable_mask_raster", lambda *args, **kwargs: "stable.tif")
+    monkeypatch.setattr(pif_module, "_extract_conjugate_seed_points", lambda *args, **kwargs: [(1, 1)])
+    monkeypatch.setattr(pif_module, "_build_seed_mask_raster", lambda *args, **kwargs: "seed.tif")
+    monkeypatch.setattr(pif_module, "_combine_masks_raster", lambda *args, **kwargs: "pif_mask.tif")
+    monkeypatch.setattr(pif_module, "_count_mask_pixels", lambda *args, **kwargs: 5)
+
+    def _unexpected_sample(*args, **kwargs):
+        sampled["called"] = True
+        raise AssertionError("_sample_mask_raster should not run when max_samples=None")
+
+    monkeypatch.setattr(pif_module, "_sample_mask_raster", _unexpected_sample)
+    monkeypatch.setattr(
+        pif_module,
+        "_masked_band_stats",
+        lambda raster_path, band_index, mask_path: {"mean": 1.0, "std": 0.5, "size": 5},
+    )
+
+    pair_stats, whole_updates = pif_module._calculate_pair_pif_stats(
+        reference_path="a.tif",
+        sensed_path="b.tif",
+        reference_name="A",
+        sensed_name="B",
+        num_bands=1,
+        nodata_value=0,
+        calculation_dtype="float32",
+        red_band_index=None,
+        nir_band_index=None,
+        vegetation_threshold=0.2,
+        inz_threshold=0.25,
+        region_radius=5,
+        max_samples=None,
+        min_samples=None,
+        feature_method="orb",
+        debug_logs=False,
+    )
+
+    assert sampled["called"] is False
+    assert pair_stats["A"]["B"][0]["size"] == 5
+    assert pair_stats["B"]["A"][0]["size"] == 5
+    assert whole_updates["A"][0]["size"] == 5
+    assert whole_updates["B"][0]["size"] == 5

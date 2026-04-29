@@ -39,8 +39,6 @@ def pipeline(
         "global_regression",
         "local_block_adjustment",
     ),
-    matching_global_method: Literal["global_regression"] | None = "global_regression",
-    matching_local_method: Literal["local_block_adjustment"] | None = "local_block_adjustment",
     align_method: Literal["align_rasters"] | None = "align_rasters",
     seamline_method: Literal["voronoi_center_seamline"] | None = "voronoi_center_seamline",
     clip_method: Literal["mask_rasters"] | None = "mask_rasters",
@@ -59,8 +57,8 @@ def pipeline(
     global_regression_pif_vegetation_threshold: float = 0.2,
     global_regression_pif_inz_threshold: float = 0.25,
     global_regression_pif_region_radius: int = 5,
-    global_regression_pif_max_samples: int = 100000,
-    global_regression_pif_min_samples: int = 32,
+    global_regression_pif_max_samples: int | None = 100000,
+    global_regression_pif_min_samples: int | None = 32,
     global_regression_pif_feature_method: Literal["orb"] = "orb",
     global_regression_build_overviews: bool = False,
     local_block_adjustment_output_images: Universal.CreateInFolderOrListFiles | None = None,
@@ -96,7 +94,7 @@ def pipeline(
     this with ``matching_order`` to run the matching stages in a different
     sequence or omit one of them entirely.
 
-    Each stage can be disabled by setting its method parameter to ``None``. Intermediate outputs default to a temporary directory that is created automatically unless ``shared_temp_dir`` is provided. Set``delete_temp_dir=True`` to remove the temp directory after processing.
+    Matching stages are controlled by ``matching_order``. Intermediate outputs default to a temporary directory that is created automatically unless ``shared_temp_dir`` is provided. Set``delete_temp_dir=True`` to remove the temp directory after processing.
     """
     temp_dir = shared_temp_dir or tempfile.mkdtemp(prefix="spectralmatch_pipeline_")
     os.makedirs(temp_dir, exist_ok=True)
@@ -119,8 +117,6 @@ def pipeline(
         delete_temp_dir=delete_temp_dir,
     )
     for method_name, method_value, allowed_values in [
-        ("matching_global_method", matching_global_method, {None, "global_regression"}),
-        ("matching_local_method", matching_local_method, {None, "local_block_adjustment"}),
         ("align_method", align_method, {None, "align_rasters"}),
         ("seamline_method", seamline_method, {None, "voronoi_center_seamline"}),
         ("clip_method", clip_method, {None, "mask_rasters"}),
@@ -134,10 +130,6 @@ def pipeline(
     if not isinstance(matching_order, (list, tuple)):
         raise ValueError("matching_order must be a list or tuple of matching step names.")
     matching_order = list(matching_order)
-    if matching_global_method is None:
-        matching_order = [step for step in matching_order if step != "global_regression"]
-    if matching_local_method is None:
-        matching_order = [step for step in matching_order if step != "local_block_adjustment"]
     for step in matching_order:
         if step not in {"global_regression", "local_block_adjustment"}:
             raise ValueError(
@@ -158,7 +150,7 @@ def pipeline(
         tile_threads=shared_tile_threads,
         save_as_cog=shared_save_as_cog,
     )
-    if matching_global_method == "global_regression":
+    if "global_regression" in matching_order:
         Universal.validate(
             input_images=shared_input_images,
             output_images=global_regression_output_images or os.path.join(temp_dir, "global"),
@@ -184,7 +176,7 @@ def pipeline(
             pif_method=global_regression_pif_method,
             pif_feature_method=global_regression_pif_feature_method,
         )
-    if matching_local_method == "local_block_adjustment":
+    if "local_block_adjustment" in matching_order:
         Universal.validate(
             input_images=shared_input_images,
             output_images=local_block_adjustment_output_images or os.path.join(temp_dir, "local"),

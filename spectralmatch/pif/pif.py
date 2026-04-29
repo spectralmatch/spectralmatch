@@ -28,8 +28,8 @@ class Pif:
         vegetation_threshold: float = 0.2,
         inz_threshold: float = 0.25,
         region_radius: int = 5,
-        max_samples: int = 100000,
-        min_samples: int = 32,
+        max_samples: int | None = 100000,
+        min_samples: int | None = 32,
         custom_mean_factor: float = 1.0,
         custom_std_factor: float = 1.0,
         feature_method: Literal["orb"] = "orb",
@@ -163,8 +163,8 @@ def _calculate_pair_pif_stats(
     vegetation_threshold: float,
     inz_threshold: float,
     region_radius: int,
-    max_samples: int,
-    min_samples: int,
+    max_samples: int | None,
+    min_samples: int | None,
     feature_method: str,
     debug_logs: bool,
 ) -> tuple[dict, dict[str, dict[int, dict[str, float | int]]]]:
@@ -228,7 +228,7 @@ def _calculate_pair_pif_stats(
             tmpdir,
         )
         pif_count = _count_mask_pixels(pif_mask_path)
-        if max_samples and pif_count > max_samples:
+        if max_samples is not None and pif_count > max_samples:
             pif_mask_path = _sample_mask_raster(
                 pif_mask_path,
                 max_samples,
@@ -241,7 +241,7 @@ def _calculate_pair_pif_stats(
             pif_count = _count_mask_pixels(pif_mask_path)
         if debug_logs:
             print(f"Conjugate PIF pixels found: {pif_count} for {reference_name} <-> {sensed_name}")
-        if pif_count < min_samples:
+        if min_samples is not None and pif_count < min_samples:
             raise ValueError(
                 f"Not enough flood_from_match_points PIF samples between {reference_path} and "
                 f"{sensed_path}: {pif_count} found, {min_samples} required."
@@ -252,7 +252,7 @@ def _calculate_pair_pif_stats(
         for band_index in range(num_bands):
             ref_stats = _masked_band_stats(ref_vrt, band_index + 1, pif_mask_path)
             sensed_stats = _masked_band_stats(sensed_vrt, band_index + 1, pif_mask_path)
-            if ref_stats["size"] < min_samples:
+            if min_samples is not None and ref_stats["size"] < min_samples:
                 raise ValueError(
                     f"Band {band_index + 1} has {ref_stats['size']} flood_from_match_points PIF "
                     f"samples between {reference_name} and {sensed_name}; "
