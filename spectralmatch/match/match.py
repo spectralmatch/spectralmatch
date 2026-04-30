@@ -55,6 +55,18 @@ class Match:
         window_size: Universal.WindowSize = None,
         save_as_cog: Universal.SaveAsCog = False,
     ):
+        """Args:
+    calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
+    output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
+    debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
+    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    window_size (int | None): Output image tile size. Defaults to input image tile size.
+    save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order."""
         self.calculation_dtype = calculation_dtype
         self.output_dtype = output_dtype
         self.vector_mask = vector_mask
@@ -170,8 +182,34 @@ class Match:
         pif_max_samples: int | None = 100000,
         pif_min_samples: int | None = 32,
         pif_feature_method: Literal["orb"] = "orb",
+        pif_save_inz: str | None = None,
         build_overviews: bool = False,
     ) -> list:
+        """Performs global radiometric normalization across overlapping images using least squares regression.
+
+Args:
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
+    estimate_stats (bool): If True, use an estimate algorithm to calculate the mean and sd to increase processing speeds. If False, use the exact algorithm. Defaults to True.
+    specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.
+    custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
+    custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
+    save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
+    load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
+    pif_method (Literal["entire", "flood_from_match_points"], optional): Method used to select overlap pixels for the matching solution. Defaults to "entire".
+    pif_red_band_index (int | None, optional): Index of the red band used for NDVI-based vegetation filtering. Defaults to None.
+    pif_nir_band_index (int | None, optional): Index of the NIR band used for NDVI-based vegetation filtering. Defaults to None.
+    pif_vegetation_threshold (float, optional): Vegetation threshold used with NDVI filtering. Defaults to 0.2.
+    pif_inz_threshold (float, optional): Integrated normalized Z-score threshold used for flood_from_match_points. Defaults to 0.25.
+    pif_region_radius (int, optional): Radius used to expand matched points into PIF seed areas. Defaults to 5.
+    pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 100000.
+    pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 32.
+    pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".
+    pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.
+    build_overviews (bool, optional): If True, computes overviews. Defaults to False.
+
+Returns:
+    List[str]: Paths to the globally adjusted output raster images."""
         print("Start global regression")
 
         MatchValidation.validate_match(
@@ -184,6 +222,7 @@ class Match:
             load_adjustments=load_adjustments,
             pif_method=pif_method,
             pif_feature_method=pif_feature_method,
+            pif_save_inz=pif_save_inz,
         )
 
         setup = self._setup_images(
@@ -376,6 +415,11 @@ class Match:
                 custom_mean_factor=custom_mean_factor,
                 custom_std_factor=custom_std_factor,
                 debug_logs=self.debug_logs,
+                cache=self.cache,
+                image_threads=self.image_threads,
+                io_threads=self.io_threads,
+                tile_threads=self.tile_threads,
+                save_inz=pif_save_inz,
             )
         else:
             all_params = _solve_global_model(
@@ -460,6 +504,33 @@ class Match:
         override_bounds_canvas_coords: Tuple[float, float, float, float] | None = None,
         build_overviews: bool = False,
     ) -> list:
+        """Performs local radiometric adjustment on a set of raster images using block-based statistics.
+
+Args:
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
+    number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
+    alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.
+    correction_method (Literal["gamma", "linear", "offset"], optional): Local correction method. Defaults to "gamma". Offset is commended for images with negative values.
+    save_block_maps (tuple(str, str) | None): If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.
+        - First str is the path to save the global block map.
+        - Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).
+    load_block_maps (Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None, optional):
+        Controls loading of precomputed block maps. Can be one of:
+            - Tuple[str, List[str]]: Load both reference and local block maps.
+            - Tuple[str, None]: Load only the reference block map.
+            - Tuple[None, List[str]]: Load only the local block maps.
+            - None: Do not load any block maps.
+        This supports partial or full reuse of precomputed block maps:
+            - Local block maps will still be computed for each input image that is not linked to a local block map by the images name being *included* in the local block maps name (file name).
+            - The reference block map will only be calculated (mean of all local blocks) if not set.
+            - The reference map defines the reference block statistics and the local maps define per-image local block statistics.
+            - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.
+    override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.
+    build_overviews (bool, optional): If True, computes overviews. Defaults to False.
+
+Returns:
+    List[str]: Paths to the locally adjusted output raster images."""
         print("Start local block adjustment")
 
         MatchValidation.validate_local_block_adjustment(

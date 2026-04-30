@@ -2,6 +2,7 @@ import os
 import pytest
 
 from spectralmatch import Match
+from spectralmatch.types_and_validation import Match as MatchValidation
 from spectralmatch.pif import pif as pif_module
 from .utils_test import create_dummy_raster
 
@@ -184,7 +185,7 @@ def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
     )
     monkeypatch.setattr(pif_module, "_build_valid_mask_raster", lambda *args, **kwargs: "valid.tif")
     monkeypatch.setattr(pif_module, "_build_inz_stable_mask_raster", lambda *args, **kwargs: "stable.tif")
-    monkeypatch.setattr(pif_module, "_extract_conjugate_seed_points", lambda *args, **kwargs: [(1, 1)])
+    monkeypatch.setattr(pif_module, "geometric_correction", lambda *args, **kwargs: ("corrected.tif", [(1, 1, 1, 1)]))
     monkeypatch.setattr(pif_module, "_build_seed_mask_raster", lambda *args, **kwargs: "seed.tif")
     monkeypatch.setattr(pif_module, "_combine_masks_raster", lambda *args, **kwargs: "pif_mask.tif")
     monkeypatch.setattr(pif_module, "_count_mask_pixels", lambda *args, **kwargs: 5)
@@ -216,6 +217,10 @@ def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
         max_samples=None,
         min_samples=None,
         feature_method="orb",
+        cache=None,
+        io_threads=None,
+        tile_threads=None,
+        save_inz_path=None,
         debug_logs=False,
     )
 
@@ -224,3 +229,19 @@ def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
     assert pair_stats["B"]["A"][0]["size"] == 5
     assert whole_updates["A"][0]["size"] == 5
     assert whole_updates["B"][0]["size"] == 5
+
+
+def test_pif_save_inz_two_placeholder_path_resolution():
+    resolved = pif_module._resolve_pair_output_path(
+        "/tmp/$_to_$_INZ.tif",
+        "SensedImage",
+        "ReferenceImage",
+        0,
+        2,
+    )
+    assert resolved == "/tmp/SensedImage_to_ReferenceImage_INZ.tif"
+
+
+def test_pif_save_inz_validation_rejects_single_placeholder():
+    with pytest.raises(ValueError, match="exactly two '\\$' placeholders"):
+        MatchValidation.validate_global_regression(pif_save_inz="/tmp/$_INZ.tif")

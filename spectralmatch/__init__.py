@@ -5,6 +5,7 @@ from .mask.mask import create_cloud_mask_with_omnicloudmask, band_math
 from .mask.utils_mask import process_raster_values_to_vector_polygons
 from .pif import Pif
 from .pipeline import pipeline
+from .geometric_correction import geometric_correction
 from .statistics import (
     compare_image_spectral_profiles_pairs,
     compare_before_after_all_images,
@@ -15,6 +16,7 @@ from .seamline import Seamline
 __all__ = [
     "Match",
     "Pif",
+    "geometric_correction",
     # Mask
     "band_math",
     "create_cloud_mask_with_omnicloudmask",

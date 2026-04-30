@@ -1,16 +1,18 @@
-import math
 import os
 import tempfile
+from concurrent.futures import as_completed
 from typing import Literal
 from html import escape
 
 import numpy as np
 from osgeo import gdal
 
+from ..geometric_correction import geometric_correction
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths
 from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal
-from ..utils import _get_gdal_bounds
+from ..utils import _get_gdal_bounds, _set_gdal_cache, _set_gdal_workers
+from ..utils_multiprocessing import _get_executor, _resolve_parallel_config
 
 
 class Pif:
@@ -33,6 +35,11 @@ class Pif:
         custom_mean_factor: float = 1.0,
         custom_std_factor: float = 1.0,
         feature_method: Literal["orb"] = "orb",
+        cache: Universal.Cache = None,
+        image_threads: Universal.Threads = None,
+        io_threads: Universal.Threads = None,
+        tile_threads: Universal.Threads = None,
+        save_inz: str | None = None,
         debug_logs: Universal.DebugLogs = False,
     ) -> np.ndarray:
         """
@@ -67,6 +74,11 @@ class Pif:
         if included_names is None:
             included_names = list(input_image_names)
 
+        _set_gdal_cache(cache, debug_logs)
+        _set_gdal_workers(io_threads, debug_logs)
+        image_backend = "thread"
+        image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+
         nodata_value = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
         first_ds = gdal.Open(input_image_paths[0], gdal.GA_ReadOnly)
         num_bands = first_ds.RasterCount
@@ -82,35 +94,51 @@ class Pif:
 
         all_overlap_stats = {}
         all_whole_stats = {}
-        for name_i, name_j in overlapping_pairs:
+        parallel_args = []
+        for pair_index, (name_i, name_j) in enumerate(overlapping_pairs):
             if name_i not in image_path_pairs or name_j not in image_path_pairs:
                 continue
             if name_i not in included_names and name_j not in included_names:
                 continue
-            if debug_logs:
-                print(f"Generating flood_from_match_points PIF stats: {name_i} <-> {name_j}")
-
-            pair_stats, whole_updates = _calculate_pair_pif_stats(
-                reference_path=image_path_pairs[name_i],
-                sensed_path=image_path_pairs[name_j],
-                reference_name=name_i,
-                sensed_name=name_j,
-                num_bands=num_bands,
-                nodata_value=nodata_value,
-                calculation_dtype=calculation_dtype,
-                red_band_index=red_band_index,
-                nir_band_index=nir_band_index,
-                vegetation_threshold=vegetation_threshold,
-                inz_threshold=inz_threshold,
-                region_radius=region_radius,
-                max_samples=max_samples,
-                min_samples=min_samples,
-                feature_method=feature_method,
-                debug_logs=debug_logs,
+            parallel_args.append(
+                (
+                    image_path_pairs[name_i],
+                    image_path_pairs[name_j],
+                    name_i,
+                    name_j,
+                    num_bands,
+                    nodata_value,
+                    calculation_dtype,
+                    red_band_index,
+                    nir_band_index,
+                    vegetation_threshold,
+                    inz_threshold,
+                    region_radius,
+                    max_samples,
+                    min_samples,
+                    feature_method,
+                    cache,
+                    io_threads,
+                    tile_threads,
+                    _resolve_pair_output_path(save_inz, name_j, name_i, pair_index, len(overlapping_pairs)),
+                    debug_logs,
+                )
             )
-            for outer, inner in pair_stats.items():
-                all_overlap_stats.setdefault(outer, {}).update(inner)
-            _merge_whole_stat_updates(all_whole_stats, whole_updates)
+
+        if image_threads_on:
+            with _get_executor(image_backend, image_thread_workers) as executor:
+                futures = [executor.submit(_calculate_pair_pif_stats, *args) for args in parallel_args]
+                for future in as_completed(futures):
+                    pair_stats, whole_updates = future.result()
+                    for outer, inner in pair_stats.items():
+                        all_overlap_stats.setdefault(outer, {}).update(inner)
+                    _merge_whole_stat_updates(all_whole_stats, whole_updates)
+        else:
+            for args in parallel_args:
+                pair_stats, whole_updates = _calculate_pair_pif_stats(*args)
+                for outer, inner in pair_stats.items():
+                    all_overlap_stats.setdefault(outer, {}).update(inner)
+                _merge_whole_stat_updates(all_whole_stats, whole_updates)
 
         return _solve_pif_global_model(
             num_bands=num_bands,
@@ -123,6 +151,35 @@ class Pif:
             overlapping_pairs=overlapping_pairs,
             debug_logs=debug_logs,
         )
+
+def _resolve_pair_output_path(
+    base_path: str | None,
+    main_name: str,
+    reference_name: str,
+    pair_index: int,
+    total_pairs: int,
+) -> str | None:
+    if not base_path:
+        return None
+    placeholder_count = base_path.count("$")
+    if placeholder_count >= 2:
+        resolved_path = base_path.replace("$", main_name, 1)
+        resolved_path = resolved_path.replace("$", reference_name, 1)
+        output_dir = os.path.dirname(resolved_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+        return resolved_path
+    if total_pairs == 1:
+        return base_path
+    root, ext = os.path.splitext(base_path)
+    safe_main = main_name.replace(os.sep, "_")
+    safe_reference = reference_name.replace(os.sep, "_")
+    resolved_path = f"{root}_{pair_index:03d}_{safe_main}__{safe_reference}{ext or '.tif'}"
+    output_dir = os.path.dirname(resolved_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    return resolved_path
+
 
 def _find_overlaps(
     image_bounds_dict: dict[str, tuple[float, float, float, float]],
@@ -150,7 +207,6 @@ def _merge_whole_stat_updates(
 
 
 def _calculate_pair_pif_stats(
-    *,
     reference_path: str,
     sensed_path: str,
     reference_name: str,
@@ -166,8 +222,14 @@ def _calculate_pair_pif_stats(
     max_samples: int | None,
     min_samples: int | None,
     feature_method: str,
+    cache,
+    io_threads,
+    tile_threads,
+    save_inz_path: str | None,
     debug_logs: bool,
 ) -> tuple[dict, dict[str, dict[int, dict[str, float | int]]]]:
+    if debug_logs:
+        print(f"Generating flood_from_match_points PIF stats: {reference_name} <-> {sensed_name}")
     with tempfile.TemporaryDirectory(prefix="spectralmatch_pif_") as tmpdir:
         overlap = _build_overlap_vrts(
             reference_path,
@@ -187,10 +249,32 @@ def _calculate_pair_pif_stats(
             projection,
             tmpdir,
         )
+        corrected_sensed_path = os.path.join(tmpdir, "sensed_overlap_corrected.tif")
+        corrected_sensed_path, point_pairs = geometric_correction(
+            ref_vrt,
+            sensed_vrt,
+            corrected_sensed_path,
+            valid_mask_path=valid_mask_path,
+            feature_method=feature_method,
+            cache=cache,
+            io_threads=io_threads,
+            tile_threads=tile_threads,
+            debug_logs=debug_logs,
+        )
+
+        corrected_valid_mask_path = _build_valid_mask_raster(
+            ref_vrt,
+            corrected_sensed_path,
+            width,
+            height,
+            gt,
+            projection,
+            tmpdir,
+        )
         stable_mask_path = _build_inz_stable_mask_raster(
             ref_vrt=ref_vrt,
-            sensed_vrt=sensed_vrt,
-            valid_mask_path=valid_mask_path,
+            sensed_vrt=corrected_sensed_path,
+            valid_mask_path=corrected_valid_mask_path,
             width=width,
             height=height,
             gt=gt,
@@ -201,14 +285,9 @@ def _calculate_pair_pif_stats(
             vegetation_threshold=vegetation_threshold,
             inz_threshold=inz_threshold,
             tmpdir=tmpdir,
+            save_inz_path=save_inz_path,
         )
-        seed_points = _extract_conjugate_seed_points(
-            ref_vrt,
-            sensed_vrt,
-            valid_mask_path,
-            feature_method,
-            debug_logs,
-        )
+        seed_points = _reference_seed_points_from_pairs(point_pairs, height, width)
         seed_mask_path = _build_seed_mask_raster(
             seed_points,
             width,
@@ -251,7 +330,7 @@ def _calculate_pair_pif_stats(
         whole_updates = {reference_name: {}, sensed_name: {}}
         for band_index in range(num_bands):
             ref_stats = _masked_band_stats(ref_vrt, band_index + 1, pif_mask_path)
-            sensed_stats = _masked_band_stats(sensed_vrt, band_index + 1, pif_mask_path)
+            sensed_stats = _masked_band_stats(corrected_sensed_path, band_index + 1, pif_mask_path)
             if min_samples is not None and ref_stats["size"] < min_samples:
                 raise ValueError(
                     f"Band {band_index + 1} has {ref_stats['size']} flood_from_match_points PIF "
@@ -427,6 +506,7 @@ def _build_inz_stable_mask_raster(
     vegetation_threshold: float,
     inz_threshold: float,
     tmpdir: str,
+    save_inz_path: str | None = None,
 ) -> str:
     sources = {"m": (valid_mask_path, 1)}
     z_terms = []
@@ -457,6 +537,38 @@ def _build_inz_stable_mask_raster(
         z_terms.append(f"abs(((s{band_index} - r{band_index}) - {mean}) / {std})")
 
     inz_expr = f"(({ ' + '.join(z_terms) }) / {num_bands})"
+    inz_vrt = os.path.join(tmpdir, "inz_score.vrt")
+    inz_tif = os.path.join(tmpdir, "inz_score.tif")
+    _write_expression_vrt(
+        inz_vrt,
+        sources,
+        f"m > 0 ? ({inz_expr}) : -999999999",
+        width,
+        height,
+        gt,
+        projection,
+        data_type="Float32",
+        nodata_value=-999999999,
+    )
+    _translate_vrt_to_raster(inz_vrt, inz_tif, gdal.GDT_Float32, -999999999)
+    if save_inz_path:
+        save_dir = os.path.dirname(save_inz_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        saved = gdal.Translate(
+            save_inz_path,
+            inz_tif,
+            options=gdal.TranslateOptions(
+                format="GTiff",
+                outputType=gdal.GDT_Float32,
+                noData=-999999999,
+                creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+            ),
+        )
+        if saved is None:
+            raise RuntimeError(f"Failed to save INZ raster: {save_inz_path}")
+        saved = None
+
     vegetation_expr = "1"
     if red_band_index is not None and nir_band_index is not None:
         if (
@@ -485,8 +597,11 @@ def _build_inz_stable_mask_raster(
     stable_tif = os.path.join(tmpdir, "stable_mask.tif")
     _write_expression_vrt(
         stable_vrt,
-        sources,
-        f"(m > 0 && ({vegetation_expr}) && ({inz_expr}) <= {inz_threshold}) ? 1 : 0",
+        {
+            **sources,
+            "inz": (inz_tif, 1),
+        },
+        f"(m > 0 && ({vegetation_expr}) && inz <= {inz_threshold}) ? 1 : 0",
         width,
         height,
         gt,
@@ -498,43 +613,17 @@ def _build_inz_stable_mask_raster(
     return stable_tif
 
 
-def _extract_conjugate_seed_points(
-    ref_vrt: str,
-    sensed_vrt: str,
-    valid_mask_path: str,
-    feature_method: str,
-    debug_logs: bool,
+def _reference_seed_points_from_pairs(
+    point_pairs: list[tuple[int, int, int, int]],
+    height: int,
+    width: int,
 ) -> np.ndarray:
-    if feature_method != "orb":
-        raise ValueError("Only feature_method='orb' is currently supported.")
-    import cv2
-
-    valid_mask = _read_mask(valid_mask_path)
-    ref_gray = _read_uint8_gray(ref_vrt, valid_mask)
-    sensed_gray = _read_uint8_gray(sensed_vrt, valid_mask)
-    detector = cv2.ORB_create(nfeatures=5000)
-    ref_keypoints, ref_descriptors = detector.detectAndCompute(ref_gray, None)
-    sensed_keypoints, sensed_descriptors = detector.detectAndCompute(sensed_gray, None)
-    if ref_descriptors is None or sensed_descriptors is None:
-        raise ValueError("Could not compute conjugate point descriptors for PIF extraction.")
-
-    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    matches = matcher.match(ref_descriptors, sensed_descriptors)
-    if not matches:
-        raise ValueError("No conjugate point matches found for PIF extraction.")
-    matches = sorted(matches, key=lambda match: match.distance)
-    keep_count = max(1, int(math.ceil(len(matches) * 0.5)))
-    points = []
-    for match in matches[:keep_count]:
-        x_ref, y_ref = ref_keypoints[match.queryIdx].pt
-        x_sensed, y_sensed = sensed_keypoints[match.trainIdx].pt
-        if abs(x_ref - x_sensed) > 20 or abs(y_ref - y_sensed) > 20:
-            continue
-        row = int(round((y_ref + y_sensed) / 2))
-        col = int(round((x_ref + x_sensed) / 2))
-        if 0 <= row < valid_mask.shape[0] and 0 <= col < valid_mask.shape[1] and valid_mask[row, col]:
-            points.append((row, col))
-    return np.asarray(points, dtype=int)
+    if not point_pairs:
+        return np.empty((0, 2), dtype=int)
+    seed_points = np.asarray([(ref_row, ref_col) for ref_row, ref_col, _, _ in point_pairs], dtype=int)
+    valid_rows = (seed_points[:, 0] >= 0) & (seed_points[:, 0] < height)
+    valid_cols = (seed_points[:, 1] >= 0) & (seed_points[:, 1] < width)
+    return seed_points[valid_rows & valid_cols]
 
 
 def _read_mask(mask_path: str) -> np.ndarray:
@@ -544,28 +633,6 @@ def _read_mask(mask_path: str) -> np.ndarray:
     mask = ds.GetRasterBand(1).ReadAsArray().astype(bool)
     ds = None
     return mask
-
-
-def _read_uint8_gray(raster_path: str, valid_mask: np.ndarray) -> np.ndarray:
-    ds = gdal.Open(raster_path, gdal.GA_ReadOnly)
-    if ds is None:
-        raise RuntimeError(f"Could not open raster for feature detection: {raster_path}")
-    rows, cols = valid_mask.shape
-    bands = [
-        ds.GetRasterBand(band_index).ReadAsArray(0, 0, cols, rows).astype(np.float32)
-        for band_index in range(1, min(3, ds.RasterCount) + 1)
-    ]
-    ds = None
-    gray = np.mean(bands, axis=0)
-    values = gray[valid_mask & np.isfinite(gray)]
-    if values.size == 0:
-        return np.zeros(gray.shape, dtype=np.uint8)
-    lo, hi = np.nanpercentile(values, [2, 98])
-    if hi <= lo:
-        return np.zeros(gray.shape, dtype=np.uint8)
-    scaled = np.clip((gray - lo) / (hi - lo), 0, 1) * 255
-    scaled[~valid_mask] = 0
-    return scaled.astype(np.uint8)
 
 
 def _build_seed_mask_raster(

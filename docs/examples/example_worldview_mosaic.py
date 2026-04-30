@@ -45,6 +45,7 @@ match = Match(
 )
 
 # %% Global matching
+inz_output_path = os.path.join(global_folder, "INZ", "$_to_$_INZ.tif")
 
 match.global_regression(
     input_images=input_folder, # Automatically searches for all *.tif files if passed this way
@@ -58,6 +59,7 @@ match.global_regression(
     save_adjustments=os.path.join(
         global_folder, "GlobalAdjustments.json"
     ),  # Start from precomputed statistics for images whole and overlap stats
+    pif_save_inz=inz_output_path,  # Saves one INZ raster per overlap pair; first $ = main/sensed image name, second $ = reference image name
     # load_adjustments=os.path.join(global_folder, "GlobalAdjustments.json"), # Load Statistics
 )
 

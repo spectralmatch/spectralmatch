@@ -34,6 +34,21 @@ class Seamline:
         debug_logs: Universal.DebugLogs = False,
         debug_vectors_path: str | None = None,
     ) -> None:
+        """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
+
+Args:
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_mask (str): Output path for the final seamline polygon vector file.
+    aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.
+    vector_mask (Tuple[str, str] | None, optional): Optional polygon source to use instead of extracting EMPs from rasters. The tuple is (vector_path, field_name). For each input image, polygons are selected when the field value is included anywhere in the image name. Matching polygons for the same image are unioned together.
+    min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.
+    min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.
+    debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
+    image_field_name (str, optional): Name of the attribute field for image ID in output; default is 'image'.
+    debug_vectors_path (str | None, optional): Optional path to save debug layers (cutlines, intersections).
+
+Outputs:
+    Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""
         print("Start voronoi center seamline")
         output_dir = os.path.dirname(output_mask)
         if output_dir:

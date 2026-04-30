@@ -198,6 +198,7 @@ class Match:
         load_adjustments=_UNSET,
         pif_method=_UNSET,
         pif_feature_method=_UNSET,
+        pif_save_inz=_UNSET,
     ):
         if pif_method is not _UNSET:
             if pif_method not in {"entire", "flood_from_match_points"}:
@@ -221,6 +222,15 @@ class Match:
         if load_adjustments is not _UNSET and load_adjustments is not None:
             if not isinstance(load_adjustments, str):
                 raise ValueError("load_adjustments must be a string or None.")
+
+        if pif_save_inz is not _UNSET and pif_save_inz is not None:
+            if not isinstance(pif_save_inz, str):
+                raise ValueError("pif_save_inz must be a string or None.")
+            placeholder_count = pif_save_inz.count("$")
+            if placeholder_count not in {0, 2}:
+                raise ValueError(
+                    "pif_save_inz must contain either no '$' placeholders or exactly two '$' placeholders."
+                )
 
     @staticmethod
     def validate_local_block_adjustment(
