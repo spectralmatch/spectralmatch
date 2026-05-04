@@ -58,10 +58,10 @@ Outputs:
             if debug_dir:
                 os.makedirs(debug_dir, exist_ok=True)
 
-        Universal.validate(
+        Universal._validate(
             input_images=input_images,
         )
-        SeamlineValidation.validate_voronoi_center_seamline(
+        SeamlineValidation._validate_voronoi_center_seamline(
             output_mask=output_mask,
             aoi_path=aoi_path,
             vector_mask=vector_mask,

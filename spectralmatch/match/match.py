@@ -9,7 +9,7 @@ from ..handlers import _resolve_paths, _resolve_nodata_value, _check_raster_requ
 from ..pif.pif import Pif
 from ..types_and_validation import Universal, Match as MatchValidation
 from ..utils import (
-    create_masked_vrts,
+    _create_masked_vrts,
     _set_gdal_cache,
     _set_gdal_workers,
     _resolve_gdal_dtype,
@@ -76,7 +76,7 @@ class Match:
         }
         if estimate_stats is not None:
             validate_kwargs["estimate_stats"] = estimate_stats
-        Universal.validate(**validate_kwargs)
+        Universal._validate(**validate_kwargs)
 
         _set_gdal_cache(cache, debug_logs)
         _set_gdal_workers(io_threads, debug_logs)
@@ -206,10 +206,10 @@ Returns:
     List[str]: Paths to the globally adjusted output raster images."""
         print("Start global regression")
 
-        MatchValidation.validate_match(
+        MatchValidation._validate_match(
             specify_model_images=specify_model_images,
         )
-        MatchValidation.validate_global_regression(
+        MatchValidation._validate_global_regression(
             custom_mean_factor=custom_mean_factor,
             custom_std_factor=custom_std_factor,
             save_adjustments=save_adjustments,
@@ -291,7 +291,7 @@ Returns:
             else:
                 print("    Excluded from model (0): []")
 
-        input_image_masked_path_pairs = create_masked_vrts(
+        input_image_masked_path_pairs = _create_masked_vrts(
             input_image_path_pairs,
             vector_mask=vector_mask,
             nodata_value=nodata_val,
@@ -560,7 +560,7 @@ Returns:
     List[str]: Paths to the locally adjusted output raster images."""
         print("Start local block adjustment")
 
-        MatchValidation.validate_local_block_adjustment(
+        MatchValidation._validate_local_block_adjustment(
             number_of_blocks=number_of_blocks,
             alpha=alpha,
             correction_method=correction_method,
@@ -598,7 +598,7 @@ Returns:
         tile_thread_on = setup["tile_thread_on"]
         tile_thread_workers = setup["tile_thread_workers"]
 
-        input_image_path_pairs_masked = create_masked_vrts(
+        input_image_path_pairs_masked = _create_masked_vrts(
             input_image_path_pairs,
             vector_mask=vector_mask,
             nodata_value=nodata_val,

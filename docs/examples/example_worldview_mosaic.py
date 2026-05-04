@@ -6,15 +6,16 @@
 # %% Setup
 import os
 from spectralmatch import (
-    Match,
-    Seamline,
     align_rasters,
     compare_before_after_all_images,
     compare_image_spectral_profiles_pairs,
     compare_spatial_spectral_difference_band_average,
+    global_regression,
+    local_block_adjustment,
     mask_rasters,
     merge_rasters,
     search_paths,
+    voronoi_center_seamline,
 )
 
 # Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
@@ -37,7 +38,7 @@ debug_mode = True
 # %% Global matching
 inz_output_path = os.path.join(global_folder, "INZ", "$_to_$_INZ.tif")
 
-Match.global_regression(
+global_regression(
     input_images=input_folder, # Automatically searches for all *.tif files if passed this way
     output_images=global_folder,
     debug_logs=debug_mode,
@@ -64,7 +65,7 @@ reference_map_path = os.path.join(local_folder, "ReferenceBlockMap", "ReferenceB
 local_maps_path = os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.tif")
 searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap", "*.tif"))
 
-Match.local_block_adjustment(
+local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
     debug_logs=debug_mode,
@@ -97,7 +98,7 @@ align_rasters(
 
 # %% Generate voronoi center seamlines
 
-Seamline.voronoi(
+voronoi_center_seamline(
     input_images=aligned_folder,
     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
     image_field_name="image",

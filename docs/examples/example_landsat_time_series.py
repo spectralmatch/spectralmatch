@@ -6,12 +6,13 @@
 # %% Setup
 import os
 from spectralmatch import (
-    Match,
     band_math,
     compare_before_after_all_images,
     compare_image_spectral_profiles_pairs,
     compare_spatial_spectral_difference_band_average,
     create_cloud_mask_with_omnicloudmask,
+    global_regression,
+    local_block_adjustment,
     mask_rasters,
     merge_vectors,
     process_raster_values_to_vector_polygons,
@@ -110,7 +111,7 @@ merge_vectors(
 
 # %% Global matching
 
-Match.global_regression(
+global_regression(
     input_images=masked_folder,
     output_images=global_folder,
     window_size=window_size,
@@ -127,7 +128,7 @@ Match.global_regression(
 
 # %% Local matching
 
-Match.local_block_adjustment(
+local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
     window_size=window_size,

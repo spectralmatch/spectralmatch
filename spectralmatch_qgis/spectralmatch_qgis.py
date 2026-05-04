@@ -22,23 +22,22 @@
  ***************************************************************************/
 """
 
-__author__ = 'Kanoa Lindiwe LLC'
-__date__ = '2025-06-15'
-__copyright__ = '(C) 2025 by Kanoa Lindiwe LLC'
+__author__ = "Kanoa Lindiwe LLC"
+__date__ = "2025-06-15"
+__copyright__ = "(C) 2025 by Kanoa Lindiwe LLC"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 import os
 import sys
 import inspect
-import subprocess
 
-from qgis.core import QgsProcessingAlgorithm, QgsApplication
+from qgis.core import QgsApplication
+
 from .spectralmatch_qgis_provider import spectralmatchProvider
-
-from .utils import get_interpreter, get_python_dependency_folder, log
+from .utils import get_python_dependency_folder
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 
@@ -47,22 +46,12 @@ if cmd_folder not in sys.path:
 
 
 class spectralmatchPlugin(object):
-
     def __init__(self):
         self.provider = None
-        self.python_interpreter = get_interpreter()
 
         self.python_dependencies = get_python_dependency_folder()
         if self.python_dependencies not in sys.path:
             sys.path.insert(0, self.python_dependencies)
-        directory = os.path.dirname(__file__)
-
-        whl_path = os.path.join(directory, next(f for f in os.listdir(directory) if f.endswith(".whl")))
-        self.install_spectralmatch_wheel(
-            self.python_interpreter,
-            whl_path,
-            self.python_dependencies
-        )
 
     def initProcessing(self):
         """Init Processing provider for QGIS >= 3.8."""
@@ -74,35 +63,3 @@ class spectralmatchPlugin(object):
 
     def unload(self):
         QgsApplication.processingRegistry().removeProvider(self.provider)
-        self.uninstall_spectralmatch(get_interpreter())
-
-    def install_spectralmatch_wheel(self, interpreter_path, wheel_path, target_path=None):
-        """
-        Installs a .whl file using the specified Python interpreter, without installing dependencies.
-        """
-        if not os.path.isfile(wheel_path):
-            raise FileNotFoundError(f"Wheel not found: {wheel_path}")
-
-        cmd = [interpreter_path, "-m", "pip", "install", "--no-deps", wheel_path]
-
-        if target_path:
-            os.makedirs(target_path, exist_ok=True)
-            cmd += ["--target", target_path]
-
-        try:
-            subprocess.run(cmd, check=True)
-            print(f"Installed {os.path.basename(wheel_path)}")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to install {wheel_path}:\n{e}")
-
-    def uninstall_spectralmatch(self, interpreter_path, package_name="spectralmatch"):
-        """
-        Uninstalls a package using the specified Python interpreter.
-        """
-        cmd = [interpreter_path, "-m", "pip", "uninstall", "-y", package_name]
-
-        try:
-            subprocess.run(cmd, check=True)
-            print(f"Uninstalled {package_name}")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to uninstall {package_name}:\n{e}")

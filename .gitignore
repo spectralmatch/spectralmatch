@@ -195,3 +195,4 @@ cython_debug/
 *.aux.xml
 
 docs/example/bench_output
+/spectralmatch_qgis/spectralmatch/

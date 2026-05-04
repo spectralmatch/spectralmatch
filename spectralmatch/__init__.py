@@ -4,7 +4,7 @@ from .utils import merge_rasters, mask_rasters, merge_vectors, align_rasters, co
 from .mask.mask import create_cloud_mask_with_omnicloudmask, band_math
 from .mask.utils_mask import process_raster_values_to_vector_polygons
 from .pif import Pif
-from .pipeline import pipeline
+from .chain import pipeline
 from .geometric_correction import geometric_correction
 from .statistics import (
     compare_image_spectral_profiles_pairs,
@@ -13,16 +13,21 @@ from .statistics import (
 )
 from .seamline import Seamline
 
+global_regression = Match.global_regression
+local_block_adjustment = Match.local_block_adjustment
+voronoi_center_seamline = Seamline.voronoi
+
 __all__ = [
-    "Match",
     "Pif",
     "geometric_correction",
+    "global_regression",
+    "local_block_adjustment",
     # Mask
     "band_math",
     "create_cloud_mask_with_omnicloudmask",
     "process_raster_values_to_vector_polygons",
     "pipeline",
-    "Seamline",
+    "voronoi_center_seamline",
     # Handlers
     "search_paths",
     "create_paths",

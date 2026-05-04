@@ -1,6 +1,8 @@
 import os
 import platform
 import sys
+from pathlib import Path
+import importlib
 from qgis.core import Qgis, QgsMessageLog
 import json
 import ast
@@ -19,35 +21,40 @@ def get_interpreter():
 
 
 def find_python_interpreter():
-    if os.path.exists(os.path.join(sys.prefix, "conda-meta")):  # Conda
-        log("Using interpreter at 'python' shortcut")
+    if (Path(sys.prefix) / "conda-meta").exists():  # Conda
+        log("Attempt Conda install at 'python' shortcut")
         return "python"
 
     if platform.system() == "Windows":  # Windows
-        base_path = sys.prefix
+        base_path = Path(sys.prefix)
         for file in ["python.exe", "python3.exe"]:
-            path = os.path.join(base_path, file)
-            if os.path.isfile(path):
-                log(f"Using interpreter at {str(path)}")
-                return path
+            path = base_path / file
+            if path.is_file():
+                log(f"Attempt Windows install at {str(path)}")
+                return str(path)
         path = sys.executable
-        log(f"Using interpreter at {str(path)}")
+        log(f"Attempt Windows install at {str(path)}")
         return path
 
     if platform.system() == "Darwin":  # Mac
-        base_path = os.path.join(sys.prefix, "bin")
-        for file in ["python", "python3"]:
-            path = os.path.join(base_path, file)
-            if os.path.isfile(path):
-                log(f"Using interpreter at {str(path)}")
-                return path
+        base_paths = [
+            Path(sys.prefix),
+            Path(sys.prefix) / "bin",
+            Path(sys.executable).parent,
+        ]
+        for base_path in base_paths:
+            for file in ["python", "python3"]:
+                path = base_path / file
+                if path.is_file():
+                    log(f"Attempt MacOS install at {str(path)}")
+                    return str(path)
         path = sys.executable
-        log(f"Using interpreter at {str(path)}")
+        log(f"Attempt MacOS install at {str(path)}")
         return path
 
     else:  # Fallback attempt
         path = sys.executable
-        log(f"Using interpreter fallback at {str(path)}")
+        log(f"Attempt fallback install at {str(path)}")
         return path
 
 def get_python_dependency_folder():
@@ -105,3 +112,29 @@ def normalize_cli_value(value: str) -> str:
         return repr(parsed)
     except (ValueError, SyntaxError):
         return stripped
+
+
+def normalize_python_value(value: str):
+    stripped = value.strip()
+
+    if stripped.lower() in {"none", "", "null"}:
+        return None
+
+    try:
+        return ast.literal_eval(stripped)
+    except (ValueError, SyntaxError):
+        return stripped
+
+
+def resolve_function(full_function_path: str):
+    parts = full_function_path.split(".")
+    for i in range(len(parts), 0, -1):
+        module_name = ".".join(parts[:i])
+        try:
+            obj = importlib.import_module(module_name)
+        except ImportError:
+            continue
+        for attr in parts[i:]:
+            obj = getattr(obj, attr)
+        return obj
+    raise ImportError(f"Could not resolve function path: {full_function_path}")

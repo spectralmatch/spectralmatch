@@ -19,7 +19,7 @@ class Universal:
     CreateNameAttribute: Tuple[str, str] | None
 
     @staticmethod
-    def validate(
+    def _validate(
         *,
         input_images=_UNSET,
         output_images=_UNSET,
@@ -130,18 +130,11 @@ class Universal:
         if cache is not _UNSET:
             if cache is None:
                 return
-            if isinstance(cache, int):
+            if isinstance(cache, (int, float)) and not isinstance(cache, bool):
                 if cache <= 0:
-                    raise ValueError("cache int value must be > 0 (in MB).")
+                    raise ValueError("cache must be > 0 (in GB).")
                 return
-            if (isinstance(cache, tuple) and len(cache) == 2
-                    and isinstance(cache[0], int) and isinstance(cache[1], str)):
-                if cache[0] <= 0:
-                    raise ValueError("cache size must be > 0.")
-                if cache[1].upper() not in {"KB", "MB", "GB"}:
-                    raise ValueError('cache unit must be one of {"KB","MB","GB"}.')
-                return
-            raise ValueError("cache must be an int (MB) or (size:int, unit:str) like (2, 'GB'), or None.")
+            raise ValueError("cache must be a number in GB, or None.")
 
         if image_threads is not _UNSET:
             _validate_threads(image_threads, "image_threads")
@@ -173,7 +166,7 @@ class Match:
     SpecifyModelImages = Tuple[Literal["exclude", "include"], List[str]] | None
 
     @staticmethod
-    def validate_match(
+    def _validate_match(
         *,
         specify_model_images=_UNSET,
     ):
@@ -190,7 +183,7 @@ class Match:
                 )
 
     @staticmethod
-    def validate_global_regression(
+    def _validate_global_regression(
         *,
         custom_mean_factor=_UNSET,
         custom_std_factor=_UNSET,
@@ -233,7 +226,7 @@ class Match:
                 )
 
     @staticmethod
-    def validate_local_block_adjustment(
+    def _validate_local_block_adjustment(
         *,
         number_of_blocks=_UNSET,
         alpha=_UNSET,
@@ -314,7 +307,7 @@ class Match:
 
 class Pipeline:
     @staticmethod
-    def validate_shared_pipeline(
+    def _validate_shared_pipeline(
         *,
         shared_output_image_path=_UNSET,
         shared_temp_dir=_UNSET,
@@ -331,7 +324,7 @@ class Pipeline:
                 raise ValueError("delete_temp_dir must be a boolean.")
 
     @staticmethod
-    def validate_method_choice(
+    def _validate_method_choice(
         *,
         method_name: str,
         method_value: str | None,
@@ -345,7 +338,7 @@ class Pipeline:
 
 class Utils:
     @staticmethod
-    def validate_align_rasters(
+    def _validate_align_rasters(
         *,
         resampling_method=_UNSET,
         tap=_UNSET,
@@ -366,7 +359,7 @@ class Utils:
                 )
 
     @staticmethod
-    def validate_mask_rasters(
+    def _validate_mask_rasters(
         *,
         include_touched_pixels=_UNSET,
     ):
@@ -375,7 +368,7 @@ class Utils:
                 raise ValueError("include_touched_pixels must be a boolean.")
 
     @staticmethod
-    def validate_merge_rasters(
+    def _validate_merge_rasters(
         *,
         resolution=_UNSET,
     ):
@@ -388,7 +381,7 @@ class Utils:
 
 class Seamline:
     @staticmethod
-    def validate_voronoi_center_seamline(
+    def _validate_voronoi_center_seamline(
         *,
         output_mask=_UNSET,
         aoi_path=_UNSET,

@@ -144,7 +144,7 @@ def _densify_polygon(
     return pts
 
 
-def polygonal_intersection(a: Polygon, b: Polygon, buffer_eps: float = 1e-8):
+def _polygonal_intersection(a: Polygon, b: Polygon, buffer_eps: float = 1e-8):
     """
     Returns only the polygonal portion of a ∩ b. If the intersection is line-like or point-like, it buffers slightly to form a polygon.
 
@@ -202,7 +202,7 @@ def _compute_centerline(
         LineString: Shortest centerline path computed through the Voronoi diagram of the overlap.
     """
 
-    voa = polygonal_intersection(a, b)
+    voa = _polygonal_intersection(a, b)
     pts = _densify_polygon(voa, min_point_spacing)
 
     # Compute intersection and extract both Voronoi and anchor points

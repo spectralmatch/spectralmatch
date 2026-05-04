@@ -305,4 +305,4 @@ def test_pif_save_inz_two_placeholder_path_resolution():
 
 def test_pif_save_inz_validation_rejects_single_placeholder():
     with pytest.raises(ValueError, match="exactly two '\\$' placeholders"):
-        MatchValidation.validate_global_regression(pif_save_inz="/tmp/$_INZ.tif")
+        MatchValidation._validate_global_regression(pif_save_inz="/tmp/$_INZ.tif")

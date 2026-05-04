@@ -100,18 +100,27 @@ clean:
 		   $(MAKEFILE_DIR)/spectralmatch_qgis/*.whl
 	find $(MAKEFILE_DIR)docs/examples/data_landsat -mindepth 1 ! -path "*/Input*" -exec rm -rf {} +
 	find $(MAKEFILE_DIR)docs/examples/data_worldview -mindepth 1 ! -path "*/Input*" -exec rm -rf {} +
+	rm -rf $(MAKEFILE_DIR)docs/examples/data_worldview/PipelineOutput \
+	       $(MAKEFILE_DIR)docs/examples/data_worldview/PipelineTemp
 
 # Python
 python-build:
 	@echo "Building Python wheel..."
 	python -m build --wheel
 
+qgis-install-local-spectralmatch: python-build
+	@if [ -z "$(interpreter)" ]; then \
+		echo "Usage: make qgis-install-local-spectralmatch interpreter=/path/to/qgis/python"; \
+		exit 1; \
+	fi
+	@echo "Installing local spectralmatch wheel into $(interpreter)..."
+	"$(interpreter)" -m pip install --force-reinstall --no-deps dist/*.whl
+
 # QGIS
-qgis-build: python-build
-	@cp dist/*.whl spectralmatch_qgis
+qgis-build:
 	PYTHONPATH=. $(BUILD_PLUGIN)
 	@echo "Removing __pycache__..."
-	rm -rf spectralmatch_qgis/__pycache__ spectralmatch_qgis/test/__pycache__
+	find spectralmatch_qgis -type d -name "__pycache__" -exec rm -rf {} +
 	@echo "Creating plugin zip..."
 	zip -r spectralmatch_qgis.zip spectralmatch_qgis/ \
 	  -x "*.DS_Store" "*__MACOSX*"

@@ -112,7 +112,7 @@ def pipeline(
             shared_debug_logs=shared_debug_logs,
         )
     )
-    PipelineValidation.validate_shared_pipeline(
+    PipelineValidation._validate_shared_pipeline(
         shared_output_image_path=shared_output_image_path,
         shared_temp_dir=shared_temp_dir,
         delete_temp_dir=delete_temp_dir,
@@ -123,7 +123,7 @@ def pipeline(
         ("clip_method", clip_method, {None, "mask_rasters"}),
         ("merge_method", merge_method, {None, "merge_rasters"}),
     ]:
-        PipelineValidation.validate_method_choice(
+        PipelineValidation._validate_method_choice(
             method_name=method_name,
             method_value=method_value,
             allowed_values=allowed_values,
@@ -138,7 +138,7 @@ def pipeline(
             )
     if len(set(matching_order)) != len(matching_order):
         raise ValueError("matching_order cannot contain duplicate steps.")
-    Universal.validate(
+    Universal._validate(
         input_images=shared_input_images,
         debug_logs=shared_debug_logs,
         window_size=shared_window_size,
@@ -152,7 +152,7 @@ def pipeline(
         save_as_cog=shared_save_as_cog,
     )
     if "global_regression" in matching_order:
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             output_images=global_regression_output_images or os.path.join(temp_dir, "global"),
             save_as_cog=shared_save_as_cog,
@@ -168,8 +168,8 @@ def pipeline(
             tile_threads=shared_tile_threads,
             estimate_stats=global_regression_estimate_stats,
         )
-        MatchValidation.validate_match(specify_model_images=global_regression_specify_model_images)
-        MatchValidation.validate_global_regression(
+        MatchValidation._validate_match(specify_model_images=global_regression_specify_model_images)
+        MatchValidation._validate_global_regression(
             custom_mean_factor=global_regression_custom_mean_factor,
             custom_std_factor=global_regression_custom_std_factor,
             save_adjustments=global_regression_save_adjustments,
@@ -179,7 +179,7 @@ def pipeline(
             pif_save_inz=global_regression_pif_save_inz,
         )
     if "local_block_adjustment" in matching_order:
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             output_images=local_block_adjustment_output_images or os.path.join(temp_dir, "local"),
             save_as_cog=shared_save_as_cog,
@@ -194,7 +194,7 @@ def pipeline(
             io_threads=shared_io_threads,
             tile_threads=shared_tile_threads,
         )
-        MatchValidation.validate_local_block_adjustment(
+        MatchValidation._validate_local_block_adjustment(
             number_of_blocks=local_block_adjustment_number_of_blocks,
             alpha=local_block_adjustment_alpha,
             correction_method=local_block_adjustment_correction_method,
@@ -203,7 +203,7 @@ def pipeline(
             override_bounds_canvas_coords=local_block_adjustment_override_bounds_canvas_coords,
         )
     if align_method == "align_rasters":
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             output_images=align_rasters_output_images or os.path.join(temp_dir, "aligned"),
             debug_logs=shared_debug_logs,
@@ -213,14 +213,14 @@ def pipeline(
             io_threads=shared_io_threads,
             tile_threads=shared_tile_threads,
         )
-        UtilsValidation.validate_align_rasters(
+        UtilsValidation._validate_align_rasters(
             resampling_method=align_rasters_resampling_method,
             tap=align_rasters_tap,
             resolution=align_rasters_resolution,
         )
     if seamline_method == "voronoi_center_seamline":
-        Universal.validate(input_images=shared_input_images)
-        SeamlineValidation.validate_voronoi_center_seamline(
+        Universal._validate(input_images=shared_input_images)
+        SeamlineValidation._validate_voronoi_center_seamline(
             output_mask=voronoi_center_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
             aoi_path=voronoi_center_seamline_aoi_path,
             vector_mask=voronoi_center_seamline_vector_mask,
@@ -241,7 +241,7 @@ def pipeline(
             raise ValueError(
                 "mask_rasters requires a vector mask. Set mask_rasters_vector_mask or enable the seamline stage."
             )
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             output_images=mask_rasters_output_images or os.path.join(temp_dir, "clip"),
             debug_logs=shared_debug_logs,
@@ -253,11 +253,11 @@ def pipeline(
             io_threads=shared_io_threads,
             tile_threads=shared_tile_threads,
         )
-        UtilsValidation.validate_mask_rasters(
+        UtilsValidation._validate_mask_rasters(
             include_touched_pixels=mask_rasters_include_touched_pixels,
         )
     if merge_method == "merge_rasters":
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             debug_logs=shared_debug_logs,
             cache=shared_cache,
@@ -267,7 +267,7 @@ def pipeline(
             window_size=shared_window_size,
             custom_nodata_value=shared_custom_nodata_value,
         )
-        UtilsValidation.validate_merge_rasters(
+        UtilsValidation._validate_merge_rasters(
             resolution=merge_rasters_resolution,
         )
 
@@ -526,12 +526,12 @@ def _resolve_auto_shared_settings(
     )
 
 
-def _resolve_auto_cache_gb() -> int:
+def _resolve_auto_cache_gb() -> float:
     total_memory_bytes = _get_total_memory_bytes()
     if total_memory_bytes is None:
-        return 4096
-    total_memory_mb = total_memory_bytes / (1024 ** 2)
-    return max(1, math.ceil(total_memory_mb * 0.90))
+        return 4.0
+    total_memory_gb = total_memory_bytes / (1024 ** 3)
+    return max(1.0, total_memory_gb * 0.90)
 
 
 def _get_total_memory_bytes() -> int | None:

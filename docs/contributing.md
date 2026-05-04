@@ -204,16 +204,17 @@ SaveAsCog = bool # Default: True
 
 ## Validate Inputs
 The validate methods are used to check that input parameters follow expected formats before processing begins. There are different validation methods for different scopes—some are general-purpose (e.g., Universal.validate) and others apply to specific contexts like matching (Match.validate_match). These functions raise clear errors when inputs are misconfigured, helping catch issues early and enforce consistent usage patterns across the library.
+
 ```python
 # Validate params example
-Universal.validate(
+Universal._validate(
     input_images=input_images,
     output_images=output_images,
     vector_mask=vector_mask,
 )
-Match.validate_match(
+Match._validate_match(
     specify_model_images=specify_model_images,
-    )
+)
 ```
 
 ---

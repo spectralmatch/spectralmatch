@@ -46,7 +46,7 @@ def create_cloud_mask_with_omnicloudmask(
     """
 
     print("Start omnicloudmask")
-    Universal.validate(
+    Universal._validate(
         input_images=input_images,
         output_images=output_images,
         debug_logs=debug_logs
@@ -211,7 +211,7 @@ def band_math(
         List[str]: Paths to the thresholded output images.
     """
 
-    Universal.validate(
+    Universal._validate(
         input_images=input_images,
         output_images=output_images,
         debug_logs=debug_logs,
