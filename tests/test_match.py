@@ -7,37 +7,55 @@ from spectralmatch.pif import pif as pif_module
 from .utils_test import create_dummy_raster
 
 
-# global_regression
-def test_global_regression_full_options_save_model(tmp_path):
-    input_dir = tmp_path / "in"
-    output_dir = tmp_path / "out"
+def _make_two_test_rasters(tmp_path, names_and_values, input_dir_name="input", output_dir_name="output", suffix="_Out.tif"):
+    input_dir = tmp_path / input_dir_name
+    output_dir = tmp_path / output_dir_name
     input_dir.mkdir()
     output_dir.mkdir()
     paths = []
-    for name in ["A", "B"]:
+    for name, value in names_and_values:
         path = input_dir / f"{name}.tif"
-        create_dummy_raster(
-            path, 16, 16, count=1, fill_value=100 if name == "A" else 120
-        )
+        create_dummy_raster(path, 16, 16, count=1, fill_value=value)
         paths.append(str(path))
     output_paths = [
-        str(output_dir / f"{os.path.splitext(os.path.basename(p))[0]}_GlobalMatch.tif")
+        str(output_dir / f"{os.path.splitext(os.path.basename(p))[0]}{suffix}")
         for p in paths
     ]
+    return paths, output_paths, input_dir, output_dir
+
+
+def _global_shared_kwargs(**overrides):
+    kwargs = {
+        "calculation_dtype": "float64",
+        "output_dtype": "uint16",
+        "custom_nodata_value": 0,
+        "io_threads": 2,
+        "image_threads": 2,
+        "tile_threads": 2,
+        "window_size": 16,
+        "save_as_cog": True,
+        "debug_logs": True,
+        "pif_method": "entire",
+    }
+    kwargs.update(overrides)
+    return kwargs
+
+
+# global_regression
+def test_global_regression_full_options_save_model(tmp_path):
+    paths, output_paths, _, _ = _make_two_test_rasters(
+        tmp_path,
+        [("A", 100), ("B", 120)],
+        input_dir_name="in",
+        output_dir_name="out",
+        suffix="_GlobalMatch.tif",
+    )
     model_path = tmp_path / "adjustments.json"
 
     result = Match.global_regression(
         input_images=paths,
         output_images=output_paths,
-        calculation_dtype="float64",
-        output_dtype="uint16",
-        custom_nodata_value=0,
-        io_threads=2,
-        image_threads=2,
-        tile_threads=2,
-        window_size=16,
-        save_as_cog=True,
-        debug_logs=True,
+        **_global_shared_kwargs(),
         specify_model_images=("include", ["A"]),
         custom_mean_factor=1.0,
         custom_std_factor=1.0,
@@ -49,37 +67,30 @@ def test_global_regression_full_options_save_model(tmp_path):
 
 
 def test_global_regression_full_options_load_model(tmp_path):
-    input_dir = tmp_path / "input"
-    output_dir = tmp_path / "output"
-    input_dir.mkdir()
-    output_dir.mkdir()
-    paths = []
-    for name in ["X", "Y"]:
-        path = input_dir / f"{name}.tif"
-        create_dummy_raster(
-            path, 16, 16, count=1, fill_value=130 if name == "X" else 110
-        )
-        paths.append(str(path))
-    output_paths = [
-        str(output_dir / f"{os.path.splitext(os.path.basename(p))[0]}_Match.tif")
-        for p in paths
-    ]
+    paths, output_paths, _, _ = _make_two_test_rasters(
+        tmp_path,
+        [("X", 130), ("Y", 110)],
+        suffix="_Match.tif",
+    )
     model_path = tmp_path / "preload.json"
 
     # Pre-save model
     Match.global_regression(
-        input_images=paths, output_images=output_paths, save_adjustments=str(model_path)
+        input_images=paths,
+        output_images=output_paths,
+        save_adjustments=str(model_path),
+        pif_method="entire",
     )
 
     new_output_paths = [p.replace("_Match", "_Reloaded") for p in output_paths]
     result = Match.global_regression(
         input_images=paths,
         output_images=new_output_paths,
-        calculation_dtype="float32",
-        io_threads=2,
-        image_threads=2,
-        tile_threads=2,
-        debug_logs=True,
+        **_global_shared_kwargs(
+            calculation_dtype="float32",
+            output_dtype=None,
+            save_as_cog=False,
+        ),
         load_adjustments=str(model_path),
     )
 
@@ -87,34 +98,16 @@ def test_global_regression_full_options_load_model(tmp_path):
 
 
 def test_global_regression_method_level_shared_params(tmp_path):
-    input_dir = tmp_path / "input"
-    output_dir = tmp_path / "output"
-    input_dir.mkdir()
-    output_dir.mkdir()
-    paths = []
-    for name in ["A", "B"]:
-        path = input_dir / f"{name}.tif"
-        create_dummy_raster(
-            path, 16, 16, count=1, fill_value=100 if name == "A" else 120
-        )
-        paths.append(str(path))
-    output_paths = [
-        str(output_dir / f"{os.path.splitext(os.path.basename(p))[0]}_Global.tif")
-        for p in paths
-    ]
+    paths, output_paths, _, _ = _make_two_test_rasters(
+        tmp_path,
+        [("A", 100), ("B", 120)],
+        suffix="_Global.tif",
+    )
 
     result = Match.global_regression(
         input_images=paths,
         output_images=output_paths,
-        calculation_dtype="float64",
-        output_dtype="uint16",
-        custom_nodata_value=0,
-        io_threads=2,
-        image_threads=2,
-        tile_threads=2,
-        window_size=16,
-        save_as_cog=True,
-        debug_logs=True,
+        **_global_shared_kwargs(),
     )
 
     assert all(os.path.exists(p) for p in result)
