@@ -251,6 +251,15 @@ def _solve_pif_global_model(
         y_arr = np.asarray(y)
         all_params[band_index, :, 0] = np.linalg.lstsq(A_arr, y_arr, rcond=None)[0]
 
+        if debug_logs:
+            _print_constraint_system(
+                constraint_matrix=A_arr,
+                adjustment_params=all_params[band_index, :, 0],
+                observed_values_vector=y_arr,
+                overlap_pairs=tuple(valid_pairs),
+                image_names_with_id=image_names_with_id,
+            )
+
     return all_params
 
 
