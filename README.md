@@ -1,6 +1,7 @@
 # spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series
 
 [![PyPI version](https://img.shields.io/pypi/v/spectralmatch.svg)](https://pypi.org/project/spectralmatch/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/spectralmatch?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=GREEN&left_text=pypi+downloads)](https://pepy.tech/projects/spectralmatch)
 [![QGIS Plugin](https://img.shields.io/badge/QGIS-Plugin-589632?logo=qgis)](https://plugins.qgis.org/plugins/spectralmatch_qgis/)
 [![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
 [![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C)](https://codecov.io/gh/spectralmatch/spectralmatch)
@@ -106,14 +107,12 @@ local_folder = os.path.join(working_directory, "LocalMatch")
 aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 
-match = Match()
-
-match.global_regression(
+Match.global_regression(
     input_images=input_folder,
     output_images=global_folder,
 )
 
-match.local_block_adjustment(
+Match.local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
 )

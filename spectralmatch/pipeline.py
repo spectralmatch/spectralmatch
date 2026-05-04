@@ -292,27 +292,25 @@ def pipeline(
         "matching_order": matching_order,
     }
     try:
-        match = Match(
-            calculation_dtype=shared_calculation_dtype,
-            output_dtype=shared_output_dtype,
-            debug_logs=shared_debug_logs,
-            custom_nodata_value=shared_custom_nodata_value,
-            cache=shared_cache,
-            image_threads=shared_image_threads,
-            io_threads=shared_io_threads,
-            tile_threads=shared_tile_threads,
-            window_size=shared_window_size,
-            save_as_cog=shared_save_as_cog,
-        )
         for matching_step in matching_order:
             if matching_step == "global_regression":
                 global_output_images = global_regression_output_images or os.path.join(
                     temp_dir, "global"
                 )
-                match.vector_mask = global_regression_vector_mask
-                current_images = match.global_regression(
+                current_images = Match.global_regression(
                     input_images=current_images,
                     output_images=global_output_images,
+                    calculation_dtype=shared_calculation_dtype,
+                    output_dtype=shared_output_dtype,
+                    vector_mask=global_regression_vector_mask,
+                    debug_logs=shared_debug_logs,
+                    custom_nodata_value=shared_custom_nodata_value,
+                    cache=shared_cache,
+                    image_threads=shared_image_threads,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    window_size=shared_window_size,
+                    save_as_cog=shared_save_as_cog,
                     estimate_stats=global_regression_estimate_stats,
                     specify_model_images=global_regression_specify_model_images,
                     custom_mean_factor=global_regression_custom_mean_factor,
@@ -336,10 +334,20 @@ def pipeline(
                 local_output_images = local_block_adjustment_output_images or os.path.join(
                     temp_dir, "local"
                 )
-                match.vector_mask = local_block_adjustment_vector_mask
-                current_images = match.local_block_adjustment(
+                current_images = Match.local_block_adjustment(
                     input_images=current_images,
                     output_images=local_output_images,
+                    calculation_dtype=shared_calculation_dtype,
+                    output_dtype=shared_output_dtype,
+                    vector_mask=local_block_adjustment_vector_mask,
+                    debug_logs=shared_debug_logs,
+                    custom_nodata_value=shared_custom_nodata_value,
+                    cache=shared_cache,
+                    image_threads=shared_image_threads,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    window_size=shared_window_size,
+                    save_as_cog=shared_save_as_cog,
                     number_of_blocks=local_block_adjustment_number_of_blocks,
                     alpha=local_block_adjustment_alpha,
                     correction_method=local_block_adjustment_correction_method,

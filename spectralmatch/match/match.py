@@ -40,74 +40,46 @@ from .local_block_adjustment import (
 
 
 class Match:
-    def __init__(
-        self,
-        *,
-        calculation_dtype: Universal.CalculationDtype = "float32",
-        output_dtype: Universal.CustomOutputDtype = None,
-        vector_mask: Universal.VectorMask = None,
-        debug_logs: Universal.DebugLogs = False,
-        custom_nodata_value: Universal.CustomNodataValue = None,
-        cache: Universal.Cache = None,
-        image_threads: Universal.Threads = None,
-        io_threads: Universal.Threads = None,
-        tile_threads: Universal.Threads = None,
-        window_size: Universal.WindowSize = None,
-        save_as_cog: Universal.SaveAsCog = False,
-    ):
-        """Args:
-    calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
-    output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
-    vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
-    debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
-    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
-    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
-    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
-    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
-    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-    window_size (int | None): Output image tile size. Defaults to input image tile size.
-    save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order."""
-        self.calculation_dtype = calculation_dtype
-        self.output_dtype = output_dtype
-        self.vector_mask = vector_mask
-        self.debug_logs = debug_logs
-        self.custom_nodata_value = custom_nodata_value
-        self.cache = cache
-        self.image_threads = image_threads
-        self.io_threads = io_threads
-        self.tile_threads = tile_threads
-        self.window_size = window_size
-        self.save_as_cog = save_as_cog
-
+    @staticmethod
     def _setup_images(
-        self,
         *,
         input_images,
         output_images,
         default_output_pattern: str,
+        calculation_dtype,
+        output_dtype,
+        vector_mask,
+        debug_logs,
+        custom_nodata_value,
+        cache,
+        image_threads,
+        io_threads,
+        tile_threads,
+        window_size,
+        save_as_cog,
         estimate_stats=None,
     ) -> dict:
         validate_kwargs = {
             "input_images": input_images,
             "output_images": output_images,
-            "save_as_cog": self.save_as_cog,
-            "debug_logs": self.debug_logs,
-            "vector_mask": self.vector_mask,
-            "window_size": self.window_size,
-            "custom_nodata_value": self.custom_nodata_value,
-            "calculation_dtype": self.calculation_dtype,
-            "output_dtype": self.output_dtype,
-            "cache": self.cache,
-            "image_threads": self.image_threads,
-            "io_threads": self.io_threads,
-            "tile_threads": self.tile_threads,
+            "save_as_cog": save_as_cog,
+            "debug_logs": debug_logs,
+            "vector_mask": vector_mask,
+            "window_size": window_size,
+            "custom_nodata_value": custom_nodata_value,
+            "calculation_dtype": calculation_dtype,
+            "output_dtype": output_dtype,
+            "cache": cache,
+            "image_threads": image_threads,
+            "io_threads": io_threads,
+            "tile_threads": tile_threads,
         }
         if estimate_stats is not None:
             validate_kwargs["estimate_stats"] = estimate_stats
         Universal.validate(**validate_kwargs)
 
-        _set_gdal_cache(self.cache, self.debug_logs)
-        _set_gdal_workers(self.io_threads, self.debug_logs)
+        _set_gdal_cache(cache, debug_logs)
+        _set_gdal_workers(io_threads, debug_logs)
 
         input_image_paths = _resolve_paths(
             "search", input_images, kwargs={"default_file_pattern": "*.tif"}
@@ -124,13 +96,13 @@ class Match:
 
         input_image_path_pairs = dict(zip(input_image_names, input_image_paths))
         output_image_path_pairs = dict(zip(input_image_names, output_image_paths))
-        if self.debug_logs:
+        if debug_logs:
             print(f"Input images: {input_image_paths}")
             print(f"Output images: {output_image_paths}")
 
         _check_raster_requirements(
             input_image_paths,
-            self.debug_logs,
+            debug_logs,
             check_geotransform=True,
             check_crs=True,
             check_bands=True,
@@ -138,14 +110,14 @@ class Match:
         )
 
         resolved_output_dtype = _resolve_gdal_dtype(
-            self.output_dtype,
+            output_dtype,
             input_image_paths[0],
-            self.debug_logs,
+            debug_logs,
         )
-        nodata_val = _resolve_nodata_value(input_image_paths[0], self.custom_nodata_value)
+        nodata_val = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
         image_backend = "thread"
-        image_threads_on, image_thread_workers = _resolve_parallel_config(self.image_threads)
-        tile_thread_on, tile_thread_workers = _resolve_parallel_config(self.tile_threads)
+        image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+        tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
         return {
             "input_image_paths": input_image_paths,
@@ -162,11 +134,22 @@ class Match:
             "tile_thread_workers": tile_thread_workers,
         }
 
+    @staticmethod
     def global_regression(
-        self,
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,
         *,
+        calculation_dtype: Universal.CalculationDtype = "float32",
+        output_dtype: Universal.CustomOutputDtype = None,
+        vector_mask: Universal.VectorMask = None,
+        debug_logs: Universal.DebugLogs = False,
+        custom_nodata_value: Universal.CustomNodataValue = None,
+        cache: Universal.Cache = None,
+        image_threads: Universal.Threads = None,
+        io_threads: Universal.Threads = None,
+        tile_threads: Universal.Threads = None,
+        window_size: Universal.WindowSize = None,
+        save_as_cog: Universal.SaveAsCog = False,
         estimate_stats: bool = True,
         specify_model_images: MatchValidation.SpecifyModelImages = None,
         custom_mean_factor: float = 1.0,
@@ -190,6 +173,17 @@ class Match:
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
+    calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
+    output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
+    debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
+    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    window_size (int | None): Output image tile size. Defaults to input image tile size.
+    save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     estimate_stats (bool): If True, use an estimate algorithm to calculate the mean and sd to increase processing speeds. If False, use the exact algorithm. Defaults to True.
     specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.
     custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
@@ -225,10 +219,21 @@ Returns:
             pif_save_inz=pif_save_inz,
         )
 
-        setup = self._setup_images(
+        setup = Match._setup_images(
             input_images=input_images,
             output_images=output_images,
             default_output_pattern="$_Global.tif",
+            calculation_dtype=calculation_dtype,
+            output_dtype=output_dtype,
+            vector_mask=vector_mask,
+            debug_logs=debug_logs,
+            custom_nodata_value=custom_nodata_value,
+            cache=cache,
+            image_threads=image_threads,
+            io_threads=io_threads,
+            tile_threads=tile_threads,
+            window_size=window_size,
+            save_as_cog=save_as_cog,
             estimate_stats=estimate_stats,
         )
         input_image_paths = setup["input_image_paths"]
@@ -258,7 +263,7 @@ Returns:
         matched = input_names & loaded_names
         only_loaded = loaded_names - input_names
         only_input = input_names - loaded_names
-        if self.debug_logs:
+        if debug_logs:
             print(
                 f"Total images: input images: {len(input_names)}, loaded images {len(loaded_names)}: "
             )
@@ -278,7 +283,7 @@ Returns:
             elif mode == "exclude":
                 included_names = [n for n in input_image_names if n not in name_set]
             excluded_names = [n for n in input_image_names if n not in included_names]
-        if self.debug_logs:
+        if debug_logs:
             print("Images to influence the model:")
             print(f"    Included in model ({len(included_names)}): {sorted(included_names)}")
             if specify_model_images:
@@ -288,12 +293,12 @@ Returns:
 
         input_image_masked_path_pairs = create_masked_vrts(
             input_image_path_pairs,
-            vector_mask=self.vector_mask,
+            vector_mask=vector_mask,
             nodata_value=nodata_val,
-            debug_logs=self.debug_logs,
+            debug_logs=debug_logs,
         )
 
-        if self.debug_logs:
+        if debug_logs:
             print("Calculating statistics")
         num_bands = gdal.Open(next(iter(input_image_path_pairs.values()))).RasterCount
         all_bounds = {name: _get_gdal_bounds(path) for name, path in input_image_path_pairs.items()}
@@ -328,7 +333,7 @@ Returns:
                 all_bounds[name_i],
                 all_bounds[name_j],
                 estimate_stats,
-                self.debug_logs,
+                debug_logs,
             )
             for name_i, name_j in overlapping_pairs
             if name_i not in loaded_model
@@ -368,7 +373,7 @@ Returns:
                 num_bands,
                 image_name,
                 estimate_stats,
-                self.debug_logs,
+                debug_logs,
             )
             for image_name, image_path in input_image_masked_path_pairs.items()
             if image_name not in loaded_model
@@ -384,7 +389,7 @@ Returns:
 
         all_image_names = list(dict.fromkeys(input_image_names + list(loaded_model.keys())))
         num_total = len(all_image_names)
-        if self.debug_logs:
+        if debug_logs:
             print(
                 f"\nCreating model for {len(all_image_names)} total images from {len(included_names)} included:"
             )
@@ -395,15 +400,15 @@ Returns:
                 print(f"    {i:<4}\t{source:<6}\t{included:<8}\t{name}")
 
         if pif_method == "flood_from_match_points":
-            if self.debug_logs:
+            if debug_logs:
                 print("Using flood_from_match_points PIF adjustment parameters")
             all_params = Pif.flood_from_match_points(
                 input_images=input_image_paths,
                 input_image_names=input_image_names,
                 included_names=included_names,
                 overlapping_pairs=overlapping_pairs,
-                calculation_dtype=self.calculation_dtype,
-                custom_nodata_value=self.custom_nodata_value,
+                calculation_dtype=calculation_dtype,
+                custom_nodata_value=custom_nodata_value,
                 red_band_index=pif_red_band_index,
                 nir_band_index=pif_nir_band_index,
                 vegetation_threshold=pif_vegetation_threshold,
@@ -414,11 +419,11 @@ Returns:
                 feature_method=pif_feature_method,
                 custom_mean_factor=custom_mean_factor,
                 custom_std_factor=custom_std_factor,
-                debug_logs=self.debug_logs,
-                cache=self.cache,
-                image_threads=self.image_threads,
-                io_threads=self.io_threads,
-                tile_threads=self.tile_threads,
+                debug_logs=debug_logs,
+                cache=cache,
+                image_threads=image_threads,
+                io_threads=io_threads,
+                tile_threads=tile_threads,
                 save_inz=pif_save_inz,
             )
         else:
@@ -433,7 +438,7 @@ Returns:
                 custom_mean_factor,
                 custom_std_factor,
                 overlapping_pairs,
-                self.debug_logs,
+                debug_logs,
             )
 
         if save_adjustments:
@@ -444,10 +449,10 @@ Returns:
                 all_whole_stats=all_whole_stats,
                 all_overlap_stats=all_overlap_stats,
                 num_bands=num_bands,
-                calculation_dtype=self.calculation_dtype,
+                calculation_dtype=calculation_dtype,
             )
 
-        if self.debug_logs:
+        if debug_logs:
             print("Apply adjustments and saving results for:")
         parallel_args = [
             (
@@ -460,11 +465,11 @@ Returns:
                 np.array([all_params[b, 2 * idx + 1, 0] for b in range(num_bands)]),
                 num_bands,
                 nodata_val,
-                self.window_size,
+                window_size,
                 output_dtype,
-                self.calculation_dtype,
-                self.save_as_cog,
-                self.debug_logs,
+                calculation_dtype,
+                save_as_cog,
+                debug_logs,
             )
             for idx, (name, img_path) in enumerate(input_image_path_pairs.items())
         ]
@@ -480,20 +485,31 @@ Returns:
         if build_overviews:
             compute_overviews(
                 input_images_paths=output_image_paths,
-                cache=self.cache,
-                io_threads=self.io_threads,
-                image_threads=self.image_threads,
-                tile_threads=self.tile_threads,
-                debug_logs=self.debug_logs,
+                cache=cache,
+                io_threads=io_threads,
+                image_threads=image_threads,
+                tile_threads=tile_threads,
+                debug_logs=debug_logs,
             )
         return output_image_paths
 
 
+    @staticmethod
     def local_block_adjustment(
-        self,
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,
         *,
+        calculation_dtype: Universal.CalculationDtype = "float32",
+        output_dtype: Universal.CustomOutputDtype = None,
+        vector_mask: Universal.VectorMask = None,
+        debug_logs: Universal.DebugLogs = False,
+        custom_nodata_value: Universal.CustomNodataValue = None,
+        cache: Universal.Cache = None,
+        image_threads: Universal.Threads = None,
+        io_threads: Universal.Threads = None,
+        tile_threads: Universal.Threads = None,
+        window_size: Universal.WindowSize = None,
+        save_as_cog: Universal.SaveAsCog = False,
         number_of_blocks: int | Tuple[int, int] | Literal["coefficient_of_variation"] = 100,
         alpha: float = 1.0,
         correction_method: Literal["gamma", "linear", "offset"] = "offset",
@@ -509,6 +525,17 @@ Returns:
 Args:
     input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
     output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
+    calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
+    output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
+    debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
+    custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    window_size (int | None): Output image tile size. Defaults to input image tile size.
+    save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
     alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.
     correction_method (Literal["gamma", "linear", "offset"], optional): Local correction method. Defaults to "gamma". Offset is commended for images with negative values.
@@ -542,10 +569,21 @@ Returns:
             override_bounds_canvas_coords=override_bounds_canvas_coords,
         )
 
-        setup = self._setup_images(
+        setup = Match._setup_images(
             input_images=input_images,
             output_images=output_images,
             default_output_pattern="$_Local.tif",
+            calculation_dtype=calculation_dtype,
+            output_dtype=output_dtype,
+            vector_mask=vector_mask,
+            debug_logs=debug_logs,
+            custom_nodata_value=custom_nodata_value,
+            cache=cache,
+            image_threads=image_threads,
+            io_threads=io_threads,
+            tile_threads=tile_threads,
+            window_size=window_size,
+            save_as_cog=save_as_cog,
         )
         input_image_paths = setup["input_image_paths"]
         output_image_paths = setup["output_image_paths"]
@@ -562,11 +600,11 @@ Returns:
 
         input_image_path_pairs_masked = create_masked_vrts(
             input_image_path_pairs,
-            vector_mask=self.vector_mask,
+            vector_mask=vector_mask,
             nodata_value=nodata_val,
-            debug_logs=self.debug_logs,
+            debug_logs=debug_logs,
         )
-        if self.debug_logs:
+        if debug_logs:
             print(f"Global nodata value: {nodata_val}")
         num_bands = gdal.Open(next(iter(input_image_path_pairs.values()))).RasterCount
 
@@ -578,7 +616,11 @@ Returns:
                 loaded_num_row,
                 loaded_num_col,
                 loaded_bounds_canvas_coords,
-            ) = _get_pre_computed_block_maps(load_block_maps, self.calculation_dtype, self.debug_logs)
+            ) = _get_pre_computed_block_maps(
+                load_block_maps,
+                calculation_dtype,
+                debug_logs,
+            )
             loaded_names = list(loaded_block_local_means.keys())
             block_reference_mean = loaded_block_reference_mean
             matched = list(
@@ -599,7 +641,7 @@ Returns:
             only_loaded = []
             block_reference_mean = None
 
-        if self.debug_logs:
+        if debug_logs:
             print(
                 f"Total images: input images: {len(input_image_names)}, loaded local block maps: {len(loaded_names) if load_block_maps else 0}:"
             )
@@ -632,12 +674,12 @@ Returns:
                 num_row, num_col = number_of_blocks
             else:
                 num_row, num_col = _compute_mosaic_coefficient_of_variation(
-                    input_image_paths, nodata_val, self.debug_logs
+                    input_image_paths, nodata_val, debug_logs
                 )
         else:
             num_row, num_col = loaded_num_row, loaded_num_col
 
-        if self.debug_logs:
+        if debug_logs:
             print("Computing local block maps:")
         local_blocks_to_calculate = {
             k: v for k, v in input_image_path_pairs_masked.items() if k in only_input
@@ -655,9 +697,9 @@ Returns:
                     num_row,
                     num_col,
                     num_bands,
-                    self.debug_logs,
+                    debug_logs,
                     nodata_val,
-                    self.calculation_dtype,
+                    calculation_dtype,
                     tile_thread_on,
                     tile_thread_workers,
                 )
@@ -679,12 +721,12 @@ Returns:
         else:
             block_local_means = local_blocks_to_load
 
-        if self.debug_logs:
+        if debug_logs:
             print("Computing reference block map")
         if block_reference_mean is None:
             block_reference_mean = _compute_reference_blocks(
                 block_local_means,
-                self.calculation_dtype,
+                calculation_dtype,
             )
 
         if save_block_maps:
@@ -696,7 +738,7 @@ Returns:
                 bounds_canvas_coords,
                 reference_map_path,
                 srs,
-                self.calculation_dtype,
+                calculation_dtype,
                 nodata_val,
                 num_col,
                 num_row,
@@ -709,13 +751,13 @@ Returns:
                     bounds_canvas_coords,
                     local_map_path.replace("$", name),
                     srs,
-                    self.calculation_dtype,
+                    calculation_dtype,
                     nodata_val,
                     num_col,
                     num_row,
                 )
 
-        if self.debug_logs:
+        if debug_logs:
             print("Computing local correction, applying, and saving:")
         args = [
             (
@@ -726,18 +768,18 @@ Returns:
                 block_reference_mean,
                 block_local_means[name],
                 bounds_canvas_coords,
-                self.window_size,
+                window_size,
                 num_row,
                 num_col,
                 nodata_val,
                 alpha,
                 correction_method,
-                self.calculation_dtype,
+                calculation_dtype,
                 _gdal_dtype_str_to_enum(output_dtype),
-                self.debug_logs,
+                debug_logs,
                 tile_thread_on,
                 tile_thread_workers,
-                self.save_as_cog,
+                save_as_cog,
             )
             for name in input_image_path_pairs
         ]
@@ -753,10 +795,10 @@ Returns:
         if build_overviews:
             compute_overviews(
                 input_images_paths=output_image_paths,
-                cache=self.cache,
-                io_threads=self.io_threads,
-                image_threads=self.image_threads,
-                tile_threads=self.tile_threads,
-                debug_logs=self.debug_logs,
+                cache=cache,
+                io_threads=io_threads,
+                image_threads=image_threads,
+                tile_threads=tile_threads,
+                debug_logs=debug_logs,
             )
         return output_image_paths

@@ -38,19 +38,16 @@ def run_one(size, base):
 
     make_two_rasters(size, inp)
 
-    match = Match(
+    t0 = time.perf_counter()
+    Match.global_regression(
+        input_images=inp,
+        output_images=gdir,
         debug_logs=True,
         custom_nodata_value=9999,
         window_size=BLOCK,
         image_threads=IMAGE_THREADS,
         io_threads=IO_THREADS,
         tile_threads=TILE_THREADS,
-    )
-
-    t0 = time.perf_counter()
-    match.global_regression(
-        input_images=inp,
-        output_images=gdir,
         custom_std_factor=3,
         save_adjustments=os.path.join(gdir, "GlobalAdjustments.json"),
     )
@@ -60,9 +57,15 @@ def run_one(size, base):
     local_maps_tpl = os.path.join(ldir, "LocalBlockMap", "$_LocalBlockMap.tif"); os.makedirs(local_maps_tpl, exist_ok=True)
 
     t2 = time.perf_counter()
-    match.local_block_adjustment(
+    Match.local_block_adjustment(
         input_images=gdir,
         output_images=ldir,
+        debug_logs=True,
+        custom_nodata_value=9999,
+        window_size=BLOCK,
+        image_threads=IMAGE_THREADS,
+        io_threads=IO_THREADS,
+        tile_threads=TILE_THREADS,
         number_of_blocks=50,
         # save_block_maps=(ref_map, local_maps_tpl),
     )

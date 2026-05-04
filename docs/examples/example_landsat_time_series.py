@@ -36,14 +36,6 @@ io_threads = "cpu"
 tile_threads = "cpu"
 debug_mode = True
 
-match = Match(
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
-    debug_logs=debug_mode,
-)
-
 # %% Create cloud masks
 
 create_cloud_mask_with_omnicloudmask(
@@ -118,9 +110,14 @@ merge_vectors(
 
 # %% Global matching
 
-match.global_regression(
+Match.global_regression(
     input_images=masked_folder,
     output_images=global_folder,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    debug_logs=debug_mode,
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "VegetationMasks.gpkg"),
@@ -130,9 +127,14 @@ match.global_regression(
 
 # %% Local matching
 
-match.local_block_adjustment(
+Match.local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    debug_logs=debug_mode,
     number_of_blocks=100,
     vector_mask=(
         "exclude",

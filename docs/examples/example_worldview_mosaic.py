@@ -28,28 +28,24 @@ aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 
-
 window_size = 1024
 image_threads = 3
 io_threads = 3
 tile_threads = 3
 debug_mode = True
 
-match = Match(
+# %% Global matching
+inz_output_path = os.path.join(global_folder, "INZ", "$_to_$_INZ.tif")
+
+Match.global_regression(
+    input_images=input_folder, # Automatically searches for all *.tif files if passed this way
+    output_images=global_folder,
     debug_logs=debug_mode,
     window_size=window_size,
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
     save_as_cog=True,
-)
-
-# %% Global matching
-inz_output_path = os.path.join(global_folder, "INZ", "$_to_$_INZ.tif")
-
-match.global_regression(
-    input_images=input_folder, # Automatically searches for all *.tif files if passed this way
-    output_images=global_folder,
     # custom_nodata_value=-9999,
     pif_method="flood_from_match_points",
     estimate_stats=True,
@@ -68,9 +64,15 @@ reference_map_path = os.path.join(local_folder, "ReferenceBlockMap", "ReferenceB
 local_maps_path = os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.tif")
 searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap", "*.tif"))
 
-match.local_block_adjustment(
+Match.local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
+    debug_logs=debug_mode,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    save_as_cog=True,
     # custom_nodata_value=-9999,
     correction_method="offset",
     number_of_blocks=50,  # Target number of blocks

@@ -26,7 +26,9 @@ def test_global_regression_full_options_save_model(tmp_path):
     ]
     model_path = tmp_path / "adjustments.json"
 
-    result = Match(
+    result = Match.global_regression(
+        input_images=paths,
+        output_images=output_paths,
         calculation_dtype="float64",
         output_dtype="uint16",
         custom_nodata_value=0,
@@ -36,9 +38,6 @@ def test_global_regression_full_options_save_model(tmp_path):
         window_size=16,
         save_as_cog=True,
         debug_logs=True,
-    ).global_regression(
-        input_images=paths,
-        output_images=output_paths,
         specify_model_images=("include", ["A"]),
         custom_mean_factor=1.0,
         custom_std_factor=1.0,
@@ -68,21 +67,54 @@ def test_global_regression_full_options_load_model(tmp_path):
     model_path = tmp_path / "preload.json"
 
     # Pre-save model
-    Match().global_regression(
+    Match.global_regression(
         input_images=paths, output_images=output_paths, save_adjustments=str(model_path)
     )
 
     new_output_paths = [p.replace("_Match", "_Reloaded") for p in output_paths]
-    result = Match(
+    result = Match.global_regression(
+        input_images=paths,
+        output_images=new_output_paths,
         calculation_dtype="float32",
         io_threads=2,
         image_threads=2,
         tile_threads=2,
         debug_logs=True,
-    ).global_regression(
-        input_images=paths,
-        output_images=new_output_paths,
         load_adjustments=str(model_path),
+    )
+
+    assert all(os.path.exists(p) for p in result)
+
+
+def test_global_regression_method_level_shared_params(tmp_path):
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    paths = []
+    for name in ["A", "B"]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path, 16, 16, count=1, fill_value=100 if name == "A" else 120
+        )
+        paths.append(str(path))
+    output_paths = [
+        str(output_dir / f"{os.path.splitext(os.path.basename(p))[0]}_Global.tif")
+        for p in paths
+    ]
+
+    result = Match.global_regression(
+        input_images=paths,
+        output_images=output_paths,
+        calculation_dtype="float64",
+        output_dtype="uint16",
+        custom_nodata_value=0,
+        io_threads=2,
+        image_threads=2,
+        tile_threads=2,
+        window_size=16,
+        save_as_cog=True,
+        debug_logs=True,
     )
 
     assert all(os.path.exists(p) for p in result)
@@ -108,7 +140,9 @@ def test_local_block_adjustment_all_params_save(tmp_path):
         for p in paths
     ]
 
-    result = Match(
+    result = Match.local_block_adjustment(
+        input_images=paths,
+        output_images=output_paths,
         calculation_dtype="float64",
         output_dtype="uint16",
         custom_nodata_value=99,
@@ -118,9 +152,6 @@ def test_local_block_adjustment_all_params_save(tmp_path):
         window_size=16,
         save_as_cog=True,
         debug_logs=True,
-    ).local_block_adjustment(
-        input_images=paths,
-        output_images=output_paths,
         number_of_blocks=(2, 2),
         alpha=0.75,
         correction_method="linear",
@@ -130,6 +161,44 @@ def test_local_block_adjustment_all_params_save(tmp_path):
 
     assert all(os.path.exists(p) for p in result)
     assert (block_dir / "ref.tif").exists()
+
+
+def test_local_block_adjustment_method_level_shared_params(tmp_path):
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    paths = []
+    for name in ["Img1", "Img2"]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path, 16, 16, count=1, fill_value=50 if name == "Img1" else 80
+        )
+        paths.append(str(path))
+    output_paths = [
+        str(output_dir / f"{os.path.splitext(os.path.basename(p))[0]}_Local.tif")
+        for p in paths
+    ]
+
+    result = Match.local_block_adjustment(
+        input_images=paths,
+        output_images=output_paths,
+        calculation_dtype="float64",
+        output_dtype="uint16",
+        custom_nodata_value=99,
+        io_threads=2,
+        image_threads=2,
+        tile_threads=2,
+        window_size=16,
+        save_as_cog=True,
+        debug_logs=True,
+        number_of_blocks=(2, 2),
+        alpha=0.75,
+        correction_method="linear",
+        override_bounds_canvas_coords=(0, 0, 16, 16),
+    )
+
+    assert all(os.path.exists(p) for p in result)
 
 
 def test_local_block_adjustment_all_params_load(tmp_path):
@@ -152,7 +221,7 @@ def test_local_block_adjustment_all_params_load(tmp_path):
     local_maps = [block_dir / f"{name}_block.tif" for name in ["X", "Y"]]
 
     # Pre-save block maps
-    Match().local_block_adjustment(
+    Match.local_block_adjustment(
         input_images=paths,
         output_images=output_paths,
         save_block_maps=(str(ref_map), str(block_dir / "$_block.tif")),
@@ -160,15 +229,14 @@ def test_local_block_adjustment_all_params_load(tmp_path):
 
     # Rerun with load_block_maps
     new_output_paths = [p.replace("_Reloaded", "_FromLoad") for p in output_paths]
-    result = Match(
+    result = Match.local_block_adjustment(
+        input_images=paths,
+        output_images=new_output_paths,
         calculation_dtype="float32",
         io_threads=2,
         image_threads=2,
         tile_threads=2,
         debug_logs=True,
-    ).local_block_adjustment(
-        input_images=paths,
-        output_images=new_output_paths,
         load_block_maps=(str(ref_map), [str(p) for p in local_maps]),
     )
 
