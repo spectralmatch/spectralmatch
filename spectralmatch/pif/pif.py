@@ -16,6 +16,8 @@ from ..utils_multiprocessing import _get_executor, _resolve_parallel_config
 
 
 class Pif:
+    """Utilities for deriving radiometric adjustment parameters from PIF statistics."""
+
     @staticmethod
     def flood_from_match_points(
         input_images: Universal.SearchFolderOrListFiles,
