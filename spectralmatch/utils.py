@@ -124,7 +124,7 @@ def align_rasters(
     if debug_logs:
         print("Start align rasters")
 
-    Universal.validate(
+    Universal._validate(
         input_images=input_images,
         output_images=output_images,
         debug_logs=debug_logs,
@@ -134,7 +134,7 @@ def align_rasters(
         io_threads=io_threads,
         tile_threads=tile_threads,
     )
-    UtilsValidation.validate_align_rasters(
+    UtilsValidation._validate_align_rasters(
         resampling_method=resampling_method,
         tap=tap,
         resolution=resolution,
@@ -354,7 +354,7 @@ def merge_rasters(
 
     """
 
-    Universal.validate(
+    Universal._validate(
         input_images=input_images,
         debug_logs=debug_logs,
         cache=cache,
@@ -364,7 +364,7 @@ def merge_rasters(
         window_size=window_size,
         custom_nodata_value=custom_nodata_value,
     )
-    UtilsValidation.validate_merge_rasters(
+    UtilsValidation._validate_merge_rasters(
         resolution=resolution,
     )
 
@@ -468,7 +468,7 @@ def mask_rasters(
     if debug_logs:
         print("Start mask rasters")
 
-    Universal.validate(
+    Universal._validate(
         input_images=input_images,
         output_images=output_images,
         debug_logs=debug_logs,
@@ -480,7 +480,7 @@ def mask_rasters(
         custom_nodata_value=custom_nodata_value,
         cache=cache,
     )
-    UtilsValidation.validate_mask_rasters(
+    UtilsValidation._validate_mask_rasters(
         include_touched_pixels=include_touched_pixels,
     )
 
@@ -656,7 +656,7 @@ def _prepare_cutline_sources(vector_mask, image_names, debug_logs=False):
     return mode, out, vector_path, True
 
 
-def create_masked_vrts(
+def _create_masked_vrts(
     input_image_path_pairs: Dict[str, str],
     *,
     vector_mask: Universal.VectorMask = None,
@@ -721,7 +721,7 @@ def create_masked_vrts(
 
             # Exclude mode uses invert flag
             if mask_mode == "exclude":
-                warp_kwargs["cutlineInvert"] = True
+                warp_kwargs["warpOptions"].append("CUTLINE_INVERT=YES")
 
         warp_opts = gdal.WarpOptions(**warp_kwargs)
 
@@ -928,7 +928,7 @@ def compute_overviews(
     if debug_logs and output_image_paths: print(f"Output images: {output_image_paths}")
     if debug_logs: print(f"Window scales: {window_scales}")
 
-    Universal.validate(
+    Universal._validate(
         input_images=input_images_paths,
         cache=cache,
         image_threads=image_threads,

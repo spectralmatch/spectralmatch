@@ -9,14 +9,14 @@ from datetime import datetime
 from typing import Any, Literal
 
 from .handlers import _resolve_paths
-from .match.global_regression import global_regression
-from .match.local_block_adjustment import local_block_adjustment
-from .seamline.voronoi_center_seamline import voronoi_center_seamline
-from .types_and_validation import Universal, Match, Pipeline as PipelineValidation, Utils as UtilsValidation, Seamline as SeamlineValidation
+from .match.match import Match
+from .seamline.seamline import Seamline
+from .types_and_validation import Universal, Match as MatchValidation, Pipeline as PipelineValidation, Utils as UtilsValidation, Seamline as SeamlineValidation
 from .utils import align_rasters, mask_rasters, merge_rasters
 
 AutoCache = Universal.Cache | Literal["auto"]
 AutoThreads = Universal.Threads | Literal["auto"]
+MatchingOrderStep = Literal["global_regression", "local_block_adjustment"]
 
 
 def pipeline(
@@ -35,8 +35,10 @@ def pipeline(
     shared_calculation_dtype: Universal.CalculationDtype = "float32",
     shared_output_dtype: Universal.CustomOutputDtype = None,
     shared_save_as_cog: Universal.SaveAsCog = False,
-    matching_global_method: Literal["global_regression"] | None = "global_regression",
-    matching_local_method: Literal["local_block_adjustment"] | None = "local_block_adjustment",
+    matching_order: list[MatchingOrderStep] | tuple[MatchingOrderStep, ...] = (
+        "global_regression",
+        "local_block_adjustment",
+    ),
     align_method: Literal["align_rasters"] | None = "align_rasters",
     seamline_method: Literal["voronoi_center_seamline"] | None = "voronoi_center_seamline",
     clip_method: Literal["mask_rasters"] | None = "mask_rasters",
@@ -49,6 +51,16 @@ def pipeline(
     global_regression_custom_std_factor: float = 1.0,
     global_regression_save_adjustments: str | None = None,
     global_regression_load_adjustments: str | None = None,
+    global_regression_pif_method: Literal["entire", "flood_from_match_points"] = "entire",
+    global_regression_pif_red_band_index: int | None = None,
+    global_regression_pif_nir_band_index: int | None = None,
+    global_regression_pif_vegetation_threshold: float = 0.2,
+    global_regression_pif_inz_threshold: float = 0.25,
+    global_regression_pif_region_radius: int = 5,
+    global_regression_pif_max_samples: int | None = 100000,
+    global_regression_pif_min_samples: int | None = 32,
+    global_regression_pif_feature_method: Literal["orb"] = "orb",
+    global_regression_pif_save_inz: str | None = None,
     global_regression_build_overviews: bool = False,
     local_block_adjustment_output_images: Universal.CreateInFolderOrListFiles | None = None,
     local_block_adjustment_vector_mask: Universal.VectorMask = None,
@@ -79,9 +91,11 @@ def pipeline(
     """
     Run the standard spectral matching mosaic workflow as a single pipeline.
 
-    The current pipeline order is: global matching -> local matching -> align -> seamline -> clip -> merge
+    The default matching order is: global matching -> local matching. Override
+    this with ``matching_order`` to run the matching stages in a different
+    sequence or omit one of them entirely.
 
-    Each stage can be disabled by setting its method parameter to ``None``. Intermediate outputs default to a temporary directory that is created automatically unless ``shared_temp_dir`` is provided. Set``delete_temp_dir=True`` to remove the temp directory after processing.
+    Matching stages are controlled by ``matching_order``. Intermediate outputs default to a temporary directory that is created automatically unless ``shared_temp_dir`` is provided. Set``delete_temp_dir=True`` to remove the temp directory after processing.
     """
     temp_dir = shared_temp_dir or tempfile.mkdtemp(prefix="spectralmatch_pipeline_")
     os.makedirs(temp_dir, exist_ok=True)
@@ -98,25 +112,33 @@ def pipeline(
             shared_debug_logs=shared_debug_logs,
         )
     )
-    PipelineValidation.validate_shared_pipeline(
+    PipelineValidation._validate_shared_pipeline(
         shared_output_image_path=shared_output_image_path,
         shared_temp_dir=shared_temp_dir,
         delete_temp_dir=delete_temp_dir,
     )
     for method_name, method_value, allowed_values in [
-        ("matching_global_method", matching_global_method, {None, "global_regression"}),
-        ("matching_local_method", matching_local_method, {None, "local_block_adjustment"}),
         ("align_method", align_method, {None, "align_rasters"}),
         ("seamline_method", seamline_method, {None, "voronoi_center_seamline"}),
         ("clip_method", clip_method, {None, "mask_rasters"}),
         ("merge_method", merge_method, {None, "merge_rasters"}),
     ]:
-        PipelineValidation.validate_method_choice(
+        PipelineValidation._validate_method_choice(
             method_name=method_name,
             method_value=method_value,
             allowed_values=allowed_values,
         )
-    Universal.validate(
+    if not isinstance(matching_order, (list, tuple)):
+        raise ValueError("matching_order must be a list or tuple of matching step names.")
+    matching_order = list(matching_order)
+    for step in matching_order:
+        if step not in {"global_regression", "local_block_adjustment"}:
+            raise ValueError(
+                "matching_order values must be 'global_regression' or 'local_block_adjustment'."
+            )
+    if len(set(matching_order)) != len(matching_order):
+        raise ValueError("matching_order cannot contain duplicate steps.")
+    Universal._validate(
         input_images=shared_input_images,
         debug_logs=shared_debug_logs,
         window_size=shared_window_size,
@@ -129,8 +151,8 @@ def pipeline(
         tile_threads=shared_tile_threads,
         save_as_cog=shared_save_as_cog,
     )
-    if matching_global_method == "global_regression":
-        Universal.validate(
+    if "global_regression" in matching_order:
+        Universal._validate(
             input_images=shared_input_images,
             output_images=global_regression_output_images or os.path.join(temp_dir, "global"),
             save_as_cog=shared_save_as_cog,
@@ -146,15 +168,18 @@ def pipeline(
             tile_threads=shared_tile_threads,
             estimate_stats=global_regression_estimate_stats,
         )
-        Match.validate_match(specify_model_images=global_regression_specify_model_images)
-        Match.validate_global_regression(
+        MatchValidation._validate_match(specify_model_images=global_regression_specify_model_images)
+        MatchValidation._validate_global_regression(
             custom_mean_factor=global_regression_custom_mean_factor,
             custom_std_factor=global_regression_custom_std_factor,
             save_adjustments=global_regression_save_adjustments,
             load_adjustments=global_regression_load_adjustments,
+            pif_method=global_regression_pif_method,
+            pif_feature_method=global_regression_pif_feature_method,
+            pif_save_inz=global_regression_pif_save_inz,
         )
-    if matching_local_method == "local_block_adjustment":
-        Universal.validate(
+    if "local_block_adjustment" in matching_order:
+        Universal._validate(
             input_images=shared_input_images,
             output_images=local_block_adjustment_output_images or os.path.join(temp_dir, "local"),
             save_as_cog=shared_save_as_cog,
@@ -169,7 +194,7 @@ def pipeline(
             io_threads=shared_io_threads,
             tile_threads=shared_tile_threads,
         )
-        Match.validate_local_block_adjustment(
+        MatchValidation._validate_local_block_adjustment(
             number_of_blocks=local_block_adjustment_number_of_blocks,
             alpha=local_block_adjustment_alpha,
             correction_method=local_block_adjustment_correction_method,
@@ -178,7 +203,7 @@ def pipeline(
             override_bounds_canvas_coords=local_block_adjustment_override_bounds_canvas_coords,
         )
     if align_method == "align_rasters":
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             output_images=align_rasters_output_images or os.path.join(temp_dir, "aligned"),
             debug_logs=shared_debug_logs,
@@ -188,14 +213,14 @@ def pipeline(
             io_threads=shared_io_threads,
             tile_threads=shared_tile_threads,
         )
-        UtilsValidation.validate_align_rasters(
+        UtilsValidation._validate_align_rasters(
             resampling_method=align_rasters_resampling_method,
             tap=align_rasters_tap,
             resolution=align_rasters_resolution,
         )
     if seamline_method == "voronoi_center_seamline":
-        Universal.validate(input_images=shared_input_images)
-        SeamlineValidation.validate_voronoi_center_seamline(
+        Universal._validate(input_images=shared_input_images)
+        SeamlineValidation._validate_voronoi_center_seamline(
             output_mask=voronoi_center_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
             aoi_path=voronoi_center_seamline_aoi_path,
             vector_mask=voronoi_center_seamline_vector_mask,
@@ -216,7 +241,7 @@ def pipeline(
             raise ValueError(
                 "mask_rasters requires a vector mask. Set mask_rasters_vector_mask or enable the seamline stage."
             )
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             output_images=mask_rasters_output_images or os.path.join(temp_dir, "clip"),
             debug_logs=shared_debug_logs,
@@ -228,11 +253,11 @@ def pipeline(
             io_threads=shared_io_threads,
             tile_threads=shared_tile_threads,
         )
-        UtilsValidation.validate_mask_rasters(
+        UtilsValidation._validate_mask_rasters(
             include_touched_pixels=mask_rasters_include_touched_pixels,
         )
     if merge_method == "merge_rasters":
-        Universal.validate(
+        Universal._validate(
             input_images=shared_input_images,
             debug_logs=shared_debug_logs,
             cache=shared_cache,
@@ -242,7 +267,7 @@ def pipeline(
             window_size=shared_window_size,
             custom_nodata_value=shared_custom_nodata_value,
         )
-        UtilsValidation.validate_merge_rasters(
+        UtilsValidation._validate_merge_rasters(
             resolution=merge_rasters_resolution,
         )
 
@@ -264,71 +289,74 @@ def pipeline(
         "resolved_shared_tile_threads": shared_tile_threads,
         "num_input_images": len(input_image_paths),
         "start_time": start_dt.isoformat(timespec="seconds"),
+        "matching_order": matching_order,
     }
     try:
-        if matching_global_method == "global_regression":
-            global_output_images = global_regression_output_images or os.path.join(
-                temp_dir, "global"
-            )
-            current_images = global_regression(
-                input_images=current_images,
-                output_images=global_output_images,
-                calculation_dtype=shared_calculation_dtype,
-                output_dtype=shared_output_dtype,
-                vector_mask=global_regression_vector_mask,
-                debug_logs=shared_debug_logs,
-                custom_nodata_value=shared_custom_nodata_value,
-                cache=shared_cache,
-                image_threads=shared_image_threads,
-                io_threads=shared_io_threads,
-                tile_threads=shared_tile_threads,
-                estimate_stats=global_regression_estimate_stats,
-                window_size=shared_window_size,
-                save_as_cog=shared_save_as_cog,
-                specify_model_images=global_regression_specify_model_images,
-                custom_mean_factor=global_regression_custom_mean_factor,
-                custom_std_factor=global_regression_custom_std_factor,
-                save_adjustments=global_regression_save_adjustments,
-                load_adjustments=global_regression_load_adjustments,
-                build_overviews=global_regression_build_overviews,
-            )
-            results["global_regression"] = current_images
-        elif matching_global_method is None:
-            results["global_regression"] = None
-        else:
-            raise ValueError(f"Unsupported matching_global_method: {matching_global_method}")
-
-        if matching_local_method == "local_block_adjustment":
-            local_output_images = local_block_adjustment_output_images or os.path.join(
-                temp_dir, "local"
-            )
-            current_images = local_block_adjustment(
-                input_images=current_images,
-                output_images=local_output_images,
-                calculation_dtype=shared_calculation_dtype,
-                output_dtype=shared_output_dtype,
-                vector_mask=local_block_adjustment_vector_mask,
-                debug_logs=shared_debug_logs,
-                custom_nodata_value=shared_custom_nodata_value,
-                cache=shared_cache,
-                image_threads=shared_image_threads,
-                io_threads=shared_io_threads,
-                tile_threads=shared_tile_threads,
-                window_size=shared_window_size,
-                save_as_cog=shared_save_as_cog,
-                number_of_blocks=local_block_adjustment_number_of_blocks,
-                alpha=local_block_adjustment_alpha,
-                correction_method=local_block_adjustment_correction_method,
-                save_block_maps=local_block_adjustment_save_block_maps,
-                load_block_maps=local_block_adjustment_load_block_maps,
-                override_bounds_canvas_coords=local_block_adjustment_override_bounds_canvas_coords,
-                build_overviews=local_block_adjustment_build_overviews,
-            )
-            results["local_block_adjustment"] = current_images
-        elif matching_local_method is None:
-            results["local_block_adjustment"] = None
-        else:
-            raise ValueError(f"Unsupported matching_local_method: {matching_local_method}")
+        for matching_step in matching_order:
+            if matching_step == "global_regression":
+                global_output_images = global_regression_output_images or os.path.join(
+                    temp_dir, "global"
+                )
+                current_images = Match.global_regression(
+                    input_images=current_images,
+                    output_images=global_output_images,
+                    calculation_dtype=shared_calculation_dtype,
+                    output_dtype=shared_output_dtype,
+                    vector_mask=global_regression_vector_mask,
+                    debug_logs=shared_debug_logs,
+                    custom_nodata_value=shared_custom_nodata_value,
+                    cache=shared_cache,
+                    image_threads=shared_image_threads,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    window_size=shared_window_size,
+                    save_as_cog=shared_save_as_cog,
+                    estimate_stats=global_regression_estimate_stats,
+                    specify_model_images=global_regression_specify_model_images,
+                    custom_mean_factor=global_regression_custom_mean_factor,
+                    custom_std_factor=global_regression_custom_std_factor,
+                    save_adjustments=global_regression_save_adjustments,
+                    load_adjustments=global_regression_load_adjustments,
+                    pif_method=global_regression_pif_method,
+                    pif_red_band_index=global_regression_pif_red_band_index,
+                    pif_nir_band_index=global_regression_pif_nir_band_index,
+                    pif_vegetation_threshold=global_regression_pif_vegetation_threshold,
+                    pif_inz_threshold=global_regression_pif_inz_threshold,
+                    pif_region_radius=global_regression_pif_region_radius,
+                    pif_max_samples=global_regression_pif_max_samples,
+                    pif_min_samples=global_regression_pif_min_samples,
+                    pif_feature_method=global_regression_pif_feature_method,
+                    pif_save_inz=global_regression_pif_save_inz,
+                    build_overviews=global_regression_build_overviews,
+                )
+                results["global_regression"] = current_images
+            elif matching_step == "local_block_adjustment":
+                local_output_images = local_block_adjustment_output_images or os.path.join(
+                    temp_dir, "local"
+                )
+                current_images = Match.local_block_adjustment(
+                    input_images=current_images,
+                    output_images=local_output_images,
+                    calculation_dtype=shared_calculation_dtype,
+                    output_dtype=shared_output_dtype,
+                    vector_mask=local_block_adjustment_vector_mask,
+                    debug_logs=shared_debug_logs,
+                    custom_nodata_value=shared_custom_nodata_value,
+                    cache=shared_cache,
+                    image_threads=shared_image_threads,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    window_size=shared_window_size,
+                    save_as_cog=shared_save_as_cog,
+                    number_of_blocks=local_block_adjustment_number_of_blocks,
+                    alpha=local_block_adjustment_alpha,
+                    correction_method=local_block_adjustment_correction_method,
+                    save_block_maps=local_block_adjustment_save_block_maps,
+                    load_block_maps=local_block_adjustment_load_block_maps,
+                    override_bounds_canvas_coords=local_block_adjustment_override_bounds_canvas_coords,
+                    build_overviews=local_block_adjustment_build_overviews,
+                )
+                results["local_block_adjustment"] = current_images
 
         if align_method == "align_rasters":
             align_output_images = align_rasters_output_images or os.path.join(
@@ -357,7 +385,7 @@ def pipeline(
             seamline_mask_path = voronoi_center_seamline_output_mask or os.path.join(
                 temp_dir, "seamline", "ImageMasks.gpkg"
             )
-            voronoi_center_seamline(
+            Seamline.voronoi(
                 input_images=current_images,
                 output_mask=seamline_mask_path,
                 aoi_path=voronoi_center_seamline_aoi_path,
@@ -498,12 +526,12 @@ def _resolve_auto_shared_settings(
     )
 
 
-def _resolve_auto_cache_gb() -> int:
+def _resolve_auto_cache_gb() -> float:
     total_memory_bytes = _get_total_memory_bytes()
     if total_memory_bytes is None:
-        return 4096
-    total_memory_mb = total_memory_bytes / (1024 ** 2)
-    return max(1, math.ceil(total_memory_mb * 0.90))
+        return 4.0
+    total_memory_gb = total_memory_bytes / (1024 ** 3)
+    return max(1.0, total_memory_gb * 0.90)
 
 
 def _get_total_memory_bytes() -> int | None:

@@ -52,7 +52,7 @@ def process_raster_values_to_vector_polygons(
 
     print("Start raster value extraction to polygons")
 
-    Universal.validate(
+    Universal._validate(
         input_images=input_images,
         output_images=output_vectors,
         custom_nodata_value=custom_nodata_value,

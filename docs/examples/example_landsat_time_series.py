@@ -5,7 +5,19 @@
 
 # %% Setup
 import os
-from spectralmatch import *
+from spectralmatch import (
+    band_math,
+    compare_before_after_all_images,
+    compare_image_spectral_profiles_pairs,
+    compare_spatial_spectral_difference_band_average,
+    create_cloud_mask_with_omnicloudmask,
+    global_regression,
+    local_block_adjustment,
+    mask_rasters,
+    merge_vectors,
+    process_raster_values_to_vector_polygons,
+    search_paths,
+)
 
 # Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
 working_directory = os.path.join(os.getcwd(), "data_landsat")
@@ -102,16 +114,16 @@ merge_vectors(
 global_regression(
     input_images=masked_folder,
     output_images=global_folder,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    debug_logs=debug_mode,
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "VegetationMasks.gpkg"),
         "image",
     ),  # Use unique mask per image
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads = tile_threads,
-    debug_logs=debug_mode,
 )
 
 # %% Local matching
@@ -119,17 +131,17 @@ global_regression(
 local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    debug_logs=debug_mode,
     number_of_blocks=100,
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "VegetationMasks.gpkg"),
         "image",
     ),
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
-    debug_logs=debug_mode,
     save_block_maps=(
         os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"),
         os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif"),

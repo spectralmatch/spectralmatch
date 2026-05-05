@@ -4,407 +4,15 @@ import sys
 import json
 import tempfile
 import re
+import math
 
 from osgeo import gdal
 gdal.UseExceptions()
-from concurrent.futures import as_completed
 from typing import List, Dict
 from numpy import ndarray
 from scipy.optimize import least_squares
 
-from ..utils import create_masked_vrts, _set_gdal_cache, _set_gdal_workers, _resolve_gdal_dtype, _resolve_window_size, \
-    _get_gdal_bounds, _get_valid_count, compute_overviews
-from ..handlers import _resolve_paths, _resolve_nodata_value, _check_raster_requirements
-from ..utils_multiprocessing import (_resolve_parallel_config, _get_executor)
-from ..types_and_validation import Universal, Match
-
-
-def global_regression(
-    input_images: Universal.SearchFolderOrListFiles,
-    output_images: Universal.CreateInFolderOrListFiles,
-    *,
-    calculation_dtype: Universal.CalculationDtype = "float32",
-    output_dtype: Universal.CustomOutputDtype = None,
-    vector_mask: Universal.VectorMask = None,
-    debug_logs: Universal.DebugLogs = False,
-    custom_nodata_value: Universal.CustomNodataValue = None,
-    cache: Universal.Cache = None,
-    image_threads: Universal.Threads = None,
-    io_threads: Universal.Threads = None,
-    tile_threads: Universal.Threads = None,
-    estimate_stats: bool = True,
-    window_size: Universal.WindowSize = None,
-    save_as_cog: Universal.SaveAsCog = False,
-    specify_model_images: Match.SpecifyModelImages = None,
-    custom_mean_factor: float = 1.0,
-    custom_std_factor: float = 1.0,
-    save_adjustments: str | None = None,
-    load_adjustments: str | None = None,
-    build_overviews: bool = False,
-) -> list:
-    """
-    Performs global radiometric normalization across overlapping images using least squares regression.
-
-    Args:
-        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
-        calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
-        output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
-        vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
-        debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
-        custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
-        cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
-        image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
-        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
-        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-        estimate_stats (bool): If True, use an estimate algorithm to calculate the mean and sd to increase processing speeds. If False, use the exact algorithm. Defaults to True.
-        window_size (int | None): Output image tile size. Defaults to input image tile size.
-        save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
-        specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.
-        custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
-        custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
-        save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
-        load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
-        build_overviews (bool, optional): If True, computes overviews. Defaults to False.
-
-    Returns:
-        List[str]: Paths to the globally adjusted output raster images.
-    """
-
-    print("Start global regression")
-
-    # Validate params
-    Universal.validate(
-        input_images=input_images,
-        output_images=output_images,
-        save_as_cog=save_as_cog,
-        debug_logs=debug_logs,
-        vector_mask=vector_mask,
-        window_size=window_size,
-        custom_nodata_value=custom_nodata_value,
-        calculation_dtype=calculation_dtype,
-        output_dtype=output_dtype,
-        cache=cache,
-        image_threads=image_threads,
-        io_threads=io_threads,
-        tile_threads=tile_threads,
-        estimate_stats=estimate_stats,
-
-    )
-
-    Match.validate_match(
-        specify_model_images=specify_model_images,
-    )
-
-    Match.validate_global_regression(
-        custom_mean_factor=custom_mean_factor,
-        custom_std_factor=custom_std_factor,
-        save_adjustments=save_adjustments,
-        load_adjustments=load_adjustments,
-    )
-
-    # Set gdal params
-    _set_gdal_cache(cache, debug_logs)
-    _set_gdal_workers(io_threads, debug_logs)
-
-    # Input and output paths
-    input_image_paths = _resolve_paths(
-        "search", input_images, kwargs={"default_file_pattern": "*.tif"}
-    )
-    output_image_paths = _resolve_paths(
-        "create",
-        output_images,
-        kwargs={
-            "paths_or_bases": input_image_paths,
-            "default_file_pattern": "$_Global.tif",
-        },
-    )
-    input_image_names = _resolve_paths("name", input_image_paths)
-
-
-    input_image_path_pairs = dict(zip(input_image_names, input_image_paths))
-    output_image_path_pairs = dict(zip(input_image_names, output_image_paths))
-    if debug_logs:
-        print(f"Input images: {input_image_paths}")
-        print(f"Output images: {output_image_paths}")
-
-    # Dtype and nodata
-    output_dtype = _resolve_gdal_dtype(output_dtype, input_image_paths[0], debug_logs)
-    nodata_val = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
-
-    # Check raster requirements
-    _check_raster_requirements(
-        input_image_paths,
-        debug_logs,
-        check_geotransform=True,
-        check_crs=True,
-        check_bands=True,
-        check_nodata=True,
-    )
-
-    # Determine multiprocessing and worker count
-    image_backend = "thread" # "thread" or "process"
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
-    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
-
-    # Find loaded and input files if load adjustments
-    loaded_model = {}
-    if load_adjustments:
-        with open(load_adjustments, "r") as f:
-            loaded_model = json.load(f)
-        _validate_adjustment_model_structure(loaded_model)
-        loaded_names = set(loaded_model.keys())
-        input_names = set(input_image_names)
-    else:
-        loaded_names = set([])
-        input_names = set(input_image_names)
-
-    matched = input_names & loaded_names
-    only_loaded = loaded_names - input_names
-    only_input = input_names - loaded_names
-    if debug_logs:
-        print(
-            f"Total images: input images: {len(input_names)}, loaded images {len(loaded_names)}: "
-        )
-        print(
-            f"    Matched adjustments (to override) ({len(matched)}):", sorted(matched)
-        )
-        print(
-            f"    Only in loaded adjustments (to add) ({len(only_loaded)}):",
-            sorted(only_loaded),
-        )
-        print(
-            f"    Only in input (to calculate) ({len(only_input)}):", sorted(only_input)
-        )
-
-    # Find images to include in model
-    included_names = list(matched | only_loaded | only_input)
-    if specify_model_images:
-        mode, names = specify_model_images
-        name_set = set(names)
-        if mode == "include":
-            included_names = [n for n in input_image_names if n in name_set]
-        elif mode == "exclude":
-            included_names = [n for n in input_image_names if n not in name_set]
-        excluded_names = [n for n in input_image_names if n not in included_names]
-    if debug_logs:
-        print("Images to influence the model:")
-        print(
-            f"    Included in model ({len(included_names)}): {sorted(included_names)}"
-        )
-        if specify_model_images:
-            print(
-                f"    Excluded from model ({len(excluded_names)}): {sorted(excluded_names)}"
-            )
-        else:
-            print(f"    Excluded from model (0): []")
-
-    # Change to VRT datasets
-    input_image_masked_path_pairs = create_masked_vrts(
-        input_image_path_pairs,
-        vector_mask=vector_mask,
-        nodata_value=nodata_val,
-        debug_logs=debug_logs,
-    )
-
-    if debug_logs:
-        print("Calculating statistics")
-    num_bands = gdal.Open(next(iter(input_image_path_pairs.values()))).RasterCount
-
-    # Get images bounds
-    all_bounds = {}
-    for name, path in input_image_path_pairs.items():
-        all_bounds[name] = _get_gdal_bounds(path)
-
-    # Find overlaps
-    overlapping_pairs = _find_overlaps(all_bounds)
-
-    # Load overlap stats
-    all_overlap_stats = {}
-    if load_adjustments:
-        for name_i, model_entry in loaded_model.items():
-            if name_i not in input_image_path_pairs:
-                continue
-
-            for name_j, bands in model_entry.get("overlap_stats", {}).items():
-                if name_j not in input_image_path_pairs:
-                    continue
-
-                all_overlap_stats.setdefault(name_i, {})[name_j] = {
-                    int(k.split("_")[1]): {
-                        "mean": bands[k]["mean"],
-                        "std": bands[k]["std"],
-                        "size": bands[k]["size"],
-                    }
-                    for k in bands
-                }
-
-    # Calculate overlap stats
-    parallel_args = [
-        (
-            tile_thread_on,
-            tile_thread_workers,
-            num_bands,
-            input_image_masked_path_pairs[name_i],
-            input_image_masked_path_pairs[name_j],
-            name_i,
-            name_j,
-            all_bounds[name_i],
-            all_bounds[name_j],
-            estimate_stats,
-            debug_logs,
-        )
-        for name_i, name_j in overlapping_pairs
-        if name_i not in loaded_model
-        or name_j not in loaded_model.get(name_i, {}).get("overlap_stats", {})
-    ]
-
-    if image_threads_on:
-        with _get_executor(image_backend, image_thread_workers) as executor:
-            futures = [
-                executor.submit(_overlap_stats_process_image, *args)
-                for args in parallel_args
-            ]
-            for future in as_completed(futures):
-                stats = future.result()
-                for outer, inner in stats.items():
-                    all_overlap_stats.setdefault(outer, {}).update(inner)
-    else:
-        for args in parallel_args:
-            stats = _overlap_stats_process_image(*args)
-            for outer, inner in stats.items():
-                all_overlap_stats.setdefault(outer, {}).update(inner)
-
-    # Load whole stats
-    all_whole_stats = {
-        name: {
-            int(k.split("_")[1]): {
-                "mean": loaded_model[name]["whole_stats"][k]["mean"],
-                "std": loaded_model[name]["whole_stats"][k]["std"],
-                "size": loaded_model[name]["whole_stats"][k]["size"],
-            }
-            for k in loaded_model[name]["whole_stats"]
-        }
-        for name in input_image_path_pairs
-        if name in loaded_model
-    }
-
-    # Calculate whole stats
-    parallel_args = [
-        (
-            tile_thread_on,
-            tile_thread_workers,
-            image_path,
-            num_bands,
-            image_name,
-            estimate_stats,
-            debug_logs,
-        )
-        for image_name, image_path in input_image_masked_path_pairs.items()
-        if image_name not in loaded_model
-    ]
-
-    # Compute whole stats
-    if image_threads_on:
-        with _get_executor(image_backend, image_thread_workers) as executor:
-            futures = [
-                executor.submit(_whole_stats_process_image, *args)
-                for args in parallel_args
-            ]
-            for future in as_completed(futures):
-                result = future.result()
-                all_whole_stats.update(result)
-    else:
-        for args in parallel_args:
-            result = _whole_stats_process_image(*args)
-            all_whole_stats.update(result)
-
-    # Get image names
-    all_image_names = list(dict.fromkeys(input_image_names + list(loaded_model.keys())))
-    num_total = len(all_image_names)
-
-    # Print model sources
-    if debug_logs:
-        print(
-            f"\nCreating model for {len(all_image_names)} total images from {len(included_names)} included:"
-        )
-        print(f"    {'ID':<4}\t{'Source':<6}\t{'Inclusion':<8}\tName")
-        for i, name in enumerate(all_image_names):
-            source = "load" if name in (matched | only_loaded) else "calc"
-            included = "incl" if name in included_names else "excl"
-            print(f"    {i:<4}\t{source:<6}\t{included:<8}\t{name}")
-
-    # Build model
-    all_params = _solve_global_model(
-        num_bands,
-        num_total,
-        all_image_names,
-        included_names,
-        input_image_names,
-        all_overlap_stats,
-        all_whole_stats,
-        custom_mean_factor,
-        custom_std_factor,
-        overlapping_pairs,
-        debug_logs,
-    )
-
-    # Save adjustments
-    if save_adjustments:
-        _save_adjustments(
-            save_path=save_adjustments,
-            input_image_names=list(input_image_path_pairs.keys()),
-            all_params=all_params,
-            all_whole_stats=all_whole_stats,
-            all_overlap_stats=all_overlap_stats,
-            num_bands=num_bands,
-            calculation_dtype=calculation_dtype,
-        )
-
-    # Apply corrections
-    if debug_logs:
-        print(f"Apply adjustments and saving results for:")
-    parallel_args = [
-        (
-            tile_thread_on,
-            tile_thread_workers,
-            name,
-            img_path,
-            output_image_path_pairs[name],
-            np.array([all_params[b, 2 * idx, 0] for b in range(num_bands)]),
-            np.array([all_params[b, 2 * idx + 1, 0] for b in range(num_bands)]),
-            num_bands,
-            nodata_val,
-            window_size,
-            output_dtype,
-            calculation_dtype,
-            save_as_cog,
-            debug_logs,
-        )
-        for idx, (name, img_path) in enumerate(input_image_path_pairs.items())
-    ]
-
-    if image_threads_on:
-        with _get_executor(image_backend, image_thread_workers) as executor:
-            futures = [
-                executor.submit(_apply_adjustments_process_image, *args)
-                for args in parallel_args
-            ]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for args in parallel_args:
-            _apply_adjustments_process_image(*args)
-
-    if build_overviews: compute_overviews(
-        input_images_paths=output_image_paths,
-        cache=cache,
-        io_threads=io_threads,
-        image_threads=image_threads,
-        tile_threads=tile_threads,
-        debug_logs=debug_logs,
-        )
-    return output_image_paths
+from ..utils import  _resolve_window_size, _get_valid_count
 
 
 def _solve_global_model(
@@ -532,6 +140,126 @@ def _solve_global_model(
                 overlap_pairs=overlapping_pairs,
                 image_names_with_id=image_names_with_id,
             )
+    return all_params
+
+
+def _finalize_pif_whole_stats(all_whole_stats: dict) -> dict:
+    finalized = {}
+    for name, band_values in all_whole_stats.items():
+        finalized[name] = {}
+        for band_index, stats_groups in band_values.items():
+            total_size = sum(stats["size"] for stats in stats_groups)
+            if total_size <= 0:
+                finalized[name][band_index] = {"mean": 0.0, "std": 0.0, "size": 0}
+                continue
+            mean = (
+                sum(stats["mean"] * stats["size"] for stats in stats_groups)
+                / total_size
+            )
+            variance = sum(
+                stats["size"] * (stats["std"] ** 2 + (stats["mean"] - mean) ** 2)
+                for stats in stats_groups
+            ) / total_size
+            finalized[name][band_index] = {
+                "mean": float(mean),
+                "std": float(math.sqrt(max(variance, 0.0))),
+                "size": int(total_size),
+            }
+    return finalized
+
+
+def _solve_pif_global_model(
+    *,
+    num_bands: int,
+    all_image_names: list[str],
+    included_names: list[str],
+    all_overlap_stats: dict,
+    all_whole_stats: dict,
+    custom_mean_factor: float,
+    custom_std_factor: float,
+    overlapping_pairs: tuple[tuple[str, str], ...],
+    debug_logs: bool,
+) -> np.ndarray:
+    all_whole_stats = _finalize_pif_whole_stats(all_whole_stats)
+    num_total = len(all_image_names)
+    all_params = np.zeros((num_bands, 2 * num_total, 1), dtype=float)
+    image_names_with_id = list(enumerate(all_image_names))
+
+    valid_pairs = []
+    for name_i, name_j in overlapping_pairs:
+        stats = all_overlap_stats.get(name_i, {}).get(name_j)
+        if stats and any(band_stats["size"] > 0 for band_stats in stats.values()):
+            valid_pairs.append((name_i, name_j))
+
+    if not valid_pairs:
+        raise ValueError("No valid flood_from_match_points PIF overlap pairs were found.")
+
+    for band_index in range(num_bands):
+        if debug_logs:
+            print(f"\nProcessing flood_from_match_points PIF band {band_index}:")
+
+        A, y, total_overlap = [], [], 0.0
+        for i, name_i in image_names_with_id:
+            for j, name_j in image_names_with_id[i + 1 :]:
+                if (name_i, name_j) not in valid_pairs and (name_j, name_i) not in valid_pairs:
+                    continue
+                if name_i not in included_names and name_j not in included_names:
+                    continue
+
+                stat_i = all_overlap_stats.get(name_i, {}).get(name_j, {}).get(band_index)
+                stat_j = all_overlap_stats.get(name_j, {}).get(name_i, {}).get(band_index)
+                if not stat_i or not stat_j or stat_i["size"] <= 0:
+                    continue
+
+                row_m = [0] * (2 * num_total)
+                row_s = [0] * (2 * num_total)
+                row_m[2 * i : 2 * i + 2] = [stat_i["mean"], 1]
+                row_m[2 * j : 2 * j + 2] = [-stat_j["mean"], -1]
+                row_s[2 * i], row_s[2 * j] = stat_i["std"], -stat_j["std"]
+                A.extend(
+                    [
+                        [v * custom_mean_factor for v in row_m],
+                        [v * custom_std_factor for v in row_s],
+                    ]
+                )
+                y.extend([0, 0])
+                total_overlap += 1.0
+
+        anchor_weight = 1.0 if total_overlap == 0 else total_overlap / (2.0 * num_total)
+        for name in included_names:
+            if name not in all_whole_stats or band_index not in all_whole_stats[name]:
+                continue
+            image_index = all_image_names.index(name)
+            mean = all_whole_stats[name][band_index]["mean"]
+            std = all_whole_stats[name][band_index]["std"]
+            row_m = [0] * (2 * num_total)
+            row_s = [0] * (2 * num_total)
+            row_m[2 * image_index : 2 * image_index + 2] = [
+                mean * anchor_weight,
+                anchor_weight,
+            ]
+            row_s[2 * image_index] = std * anchor_weight
+            A.extend([row_m, row_s])
+            y.extend([mean * anchor_weight, std * anchor_weight])
+
+        if not A:
+            raise ValueError(
+                f"No flood_from_match_points PIF constraints found for band {band_index + 1}."
+            )
+
+        A_arr = np.asarray(A)
+        y_arr = np.asarray(y)
+        all_params[band_index, :, 0] = np.linalg.lstsq(A_arr, y_arr, rcond=None)[0]
+
+        if debug_logs:
+            _print_constraint_system(
+                constraint_matrix=A_arr,
+                adjustment_params=all_params[band_index, :, 0],
+                observed_values_vector=y_arr,
+                overlap_pairs=tuple(valid_pairs),
+                image_names_with_id=image_names_with_id,
+            )
+
     return all_params
 
 

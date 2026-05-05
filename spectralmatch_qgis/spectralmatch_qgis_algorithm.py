@@ -27,8 +27,8 @@ __date__ = '2025-06-15'
 __copyright__ = '(C) 2025 by Kanoa Lindiwe LLC'
 __revision__ = '$Format:%H$'
 
-import subprocess
-import os
+import contextlib
+import io
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
     QgsProcessing,
@@ -40,7 +40,13 @@ from qgis.core import (
     QgsProcessingParameterFile,
     QgsProcessingException,
    )
-from .utils import get_interpreter, normalize_cli_value, load_function_headers, _add_string_param, _add_folder_select_param, get_python_dependency_folder
+from .utils import (
+    load_function_headers,
+    _add_string_param,
+    _add_folder_select_param,
+    normalize_python_value,
+    resolve_function,
+)
 
 def loadAlgorithms(self):
     for func in load_function_headers():
@@ -63,11 +69,7 @@ def make_algorithm_class(full_function_path: str):
     group_id = parts[-3] if len(parts) >= 4 else parts[-2]  # folder if present, else module
 
     def initAlgorithm(self, config):
-        self.python_interpreter = get_interpreter()
         self.func_info = load_function_headers(full_function_path)
-        python_dependencies = get_python_dependency_folder()
-        self.env = os.environ.copy()
-        self.env["PYTHONPATH"] = python_dependencies + os.pathsep + self.env.get("PYTHONPATH", "")
 
         for param in self.func_info.get("parameters", []):
             name = param["name"]
@@ -83,7 +85,8 @@ def make_algorithm_class(full_function_path: str):
                 _add_string_param(self, name, display_name, default)
 
     def processAlgorithm(self, parameters, context, feedback):
-        cmd = [self.python_interpreter, "-m", "spectralmatch", function]
+        function_obj = resolve_function(full_function_path)
+        kwargs = {}
 
         feedback.pushInfo("Processed parameters:")
 
@@ -91,20 +94,25 @@ def make_algorithm_class(full_function_path: str):
             name = param["name"]
             if name in parameters:
                 value = self.parameterAsString(parameters, name, context)
-                cli_value = normalize_cli_value(value)
-                cmd.extend([f"--{name}", cli_value])
-                feedback.pushInfo(f"{name} = {cli_value}")
+                python_value = normalize_python_value(value)
+                kwargs[name] = python_value
+                feedback.pushInfo(f"{name} = {python_value}")
 
-        feedback.pushInfo("\nRunning: " + " ".join(cmd) + "\n")
+        stdout_buffer = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stdout_buffer):
+                result = function_obj(**kwargs)
+        except Exception as exc:
+            output = stdout_buffer.getvalue().strip()
+            if output:
+                for line in output.splitlines():
+                    feedback.pushInfo(line)
+            raise QgsProcessingException(str(exc))
 
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, env=self.env)
-        for line in process.stdout:
-            feedback.pushInfo(line.rstrip())
-        process.stdout.close()
-        return_code = process.wait()
-
-        if return_code != 0:
-            raise Exception(f"Process failed with return code {return_code}")
+        output = stdout_buffer.getvalue().strip()
+        if output:
+            for line in output.splitlines():
+                feedback.pushInfo(line)
 
         return {}
 

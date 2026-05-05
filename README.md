@@ -1,6 +1,7 @@
 # spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series
 
 [![PyPI version](https://img.shields.io/pypi/v/spectralmatch.svg)](https://pypi.org/project/spectralmatch/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/spectralmatch?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=GREEN&left_text=pypi+downloads)](https://pepy.tech/projects/spectralmatch)
 [![QGIS Plugin](https://img.shields.io/badge/QGIS-Plugin-589632?logo=qgis)](https://plugins.qgis.org/plugins/spectralmatch_qgis/)
 [![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
 [![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C)](https://codecov.io/gh/spectralmatch/spectralmatch)
@@ -42,10 +43,8 @@ Spectralmatch provides algorithms to perform relative radiometric normalization 
 ## Current Matching Algorithms
 
 ### Global to local matching
-This technique is derived from 'An auto-adapting global-to-local color balancing method for optical imagery mosaic' by Yu et al., 2017 (DOI: 10.1016/j.isprsjprs.2017.08.002). It is particularly useful for very high-resolution imagery (satellite or otherwise) and works in a two phase process.
-First, this method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
-However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion.
-
+This method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center or specified set of images center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
+However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion. Pseudo invariant features can be automatically created by aligning image overlaps by [orb](https://docs.opencv.org/4.x/d1/d89/tutorial_py_orb.html) match points and extracting low difference raster values. These methods draw on work from ['An auto-adapting global-to-local color balancing method for optical imagery mosaic' by Yu et al](https://doi.org/10.1016/j.isprsjprs.2017.08.002), ['Integrated Preprocessing of Multitemporal Very-High-Resolution Satellite Images via Conjugate Points-Based Pseudo-Invariant Feature Extraction' by Taeheon Kim and Youkyung Han](https://doi.org/10.3390/rs13193990), and others.
 
 #### Assumptions
 
@@ -91,7 +90,13 @@ Example scripts and sample data are provided to verify a successful installation
 
 ```python
 import os
-from spectralmatch import *
+from spectralmatch import (
+    Match,
+    Seamline,
+    align_rasters,
+    mask_rasters,
+    merge_rasters,
+)
 
 working_directory = "/path/to/working/directory"
 input_folder = os.path.join(working_directory, "Input")
@@ -100,12 +105,12 @@ local_folder = os.path.join(working_directory, "LocalMatch")
 aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 
-global_regression(
+Match.global_regression(
     input_images=input_folder,
     output_images=global_folder,
 )
 
-local_block_adjustment(
+Match.local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
 )
@@ -116,7 +121,7 @@ align_rasters(
     tap=True,
 )
 
-voronoi_center_seamline(
+Seamline.voronoi(
     input_images=aligned_folder,
     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
     image_field_name="image",
