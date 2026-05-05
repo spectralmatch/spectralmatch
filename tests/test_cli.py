@@ -13,22 +13,25 @@ def _run_cli(*args):
 
 def test_cli_general_help():
     cli_function_names = [
-        "Match",
         "Pif",
-        "Seamline",
         "align_rasters",
         "band_math",
-        "compare_image_spectral_profiles",
         "compare_image_spectral_profiles_pairs",
         "compare_spatial_spectral_difference_band_average",
+        "compare_before_after_all_images",
+        "compute_overviews",
         "create_cloud_mask_with_omnicloudmask",
+        "global_regression",
+        "local_block_adjustment",
         "mask_rasters",
         "match_paths",
         "merge_rasters",
         "merge_vectors",
+        "pipeline",
         "process_raster_values_to_vector_polygons",
         "search_paths",
         "create_paths",
+        "voronoi_center_seamline",
     ]
 
     result = _run_cli("--help")
@@ -39,7 +42,7 @@ def test_cli_general_help():
 
 
 def test_cli_command_help():
-    result = _run_cli("Match", "global_regression", "--help")
+    result = _run_cli("global_regression", "--help")
     assert result.returncode == 0
     assert "global_regression" in (result.stdout + result.stderr)
 
