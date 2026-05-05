@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#spectralmatch.seamline.voronoi_center_seamline.polygonal_intersection" class="md-skip">
+        <a href="#spectralmatch.seamline.Seamline.voronoi" class="md-skip">
           Skip to content
         </a>
       
@@ -748,21 +748,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.seamline.voronoi_center_seamline.polygonal_intersection" class="md-nav__link">
+  <a href="#spectralmatch.seamline.Seamline.voronoi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        polygonal_intersection
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.seamline.voronoi_center_seamline.voronoi_center_seamline" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        voronoi_center_seamline
+        voronoi
       
     </span>
   </a>
@@ -921,21 +910,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#spectralmatch.seamline.voronoi_center_seamline.polygonal_intersection" class="md-nav__link">
+  <a href="#spectralmatch.seamline.Seamline.voronoi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        polygonal_intersection
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#spectralmatch.seamline.voronoi_center_seamline.voronoi_center_seamline" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        voronoi_center_seamline
+        voronoi
       
     </span>
   </a>
@@ -964,7 +942,7 @@
 
   <h1>Create Seamlines</h1>
 
-<div class="doc doc-object doc-module">
+<div class="doc doc-object doc-class">
 
 
 
@@ -977,6 +955,320 @@
 
 
 
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>spectralmatch/seamline/seamline.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Seamline</span><span class="p">:</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">voronoi</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
+        <span class="n">output_mask</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">aoi_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vector_mask</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+        <span class="n">min_point_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">min_cut_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">debug_vectors_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.</span>
+
+<span class="sd">Args:</span>
+<span class="sd">    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">    output_mask (str): Output path for the final seamline polygon vector file.</span>
+<span class="sd">    aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.</span>
+<span class="sd">    vector_mask (Tuple[str, str] | None, optional): Optional polygon source to use instead of extracting EMPs from rasters. The tuple is (vector_path, field_name). For each input image, polygons are selected when the field value is included anywhere in the image name. Matching polygons for the same image are unioned together.</span>
+<span class="sd">    min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.</span>
+<span class="sd">    min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.</span>
+<span class="sd">    debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.</span>
+<span class="sd">    image_field_name (str, optional): Name of the attribute field for image ID in output; default is &#39;image&#39;.</span>
+<span class="sd">    debug_vectors_path (str | None, optional): Optional path to save debug layers (cutlines, intersections).</span>
+
+<span class="sd">Outputs:</span>
+<span class="sd">    Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start voronoi center seamline&quot;</span><span class="p">)</span>
+        <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_dir</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+            <span class="n">debug_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">debug_dir</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">debug_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
+            <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">SeamlineValidation</span><span class="o">.</span><span class="n">_validate_voronoi_center_seamline</span><span class="p">(</span>
+            <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
+            <span class="n">aoi_path</span><span class="o">=</span><span class="n">aoi_path</span><span class="p">,</span>
+            <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
+            <span class="n">image_field_name</span><span class="o">=</span><span class="n">image_field_name</span><span class="p">,</span>
+            <span class="n">min_point_spacing</span><span class="o">=</span><span class="n">min_point_spacing</span><span class="p">,</span>
+            <span class="n">min_cut_length</span><span class="o">=</span><span class="n">min_cut_length</span><span class="p">,</span>
+            <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">debug_vectors_path</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+            <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">input_image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">vector_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">emps</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">crs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
+                <span class="n">emp</span> <span class="o">=</span> <span class="n">_emp_polygon_from_image</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                <span class="n">emps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
+                    <span class="n">crs</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetProjectionRef</span><span class="p">()</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">emps</span><span class="p">,</span> <span class="n">crs</span> <span class="o">=</span> <span class="n">_load_emp_polygons_from_vector</span><span class="p">(</span>
+                <span class="n">input_image_paths</span><span class="o">=</span><span class="n">input_image_paths</span><span class="p">,</span>
+                <span class="n">input_image_names</span><span class="o">=</span><span class="n">input_image_names</span><span class="p">,</span>
+                <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
+                <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EMP</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: area=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, bounds=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">bounds</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">)</span>
+            <span class="n">_save_emp_outlines</span><span class="p">(</span>
+                <span class="n">emps</span><span class="p">,</span>
+                <span class="n">input_image_paths</span><span class="p">,</span>
+                <span class="n">debug_vectors_path</span><span class="p">,</span>
+                <span class="n">crs</span><span class="p">,</span>
+                <span class="n">image_field_name</span><span class="o">=</span><span class="n">image_field_name</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">cuts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LineString</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">emps</span><span class="p">,</span> <span class="mi">2</span><span class="p">)):</span>
+            <span class="n">ov</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overlap </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> area: </span><span class="si">{</span><span class="n">ov</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ov</span><span class="o">.</span><span class="n">is_empty</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+                    <span class="n">_save_intersection_points</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="p">,</span> <span class="n">crs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">cut</span> <span class="o">=</span> <span class="n">_compute_centerline</span><span class="p">(</span>
+                    <span class="n">a</span><span class="p">,</span>
+                    <span class="n">b</span><span class="p">,</span>
+                    <span class="n">min_point_spacing</span><span class="p">,</span>
+                    <span class="n">min_cut_length</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="p">,</span>
+                    <span class="n">crs</span><span class="p">,</span>
+                    <span class="n">debug_vectors_path</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">cuts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cut</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+            <span class="n">schema</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;LineString&quot;</span><span class="p">,</span> <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pair_id&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">}}</span>
+            <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+                <span class="n">debug_vectors_path</span><span class="p">,</span>
+                <span class="s2">&quot;w&quot;</span><span class="p">,</span>
+                <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">,</span>
+                <span class="n">crs_wkt</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span>
+                <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+                <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;cutlines&quot;</span><span class="p">,</span>
+            <span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cuts</span><span class="p">):</span>
+                    <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">line</span><span class="p">),</span>
+                            <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pair_id&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">},</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+
+        <span class="n">segmented</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Polygon</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
+            <span class="n">relevant</span> <span class="o">=</span> <span class="p">[</span><span class="n">cut</span> <span class="k">for</span> <span class="n">cut</span> <span class="ow">in</span> <span class="n">cuts</span> <span class="k">if</span> <span class="n">emp</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">cut</span><span class="p">)]</span>
+            <span class="n">seg</span> <span class="o">=</span> <span class="n">_segment_emp</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="n">relevant</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;EMP</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">relevant</span><span class="p">)</span><span class="si">}</span><span class="s2"> intersecting cuts and </span><span class="si">{</span><span class="n">seg</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> segmented area&quot;</span>
+                <span class="p">)</span>
+            <span class="n">segmented</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">aoi_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">segmented</span> <span class="o">=</span> <span class="n">_mask_by_aoi</span><span class="p">(</span><span class="n">segmented</span><span class="p">,</span> <span class="n">aoi_path</span><span class="p">)</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">,</span> <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">image_field_name</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">}}</span>
+        <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+            <span class="n">output_mask</span><span class="p">,</span>
+            <span class="s2">&quot;w&quot;</span><span class="p">,</span>
+            <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">,</span>
+            <span class="n">crs_wkt</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;seamlines&quot;</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">poly</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_names</span><span class="p">,</span> <span class="n">segmented</span><span class="p">):</span>
+                <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">poly</span><span class="p">),</span>
+                        <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">image_field_name</span><span class="p">:</span> <span class="n">image_name</span><span class="p">},</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
 
 
 
@@ -994,180 +1286,14 @@
 <div class="doc doc-object doc-function">
 
 
-<h2 id="spectralmatch.seamline.voronoi_center_seamline.polygonal_intersection" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">polygonal_intersection</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">buffer_eps</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span></code>
+<h2 id="spectralmatch.seamline.Seamline.voronoi" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">voronoi</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_mask</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">aoi_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_field_name</span><span class="o">=</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="n">min_point_spacing</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">min_cut_length</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-<a href="#spectralmatch.seamline.voronoi_center_seamline.polygonal_intersection" class="headerlink" title="Permanent link">&para;</a></h2>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
 
-
-    <div class="doc doc-contents ">
-
-        <p>Returns only the polygonal portion of a ∩ b. If the intersection is line-like or point-like, it buffers slightly to form a polygon.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>a</code>
-            </td>
-            <td>
-                  <code><span title="shapely.geometry.Polygon">Polygon</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Input geometries.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>b</code>
-            </td>
-            <td>
-                  <code><span title="shapely.geometry.Polygon">Polygon</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Input geometries.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>buffer_eps</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Small buffer distance to 'inflate' line/point intersections.</p>
-              </div>
-            </td>
-            <td>
-                  <code>1e-08</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Polygon or MultiPolygon</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>spectralmatch/seamline/voronoi_center_seamline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">304</span>
-<span class="normal">305</span>
-<span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
-<span class="normal">310</span>
-<span class="normal">311</span>
-<span class="normal">312</span>
-<span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span>
-<span class="normal">316</span>
-<span class="normal">317</span>
-<span class="normal">318</span>
-<span class="normal">319</span>
-<span class="normal">320</span>
-<span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span>
-<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">polygonal_intersection</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span> <span class="n">buffer_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returns only the polygonal portion of a ∩ b. If the intersection is line-like or point-like, it buffers slightly to form a polygon.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        a (Polygon): Input geometries.</span>
-<span class="sd">        b (Polygon): Input geometries.</span>
-<span class="sd">        buffer_eps (float): Small buffer distance to &#39;inflate&#39; line/point intersections.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Polygon or MultiPolygon</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inter</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
-
-    <span class="c1"># Case 1: already polygonal</span>
-    <span class="k">if</span> <span class="n">inter</span><span class="o">.</span><span class="n">geom_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;Polygon&quot;</span><span class="p">,</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">inter</span>
-
-    <span class="c1"># Case 2: geometry collection — extract polygonal parts</span>
-    <span class="k">if</span> <span class="n">inter</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;GeometryCollection&quot;</span><span class="p">:</span>
-        <span class="n">polys</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">inter</span><span class="o">.</span><span class="n">geoms</span> <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">geom_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;Polygon&quot;</span><span class="p">,</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">)]</span>
-        <span class="k">if</span> <span class="n">polys</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">unary_union</span><span class="p">(</span><span class="n">polys</span><span class="p">)</span>
-
-    <span class="c1"># Case 3: line or point — buffer to small polygon</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">inter</span><span class="o">.</span><span class="n">is_empty</span><span class="p">:</span>
-        <span class="c1"># use small fraction of bbox size as buffer</span>
-        <span class="n">eps</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">a</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">a</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">buffer_eps</span>
-        <span class="k">return</span> <span class="n">inter</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-
-    <span class="c1"># Case 4: no overlap</span>
-    <span class="k">return</span> <span class="n">Polygon</span><span class="p">()</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="spectralmatch.seamline.voronoi_center_seamline.voronoi_center_seamline" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">voronoi_center_seamline</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_mask</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">aoi_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_field_name</span><span class="o">=</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="n">min_point_spacing</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">min_cut_length</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
-
-<a href="#spectralmatch.seamline.voronoi_center_seamline.voronoi_center_seamline" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#spectralmatch.seamline.Seamline.voronoi" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
@@ -1191,7 +1317,7 @@
                 <code>input_images</code>
             </td>
             <td>
-                  <code>(<span title="str">str</span> | <span title="typing.List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
+                  <code>(<span title="str">str</span> | <span title="List">List</span>[<span title="str">str</span>], <span title="required">required</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1340,8 +1466,13 @@
 </details>
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>spectralmatch/seamline/voronoi_center_seamline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 29</span>
+              <summary>Source code in <code>spectralmatch/seamline/seamline.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
 <span class="normal"> 30</span>
 <span class="normal"> 31</span>
 <span class="normal"> 32</span>
@@ -1488,162 +1619,159 @@
 <span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">voronoi_center_seamline</span><span class="p">(</span>
-    <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
-    <span class="n">output_mask</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">aoi_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">vector_mask</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
-    <span class="n">min_point_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="n">min_cut_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">debug_vectors_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.</span>
+<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">voronoi</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
+        <span class="n">output_mask</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">aoi_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vector_mask</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+        <span class="n">min_point_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">min_cut_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">debug_vectors_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
-<span class="sd">        output_mask (str): Output path for the final seamline polygon vector file.</span>
-<span class="sd">        aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.</span>
-<span class="sd">        vector_mask (Tuple[str, str] | None, optional): Optional polygon source to use instead of extracting EMPs from rasters. The tuple is (vector_path, field_name). For each input image, polygons are selected when the field value is included anywhere in the image name. Matching polygons for the same image are unioned together.</span>
-<span class="sd">        min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.</span>
-<span class="sd">        min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.</span>
-<span class="sd">        debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.</span>
-<span class="sd">        image_field_name (str, optional): Name of the attribute field for image ID in output; default is &#39;image&#39;.</span>
-<span class="sd">        debug_vectors_path (str | None, optional): Optional path to save debug layers (cutlines, intersections).</span>
+<span class="sd">Args:</span>
+<span class="sd">    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">    output_mask (str): Output path for the final seamline polygon vector file.</span>
+<span class="sd">    aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.</span>
+<span class="sd">    vector_mask (Tuple[str, str] | None, optional): Optional polygon source to use instead of extracting EMPs from rasters. The tuple is (vector_path, field_name). For each input image, polygons are selected when the field value is included anywhere in the image name. Matching polygons for the same image are unioned together.</span>
+<span class="sd">    min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.</span>
+<span class="sd">    min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.</span>
+<span class="sd">    debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.</span>
+<span class="sd">    image_field_name (str, optional): Name of the attribute field for image ID in output; default is &#39;image&#39;.</span>
+<span class="sd">    debug_vectors_path (str | None, optional): Optional path to save debug layers (cutlines, intersections).</span>
 
-<span class="sd">    Outputs:</span>
-<span class="sd">        Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">Outputs:</span>
+<span class="sd">    Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start voronoi center seamline&quot;</span><span class="p">)</span>
+        <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_dir</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+            <span class="n">debug_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">debug_dir</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">debug_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start voronoi center seamline&quot;</span><span class="p">)</span>
-    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">output_dir</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
-        <span class="n">debug_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">debug_dir</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">debug_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
-        <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">Seamline</span><span class="o">.</span><span class="n">validate_voronoi_center_seamline</span><span class="p">(</span>
-        <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
-        <span class="n">aoi_path</span><span class="o">=</span><span class="n">aoi_path</span><span class="p">,</span>
-        <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
-        <span class="n">image_field_name</span><span class="o">=</span><span class="n">image_field_name</span><span class="p">,</span>
-        <span class="n">min_point_spacing</span><span class="o">=</span><span class="n">min_point_spacing</span><span class="p">,</span>
-        <span class="n">min_cut_length</span><span class="o">=</span><span class="n">min_cut_length</span><span class="p">,</span>
-        <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">debug_vectors_path</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
-    <span class="p">)</span>
-    <span class="n">input_image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">vector_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">emps</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">crs</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
-            <span class="n">emp</span> <span class="o">=</span> <span class="n">_emp_polygon_from_image</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-            <span class="n">emps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
-                <span class="n">crs</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetProjectionRef</span><span class="p">()</span>
-                <span class="n">ds</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">emps</span><span class="p">,</span> <span class="n">crs</span> <span class="o">=</span> <span class="n">_load_emp_polygons_from_vector</span><span class="p">(</span>
-            <span class="n">input_image_paths</span><span class="o">=</span><span class="n">input_image_paths</span><span class="p">,</span>
-            <span class="n">input_image_names</span><span class="o">=</span><span class="n">input_image_names</span><span class="p">,</span>
+        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
+            <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">SeamlineValidation</span><span class="o">.</span><span class="n">_validate_voronoi_center_seamline</span><span class="p">(</span>
+            <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
+            <span class="n">aoi_path</span><span class="o">=</span><span class="n">aoi_path</span><span class="p">,</span>
             <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
-            <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EMP</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: area=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, bounds=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">bounds</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">):</span> <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">)</span>
-        <span class="n">_save_emp_outlines</span><span class="p">(</span>
-            <span class="n">emps</span><span class="p">,</span>
-            <span class="n">input_image_paths</span><span class="p">,</span>
-            <span class="n">debug_vectors_path</span><span class="p">,</span>
-            <span class="n">crs</span><span class="p">,</span>
             <span class="n">image_field_name</span><span class="o">=</span><span class="n">image_field_name</span><span class="p">,</span>
+            <span class="n">min_point_spacing</span><span class="o">=</span><span class="n">min_point_spacing</span><span class="p">,</span>
+            <span class="n">min_cut_length</span><span class="o">=</span><span class="n">min_cut_length</span><span class="p">,</span>
+            <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">debug_vectors_path</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
+            <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">input_image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 
-    <span class="n">cuts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LineString</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">emps</span><span class="p">,</span> <span class="mi">2</span><span class="p">)):</span>
-        <span class="n">ov</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overlap </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> area: </span><span class="si">{</span><span class="n">ov</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">ov</span><span class="o">.</span><span class="n">is_empty</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
-                <span class="n">_save_intersection_points</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="p">,</span> <span class="n">crs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">cut</span> <span class="o">=</span> <span class="n">_compute_centerline</span><span class="p">(</span>
-                <span class="n">a</span><span class="p">,</span>
-                <span class="n">b</span><span class="p">,</span>
-                <span class="n">min_point_spacing</span><span class="p">,</span>
-                <span class="n">min_cut_length</span><span class="p">,</span>
-                <span class="n">debug_logs</span><span class="p">,</span>
-                <span class="n">crs</span><span class="p">,</span>
-                <span class="n">debug_vectors_path</span><span class="p">,</span>
+        <span class="k">if</span> <span class="n">vector_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">emps</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">crs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
+                <span class="n">emp</span> <span class="o">=</span> <span class="n">_emp_polygon_from_image</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                <span class="n">emps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
+                    <span class="n">crs</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetProjectionRef</span><span class="p">()</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">emps</span><span class="p">,</span> <span class="n">crs</span> <span class="o">=</span> <span class="n">_load_emp_polygons_from_vector</span><span class="p">(</span>
+                <span class="n">input_image_paths</span><span class="o">=</span><span class="n">input_image_paths</span><span class="p">,</span>
+                <span class="n">input_image_names</span><span class="o">=</span><span class="n">input_image_names</span><span class="p">,</span>
+                <span class="n">vector_mask</span><span class="o">=</span><span class="n">vector_mask</span><span class="p">,</span>
+                <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">cuts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cut</span><span class="p">)</span>
 
-    <span class="c1"># Optionally save cutlines</span>
-    <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
-        <span class="n">schema</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;LineString&quot;</span><span class="p">,</span> <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pair_id&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">}}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EMP</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: area=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, bounds=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">bounds</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">)</span>
+            <span class="n">_save_emp_outlines</span><span class="p">(</span>
+                <span class="n">emps</span><span class="p">,</span>
+                <span class="n">input_image_paths</span><span class="p">,</span>
+                <span class="n">debug_vectors_path</span><span class="p">,</span>
+                <span class="n">crs</span><span class="p">,</span>
+                <span class="n">image_field_name</span><span class="o">=</span><span class="n">image_field_name</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">cuts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LineString</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">emps</span><span class="p">,</span> <span class="mi">2</span><span class="p">)):</span>
+            <span class="n">ov</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overlap </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> area: </span><span class="si">{</span><span class="n">ov</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ov</span><span class="o">.</span><span class="n">is_empty</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+                    <span class="n">_save_intersection_points</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="p">,</span> <span class="n">crs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">cut</span> <span class="o">=</span> <span class="n">_compute_centerline</span><span class="p">(</span>
+                    <span class="n">a</span><span class="p">,</span>
+                    <span class="n">b</span><span class="p">,</span>
+                    <span class="n">min_point_spacing</span><span class="p">,</span>
+                    <span class="n">min_cut_length</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="p">,</span>
+                    <span class="n">crs</span><span class="p">,</span>
+                    <span class="n">debug_vectors_path</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">cuts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cut</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
+            <span class="n">schema</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;LineString&quot;</span><span class="p">,</span> <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pair_id&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">}}</span>
+            <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+                <span class="n">debug_vectors_path</span><span class="p">,</span>
+                <span class="s2">&quot;w&quot;</span><span class="p">,</span>
+                <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">,</span>
+                <span class="n">crs_wkt</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span>
+                <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+                <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;cutlines&quot;</span><span class="p">,</span>
+            <span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cuts</span><span class="p">):</span>
+                    <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">line</span><span class="p">),</span>
+                            <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pair_id&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">},</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+
+        <span class="n">segmented</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Polygon</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
+            <span class="n">relevant</span> <span class="o">=</span> <span class="p">[</span><span class="n">cut</span> <span class="k">for</span> <span class="n">cut</span> <span class="ow">in</span> <span class="n">cuts</span> <span class="k">if</span> <span class="n">emp</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">cut</span><span class="p">)]</span>
+            <span class="n">seg</span> <span class="o">=</span> <span class="n">_segment_emp</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="n">relevant</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;EMP</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">relevant</span><span class="p">)</span><span class="si">}</span><span class="s2"> intersecting cuts and </span><span class="si">{</span><span class="n">seg</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> segmented area&quot;</span>
+                <span class="p">)</span>
+            <span class="n">segmented</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">aoi_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">segmented</span> <span class="o">=</span> <span class="n">_mask_by_aoi</span><span class="p">(</span><span class="n">segmented</span><span class="p">,</span> <span class="n">aoi_path</span><span class="p">)</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">,</span> <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">image_field_name</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">}}</span>
         <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
-            <span class="n">debug_vectors_path</span><span class="p">,</span>
+            <span class="n">output_mask</span><span class="p">,</span>
             <span class="s2">&quot;w&quot;</span><span class="p">,</span>
             <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">,</span>
             <span class="n">crs_wkt</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span>
             <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
-            <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;cutlines&quot;</span><span class="p">,</span>
+            <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;seamlines&quot;</span><span class="p">,</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cuts</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">poly</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_names</span><span class="p">,</span> <span class="n">segmented</span><span class="p">):</span>
                 <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">line</span><span class="p">),</span>
-                        <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pair_id&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">},</span>
+                        <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">poly</span><span class="p">),</span>
+                        <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">image_field_name</span><span class="p">:</span> <span class="n">image_name</span><span class="p">},</span>
                     <span class="p">}</span>
                 <span class="p">)</span>
-
-    <span class="n">segmented</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Polygon</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
-        <span class="n">relevant</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cuts</span> <span class="k">if</span> <span class="n">emp</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span>
-        <span class="n">seg</span> <span class="o">=</span> <span class="n">_segment_emp</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="n">relevant</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;EMP</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">relevant</span><span class="p">)</span><span class="si">}</span><span class="s2"> intersecting cuts and </span><span class="si">{</span><span class="n">seg</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> segmented area&quot;</span>
-            <span class="p">)</span>
-        <span class="n">segmented</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">aoi_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">segmented</span> <span class="o">=</span> <span class="n">_mask_by_aoi</span><span class="p">(</span><span class="n">segmented</span><span class="p">,</span> <span class="n">aoi_path</span><span class="p">)</span>
-
-    <span class="n">schema</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">,</span> <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">image_field_name</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">}}</span>
-    <span class="k">with</span> <span class="n">fiona</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
-        <span class="n">output_mask</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">,</span> <span class="n">crs_wkt</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="s2">&quot;seamlines&quot;</span>
-    <span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">poly</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">input_image_names</span><span class="p">,</span> <span class="n">segmented</span><span class="p">):</span>
-            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">mapping</span><span class="p">(</span><span class="n">poly</span><span class="p">),</span>
-                    <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
-                        <span class="n">image_field_name</span><span class="p">:</span> <span class="n">image_name</span>
-                    <span class="p">},</span>
-                <span class="p">}</span>
-            <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1677,7 +1805,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 13, 2025 07:12:40 UTC">June 13, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 5, 2026 03:19:44 UTC">May 5, 2026</span>
   </span>
 
     

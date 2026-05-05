@@ -1594,7 +1594,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a0d1f9e2">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8cba98f1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1625,7 +1625,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=2d8c5561">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=46c22590">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1644,7 +1644,19 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">band_math</span><span class="p">,</span>
+    <span class="n">compare_before_after_all_images</span><span class="p">,</span>
+    <span class="n">compare_image_spectral_profiles_pairs</span><span class="p">,</span>
+    <span class="n">compare_spatial_spectral_difference_band_average</span><span class="p">,</span>
+    <span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">,</span>
+    <span class="n">global_regression</span><span class="p">,</span>
+    <span class="n">local_block_adjustment</span><span class="p">,</span>
+    <span class="n">mask_rasters</span><span class="p">,</span>
+    <span class="n">merge_vectors</span><span class="p">,</span>
+    <span class="n">process_raster_values_to_vector_polygons</span><span class="p">,</span>
+    <span class="n">search_paths</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="c1"># Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder</span>
 <span class="n">working_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">"data_landsat"</span><span class="p">)</span>
@@ -1665,7 +1677,19 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="n">debug_mode</span> <span class="o">=</span> <span class="kc">True</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import os
-from spectralmatch import *
+from spectralmatch import (
+    band_math,
+    compare_before_after_all_images,
+    compare_image_spectral_profiles_pairs,
+    compare_spatial_spectral_difference_band_average,
+    create_cloud_mask_with_omnicloudmask,
+    global_regression,
+    local_block_adjustment,
+    mask_rasters,
+    merge_vectors,
+    process_raster_values_to_vector_polygons,
+    search_paths,
+)
 
 # Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
 working_directory = os.path.join(os.getcwd(), "data_landsat")
@@ -1690,7 +1714,7 @@ debug_mode = True</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=49f6e856">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=34d547b8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1776,7 +1800,7 @@ merge_vectors(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9a3d316f">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=80e4e4b7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1822,7 +1846,7 @@ mask_rasters(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=52983d0c">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6076dd40">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1894,7 +1918,7 @@ merge_vectors(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a9e07b76">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a78f55a0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1915,32 +1939,32 @@ merge_vectors(
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">global_regression</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="n">masked_folder</span><span class="p">,</span>
     <span class="n">output_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
+    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
+    <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
     <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span>
         <span class="s2">"exclude"</span><span class="p">,</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span>
         <span class="s2">"image"</span><span class="p">,</span>
     <span class="p">),</span>  <span class="c1"># Use unique mask per image</span>
-    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
-    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
-    <span class="n">tile_threads</span> <span class="o">=</span> <span class="n">tile_threads</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">
 global_regression(
     input_images=masked_folder,
     output_images=global_folder,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    debug_logs=debug_mode,
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "VegetationMasks.gpkg"),
         "image",
     ),  # Use unique mask per image
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads = tile_threads,
-    debug_logs=debug_mode,
 )</div>
 </div>
 </div>
@@ -1948,7 +1972,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=308d0ce6">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ac8f42be">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1969,17 +1993,17 @@ global_regression(
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">local_block_adjustment</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
     <span class="n">output_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
+    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
+    <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
+    <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
     <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
     <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span>
         <span class="s2">"exclude"</span><span class="p">,</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"VegetationMasks.gpkg"</span><span class="p">),</span>
         <span class="s2">"image"</span><span class="p">,</span>
     <span class="p">),</span>
-    <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
-    <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
-    <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
-    <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
-    <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
     <span class="n">save_block_maps</span><span class="o">=</span><span class="p">(</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"ReferenceBLockMap.tif"</span><span class="p">),</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_folder</span><span class="p">,</span> <span class="s2">"BlockMaps"</span><span class="p">,</span> <span class="s2">"$_LocalBlockMap.tif"</span><span class="p">),</span>
@@ -1990,17 +2014,17 @@ global_regression(
 local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+    debug_logs=debug_mode,
     number_of_blocks=100,
     vector_mask=(
         "exclude",
         os.path.join(working_directory, "VegetationMasks.gpkg"),
         "image",
     ),
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
-    debug_logs=debug_mode,
     save_block_maps=(
         os.path.join(local_folder, "BlockMaps", "ReferenceBLockMap.tif"),
         os.path.join(local_folder, "BlockMaps", "$_LocalBlockMap.tif"),
@@ -2012,7 +2036,7 @@ local_block_adjustment(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0cce6941">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c5ed8ad0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2139,7 +2163,7 @@ compare_before_after_all_images(
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 10, 2026 12:01:31 UTC">February 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 5, 2026 03:19:44 UTC">May 5, 2026</span>
   </span>
 
     

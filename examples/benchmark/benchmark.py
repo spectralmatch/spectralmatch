@@ -2,7 +2,7 @@ import os, time, tempfile, glob
 import numpy as np
 import matplotlib.pyplot as plt
 from osgeo import gdal, osr
-from spectralmatch import global_regression, local_block_adjustment
+from spectralmatch import Match
 
 
 def make_two_rasters(size, out_dir):
@@ -39,7 +39,7 @@ def run_one(size, base):
     make_two_rasters(size, inp)
 
     t0 = time.perf_counter()
-    global_regression(
+    Match.global_regression(
         input_images=inp,
         output_images=gdir,
         debug_logs=True,
@@ -57,11 +57,12 @@ def run_one(size, base):
     local_maps_tpl = os.path.join(ldir, "LocalBlockMap", "$_LocalBlockMap.tif"); os.makedirs(local_maps_tpl, exist_ok=True)
 
     t2 = time.perf_counter()
-    local_block_adjustment(
+    Match.local_block_adjustment(
         input_images=gdir,
         output_images=ldir,
         debug_logs=True,
         custom_nodata_value=9999,
+        window_size=BLOCK,
         image_threads=IMAGE_THREADS,
         io_threads=IO_THREADS,
         tile_threads=TILE_THREADS,

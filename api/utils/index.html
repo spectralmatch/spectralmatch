@@ -1446,7 +1446,7 @@
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start align rasters&quot;</span><span class="p">)</span>
 
-    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
         <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
@@ -1456,7 +1456,7 @@
         <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
         <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">validate_align_rasters</span><span class="p">(</span>
+    <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_align_rasters</span><span class="p">(</span>
         <span class="n">resampling_method</span><span class="o">=</span><span class="n">resampling_method</span><span class="p">,</span>
         <span class="n">tap</span><span class="o">=</span><span class="n">tap</span><span class="p">,</span>
         <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
@@ -1872,7 +1872,7 @@
     <span class="k">if</span> <span class="n">debug_logs</span> <span class="ow">and</span> <span class="n">output_image_paths</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output images: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Window scales: </span><span class="si">{</span><span class="n">window_scales</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images_paths</span><span class="p">,</span>
         <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
         <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
@@ -2335,7 +2335,7 @@
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start mask rasters&quot;</span><span class="p">)</span>
 
-    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
         <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
@@ -2347,7 +2347,7 @@
         <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
         <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">validate_mask_rasters</span><span class="p">(</span>
+    <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_mask_rasters</span><span class="p">(</span>
         <span class="n">include_touched_pixels</span><span class="o">=</span><span class="n">include_touched_pixels</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -2784,7 +2784,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">Universal</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
         <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
@@ -2794,7 +2794,7 @@
         <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
         <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">validate_merge_rasters</span><span class="p">(</span>
+    <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_merge_rasters</span><span class="p">(</span>
         <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
     <span class="p">)</span>
 

@@ -5,7 +5,18 @@
 
 # %% Setup
 import os
-from spectralmatch import *
+from spectralmatch import (
+    align_rasters,
+    compare_before_after_all_images,
+    compare_image_spectral_profiles_pairs,
+    compare_spatial_spectral_difference_band_average,
+    global_regression,
+    local_block_adjustment,
+    mask_rasters,
+    merge_rasters,
+    search_paths,
+    voronoi_center_seamline,
+)
 
 # Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
 working_directory = os.path.join(os.getcwd(), "data_worldview")
@@ -18,7 +29,6 @@ aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 
-
 window_size = 1024
 image_threads = 3
 io_threads = 3
@@ -26,17 +36,19 @@ tile_threads = 3
 debug_mode = True
 
 # %% Global matching
+inz_output_path = os.path.join(global_folder, "INZ", "$_to_$_INZ.tif")
 
 global_regression(
     input_images=input_folder, # Automatically searches for all *.tif files if passed this way
     output_images=global_folder,
     debug_logs=debug_mode,
-    # custom_nodata_value=-9999,
     window_size=window_size,
     image_threads=image_threads,
     io_threads=io_threads,
-    tile_threads = tile_threads,
-    save_as_cog=True,  # Save output as a Cloud Optimized GeoTIFF
+    tile_threads=tile_threads,
+    save_as_cog=True,
+    # custom_nodata_value=-9999,
+    pif_method="flood_from_match_points",
     estimate_stats=True,
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
     # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)
@@ -44,6 +56,7 @@ global_regression(
     save_adjustments=os.path.join(
         global_folder, "GlobalAdjustments.json"
     ),  # Start from precomputed statistics for images whole and overlap stats
+    pif_save_inz=inz_output_path,  # Saves one INZ raster per overlap pair; first $ = main/sensed image name, second $ = reference image name
     # load_adjustments=os.path.join(global_folder, "GlobalAdjustments.json"), # Load Statistics
 )
 
@@ -56,11 +69,12 @@ local_block_adjustment(
     input_images=global_folder,
     output_images=local_folder,
     debug_logs=debug_mode,
-    # custom_nodata_value=-9999,
     window_size=window_size,
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
+    save_as_cog=True,
+    # custom_nodata_value=-9999,
     correction_method="offset",
     number_of_blocks=50,  # Target number of blocks
     # override_bounds_canvas_coords = (193011.1444011169369332, 2184419.3597142999060452, 205679.2836037494416814, 2198309.8632259583100677), # Local match with a larger canvas than images bounds (perhaps to anticipate adding additional imagery so you don't have to recalculate local block maps each rematch)
