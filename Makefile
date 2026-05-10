@@ -93,6 +93,7 @@ clean:
 	       $(MAKEFILE_DIR).pytest_cache \
 	       $(MAKEFILE_DIR)site \
 	       $(MAKEFILE_DIR)spectralmatch_qgis/help/build \
+	       $(MAKEFILE_DIR)spectralmatch_qgis/spectralmatch \
 	       $(MAKEFILE_DIR)spectralmatch_qgis/function_headers.json \
 		   $(MAKEFILE_DIR)spectralmatch_qgis.zip \
 		   $(MAKEFILE_DIR)docs/images \
