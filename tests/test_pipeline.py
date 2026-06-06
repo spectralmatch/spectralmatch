@@ -1,6 +1,8 @@
 import os
+import geopandas as gpd
 
 from spectralmatch import pipeline
+from shapely.geometry import box
 
 from .utils_test import create_dummy_raster
 
@@ -91,3 +93,60 @@ def test_pipeline_merge_only_with_custom_temp_dir(tmp_path):
     assert "align_rasters" not in results
     assert "voronoi_center_seamline" not in results
     assert "mask_rasters" not in results
+
+
+def test_pipeline_weighted_seamline_step(tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    input_paths = []
+    for name, x_origin, fill_value in [
+        ("A", 0, 50),
+        ("B", 4, 75),
+    ]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path,
+            width=16,
+            height=16,
+            count=1,
+            transform=(x_origin, 1, 0, 16, 0, -1),
+            fill_value=fill_value,
+        )
+        input_paths.append(str(path))
+
+    polygons_path = tmp_path / "footprints.gpkg"
+    gdf = gpd.GeoDataFrame(
+        [
+            {
+                "image": input_paths[0],
+                "quality": 1.0,
+                "geometry": box(0, 0, 10, 10),
+            },
+            {
+                "image": input_paths[1],
+                "quality": 2.0,
+                "geometry": box(5, 0, 15, 10),
+            },
+        ],
+        geometry="geometry",
+        crs="EPSG:4326",
+    )
+    gdf.to_file(polygons_path, layer="footprints", driver="GPKG")
+
+    results = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(tmp_path / "merged.tif"),
+        shared_temp_dir=str(tmp_path / "pipeline_temp"),
+        delete_temp_dir=False,
+        matching_order=(),
+        align_method=None,
+        seamline_method="weighted_seamline",
+        weighted_seamline_input_polygons=str(polygons_path),
+        weighted_seamline_rank_function="{quality}",
+        weighted_seamline_input_layer="footprints",
+        merge_method=None,
+        clip_method=None,
+    )
+
+    assert results["output"] == input_paths
+    assert os.path.exists(results["weighted_seamline"])

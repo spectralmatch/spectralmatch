@@ -40,7 +40,7 @@ def pipeline(
         "local_block_adjustment",
     ),
     align_method: Literal["align_rasters"] | None = "align_rasters",
-    seamline_method: Literal["voronoi_center_seamline"] | None = "voronoi_center_seamline",
+    seamline_method: Literal["voronoi_center_seamline", "weighted_seamline"] | None = "voronoi_center_seamline",
     clip_method: Literal["mask_rasters"] | None = "mask_rasters",
     merge_method: Literal["merge_rasters"] | None = "merge_rasters",
     global_regression_output_images: Universal.CreateInFolderOrListFiles | None = None,
@@ -82,6 +82,13 @@ def pipeline(
     voronoi_center_seamline_min_point_spacing: float = 10,
     voronoi_center_seamline_min_cut_length: float = 0,
     voronoi_center_seamline_debug_vectors_path: str | None = None,
+    weighted_seamline_input_polygons: str | None = None,
+    weighted_seamline_output_mask: str | None = None,
+    weighted_seamline_rank_function: str | None = None,
+    weighted_seamline_image_field_name: str = "image",
+    weighted_seamline_input_layer: str | None = None,
+    weighted_seamline_output_layer: str = "seamlines",
+    weighted_seamline_rank_descending: bool = True,
     mask_rasters_output_images: Universal.CreateInFolderOrListFiles | None = None,
     mask_rasters_vector_mask: Universal.VectorMask = None,
     mask_rasters_include_touched_pixels: bool = False,
@@ -119,7 +126,7 @@ def pipeline(
     )
     for method_name, method_value, allowed_values in [
         ("align_method", align_method, {None, "align_rasters"}),
-        ("seamline_method", seamline_method, {None, "voronoi_center_seamline"}),
+        ("seamline_method", seamline_method, {None, "voronoi_center_seamline", "weighted_seamline"}),
         ("clip_method", clip_method, {None, "mask_rasters"}),
         ("merge_method", merge_method, {None, "merge_rasters"}),
     ]:
@@ -229,6 +236,16 @@ def pipeline(
             min_cut_length=voronoi_center_seamline_min_cut_length,
             debug_vectors_path=voronoi_center_seamline_debug_vectors_path,
         )
+    if seamline_method == "weighted_seamline":
+        SeamlineValidation._validate_weighted_seamline(
+            input_polygons=weighted_seamline_input_polygons,
+            output_mask=weighted_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
+            rank_function=weighted_seamline_rank_function,
+            image_field_name=weighted_seamline_image_field_name,
+            input_layer=weighted_seamline_input_layer,
+            output_layer=weighted_seamline_output_layer,
+            rank_descending=weighted_seamline_rank_descending,
+        )
     if clip_method == "mask_rasters":
         clip_vector_mask = mask_rasters_vector_mask
         if clip_vector_mask is None and seamline_method == "voronoi_center_seamline":
@@ -236,6 +253,12 @@ def pipeline(
                 "include",
                 voronoi_center_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
                 voronoi_center_seamline_image_field_name,
+            )
+        if clip_vector_mask is None and seamline_method == "weighted_seamline":
+            clip_vector_mask = (
+                "include",
+                weighted_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
+                weighted_seamline_image_field_name,
             )
         if clip_vector_mask is None:
             raise ValueError(
@@ -279,6 +302,7 @@ def pipeline(
 
     current_images = shared_input_images
     seamline_mask_path = None
+    seamline_mask_image_field_name = None
 
     results: dict[str, Any] = {
         "temp_dir": temp_dir,
@@ -385,6 +409,7 @@ def pipeline(
             seamline_mask_path = voronoi_center_seamline_output_mask or os.path.join(
                 temp_dir, "seamline", "ImageMasks.gpkg"
             )
+            seamline_mask_image_field_name = voronoi_center_seamline_image_field_name
             Seamline.voronoi(
                 input_images=current_images,
                 output_mask=seamline_mask_path,
@@ -397,6 +422,22 @@ def pipeline(
                 debug_vectors_path=voronoi_center_seamline_debug_vectors_path,
             )
             results["voronoi_center_seamline"] = seamline_mask_path
+        elif seamline_method == "weighted_seamline":
+            seamline_mask_path = weighted_seamline_output_mask or os.path.join(
+                temp_dir, "seamline", "ImageMasks.gpkg"
+            )
+            seamline_mask_image_field_name = weighted_seamline_image_field_name
+            Seamline.weighted(
+                input_polygons=weighted_seamline_input_polygons,
+                output_mask=seamline_mask_path,
+                rank_function=weighted_seamline_rank_function,
+                image_field_name=weighted_seamline_image_field_name,
+                input_layer=weighted_seamline_input_layer,
+                output_layer=weighted_seamline_output_layer,
+                rank_descending=weighted_seamline_rank_descending,
+                debug_logs=shared_debug_logs,
+            )
+            results["weighted_seamline"] = seamline_mask_path
         elif seamline_method is None:
             results["voronoi_center_seamline"] = None
         else:
@@ -409,7 +450,7 @@ def pipeline(
                 clip_vector_mask = (
                     "include",
                     seamline_mask_path,
-                    voronoi_center_seamline_image_field_name,
+                    seamline_mask_image_field_name,
                 )
             if clip_vector_mask is None:
                 raise ValueError(
@@ -461,7 +502,7 @@ def pipeline(
         end_dt = datetime.now()
         duration_seconds = round(time.perf_counter() - start_perf, 2)
 
-        return {
+        final_results = {
             "output": results["output"],
             "temp_dir": temp_dir,
             "num_input_images": len(input_image_paths),
@@ -473,6 +514,10 @@ def pipeline(
             "resolved_shared_io_threads": shared_io_threads,
             "resolved_shared_tile_threads": shared_tile_threads,
         }
+        for key, value in results.items():
+            if key not in final_results and value is not None:
+                final_results[key] = value
+        return final_results
     finally:
         if delete_temp_dir and os.path.isdir(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)

@@ -16,6 +16,7 @@ from spectralmatch import (
     merge_rasters,
     search_paths,
     voronoi_center_seamline,
+    weighted_seamline,
 )
 
 # Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
@@ -96,7 +97,9 @@ align_rasters(
     tile_threads=tile_threads,
 )
 
-# %% Generate voronoi center seamlines
+# %% Generate seamlines
+
+# Option 1: Voronoi center seamlines from the raster footprints
 
 voronoi_center_seamline(
     input_images=aligned_folder,
@@ -105,6 +108,17 @@ voronoi_center_seamline(
     debug_logs=debug_mode,
     debug_vectors_path=os.path.join(working_directory, "DebugVectors.gpkg"),
 )
+
+# Option 2: Weighted seamlines from a polygon layer that already contains ranking attributes. This is useful when another workflow prepares footprint polygons plus metadata fields for ranking. Rank placeholders support direct fields like {quality_score}.
+# weighted_seamline(
+#     input_polygons=os.path.join(working_directory, "SeamlineMetadata.gpkg"),
+#     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
+#     input_layer="footprints",
+#     image_field_name="image",
+#     rank_function="{quality_score} - {cloud_cover}",
+#     rank_descending=True,
+#     debug_logs=debug_mode,
+# )
 
 # %% Clip
 

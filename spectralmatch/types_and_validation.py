@@ -420,3 +420,36 @@ class Seamline:
         if debug_vectors_path is not _UNSET and debug_vectors_path is not None:
             if not isinstance(debug_vectors_path, str):
                 raise ValueError("debug_vectors_path must be a string or None.")
+
+    @staticmethod
+    def _validate_weighted_seamline(
+        *,
+        input_polygons=_UNSET,
+        output_mask=_UNSET,
+        rank_function=_UNSET,
+        image_field_name=_UNSET,
+        input_layer=_UNSET,
+        output_layer=_UNSET,
+        rank_descending=_UNSET,
+    ):
+        if input_polygons is not _UNSET:
+            if not isinstance(input_polygons, str):
+                raise ValueError("input_polygons must be a string.")
+        if output_mask is not _UNSET:
+            if not isinstance(output_mask, str):
+                raise ValueError("output_mask must be a string.")
+        if rank_function is not _UNSET:
+            if not isinstance(rank_function, str) or not rank_function.strip():
+                raise ValueError("rank_function must be a non-empty string.")
+        if image_field_name is not _UNSET:
+            if not isinstance(image_field_name, str) or not image_field_name.strip():
+                raise ValueError("image_field_name must be a non-empty string.")
+        if input_layer is not _UNSET and input_layer is not None:
+            if not isinstance(input_layer, str) or not input_layer.strip():
+                raise ValueError("input_layer must be a non-empty string or None.")
+        if output_layer is not _UNSET:
+            if not isinstance(output_layer, str) or not output_layer.strip():
+                raise ValueError("output_layer must be a non-empty string.")
+        if rank_descending is not _UNSET:
+            if not isinstance(rank_descending, bool):
+                raise ValueError("rank_descending must be a bool.")

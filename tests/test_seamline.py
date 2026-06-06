@@ -1,5 +1,7 @@
 import os
 import pytest
+import geopandas as gpd
+from shapely.geometry import box
 
 from spectralmatch import Seamline
 from .test_utils import create_dummy_raster
@@ -59,3 +61,48 @@ def test_voronoi_center_seamline_minimal(tmp_path):
     Seamline.voronoi(input_images=paths, output_mask=out_path)
 
     assert os.path.exists(out_path)
+
+
+def test_weighted_seamline_ranked_overlay(tmp_path):
+    polygons_path = tmp_path / "footprints.gpkg"
+    output_path = tmp_path / "weighted_seamlines.gpkg"
+
+    gdf = gpd.GeoDataFrame(
+        [
+            {
+                "image": "A",
+                "quality": 5.0,
+                "cloud": 20.0,
+                "geometry": box(0, 0, 10, 10),
+            },
+            {
+                "image": "B",
+                "quality": 10.0,
+                "cloud": 5.0,
+                "geometry": box(5, 0, 15, 10),
+            },
+        ],
+        geometry="geometry",
+        crs="EPSG:4326",
+    )
+    gdf.to_file(polygons_path, layer="footprints", driver="GPKG")
+
+    result = Seamline.weighted(
+        input_polygons=str(polygons_path),
+        output_mask=str(output_path),
+        input_layer="footprints",
+        rank_function="{quality} - {cloud}",
+        image_field_name="image",
+        debug_logs=True,
+    )
+
+    assert result == str(output_path)
+    assert os.path.exists(output_path)
+
+    output_gdf = gpd.read_file(output_path, layer="seamlines")
+    assert set(output_gdf["image"]) == {"A", "B"}
+    ranks = dict(zip(output_gdf["image"], output_gdf["weighted_rank"]))
+    assert ranks["B"] < ranks["A"]
+    areas = dict(zip(output_gdf["image"], output_gdf.geometry.area))
+    assert areas["B"] == pytest.approx(100.0)
+    assert areas["A"] == pytest.approx(50.0)
