@@ -873,6 +873,7 @@ def _whole_stats_process_image(
             }
     """
     stats = {image_name: {}}
+    print(f"    {image_name}")
 
     ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
 
