@@ -13,6 +13,7 @@ from .handlers import (
     _check_raster_requirements,
     _resolve_nodata_value,
     _existing_outputs_are_reusable,
+    _resolve_reusable_output_paths,
 )
 from .types_and_validation import Universal, Utils as UtilsValidation
 from .utils_multiprocessing import _get_executor, _resolve_parallel_config
@@ -160,6 +161,14 @@ def align_rasters(
     input_image_names = [
         os.path.splitext(os.path.basename(p))[0] for p in input_image_paths
     ]
+    reusable_output_paths = _resolve_reusable_output_paths(
+        output_image_paths,
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="align_rasters",
+    )
+    if len(reusable_output_paths) == len(output_image_paths):
+        return output_image_paths
 
     # Setup gdal
     _set_gdal_cache(cache, debug_logs)
@@ -206,6 +215,7 @@ def align_rasters(
             resume_from_outputs,
         )
         for i in range(len(input_image_paths))
+        if output_image_paths[i] not in reusable_output_paths
     ]
 
     if image_threads:
@@ -516,6 +526,14 @@ def mask_rasters(
         output_images,
         kwargs={"paths_or_bases": input_image_paths, "default_file_pattern": "$_Mask.tif"},
     )
+    reusable_output_paths = _resolve_reusable_output_paths(
+        output_image_paths,
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="mask_rasters",
+    )
+    if len(reusable_output_paths) == len(output_image_paths):
+        return output_image_paths
 
     input_image_names = [
         os.path.splitext(os.path.basename(p))[0] for p in input_image_paths
@@ -549,6 +567,7 @@ def mask_rasters(
             resume_from_outputs,
         )
         for i in range(len(input_image_paths))
+        if output_image_paths[i] not in reusable_output_paths
     ]
 
     if image_threads_on:

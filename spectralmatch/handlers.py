@@ -84,6 +84,31 @@ def _existing_outputs_are_reusable(
     return True
 
 
+def _resolve_reusable_output_paths(
+    output_paths: List[str],
+    *,
+    resume_mode: Literal["no", "yes", "validate"],
+    debug_logs: bool = False,
+    step_name: str = "",
+) -> set[str]:
+    if resume_mode == "no":
+        return set()
+    reusable = {path for path in output_paths if os.path.exists(path)}
+    if resume_mode == "validate":
+        reusable = {
+            path
+            for path in reusable
+            if (not _is_gdal_raster_path(path)) or _gdal_raster_is_valid(path)[0]
+        }
+    if debug_logs and step_name and reusable:
+        if len(reusable) == len(output_paths):
+            mode_label = "validated existing" if resume_mode == "validate" else "existing"
+            print(f"Resume from {mode_label} step outputs: {step_name}")
+        else:
+            print(f"Resume from {len(reusable)}/{len(output_paths)} existing step outputs: {step_name}")
+    return reusable
+
+
 def _is_gdal_raster_path(path: str) -> bool:
     return os.path.splitext(path)[1].lower() in {".tif", ".tiff", ".dat", ".img", ".vrt"}
 
