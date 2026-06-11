@@ -150,3 +150,92 @@ def test_pipeline_weighted_seamline_step(tmp_path):
 
     assert results["output"] == input_paths
     assert os.path.exists(results["weighted_seamline"])
+
+
+def test_pipeline_resume_from_existing_merge_output_yes(tmp_path, monkeypatch):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_path = tmp_path / "merged.tif"
+
+    input_paths = []
+    for name, x_origin, fill_value in [
+        ("A", 0, 50),
+        ("B", 4, 75),
+    ]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path,
+            width=16,
+            height=16,
+            count=1,
+            transform=(x_origin, 1, 0, 16, 0, -1),
+            fill_value=fill_value,
+        )
+        input_paths.append(str(path))
+
+    create_dummy_raster(
+        output_path,
+        width=32,
+        height=16,
+        count=1,
+        transform=(0, 1, 0, 16, 0, -1),
+        fill_value=123,
+    )
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("merge_rasters should have resumed before building the VRT")
+
+    monkeypatch.setattr("spectralmatch.utils.gdal.BuildVRT", fail_if_called)
+
+    results = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(output_path),
+        shared_resume_from_steps="yes",
+        matching_order=(),
+        align_method=None,
+        seamline_method=None,
+        clip_method=None,
+        merge_method="merge_rasters",
+        merge_rasters_build_overviews=False,
+    )
+
+    assert results["output"] == str(output_path)
+
+
+def test_pipeline_resume_from_existing_merge_output_validate_reruns_invalid(tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_path = tmp_path / "merged.tif"
+
+    input_paths = []
+    for name, x_origin, fill_value in [
+        ("A", 0, 50),
+        ("B", 4, 75),
+    ]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path,
+            width=16,
+            height=16,
+            count=1,
+            transform=(x_origin, 1, 0, 16, 0, -1),
+            fill_value=fill_value,
+        )
+        input_paths.append(str(path))
+
+    output_path.write_text("not a raster", encoding="utf-8")
+
+    results = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(output_path),
+        shared_resume_from_steps="validate",
+        matching_order=(),
+        align_method=None,
+        seamline_method=None,
+        clip_method=None,
+        merge_method="merge_rasters",
+        merge_rasters_build_overviews=False,
+    )
+
+    assert results["output"] == str(output_path)
+    assert os.path.getsize(output_path) > 0

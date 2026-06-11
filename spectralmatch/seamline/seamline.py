@@ -1,11 +1,12 @@
 import os
 from itertools import combinations
+from typing import Literal
 
 import fiona
 from osgeo import gdal
 from shapely.geometry import LineString, Polygon, mapping
 
-from ..handlers import _resolve_paths
+from ..handlers import _resolve_paths, _existing_outputs_are_reusable
 from ..types_and_validation import Universal, Seamline as SeamlineValidation
 from .voronoi_center_seamline import (
     _compute_centerline,
@@ -33,6 +34,7 @@ class Seamline:
         output_layer: str = "seamlines",
         rank_descending: bool = True,
         debug_logs: Universal.DebugLogs = False,
+        resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> str:
         """Generate seamline polygons by ranking image footprints with a weighted expression.
 
@@ -63,6 +65,13 @@ Returns:
             print(f"Input polygons: {input_polygons}")
             print(f"Output mask: {output_mask}")
             print(f"Rank function: {rank_function}")
+        if _existing_outputs_are_reusable(
+            [output_mask],
+            resume_mode=resume_from_outputs,
+            debug_logs=debug_logs,
+            step_name="weighted_seamline",
+        ):
+            return output_mask
         return weighted_seamline(
             input_polygons=input_polygons,
             output_mask=output_mask,
@@ -86,6 +95,7 @@ Returns:
         min_cut_length: float = 0,
         debug_logs: Universal.DebugLogs = False,
         debug_vectors_path: str | None = None,
+        resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> None:
         """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
 
@@ -110,6 +120,13 @@ Outputs:
             debug_dir = os.path.dirname(debug_vectors_path)
             if debug_dir:
                 os.makedirs(debug_dir, exist_ok=True)
+        if _existing_outputs_are_reusable(
+            [output_mask],
+            resume_mode=resume_from_outputs,
+            debug_logs=debug_logs,
+            step_name="voronoi_center_seamline",
+        ):
+            return
 
         Universal._validate(
             input_images=input_images,

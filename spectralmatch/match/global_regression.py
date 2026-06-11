@@ -12,6 +12,7 @@ from typing import List, Dict
 from numpy import ndarray
 from scipy.optimize import least_squares
 
+from ..handlers import _existing_outputs_are_reusable
 from ..utils import  _resolve_window_size, _get_valid_count
 
 
@@ -278,6 +279,7 @@ def _apply_adjustments_process_image(
     calculation_dtype: str | None,
     save_as_cog,
     debug_logs: bool,
+    resume_from_outputs: str,
 ):
     """
     Applies per-band linear radiometric adjustments to an image using GDAL VRT metadata and materializes the result as a GeoTIFF or COG. Each band is transformed according to: y = a * x + b, where `a` = scale and `b` = offset.
@@ -302,6 +304,13 @@ def _apply_adjustments_process_image(
         None
     """
     if debug_logs: print(f"    {image_name}")
+    if _existing_outputs_are_reusable(
+        [output_image_path],
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="global_regression",
+    ):
+        return
     # VRT wrapper of the input
     with tempfile.TemporaryDirectory(prefix="spectralmatch_adjust_") as tmpdir:
         vrt_path = os.path.join(tmpdir, f"{image_name}_linear.vrt")

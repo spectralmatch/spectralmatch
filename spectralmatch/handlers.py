@@ -48,6 +48,81 @@ def _resolve_paths(
     return resolved
 
 
+def _existing_outputs_are_reusable(
+    output_paths: List[str],
+    *,
+    resume_mode: Literal["no", "yes", "validate"],
+    debug_logs: bool = False,
+    step_name: str = "",
+) -> bool:
+    if resume_mode == "no":
+        return False
+    if not output_paths or not all(os.path.exists(path) for path in output_paths):
+        return False
+    if resume_mode == "yes":
+        if debug_logs and step_name:
+            print(f"Resume from existing step outputs: {step_name}")
+        return True
+
+    invalid_result = next(
+        (
+            (path, reason)
+            for path in output_paths
+            if _is_gdal_raster_path(path)
+            for is_valid, reason in [_gdal_raster_is_valid(path)]
+            if not is_valid
+        ),
+        None,
+    )
+    if invalid_result is not None:
+        path, reason = invalid_result
+        if debug_logs and step_name:
+            print(f"Existing output invalid for step {step_name}; rerunning ({path}: {reason})")
+        return False
+    if debug_logs and step_name:
+        print(f"Resume from validated existing step outputs: {step_name}")
+    return True
+
+
+def _is_gdal_raster_path(path: str) -> bool:
+    return os.path.splitext(path)[1].lower() in {".tif", ".tiff", ".dat", ".img", ".vrt"}
+
+
+def _gdal_raster_is_valid(path: str) -> tuple[bool, str | None]:
+    if not os.path.exists(path):
+        return False, "missing"
+    try:
+        dataset = gdal.OpenEx(path, gdal.OF_RASTER)
+    except Exception as exc:
+        return False, str(exc)
+    if dataset is None:
+        return False, "GDAL open failed"
+    try:
+        band_count = dataset.RasterCount
+        width = dataset.RasterXSize
+        height = dataset.RasterYSize
+        if band_count < 1 or width < 1 or height < 1:
+            return False, f"invalid raster shape bands={band_count} size={width}x{height}"
+        read_w = min(width, 256)
+        read_h = min(height, 256)
+        offsets = [
+            (0, 0),
+            (max(0, width - read_w), max(0, height - read_h)),
+        ]
+        for band_index in range(1, band_count + 1):
+            band = dataset.GetRasterBand(band_index)
+            if band is None:
+                return False, f"missing band {band_index}"
+            for xoff, yoff in offsets:
+                if band.ReadRaster(xoff, yoff, read_w, read_h) is None:
+                    return False, f"GDAL ReadRaster failed for band {band_index}"
+    except Exception as exc:
+        return False, str(exc)
+    finally:
+        dataset = None
+    return True, None
+
+
 def search_paths(
     search_pattern: str,
     *,

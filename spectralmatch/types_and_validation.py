@@ -312,6 +312,7 @@ class Pipeline:
         shared_output_image_path=_UNSET,
         shared_temp_dir=_UNSET,
         delete_temp_dir=_UNSET,
+        shared_resume_from_steps=_UNSET,
     ):
         if shared_output_image_path is not _UNSET:
             if not isinstance(shared_output_image_path, str):
@@ -322,6 +323,11 @@ class Pipeline:
         if delete_temp_dir is not _UNSET:
             if not isinstance(delete_temp_dir, bool):
                 raise ValueError("delete_temp_dir must be a boolean.")
+        if shared_resume_from_steps is not _UNSET:
+            if shared_resume_from_steps not in {"no", "yes", "validate"}:
+                raise ValueError(
+                    "shared_resume_from_steps must be one of 'no', 'yes', or 'validate'."
+                )
 
     @staticmethod
     def _validate_method_choice(

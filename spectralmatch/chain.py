@@ -25,6 +25,7 @@ def pipeline(
     *,
     shared_temp_dir: str | None = None,
     delete_temp_dir: bool = True,
+    shared_resume_from_steps: Literal["no", "yes", "validate"] = "no",
     shared_debug_logs: Universal.DebugLogs = False,
     shared_cache: AutoCache = "auto",
     shared_custom_nodata_value: Universal.CustomNodataValue = None,
@@ -123,6 +124,7 @@ def pipeline(
         shared_output_image_path=shared_output_image_path,
         shared_temp_dir=shared_temp_dir,
         delete_temp_dir=delete_temp_dir,
+        shared_resume_from_steps=shared_resume_from_steps,
     )
     for method_name, method_value, allowed_values in [
         ("align_method", align_method, {None, "align_rasters"}),
@@ -314,6 +316,7 @@ def pipeline(
         "num_input_images": len(input_image_paths),
         "start_time": start_dt.isoformat(timespec="seconds"),
         "matching_order": matching_order,
+        "shared_resume_from_steps": shared_resume_from_steps,
     }
     try:
         for matching_step in matching_order:
@@ -352,6 +355,7 @@ def pipeline(
                     pif_feature_method=global_regression_pif_feature_method,
                     pif_save_inz=global_regression_pif_save_inz,
                     build_overviews=global_regression_build_overviews,
+                    resume_from_outputs=shared_resume_from_steps,
                 )
                 results["global_regression"] = current_images
             elif matching_step == "local_block_adjustment":
@@ -379,6 +383,7 @@ def pipeline(
                     load_block_maps=local_block_adjustment_load_block_maps,
                     override_bounds_canvas_coords=local_block_adjustment_override_bounds_canvas_coords,
                     build_overviews=local_block_adjustment_build_overviews,
+                    resume_from_outputs=shared_resume_from_steps,
                 )
                 results["local_block_adjustment"] = current_images
 
@@ -398,6 +403,7 @@ def pipeline(
                 image_threads=shared_image_threads,
                 io_threads=shared_io_threads,
                 tile_threads=shared_tile_threads,
+                resume_from_outputs=shared_resume_from_steps,
             )
             results["align_rasters"] = current_images
         elif align_method is None:
@@ -420,6 +426,7 @@ def pipeline(
                 min_cut_length=voronoi_center_seamline_min_cut_length,
                 debug_logs=shared_debug_logs,
                 debug_vectors_path=voronoi_center_seamline_debug_vectors_path,
+                resume_from_outputs=shared_resume_from_steps,
             )
             results["voronoi_center_seamline"] = seamline_mask_path
         elif seamline_method == "weighted_seamline":
@@ -436,6 +443,7 @@ def pipeline(
                 output_layer=weighted_seamline_output_layer,
                 rank_descending=weighted_seamline_rank_descending,
                 debug_logs=shared_debug_logs,
+                resume_from_outputs=shared_resume_from_steps,
             )
             results["weighted_seamline"] = seamline_mask_path
         elif seamline_method is None:
@@ -470,6 +478,7 @@ def pipeline(
                 tile_threads=shared_tile_threads,
                 include_touched_pixels=mask_rasters_include_touched_pixels,
                 custom_nodata_value=shared_custom_nodata_value,
+                resume_from_outputs=shared_resume_from_steps,
             )
             results["mask_rasters"] = current_images
         elif clip_method is None:
@@ -490,6 +499,7 @@ def pipeline(
                 resolution=merge_rasters_resolution,
                 window_size=shared_window_size,
                 build_overviews=merge_rasters_build_overviews,
+                resume_from_outputs=shared_resume_from_steps,
             )
             results["merge_rasters"] = merged_output
             results["output"] = merged_output
@@ -521,7 +531,6 @@ def pipeline(
     finally:
         if delete_temp_dir and os.path.isdir(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
-
 
 def _resolve_auto_shared_settings(
     *,
