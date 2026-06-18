@@ -11,20 +11,53 @@ from typing import Any, Literal
 from .handlers import _resolve_paths
 from .match.match import Match
 from .seamline.seamline import Seamline
-from .types_and_validation import Universal, Match as MatchValidation, Pipeline as PipelineValidation, Utils as UtilsValidation, Seamline as SeamlineValidation
+from .types_and_validation import Universal, Pipeline as PipelineValidation
 from .utils import align_rasters, mask_rasters, merge_rasters
 
 AutoCache = Universal.Cache | Literal["auto"]
 AutoThreads = Universal.Threads | Literal["auto"]
-MatchingOrderStep = Literal["global_regression", "local_block_adjustment"]
+PipelineStep = Literal[
+    "global_regression",
+    "local_block_adjustment",
+    "align",
+    "voronoi_center_seamline",
+    "weighted_seamline",
+    "mask",
+    "merge",
+]
+
+MULTI_RASTER_STEPS = {
+    "global_regression",
+    "local_block_adjustment",
+    "align",
+    "mask",
+}
+SEAMLINE_STEPS = {"voronoi_center_seamline", "weighted_seamline"}
+DEFAULT_PIPELINE_STEPS: tuple[PipelineStep, ...] = (
+    "global_regression",
+    "local_block_adjustment",
+    "align",
+    "voronoi_center_seamline",
+    "mask",
+    "merge",
+)
+STEP_TEMP_OUTPUTS = {
+    "global_regression": os.path.join("global"),
+    "local_block_adjustment": os.path.join("local"),
+    "align": os.path.join("aligned"),
+    "mask": os.path.join("clip"),
+    "voronoi_center_seamline": os.path.join("seamline", "ImageMasks.gpkg"),
+    "weighted_seamline": os.path.join("seamline", "ImageMasks.gpkg"),
+}
 
 
 def pipeline(
     shared_input_images: Universal.SearchFolderOrListFiles,
-    shared_output_image_path: str,
+    shared_output_image_path: Universal.CreateInFolderOrListFiles,
     *,
     shared_temp_dir: str | None = None,
     delete_temp_dir: bool = True,
+    delete_previous_step: bool = False,
     shared_resume_from_steps: Literal["no", "yes", "validate"] = "no",
     shared_debug_logs: Universal.DebugLogs = False,
     shared_cache: AutoCache = "auto",
@@ -36,15 +69,7 @@ def pipeline(
     shared_calculation_dtype: Universal.CalculationDtype = "float32",
     shared_output_dtype: Universal.CustomOutputDtype = None,
     shared_save_as_cog: Universal.SaveAsCog = False,
-    matching_order: list[MatchingOrderStep] | tuple[MatchingOrderStep, ...] = (
-        "global_regression",
-        "local_block_adjustment",
-    ),
-    align_method: Literal["align_rasters"] | None = "align_rasters",
-    seamline_method: Literal["voronoi_center_seamline", "weighted_seamline"] | None = "voronoi_center_seamline",
-    clip_method: Literal["mask_rasters"] | None = "mask_rasters",
-    merge_method: Literal["merge_rasters"] | None = "merge_rasters",
-    global_regression_output_images: Universal.CreateInFolderOrListFiles | None = None,
+    steps: list[PipelineStep] | tuple[PipelineStep, ...] = DEFAULT_PIPELINE_STEPS,
     global_regression_vector_mask: Universal.VectorMask = None,
     global_regression_estimate_stats: bool = True,
     global_regression_specify_model_images: tuple[Literal["exclude", "include"], list[str]] | None = None,
@@ -63,7 +88,6 @@ def pipeline(
     global_regression_pif_feature_method: Literal["orb"] = "orb",
     global_regression_pif_save_inz: str | None = None,
     global_regression_build_overviews: bool = False,
-    local_block_adjustment_output_images: Universal.CreateInFolderOrListFiles | None = None,
     local_block_adjustment_vector_mask: Universal.VectorMask = None,
     local_block_adjustment_number_of_blocks: int | tuple[int, int] | Literal["coefficient_of_variation"] = 100,
     local_block_adjustment_alpha: float = 1.0,
@@ -72,11 +96,9 @@ def pipeline(
     local_block_adjustment_load_block_maps: tuple[str | None, list[str] | None] | None = None,
     local_block_adjustment_override_bounds_canvas_coords: tuple[float, float, float, float] | None = None,
     local_block_adjustment_build_overviews: bool = False,
-    align_rasters_output_images: Universal.CreateInFolderOrListFiles | None = None,
     align_rasters_resampling_method: Literal["nearest", "bilinear", "cubic"] = "bilinear",
     align_rasters_tap: bool = True,
     align_rasters_resolution: Literal["highest", "average", "lowest"] = "highest",
-    voronoi_center_seamline_output_mask: str | None = None,
     voronoi_center_seamline_aoi_path: str | None = None,
     voronoi_center_seamline_vector_mask: tuple[str, str] | None = None,
     voronoi_center_seamline_image_field_name: str = "image",
@@ -84,29 +106,31 @@ def pipeline(
     voronoi_center_seamline_min_cut_length: float = 0,
     voronoi_center_seamline_debug_vectors_path: str | None = None,
     weighted_seamline_input_polygons: str | None = None,
-    weighted_seamline_output_mask: str | None = None,
     weighted_seamline_rank_function: str | None = None,
     weighted_seamline_image_field_name: str = "image",
     weighted_seamline_input_layer: str | None = None,
     weighted_seamline_output_layer: str = "seamlines",
     weighted_seamline_rank_descending: bool = True,
-    mask_rasters_output_images: Universal.CreateInFolderOrListFiles | None = None,
     mask_rasters_vector_mask: Universal.VectorMask = None,
     mask_rasters_include_touched_pixels: bool = False,
     merge_rasters_resolution: Literal["highest", "average", "lowest"] = "highest",
     merge_rasters_build_overviews: bool = True,
 ) -> dict[str, Any]:
     """
-    Run the standard spectral matching mosaic workflow as a single pipeline.
+    Run the spectral matching workflow as an ordered pipeline.
 
-    The default matching order is: global matching -> local matching. Override
-    this with ``matching_order`` to run the matching stages in a different
-    sequence or omit one of them entirely.
+    ``steps`` defines the exact step order. Intermediate outputs are written
+    inside the pipeline temp directory. The final step writes to
+    ``shared_output_image_path``:
 
-    Matching stages are controlled by ``matching_order``. Intermediate outputs default to a temporary directory that is created automatically unless ``shared_temp_dir`` is provided. Set``delete_temp_dir=True`` to remove the temp directory after processing.
+    - If the final step writes multiple rasters, ``shared_output_image_path``
+      must be a folder, a template containing ``$``, or a list of paths.
+    - If the final step writes a single raster or vector, it must be a single
+      file path without ``$``.
     """
     temp_dir = shared_temp_dir or tempfile.mkdtemp(prefix="spectralmatch_pipeline_")
     os.makedirs(temp_dir, exist_ok=True)
+
     input_image_paths = _resolve_paths(
         "search", shared_input_images, kwargs={"default_file_pattern": "*.tif"}
     )
@@ -124,29 +148,9 @@ def pipeline(
         shared_output_image_path=shared_output_image_path,
         shared_temp_dir=shared_temp_dir,
         delete_temp_dir=delete_temp_dir,
+        delete_previous_step=delete_previous_step,
         shared_resume_from_steps=shared_resume_from_steps,
     )
-    for method_name, method_value, allowed_values in [
-        ("align_method", align_method, {None, "align_rasters"}),
-        ("seamline_method", seamline_method, {None, "voronoi_center_seamline", "weighted_seamline"}),
-        ("clip_method", clip_method, {None, "mask_rasters"}),
-        ("merge_method", merge_method, {None, "merge_rasters"}),
-    ]:
-        PipelineValidation._validate_method_choice(
-            method_name=method_name,
-            method_value=method_value,
-            allowed_values=allowed_values,
-        )
-    if not isinstance(matching_order, (list, tuple)):
-        raise ValueError("matching_order must be a list or tuple of matching step names.")
-    matching_order = list(matching_order)
-    for step in matching_order:
-        if step not in {"global_regression", "local_block_adjustment"}:
-            raise ValueError(
-                "matching_order values must be 'global_regression' or 'local_block_adjustment'."
-            )
-    if len(set(matching_order)) != len(matching_order):
-        raise ValueError("matching_order cannot contain duplicate steps.")
     Universal._validate(
         input_images=shared_input_images,
         debug_logs=shared_debug_logs,
@@ -160,141 +164,13 @@ def pipeline(
         tile_threads=shared_tile_threads,
         save_as_cog=shared_save_as_cog,
     )
-    if "global_regression" in matching_order:
-        Universal._validate(
-            input_images=shared_input_images,
-            output_images=global_regression_output_images or os.path.join(temp_dir, "global"),
-            save_as_cog=shared_save_as_cog,
-            debug_logs=shared_debug_logs,
-            vector_mask=global_regression_vector_mask,
-            window_size=shared_window_size,
-            custom_nodata_value=shared_custom_nodata_value,
-            calculation_dtype=shared_calculation_dtype,
-            output_dtype=shared_output_dtype,
-            cache=shared_cache,
-            image_threads=shared_image_threads,
-            io_threads=shared_io_threads,
-            tile_threads=shared_tile_threads,
-            estimate_stats=global_regression_estimate_stats,
-        )
-        MatchValidation._validate_match(specify_model_images=global_regression_specify_model_images)
-        MatchValidation._validate_global_regression(
-            custom_mean_factor=global_regression_custom_mean_factor,
-            custom_std_factor=global_regression_custom_std_factor,
-            save_adjustments=global_regression_save_adjustments,
-            load_adjustments=global_regression_load_adjustments,
-            pif_method=global_regression_pif_method,
-            pif_feature_method=global_regression_pif_feature_method,
-            pif_save_inz=global_regression_pif_save_inz,
-        )
-    if "local_block_adjustment" in matching_order:
-        Universal._validate(
-            input_images=shared_input_images,
-            output_images=local_block_adjustment_output_images or os.path.join(temp_dir, "local"),
-            save_as_cog=shared_save_as_cog,
-            debug_logs=shared_debug_logs,
-            vector_mask=local_block_adjustment_vector_mask,
-            window_size=shared_window_size,
-            custom_nodata_value=shared_custom_nodata_value,
-            calculation_dtype=shared_calculation_dtype,
-            output_dtype=shared_output_dtype,
-            cache=shared_cache,
-            image_threads=shared_image_threads,
-            io_threads=shared_io_threads,
-            tile_threads=shared_tile_threads,
-        )
-        MatchValidation._validate_local_block_adjustment(
-            number_of_blocks=local_block_adjustment_number_of_blocks,
-            alpha=local_block_adjustment_alpha,
-            correction_method=local_block_adjustment_correction_method,
-            save_block_maps=local_block_adjustment_save_block_maps,
-            load_block_maps=local_block_adjustment_load_block_maps,
-            override_bounds_canvas_coords=local_block_adjustment_override_bounds_canvas_coords,
-        )
-    if align_method == "align_rasters":
-        Universal._validate(
-            input_images=shared_input_images,
-            output_images=align_rasters_output_images or os.path.join(temp_dir, "aligned"),
-            debug_logs=shared_debug_logs,
-            window_size=shared_window_size,
-            cache=shared_cache,
-            image_threads=shared_image_threads,
-            io_threads=shared_io_threads,
-            tile_threads=shared_tile_threads,
-        )
-        UtilsValidation._validate_align_rasters(
-            resampling_method=align_rasters_resampling_method,
-            tap=align_rasters_tap,
-            resolution=align_rasters_resolution,
-        )
-    if seamline_method == "voronoi_center_seamline":
-        Universal._validate(input_images=shared_input_images)
-        SeamlineValidation._validate_voronoi_center_seamline(
-            output_mask=voronoi_center_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
-            aoi_path=voronoi_center_seamline_aoi_path,
-            vector_mask=voronoi_center_seamline_vector_mask,
-            image_field_name=voronoi_center_seamline_image_field_name,
-            min_point_spacing=voronoi_center_seamline_min_point_spacing,
-            min_cut_length=voronoi_center_seamline_min_cut_length,
-            debug_vectors_path=voronoi_center_seamline_debug_vectors_path,
-        )
-    if seamline_method == "weighted_seamline":
-        SeamlineValidation._validate_weighted_seamline(
-            input_polygons=weighted_seamline_input_polygons,
-            output_mask=weighted_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
-            rank_function=weighted_seamline_rank_function,
-            image_field_name=weighted_seamline_image_field_name,
-            input_layer=weighted_seamline_input_layer,
-            output_layer=weighted_seamline_output_layer,
-            rank_descending=weighted_seamline_rank_descending,
-        )
-    if clip_method == "mask_rasters":
-        clip_vector_mask = mask_rasters_vector_mask
-        if clip_vector_mask is None and seamline_method == "voronoi_center_seamline":
-            clip_vector_mask = (
-                "include",
-                voronoi_center_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
-                voronoi_center_seamline_image_field_name,
-            )
-        if clip_vector_mask is None and seamline_method == "weighted_seamline":
-            clip_vector_mask = (
-                "include",
-                weighted_seamline_output_mask or os.path.join(temp_dir, "seamline", "ImageMasks.gpkg"),
-                weighted_seamline_image_field_name,
-            )
-        if clip_vector_mask is None:
-            raise ValueError(
-                "mask_rasters requires a vector mask. Set mask_rasters_vector_mask or enable the seamline stage."
-            )
-        Universal._validate(
-            input_images=shared_input_images,
-            output_images=mask_rasters_output_images or os.path.join(temp_dir, "clip"),
-            debug_logs=shared_debug_logs,
-            vector_mask=clip_vector_mask,
-            window_size=shared_window_size,
-            custom_nodata_value=shared_custom_nodata_value,
-            cache=shared_cache,
-            image_threads=shared_image_threads,
-            io_threads=shared_io_threads,
-            tile_threads=shared_tile_threads,
-        )
-        UtilsValidation._validate_mask_rasters(
-            include_touched_pixels=mask_rasters_include_touched_pixels,
-        )
-    if merge_method == "merge_rasters":
-        Universal._validate(
-            input_images=shared_input_images,
-            debug_logs=shared_debug_logs,
-            cache=shared_cache,
-            io_threads=shared_io_threads,
-            tile_threads=shared_tile_threads,
-            output_dtype=shared_output_dtype,
-            window_size=shared_window_size,
-            custom_nodata_value=shared_custom_nodata_value,
-        )
-        UtilsValidation._validate_merge_rasters(
-            resolution=merge_rasters_resolution,
-        )
+
+    resolved_steps = _validate_pipeline_steps(steps)
+    last_step = resolved_steps[-1] if resolved_steps else None
+    _validate_shared_output_for_last_step(
+        shared_output_image_path=shared_output_image_path,
+        last_step=last_step,
+    )
 
     start_dt = datetime.now()
     start_perf = time.perf_counter()
@@ -302,9 +178,10 @@ def pipeline(
     print(f"Pipeline temp dir: {temp_dir}")
     print(f"Number of input images: {len(input_image_paths)}")
 
-    current_images = shared_input_images
-    seamline_mask_path = None
-    seamline_mask_image_field_name = None
+    current_images: Universal.SearchFolderOrListFiles = shared_input_images
+    seamline_mask_path: str | None = None
+    seamline_mask_image_field_name: str | None = None
+    previous_cleanup_paths: list[str] = []
 
     results: dict[str, Any] = {
         "temp_dir": temp_dir,
@@ -315,18 +192,24 @@ def pipeline(
         "resolved_shared_tile_threads": shared_tile_threads,
         "num_input_images": len(input_image_paths),
         "start_time": start_dt.isoformat(timespec="seconds"),
-        "matching_order": matching_order,
+        "steps": resolved_steps,
         "shared_resume_from_steps": shared_resume_from_steps,
     }
+
     try:
-        for matching_step in matching_order:
-            if matching_step == "global_regression":
-                global_output_images = global_regression_output_images or os.path.join(
-                    temp_dir, "global"
+        for step_index, step_name in enumerate(resolved_steps):
+            is_last_step = step_index == len(resolved_steps) - 1
+            step_cleanup_paths: list[str] = []
+
+            if step_name == "global_regression":
+                output_images = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
                 )
                 current_images = Match.global_regression(
                     input_images=current_images,
-                    output_images=global_output_images,
+                    output_images=output_images,
                     calculation_dtype=shared_calculation_dtype,
                     output_dtype=shared_output_dtype,
                     vector_mask=global_regression_vector_mask,
@@ -358,13 +241,19 @@ def pipeline(
                     resume_from_outputs=shared_resume_from_steps,
                 )
                 results["global_regression"] = current_images
-            elif matching_step == "local_block_adjustment":
-                local_output_images = local_block_adjustment_output_images or os.path.join(
-                    temp_dir, "local"
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, current_images, temp_dir
+                )
+
+            elif step_name == "local_block_adjustment":
+                output_images = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
                 )
                 current_images = Match.local_block_adjustment(
                     input_images=current_images,
-                    output_images=local_output_images,
+                    output_images=output_images,
                     calculation_dtype=shared_calculation_dtype,
                     output_dtype=shared_output_dtype,
                     vector_mask=local_block_adjustment_vector_mask,
@@ -386,128 +275,175 @@ def pipeline(
                     resume_from_outputs=shared_resume_from_steps,
                 )
                 results["local_block_adjustment"] = current_images
-
-        if align_method == "align_rasters":
-            align_output_images = align_rasters_output_images or os.path.join(
-                temp_dir, "aligned"
-            )
-            current_images = align_rasters(
-                input_images=current_images,
-                output_images=align_output_images,
-                resampling_method=align_rasters_resampling_method,
-                tap=align_rasters_tap,
-                resolution=align_rasters_resolution,
-                window_size=shared_window_size,
-                debug_logs=shared_debug_logs,
-                cache=shared_cache,
-                image_threads=shared_image_threads,
-                io_threads=shared_io_threads,
-                tile_threads=shared_tile_threads,
-                resume_from_outputs=shared_resume_from_steps,
-            )
-            results["align_rasters"] = current_images
-        elif align_method is None:
-            results["align_rasters"] = None
-        else:
-            raise ValueError(f"Unsupported align_method: {align_method}")
-
-        if seamline_method == "voronoi_center_seamline":
-            seamline_mask_path = voronoi_center_seamline_output_mask or os.path.join(
-                temp_dir, "seamline", "ImageMasks.gpkg"
-            )
-            seamline_mask_image_field_name = voronoi_center_seamline_image_field_name
-            Seamline.voronoi(
-                input_images=current_images,
-                output_mask=seamline_mask_path,
-                aoi_path=voronoi_center_seamline_aoi_path,
-                vector_mask=voronoi_center_seamline_vector_mask,
-                image_field_name=voronoi_center_seamline_image_field_name,
-                min_point_spacing=voronoi_center_seamline_min_point_spacing,
-                min_cut_length=voronoi_center_seamline_min_cut_length,
-                debug_logs=shared_debug_logs,
-                debug_vectors_path=voronoi_center_seamline_debug_vectors_path,
-                resume_from_outputs=shared_resume_from_steps,
-            )
-            results["voronoi_center_seamline"] = seamline_mask_path
-        elif seamline_method == "weighted_seamline":
-            seamline_mask_path = weighted_seamline_output_mask or os.path.join(
-                temp_dir, "seamline", "ImageMasks.gpkg"
-            )
-            seamline_mask_image_field_name = weighted_seamline_image_field_name
-            Seamline.weighted(
-                input_polygons=weighted_seamline_input_polygons,
-                output_mask=seamline_mask_path,
-                rank_function=weighted_seamline_rank_function,
-                image_field_name=weighted_seamline_image_field_name,
-                input_layer=weighted_seamline_input_layer,
-                output_layer=weighted_seamline_output_layer,
-                rank_descending=weighted_seamline_rank_descending,
-                debug_logs=shared_debug_logs,
-                resume_from_outputs=shared_resume_from_steps,
-            )
-            results["weighted_seamline"] = seamline_mask_path
-        elif seamline_method is None:
-            results["voronoi_center_seamline"] = None
-        else:
-            raise ValueError(f"Unsupported seamline_method: {seamline_method}")
-
-        if clip_method == "mask_rasters":
-            mask_output_images = mask_rasters_output_images or os.path.join(temp_dir, "clip")
-            clip_vector_mask = mask_rasters_vector_mask
-            if clip_vector_mask is None and seamline_mask_path is not None:
-                clip_vector_mask = (
-                    "include",
-                    seamline_mask_path,
-                    seamline_mask_image_field_name,
-                )
-            if clip_vector_mask is None:
-                raise ValueError(
-                    "mask_rasters requires a vector mask. Set mask_rasters_vector_mask "
-                    "or enable the seamline stage."
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, current_images, temp_dir
                 )
 
-            current_images = mask_rasters(
-                input_images=current_images,
-                output_images=mask_output_images,
-                vector_mask=clip_vector_mask,
-                window_size=shared_window_size,
-                debug_logs=shared_debug_logs,
-                cache=shared_cache,
-                image_threads=shared_image_threads,
-                io_threads=shared_io_threads,
-                tile_threads=shared_tile_threads,
-                include_touched_pixels=mask_rasters_include_touched_pixels,
-                custom_nodata_value=shared_custom_nodata_value,
-                resume_from_outputs=shared_resume_from_steps,
-            )
-            results["mask_rasters"] = current_images
-        elif clip_method is None:
-            results["mask_rasters"] = None
-        else:
-            raise ValueError(f"Unsupported clip_method: {clip_method}")
+            elif step_name == "align":
+                output_images = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                current_images = align_rasters(
+                    input_images=current_images,
+                    output_images=output_images,
+                    resampling_method=align_rasters_resampling_method,
+                    tap=align_rasters_tap,
+                    resolution=align_rasters_resolution,
+                    window_size=shared_window_size,
+                    debug_logs=shared_debug_logs,
+                    cache=shared_cache,
+                    image_threads=shared_image_threads,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                results["align"] = current_images
+                results["align_rasters"] = current_images
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, current_images, temp_dir
+                )
 
-        if merge_method == "merge_rasters":
-            merged_output = merge_rasters(
-                input_images=current_images,
-                output_image_path=shared_output_image_path,
-                cache=shared_cache,
-                io_threads=shared_io_threads,
-                tile_threads=shared_tile_threads,
-                debug_logs=shared_debug_logs,
-                output_dtype=shared_output_dtype,
-                custom_nodata_value=shared_custom_nodata_value,
-                resolution=merge_rasters_resolution,
-                window_size=shared_window_size,
-                build_overviews=merge_rasters_build_overviews,
-                resume_from_outputs=shared_resume_from_steps,
-            )
-            results["merge_rasters"] = merged_output
-            results["output"] = merged_output
-        elif merge_method is None:
-            results["merge_rasters"] = None
+            elif step_name == "voronoi_center_seamline":
+                seamline_mask_path = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                if not isinstance(seamline_mask_path, str):
+                    raise ValueError(
+                        "shared_output_image_path must be a single file path when the final step is a seamline."
+                    )
+                seamline_mask_image_field_name = voronoi_center_seamline_image_field_name
+                Seamline.voronoi(
+                    input_images=current_images,
+                    output_mask=seamline_mask_path,
+                    aoi_path=voronoi_center_seamline_aoi_path,
+                    vector_mask=voronoi_center_seamline_vector_mask,
+                    image_field_name=voronoi_center_seamline_image_field_name,
+                    min_point_spacing=voronoi_center_seamline_min_point_spacing,
+                    min_cut_length=voronoi_center_seamline_min_cut_length,
+                    debug_logs=shared_debug_logs,
+                    debug_vectors_path=voronoi_center_seamline_debug_vectors_path,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                results["voronoi_center_seamline"] = seamline_mask_path
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, seamline_mask_path, temp_dir
+                )
+
+            elif step_name == "weighted_seamline":
+                seamline_mask_path = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                if not isinstance(seamline_mask_path, str):
+                    raise ValueError(
+                        "shared_output_image_path must be a single file path when the final step is a seamline."
+                    )
+                seamline_mask_image_field_name = weighted_seamline_image_field_name
+                Seamline.weighted(
+                    input_polygons=weighted_seamline_input_polygons,
+                    output_mask=seamline_mask_path,
+                    rank_function=weighted_seamline_rank_function,
+                    image_field_name=weighted_seamline_image_field_name,
+                    input_layer=weighted_seamline_input_layer,
+                    output_layer=weighted_seamline_output_layer,
+                    rank_descending=weighted_seamline_rank_descending,
+                    debug_logs=shared_debug_logs,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                results["weighted_seamline"] = seamline_mask_path
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, seamline_mask_path, temp_dir
+                )
+
+            elif step_name == "mask":
+                output_images = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                clip_vector_mask = mask_rasters_vector_mask
+                if clip_vector_mask is None and seamline_mask_path is not None:
+                    clip_vector_mask = (
+                        "include",
+                        seamline_mask_path,
+                        seamline_mask_image_field_name,
+                    )
+                if clip_vector_mask is None:
+                    raise ValueError(
+                        "mask_rasters requires a vector mask. Set mask_rasters_vector_mask "
+                        "or run a seamline step earlier in the pipeline."
+                    )
+
+                current_images = mask_rasters(
+                    input_images=current_images,
+                    output_images=output_images,
+                    vector_mask=clip_vector_mask,
+                    window_size=shared_window_size,
+                    debug_logs=shared_debug_logs,
+                    cache=shared_cache,
+                    image_threads=shared_image_threads,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    include_touched_pixels=mask_rasters_include_touched_pixels,
+                    custom_nodata_value=shared_custom_nodata_value,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                results["mask"] = current_images
+                results["mask_rasters"] = current_images
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, current_images, temp_dir
+                )
+
+            elif step_name == "merge":
+                if not isinstance(shared_output_image_path, str):
+                    raise ValueError(
+                        "shared_output_image_path must be a single file path when the final step is merge."
+                    )
+                merged_output = merge_rasters(
+                    input_images=current_images,
+                    output_image_path=shared_output_image_path,
+                    cache=shared_cache,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    debug_logs=shared_debug_logs,
+                    output_dtype=shared_output_dtype,
+                    custom_nodata_value=shared_custom_nodata_value,
+                    resolution=merge_rasters_resolution,
+                    window_size=shared_window_size,
+                    build_overviews=merge_rasters_build_overviews,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                current_images = merged_output
+                results["merge"] = merged_output
+                results["merge_rasters"] = merged_output
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, merged_output, temp_dir
+                )
+
+            else:
+                raise ValueError(f"Unsupported pipeline step: {step_name}")
+
+            if delete_previous_step and previous_cleanup_paths:
+                _delete_step_outputs_if_inactive(
+                    previous_cleanup_paths=previous_cleanup_paths,
+                    current_images=current_images,
+                    seamline_mask_path=seamline_mask_path,
+                    temp_dir=temp_dir,
+                    debug_logs=shared_debug_logs,
+                )
+            previous_cleanup_paths = step_cleanup_paths
+
+        if not resolved_steps:
             results["output"] = current_images
+        elif last_step in SEAMLINE_STEPS:
+            results["output"] = seamline_mask_path
         else:
-            raise ValueError(f"Unsupported merge_method: {merge_method}")
+            results["output"] = current_images
 
         end_dt = datetime.now()
         duration_seconds = round(time.perf_counter() - start_perf, 2)
@@ -531,6 +467,135 @@ def pipeline(
     finally:
         if delete_temp_dir and os.path.isdir(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def _validate_pipeline_steps(
+    steps: list[PipelineStep] | tuple[PipelineStep, ...],
+) -> list[PipelineStep]:
+    if not isinstance(steps, (list, tuple)):
+        raise ValueError("steps must be a list or tuple of pipeline step names.")
+    resolved_steps = list(steps)
+    allowed_steps = set(DEFAULT_PIPELINE_STEPS) | SEAMLINE_STEPS
+    for step_name in resolved_steps:
+        if step_name not in allowed_steps:
+            raise ValueError(f"Unsupported pipeline step: {step_name}")
+    if len(set(resolved_steps)) != len(resolved_steps):
+        raise ValueError("steps cannot contain duplicate values.")
+    if len(SEAMLINE_STEPS.intersection(resolved_steps)) > 1:
+        raise ValueError(
+            "steps can include at most one seamline step: "
+            "'voronoi_center_seamline' or 'weighted_seamline'."
+        )
+    return resolved_steps
+
+
+def _validate_shared_output_for_last_step(
+    *,
+    shared_output_image_path: Universal.CreateInFolderOrListFiles,
+    last_step: PipelineStep | None,
+) -> None:
+    if last_step is None:
+        return
+
+    if last_step in MULTI_RASTER_STEPS:
+        Universal._validate(output_images=shared_output_image_path)
+        if isinstance(shared_output_image_path, str):
+            basename = os.path.basename(shared_output_image_path)
+            if basename.count(".") and "$" not in shared_output_image_path:
+                raise ValueError(
+                    "When the final pipeline step writes multiple rasters, "
+                    "shared_output_image_path must be a folder, a template containing '$', "
+                    "or a list of output paths."
+                )
+        return
+
+    if not isinstance(shared_output_image_path, str):
+        raise ValueError(
+            "When the final pipeline step writes a single output, "
+            "shared_output_image_path must be a single file path."
+        )
+    if "$" in shared_output_image_path:
+        raise ValueError(
+            "When the final pipeline step writes a single output, "
+            "shared_output_image_path cannot contain '$'."
+        )
+    if not os.path.basename(shared_output_image_path).count("."):
+        raise ValueError(
+            "When the final pipeline step writes a single output, "
+            "shared_output_image_path must be a file path, not a folder."
+        )
+def _step_temp_output(step_name: PipelineStep, temp_dir: str) -> str:
+    return os.path.join(temp_dir, STEP_TEMP_OUTPUTS[step_name])
+
+
+def _collect_step_cleanup_paths(
+    step_name: str,
+    step_output: Any,
+    temp_dir: str,
+) -> list[str]:
+    if step_name in MULTI_RASTER_STEPS:
+        if isinstance(step_output, list):
+            dirs = {
+                os.path.dirname(path)
+                for path in step_output
+                if _path_is_within(path, temp_dir)
+            }
+            return sorted(dirs) if dirs else []
+        return []
+    if isinstance(step_output, str) and _path_is_within(step_output, temp_dir):
+        return [step_output]
+    return []
+
+
+def _delete_step_outputs_if_inactive(
+    *,
+    previous_cleanup_paths: list[str],
+    current_images: Universal.SearchFolderOrListFiles,
+    seamline_mask_path: str | None,
+    temp_dir: str,
+    debug_logs: bool,
+) -> None:
+    active_paths = set()
+    if isinstance(current_images, list):
+        active_paths.update(current_images)
+    elif isinstance(current_images, str):
+        active_paths.add(current_images)
+    if seamline_mask_path:
+        active_paths.add(seamline_mask_path)
+
+    for path in previous_cleanup_paths:
+        if not _path_is_within(path, temp_dir):
+            continue
+        if any(_paths_overlap(path, active_path) for active_path in active_paths):
+            continue
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+            if debug_logs:
+                print(f"Deleted previous step directory: {path}")
+        elif os.path.exists(path):
+            os.remove(path)
+            if debug_logs:
+                print(f"Deleted previous step file: {path}")
+
+
+def _path_is_within(path: str, root: str) -> bool:
+    try:
+        return os.path.commonpath([os.path.abspath(path), os.path.abspath(root)]) == os.path.abspath(root)
+    except ValueError:
+        return False
+
+
+def _paths_overlap(path_a: str, path_b: str) -> bool:
+    abs_a = os.path.abspath(path_a)
+    abs_b = os.path.abspath(path_b)
+    if abs_a == abs_b:
+        return True
+    if os.path.isdir(abs_a):
+        return os.path.commonpath([abs_a, abs_b]) == abs_a
+    if os.path.isdir(abs_b):
+        return os.path.commonpath([abs_a, abs_b]) == abs_b
+    return False
+
 
 def _resolve_auto_shared_settings(
     *,

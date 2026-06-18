@@ -312,17 +312,29 @@ class Pipeline:
         shared_output_image_path=_UNSET,
         shared_temp_dir=_UNSET,
         delete_temp_dir=_UNSET,
+        delete_previous_step=_UNSET,
         shared_resume_from_steps=_UNSET,
     ):
         if shared_output_image_path is not _UNSET:
-            if not isinstance(shared_output_image_path, str):
-                raise ValueError("shared_output_image_path must be a string.")
+            if not isinstance(shared_output_image_path, (str, list)):
+                raise ValueError(
+                    "shared_output_image_path must be a string or a list of strings."
+                )
+            if isinstance(shared_output_image_path, list) and not all(
+                isinstance(path, str) for path in shared_output_image_path
+            ):
+                raise ValueError(
+                    "All elements of shared_output_image_path must be strings."
+                )
         if shared_temp_dir is not _UNSET and shared_temp_dir is not None:
             if not isinstance(shared_temp_dir, str):
                 raise ValueError("shared_temp_dir must be a string or None.")
         if delete_temp_dir is not _UNSET:
             if not isinstance(delete_temp_dir, bool):
                 raise ValueError("delete_temp_dir must be a boolean.")
+        if delete_previous_step is not _UNSET:
+            if not isinstance(delete_previous_step, bool):
+                raise ValueError("delete_previous_step must be a boolean.")
         if shared_resume_from_steps is not _UNSET:
             if shared_resume_from_steps not in {"no", "yes", "validate"}:
                 raise ValueError(
