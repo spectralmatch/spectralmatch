@@ -129,6 +129,8 @@ def pipeline(
       file path without ``$``.
     """
     temp_dir = shared_temp_dir or tempfile.mkdtemp(prefix="spectralmatch_pipeline_")
+    if delete_temp_dir and os.path.isdir(temp_dir):
+        shutil.rmtree(temp_dir, ignore_errors=True)
     os.makedirs(temp_dir, exist_ok=True)
 
     input_image_paths = _resolve_paths(
