@@ -7,6 +7,7 @@ from scipy.ndimage import gaussian_filter
 from typing import Tuple, Optional, List, Literal
 from osgeo import gdal, osr
 
+from ..handlers import _existing_outputs_are_reusable
 from ..utils import _resolve_window_size, _gdal_dtype_str_to_enum, _get_valid_count
 
 
@@ -186,6 +187,7 @@ def _apply_adjustment_process_image(
     tile_thread_on: bool,
     tile_thread_workers: int,
     save_as_cog: bool,
+    resume_from_outputs: str = "no",
     estimate_stats: bool = False,
 ):
     """
@@ -217,6 +219,13 @@ def _apply_adjustment_process_image(
     """
     if debug_logs:
         print(f"    {name}")
+    if _existing_outputs_are_reusable(
+        [out_path],
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="local_block_adjustment",
+    ):
+        return
 
     # Open once to grab size & georef
     src = gdal.Open(img_path, gdal.GA_ReadOnly)

@@ -1,6 +1,8 @@
 import os
+import geopandas as gpd
 
 from spectralmatch import pipeline
+from shapely.geometry import box
 
 from .utils_test import create_dummy_raster
 
@@ -75,10 +77,7 @@ def test_pipeline_merge_only_with_custom_temp_dir(tmp_path):
         shared_input_images=input_paths,
         shared_output_image_path=str(output_path),
         shared_temp_dir=str(custom_temp_dir),
-        matching_order=(),
-        align_method=None,
-        seamline_method=None,
-        clip_method=None,
+        steps=("merge",),
         merge_rasters_build_overviews=False,
     )
 
@@ -91,3 +90,177 @@ def test_pipeline_merge_only_with_custom_temp_dir(tmp_path):
     assert "align_rasters" not in results
     assert "voronoi_center_seamline" not in results
     assert "mask_rasters" not in results
+
+
+def test_pipeline_weighted_seamline_step(tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    input_paths = []
+    for name, x_origin, fill_value in [
+        ("A", 0, 50),
+        ("B", 4, 75),
+    ]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path,
+            width=16,
+            height=16,
+            count=1,
+            transform=(x_origin, 1, 0, 16, 0, -1),
+            fill_value=fill_value,
+        )
+        input_paths.append(str(path))
+
+    polygons_path = tmp_path / "footprints.gpkg"
+    gdf = gpd.GeoDataFrame(
+        [
+            {
+                "image": input_paths[0],
+                "quality": 1.0,
+                "geometry": box(0, 0, 10, 10),
+            },
+            {
+                "image": input_paths[1],
+                "quality": 2.0,
+                "geometry": box(5, 0, 15, 10),
+            },
+        ],
+        geometry="geometry",
+        crs="EPSG:4326",
+    )
+    gdf.to_file(polygons_path, layer="footprints", driver="GPKG")
+
+    results = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(tmp_path / "seamlines.gpkg"),
+        shared_temp_dir=str(tmp_path / "pipeline_temp"),
+        delete_temp_dir=False,
+        steps=("weighted_seamline",),
+        weighted_seamline_input_polygons=str(polygons_path),
+        weighted_seamline_rank_function="{quality}",
+        weighted_seamline_input_layer="footprints",
+    )
+
+    assert results["output"] == str(tmp_path / "seamlines.gpkg")
+    assert os.path.exists(results["weighted_seamline"])
+
+
+def test_pipeline_resume_from_existing_merge_output_yes(tmp_path, monkeypatch):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_path = tmp_path / "merged.tif"
+
+    input_paths = []
+    for name, x_origin, fill_value in [
+        ("A", 0, 50),
+        ("B", 4, 75),
+    ]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path,
+            width=16,
+            height=16,
+            count=1,
+            transform=(x_origin, 1, 0, 16, 0, -1),
+            fill_value=fill_value,
+        )
+        input_paths.append(str(path))
+
+    create_dummy_raster(
+        output_path,
+        width=32,
+        height=16,
+        count=1,
+        transform=(0, 1, 0, 16, 0, -1),
+        fill_value=123,
+    )
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("merge_rasters should have resumed before building the VRT")
+
+    monkeypatch.setattr("spectralmatch.utils.gdal.BuildVRT", fail_if_called)
+
+    results = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(output_path),
+        shared_resume_from_steps="yes",
+        steps=("merge",),
+        merge_rasters_build_overviews=False,
+    )
+
+    assert results["output"] == str(output_path)
+
+
+def test_pipeline_resume_from_existing_merge_output_validate_reruns_invalid(tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_path = tmp_path / "merged.tif"
+
+    input_paths = []
+    for name, x_origin, fill_value in [
+        ("A", 0, 50),
+        ("B", 4, 75),
+    ]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path,
+            width=16,
+            height=16,
+            count=1,
+            transform=(x_origin, 1, 0, 16, 0, -1),
+            fill_value=fill_value,
+        )
+        input_paths.append(str(path))
+
+    output_path.write_text("not a raster", encoding="utf-8")
+
+    results = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(output_path),
+        shared_resume_from_steps="validate",
+        steps=("merge",),
+        merge_rasters_build_overviews=False,
+    )
+
+    assert results["output"] == str(output_path)
+    assert os.path.getsize(output_path) > 0
+
+
+def test_pipeline_delete_previous_step_removes_replaced_intermediate(tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_dir = tmp_path / "global_outputs"
+
+    input_paths = []
+    for name, x_origin, fill_value in [
+        ("A", 0, 50),
+        ("B", 4, 75),
+    ]:
+        path = input_dir / f"{name}.tif"
+        create_dummy_raster(
+            path,
+            width=16,
+            height=16,
+            count=1,
+            transform=(x_origin, 1, 0, 16, 0, -1),
+            fill_value=fill_value,
+        )
+        input_paths.append(str(path))
+
+    temp_dir = tmp_path / "pipeline_temp"
+
+    results = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(output_dir),
+        shared_temp_dir=str(temp_dir),
+        delete_temp_dir=False,
+        delete_previous_step=True,
+        steps=("global_regression", "local_block_adjustment"),
+        global_regression_pif_method="entire",
+    )
+
+    assert results["output"] == [
+        str(output_dir / "A_Global_Local.tif"),
+        str(output_dir / "B_Global_Local.tif"),
+    ]
+    assert not (temp_dir / "global").exists()

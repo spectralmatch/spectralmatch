@@ -312,16 +312,34 @@ class Pipeline:
         shared_output_image_path=_UNSET,
         shared_temp_dir=_UNSET,
         delete_temp_dir=_UNSET,
+        delete_previous_step=_UNSET,
+        shared_resume_from_steps=_UNSET,
     ):
         if shared_output_image_path is not _UNSET:
-            if not isinstance(shared_output_image_path, str):
-                raise ValueError("shared_output_image_path must be a string.")
+            if not isinstance(shared_output_image_path, (str, list)):
+                raise ValueError(
+                    "shared_output_image_path must be a string or a list of strings."
+                )
+            if isinstance(shared_output_image_path, list) and not all(
+                isinstance(path, str) for path in shared_output_image_path
+            ):
+                raise ValueError(
+                    "All elements of shared_output_image_path must be strings."
+                )
         if shared_temp_dir is not _UNSET and shared_temp_dir is not None:
             if not isinstance(shared_temp_dir, str):
                 raise ValueError("shared_temp_dir must be a string or None.")
         if delete_temp_dir is not _UNSET:
             if not isinstance(delete_temp_dir, bool):
                 raise ValueError("delete_temp_dir must be a boolean.")
+        if delete_previous_step is not _UNSET:
+            if not isinstance(delete_previous_step, bool):
+                raise ValueError("delete_previous_step must be a boolean.")
+        if shared_resume_from_steps is not _UNSET:
+            if shared_resume_from_steps not in {"no", "yes", "validate"}:
+                raise ValueError(
+                    "shared_resume_from_steps must be one of 'no', 'yes', or 'validate'."
+                )
 
     @staticmethod
     def _validate_method_choice(
@@ -420,3 +438,36 @@ class Seamline:
         if debug_vectors_path is not _UNSET and debug_vectors_path is not None:
             if not isinstance(debug_vectors_path, str):
                 raise ValueError("debug_vectors_path must be a string or None.")
+
+    @staticmethod
+    def _validate_weighted_seamline(
+        *,
+        input_polygons=_UNSET,
+        output_mask=_UNSET,
+        rank_function=_UNSET,
+        image_field_name=_UNSET,
+        input_layer=_UNSET,
+        output_layer=_UNSET,
+        rank_descending=_UNSET,
+    ):
+        if input_polygons is not _UNSET:
+            if not isinstance(input_polygons, str):
+                raise ValueError("input_polygons must be a string.")
+        if output_mask is not _UNSET:
+            if not isinstance(output_mask, str):
+                raise ValueError("output_mask must be a string.")
+        if rank_function is not _UNSET:
+            if not isinstance(rank_function, str) or not rank_function.strip():
+                raise ValueError("rank_function must be a non-empty string.")
+        if image_field_name is not _UNSET:
+            if not isinstance(image_field_name, str) or not image_field_name.strip():
+                raise ValueError("image_field_name must be a non-empty string.")
+        if input_layer is not _UNSET and input_layer is not None:
+            if not isinstance(input_layer, str) or not input_layer.strip():
+                raise ValueError("input_layer must be a non-empty string or None.")
+        if output_layer is not _UNSET:
+            if not isinstance(output_layer, str) or not output_layer.strip():
+                raise ValueError("output_layer must be a non-empty string.")
+        if rank_descending is not _UNSET:
+            if not isinstance(rank_descending, bool):
+                raise ValueError("rank_descending must be a bool.")

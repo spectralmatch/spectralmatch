@@ -8,7 +8,13 @@ from typing import Optional, Literal, Tuple, Dict, List
 from concurrent.futures import as_completed
 from osgeo import gdal, ogr, osr
 
-from .handlers import _resolve_paths, _check_raster_requirements, _resolve_nodata_value
+from .handlers import (
+    _resolve_paths,
+    _check_raster_requirements,
+    _resolve_nodata_value,
+    _existing_outputs_are_reusable,
+    _resolve_reusable_output_paths,
+)
 from .types_and_validation import Universal, Utils as UtilsValidation
 from .utils_multiprocessing import _get_executor, _resolve_parallel_config
 
@@ -101,6 +107,7 @@ def align_rasters(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
+    resume_from_outputs: Literal["no", "yes", "validate"] = "no",
 ) -> None:
     """
     Aligns multiple rasters to a common resolution and grid using specified resampling.
@@ -154,6 +161,14 @@ def align_rasters(
     input_image_names = [
         os.path.splitext(os.path.basename(p))[0] for p in input_image_paths
     ]
+    reusable_output_paths = _resolve_reusable_output_paths(
+        output_image_paths,
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="align_rasters",
+    )
+    if len(reusable_output_paths) == len(output_image_paths):
+        return output_image_paths
 
     # Setup gdal
     _set_gdal_cache(cache, debug_logs)
@@ -197,8 +212,10 @@ def align_rasters(
             window_size,
             tile_thread_workers,
             debug_logs,
+            resume_from_outputs,
         )
         for i in range(len(input_image_paths))
+        if output_image_paths[i] not in reusable_output_paths
     ]
 
     if image_threads:
@@ -224,6 +241,7 @@ def _align_process_image(
     window_size: int,
     tile_threads: Optional[int | str],
     debug_logs: bool,
+    resume_from_outputs: Literal["no", "yes", "validate"],
     ) -> None:
     """
     Align a single raster to a target resolution and grid using GDAL Warp.
@@ -244,6 +262,13 @@ def _align_process_image(
     """
     if debug_logs:
         print(f"Aligning: {image_name}")
+    if _existing_outputs_are_reusable(
+        [out_path],
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="align_rasters",
+    ):
+        return
 
     # Resolve metadata (extent, transform) via GDAL
     ds = gdal.Open(in_path, gdal.GA_ReadOnly)
@@ -332,6 +357,7 @@ def merge_rasters(
     resolution: Literal["highest", "average", "lowest"] = "highest",
     window_size: Universal.WindowSize = None,
     build_overviews: bool = False,
+    resume_from_outputs: Literal["no", "yes", "validate"] = "no",
 ) -> str:
     """
     Merges multiple rasters into a single output.
@@ -367,6 +393,13 @@ def merge_rasters(
     UtilsValidation._validate_merge_rasters(
         resolution=resolution,
     )
+    if _existing_outputs_are_reusable(
+        [output_image_path],
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="merge_rasters",
+    ):
+        return output_image_path
 
     # Setup parallel
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
@@ -444,6 +477,7 @@ def mask_rasters(
     tile_threads: Universal.Threads = None,
     include_touched_pixels: bool = False,
     custom_nodata_value: Universal.CustomNodataValue = None,
+    resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> list:
     """
     Applies a vector-based mask to one or more rasters using GDAL Warp.
@@ -492,6 +526,14 @@ def mask_rasters(
         output_images,
         kwargs={"paths_or_bases": input_image_paths, "default_file_pattern": "$_Mask.tif"},
     )
+    reusable_output_paths = _resolve_reusable_output_paths(
+        output_image_paths,
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="mask_rasters",
+    )
+    if len(reusable_output_paths) == len(output_image_paths):
+        return output_image_paths
 
     input_image_names = [
         os.path.splitext(os.path.basename(p))[0] for p in input_image_paths
@@ -522,8 +564,10 @@ def mask_rasters(
             custom_nodata_value,
             tile_thread_workers,
             tile_thread_on,
+            resume_from_outputs,
         )
         for i in range(len(input_image_paths))
+        if output_image_paths[i] not in reusable_output_paths
     ]
 
     if image_threads_on:
@@ -550,6 +594,7 @@ def _mask_raster_process_image(
     custom_nodata_value: Universal.CustomNodataValue,
     tile_threads: int | str | None,
     tile_thread_on: bool,
+    resume_from_outputs: Literal["no", "yes", "validate"],
 ) -> None:
     """
     Applies a GDAL Warp mask to a single image using cutline and nodata configuration.
@@ -573,6 +618,13 @@ def _mask_raster_process_image(
 
     if debug_logs:
         print(f"Masking image: {image_name}")
+    if _existing_outputs_are_reusable(
+        [output_image_path],
+        resume_mode=resume_from_outputs,
+        debug_logs=debug_logs,
+        step_name="mask_rasters",
+    ):
+        return
 
     warp_options = {
         "format": "GTiff",

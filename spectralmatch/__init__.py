@@ -16,6 +16,7 @@ from .seamline import Seamline
 global_regression = Match.global_regression
 local_block_adjustment = Match.local_block_adjustment
 voronoi_center_seamline = Seamline.voronoi
+weighted_seamline = Seamline.weighted
 
 __all__ = [
     "Pif",
@@ -28,6 +29,7 @@ __all__ = [
     "process_raster_values_to_vector_polygons",
     "pipeline",
     "voronoi_center_seamline",
+    "weighted_seamline",
     # Handlers
     "search_paths",
     "create_paths",

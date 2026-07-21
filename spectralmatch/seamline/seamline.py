@@ -1,11 +1,12 @@
 import os
 from itertools import combinations
+from typing import Literal
 
 import fiona
 from osgeo import gdal
 from shapely.geometry import LineString, Polygon, mapping
 
-from ..handlers import _resolve_paths
+from ..handlers import _resolve_paths, _existing_outputs_are_reusable
 from ..types_and_validation import Universal, Seamline as SeamlineValidation
 from .voronoi_center_seamline import (
     _compute_centerline,
@@ -16,11 +17,72 @@ from .voronoi_center_seamline import (
     _save_intersection_points,
     _segment_emp,
 )
+from .weighted_seamline import weighted_seamline
 
 gdal.UseExceptions()
 
 
 class Seamline:
+    @staticmethod
+    def weighted(
+        input_polygons: str,
+        output_mask: str,
+        *,
+        rank_function: str,
+        image_field_name: str = "image",
+        input_layer: str | None = None,
+        output_layer: str = "seamlines",
+        rank_descending: bool = True,
+        debug_logs: Universal.DebugLogs = False,
+        resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+    ) -> str:
+        """Generate seamline polygons by ranking image footprints with a weighted expression.
+
+Args:
+    input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one.
+    output_mask (str): Output GeoPackage path for the ranked seamline polygons.
+    rank_function (str): Ranking expression using field placeholders like ``{cloud_cover}`` or formulas like ``1 / ({sun_elevation} + 1)``.
+    image_field_name (str, optional): Field containing the image identifier. Features sharing the same value are merged before ranking. Defaults to ``"image"``.
+    input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
+    output_layer (str, optional): Output GeoPackage layer name. Defaults to ``"seamlines"``.
+    rank_descending (bool, optional): If True, larger scores rank higher and remain on top. Defaults to True.
+    debug_logs (bool, optional): If True, prints ranking details. Defaults to False.
+
+Returns:
+    str: Written output GeoPackage path.
+"""
+        print("Start weighted seamline")
+        SeamlineValidation._validate_weighted_seamline(
+            input_polygons=input_polygons,
+            output_mask=output_mask,
+            rank_function=rank_function,
+            image_field_name=image_field_name,
+            input_layer=input_layer,
+            output_layer=output_layer,
+            rank_descending=rank_descending,
+        )
+        if debug_logs:
+            print(f"Input polygons: {input_polygons}")
+            print(f"Output mask: {output_mask}")
+            print(f"Rank function: {rank_function}")
+        if _existing_outputs_are_reusable(
+            [output_mask],
+            resume_mode=resume_from_outputs,
+            debug_logs=debug_logs,
+            step_name="weighted_seamline",
+        ):
+            return output_mask
+        return weighted_seamline(
+            input_polygons=input_polygons,
+            output_mask=output_mask,
+            rank_function=rank_function,
+            image_field_name=image_field_name,
+            input_layer=input_layer,
+            output_layer=output_layer,
+            rank_descending=rank_descending,
+            debug_logs=debug_logs,
+        )
+
     @staticmethod
     def voronoi(
         input_images: Universal.CreateInFolderOrListFiles,
@@ -33,6 +95,7 @@ class Seamline:
         min_cut_length: float = 0,
         debug_logs: Universal.DebugLogs = False,
         debug_vectors_path: str | None = None,
+        resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> None:
         """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
 
@@ -57,6 +120,13 @@ Outputs:
             debug_dir = os.path.dirname(debug_vectors_path)
             if debug_dir:
                 os.makedirs(debug_dir, exist_ok=True)
+        if _existing_outputs_are_reusable(
+            [output_mask],
+            resume_mode=resume_from_outputs,
+            debug_logs=debug_logs,
+            step_name="voronoi_center_seamline",
+        ):
+            return
 
         Universal._validate(
             input_images=input_images,

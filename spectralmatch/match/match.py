@@ -5,7 +5,13 @@ from concurrent.futures import as_completed
 from osgeo import gdal
 from typing import Literal, Tuple, List
 
-from ..handlers import _resolve_paths, _resolve_nodata_value, _check_raster_requirements
+from ..handlers import (
+    _resolve_paths,
+    _resolve_nodata_value,
+    _check_raster_requirements,
+    _existing_outputs_are_reusable,
+    _resolve_reusable_output_paths,
+)
 from ..pif.pif import Pif
 from ..types_and_validation import Universal, Match as MatchValidation
 from ..utils import (
@@ -167,6 +173,7 @@ class Match:
         pif_feature_method: Literal["orb"] = "orb",
         pif_save_inz: str | None = None,
         build_overviews: bool = False,
+        resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> list:
         """Performs global radiometric normalization across overlapping images using least squares regression.
 
@@ -248,6 +255,16 @@ Returns:
         image_thread_workers = setup["image_thread_workers"]
         tile_thread_on = setup["tile_thread_on"]
         tile_thread_workers = setup["tile_thread_workers"]
+        reusable_output_paths = _resolve_reusable_output_paths(
+            output_image_paths,
+            resume_mode=resume_from_outputs,
+            debug_logs=debug_logs,
+            step_name="global_regression",
+        )
+        if len(reusable_output_paths) == len(output_image_paths):
+            if debug_logs:
+                print("All output images already exist and are reusable. Skipping processing.")
+            return output_image_paths
 
         loaded_model = {}
         if load_adjustments:
@@ -470,6 +487,7 @@ Returns:
                 calculation_dtype,
                 save_as_cog,
                 debug_logs,
+                resume_from_outputs,
             )
             for idx, (name, img_path) in enumerate(input_image_path_pairs.items())
         ]
@@ -519,6 +537,7 @@ Returns:
         ) = None,
         override_bounds_canvas_coords: Tuple[float, float, float, float] | None = None,
         build_overviews: bool = False,
+        resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> list:
         """Performs local radiometric adjustment on a set of raster images using block-based statistics.
 
@@ -597,6 +616,16 @@ Returns:
         image_thread_workers = setup["image_thread_workers"]
         tile_thread_on = setup["tile_thread_on"]
         tile_thread_workers = setup["tile_thread_workers"]
+        reusable_output_paths = _resolve_reusable_output_paths(
+            output_image_paths,
+            resume_mode=resume_from_outputs,
+            debug_logs=debug_logs,
+            step_name="local_block_adjustment",
+        )
+        if len(reusable_output_paths) == len(output_image_paths):
+            if debug_logs:
+                print("All output images already exist and are reusable. Skipping processing.")
+            return output_image_paths
 
         input_image_path_pairs_masked = _create_masked_vrts(
             input_image_path_pairs,
@@ -780,6 +809,7 @@ Returns:
                 tile_thread_on,
                 tile_thread_workers,
                 save_as_cog,
+                resume_from_outputs,
             )
             for name in input_image_path_pairs
         ]
