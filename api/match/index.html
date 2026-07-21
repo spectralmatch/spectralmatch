@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -982,13 +982,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>spectralmatch/match/match.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 42</span>
-<span class="normal"> 43</span>
-<span class="normal"> 44</span>
-<span class="normal"> 45</span>
-<span class="normal"> 46</span>
-<span class="normal"> 47</span>
-<span class="normal"> 48</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 48</span>
 <span class="normal"> 49</span>
 <span class="normal"> 50</span>
 <span class="normal"> 51</span>
@@ -1744,7 +1738,37 @@
 <span class="normal">801</span>
 <span class="normal">802</span>
 <span class="normal">803</span>
-<span class="normal">804</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Match</span><span class="p">:</span>
+<span class="normal">804</span>
+<span class="normal">805</span>
+<span class="normal">806</span>
+<span class="normal">807</span>
+<span class="normal">808</span>
+<span class="normal">809</span>
+<span class="normal">810</span>
+<span class="normal">811</span>
+<span class="normal">812</span>
+<span class="normal">813</span>
+<span class="normal">814</span>
+<span class="normal">815</span>
+<span class="normal">816</span>
+<span class="normal">817</span>
+<span class="normal">818</span>
+<span class="normal">819</span>
+<span class="normal">820</span>
+<span class="normal">821</span>
+<span class="normal">822</span>
+<span class="normal">823</span>
+<span class="normal">824</span>
+<span class="normal">825</span>
+<span class="normal">826</span>
+<span class="normal">827</span>
+<span class="normal">828</span>
+<span class="normal">829</span>
+<span class="normal">830</span>
+<span class="normal">831</span>
+<span class="normal">832</span>
+<span class="normal">833</span>
+<span class="normal">834</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Match</span><span class="p">:</span>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_setup_images</span><span class="p">(</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1872,6 +1896,7 @@
         <span class="n">pif_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;orb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orb&quot;</span><span class="p">,</span>
         <span class="n">pif_save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Performs global radiometric normalization across overlapping images using least squares regression.</span>
 
@@ -1953,6 +1978,16 @@
         <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;image_thread_workers&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_on</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_on&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_workers&quot;</span><span class="p">]</span>
+        <span class="n">reusable_output_paths</span> <span class="o">=</span> <span class="n">_resolve_reusable_output_paths</span><span class="p">(</span>
+            <span class="n">output_image_paths</span><span class="p">,</span>
+            <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
+            <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+            <span class="n">step_name</span><span class="o">=</span><span class="s2">&quot;global_regression&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reusable_output_paths</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_image_paths</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;All output images already exist and are reusable. Skipping processing.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output_image_paths</span>
 
         <span class="n">loaded_model</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">load_adjustments</span><span class="p">:</span>
@@ -2175,6 +2210,7 @@
                 <span class="n">calculation_dtype</span><span class="p">,</span>
                 <span class="n">save_as_cog</span><span class="p">,</span>
                 <span class="n">debug_logs</span><span class="p">,</span>
+                <span class="n">resume_from_outputs</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">img_path</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_image_path_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
         <span class="p">]</span>
@@ -2224,6 +2260,7 @@
         <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">override_bounds_canvas_coords</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Performs local radiometric adjustment on a set of raster images using block-based statistics.</span>
 
@@ -2302,6 +2339,16 @@
         <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;image_thread_workers&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_on</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_on&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_workers&quot;</span><span class="p">]</span>
+        <span class="n">reusable_output_paths</span> <span class="o">=</span> <span class="n">_resolve_reusable_output_paths</span><span class="p">(</span>
+            <span class="n">output_image_paths</span><span class="p">,</span>
+            <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
+            <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+            <span class="n">step_name</span><span class="o">=</span><span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reusable_output_paths</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_image_paths</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;All output images already exist and are reusable. Skipping processing.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output_image_paths</span>
 
         <span class="n">input_image_path_pairs_masked</span> <span class="o">=</span> <span class="n">_create_masked_vrts</span><span class="p">(</span>
             <span class="n">input_image_path_pairs</span><span class="p">,</span>
@@ -2485,6 +2532,7 @@
                 <span class="n">tile_thread_on</span><span class="p">,</span>
                 <span class="n">tile_thread_workers</span><span class="p">,</span>
                 <span class="n">save_as_cog</span><span class="p">,</span>
+                <span class="n">resume_from_outputs</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">input_image_path_pairs</span>
         <span class="p">]</span>
@@ -2527,7 +2575,7 @@
 
 
 <h2 id="spectralmatch.match.Match.global_regression" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">global_regression</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">estimate_stats</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">specify_model_images</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">save_adjustments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_adjustments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pif_method</span><span class="o">=</span><span class="s1">&#39;flood_from_match_points&#39;</span><span class="p">,</span> <span class="n">pif_red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pif_nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pif_vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">pif_inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">pif_region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">pif_max_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">pif_min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">pif_feature_method</span><span class="o">=</span><span class="s1">&#39;orb&#39;</span><span class="p">,</span> <span class="n">pif_save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">global_regression</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">estimate_stats</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">specify_model_images</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">save_adjustments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_adjustments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pif_method</span><span class="o">=</span><span class="s1">&#39;flood_from_match_points&#39;</span><span class="p">,</span> <span class="n">pif_red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pif_nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pif_vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">pif_inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">pif_region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">pif_max_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">pif_min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">pif_feature_method</span><span class="o">=</span><span class="s1">&#39;orb&#39;</span><span class="p">,</span> <span class="n">pif_save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resume_from_outputs</span><span class="o">=</span><span class="s1">&#39;no&#39;</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
@@ -3061,13 +3109,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/match/match.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">143</span>
 <span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
@@ -3418,7 +3460,25 @@
 <span class="normal">491</span>
 <span class="normal">492</span>
 <span class="normal">493</span>
-<span class="normal">494</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">global_regression</span><span class="p">(</span>
         <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
         <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
@@ -3451,6 +3511,7 @@
         <span class="n">pif_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;orb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orb&quot;</span><span class="p">,</span>
         <span class="n">pif_save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Performs global radiometric normalization across overlapping images using least squares regression.</span>
 
@@ -3532,6 +3593,16 @@
         <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;image_thread_workers&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_on</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_on&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_workers&quot;</span><span class="p">]</span>
+        <span class="n">reusable_output_paths</span> <span class="o">=</span> <span class="n">_resolve_reusable_output_paths</span><span class="p">(</span>
+            <span class="n">output_image_paths</span><span class="p">,</span>
+            <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
+            <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+            <span class="n">step_name</span><span class="o">=</span><span class="s2">&quot;global_regression&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reusable_output_paths</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_image_paths</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;All output images already exist and are reusable. Skipping processing.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output_image_paths</span>
 
         <span class="n">loaded_model</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">load_adjustments</span><span class="p">:</span>
@@ -3754,6 +3825,7 @@
                 <span class="n">calculation_dtype</span><span class="p">,</span>
                 <span class="n">save_as_cog</span><span class="p">,</span>
                 <span class="n">debug_logs</span><span class="p">,</span>
+                <span class="n">resume_from_outputs</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">img_path</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_image_path_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
         <span class="p">]</span>
@@ -3786,7 +3858,7 @@
 
 
 <h2 id="spectralmatch.match.Match.local_block_adjustment" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">local_block_adjustment</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">correction_method</span><span class="o">=</span><span class="s1">&#39;offset&#39;</span><span class="p">,</span> <span class="n">save_block_maps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_block_maps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">override_bounds_canvas_coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">local_block_adjustment</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_as_cog</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">number_of_blocks</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">correction_method</span><span class="o">=</span><span class="s1">&#39;offset&#39;</span><span class="p">,</span> <span class="n">save_block_maps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_block_maps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">override_bounds_canvas_coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resume_from_outputs</span><span class="o">=</span><span class="s1">&#39;no&#39;</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
@@ -4171,25 +4243,7 @@ This supports partial or full reuse of precomputed block maps:
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/match/match.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">497</span>
-<span class="normal">498</span>
-<span class="normal">499</span>
-<span class="normal">500</span>
-<span class="normal">501</span>
-<span class="normal">502</span>
-<span class="normal">503</span>
-<span class="normal">504</span>
-<span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
-<span class="normal">514</span>
-<span class="normal">515</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">515</span>
 <span class="normal">516</span>
 <span class="normal">517</span>
 <span class="normal">518</span>
@@ -4478,7 +4532,37 @@ This supports partial or full reuse of precomputed block maps:
 <span class="normal">801</span>
 <span class="normal">802</span>
 <span class="normal">803</span>
-<span class="normal">804</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
+<span class="normal">804</span>
+<span class="normal">805</span>
+<span class="normal">806</span>
+<span class="normal">807</span>
+<span class="normal">808</span>
+<span class="normal">809</span>
+<span class="normal">810</span>
+<span class="normal">811</span>
+<span class="normal">812</span>
+<span class="normal">813</span>
+<span class="normal">814</span>
+<span class="normal">815</span>
+<span class="normal">816</span>
+<span class="normal">817</span>
+<span class="normal">818</span>
+<span class="normal">819</span>
+<span class="normal">820</span>
+<span class="normal">821</span>
+<span class="normal">822</span>
+<span class="normal">823</span>
+<span class="normal">824</span>
+<span class="normal">825</span>
+<span class="normal">826</span>
+<span class="normal">827</span>
+<span class="normal">828</span>
+<span class="normal">829</span>
+<span class="normal">830</span>
+<span class="normal">831</span>
+<span class="normal">832</span>
+<span class="normal">833</span>
+<span class="normal">834</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
         <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
         <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
@@ -4503,6 +4587,7 @@ This supports partial or full reuse of precomputed block maps:
         <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">override_bounds_canvas_coords</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Performs local radiometric adjustment on a set of raster images using block-based statistics.</span>
 
@@ -4581,6 +4666,16 @@ This supports partial or full reuse of precomputed block maps:
         <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;image_thread_workers&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_on</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_on&quot;</span><span class="p">]</span>
         <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">setup</span><span class="p">[</span><span class="s2">&quot;tile_thread_workers&quot;</span><span class="p">]</span>
+        <span class="n">reusable_output_paths</span> <span class="o">=</span> <span class="n">_resolve_reusable_output_paths</span><span class="p">(</span>
+            <span class="n">output_image_paths</span><span class="p">,</span>
+            <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
+            <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+            <span class="n">step_name</span><span class="o">=</span><span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reusable_output_paths</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_image_paths</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;All output images already exist and are reusable. Skipping processing.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output_image_paths</span>
 
         <span class="n">input_image_path_pairs_masked</span> <span class="o">=</span> <span class="n">_create_masked_vrts</span><span class="p">(</span>
             <span class="n">input_image_path_pairs</span><span class="p">,</span>
@@ -4764,6 +4859,7 @@ This supports partial or full reuse of precomputed block maps:
                 <span class="n">tile_thread_on</span><span class="p">,</span>
                 <span class="n">tile_thread_workers</span><span class="p">,</span>
                 <span class="n">save_as_cog</span><span class="p">,</span>
+                <span class="n">resume_from_outputs</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">input_image_path_pairs</span>
         <span class="p">]</span>
@@ -4872,7 +4968,7 @@ This supports partial or full reuse of precomputed block maps:
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       

@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1061,7 +1061,7 @@
 
 
 <h2 id="spectralmatch.utils.align_rasters" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">align_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">resampling_method</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">tap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="s1">&#39;highest&#39;</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">align_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">resampling_method</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">tap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="s1">&#39;highest&#39;</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resume_from_outputs</span><span class="o">=</span><span class="s1">&#39;no&#39;</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.utils.align_rasters" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1287,13 +1287,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 97</span>
 <span class="normal"> 98</span>
 <span class="normal"> 99</span>
 <span class="normal">100</span>
@@ -1410,7 +1404,24 @@
 <span class="normal">211</span>
 <span class="normal">212</span>
 <span class="normal">213</span>
-<span class="normal">214</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">align_rasters</span><span class="p">(</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">align_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1423,6 +1434,7 @@
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Aligns multiple rasters to a common resolution and grid using specified resampling.</span>
@@ -1476,6 +1488,14 @@
     <span class="n">input_image_names</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">p</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">input_image_paths</span>
     <span class="p">]</span>
+    <span class="n">reusable_output_paths</span> <span class="o">=</span> <span class="n">_resolve_reusable_output_paths</span><span class="p">(</span>
+        <span class="n">output_image_paths</span><span class="p">,</span>
+        <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+        <span class="n">step_name</span><span class="o">=</span><span class="s2">&quot;align_rasters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reusable_output_paths</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_image_paths</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">output_image_paths</span>
 
     <span class="c1"># Setup gdal</span>
     <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
@@ -1519,8 +1539,10 @@
             <span class="n">window_size</span><span class="p">,</span>
             <span class="n">tile_thread_workers</span><span class="p">,</span>
             <span class="n">debug_logs</span><span class="p">,</span>
+            <span class="n">resume_from_outputs</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">output_image_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reusable_output_paths</span>
     <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">image_threads</span><span class="p">:</span>
@@ -1721,59 +1743,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 899</span>
-<span class="normal"> 900</span>
-<span class="normal"> 901</span>
-<span class="normal"> 902</span>
-<span class="normal"> 903</span>
-<span class="normal"> 904</span>
-<span class="normal"> 905</span>
-<span class="normal"> 906</span>
-<span class="normal"> 907</span>
-<span class="normal"> 908</span>
-<span class="normal"> 909</span>
-<span class="normal"> 910</span>
-<span class="normal"> 911</span>
-<span class="normal"> 912</span>
-<span class="normal"> 913</span>
-<span class="normal"> 914</span>
-<span class="normal"> 915</span>
-<span class="normal"> 916</span>
-<span class="normal"> 917</span>
-<span class="normal"> 918</span>
-<span class="normal"> 919</span>
-<span class="normal"> 920</span>
-<span class="normal"> 921</span>
-<span class="normal"> 922</span>
-<span class="normal"> 923</span>
-<span class="normal"> 924</span>
-<span class="normal"> 925</span>
-<span class="normal"> 926</span>
-<span class="normal"> 927</span>
-<span class="normal"> 928</span>
-<span class="normal"> 929</span>
-<span class="normal"> 930</span>
-<span class="normal"> 931</span>
-<span class="normal"> 932</span>
-<span class="normal"> 933</span>
-<span class="normal"> 934</span>
-<span class="normal"> 935</span>
-<span class="normal"> 936</span>
-<span class="normal"> 937</span>
-<span class="normal"> 938</span>
-<span class="normal"> 939</span>
-<span class="normal"> 940</span>
-<span class="normal"> 941</span>
-<span class="normal"> 942</span>
-<span class="normal"> 943</span>
-<span class="normal"> 944</span>
-<span class="normal"> 945</span>
-<span class="normal"> 946</span>
-<span class="normal"> 947</span>
-<span class="normal"> 948</span>
-<span class="normal"> 949</span>
-<span class="normal"> 950</span>
-<span class="normal"> 951</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 951</span>
 <span class="normal"> 952</span>
 <span class="normal"> 953</span>
 <span class="normal"> 954</span>
@@ -1840,7 +1810,59 @@
 <span class="normal">1015</span>
 <span class="normal">1016</span>
 <span class="normal">1017</span>
-<span class="normal">1018</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
+<span class="normal">1018</span>
+<span class="normal">1019</span>
+<span class="normal">1020</span>
+<span class="normal">1021</span>
+<span class="normal">1022</span>
+<span class="normal">1023</span>
+<span class="normal">1024</span>
+<span class="normal">1025</span>
+<span class="normal">1026</span>
+<span class="normal">1027</span>
+<span class="normal">1028</span>
+<span class="normal">1029</span>
+<span class="normal">1030</span>
+<span class="normal">1031</span>
+<span class="normal">1032</span>
+<span class="normal">1033</span>
+<span class="normal">1034</span>
+<span class="normal">1035</span>
+<span class="normal">1036</span>
+<span class="normal">1037</span>
+<span class="normal">1038</span>
+<span class="normal">1039</span>
+<span class="normal">1040</span>
+<span class="normal">1041</span>
+<span class="normal">1042</span>
+<span class="normal">1043</span>
+<span class="normal">1044</span>
+<span class="normal">1045</span>
+<span class="normal">1046</span>
+<span class="normal">1047</span>
+<span class="normal">1048</span>
+<span class="normal">1049</span>
+<span class="normal">1050</span>
+<span class="normal">1051</span>
+<span class="normal">1052</span>
+<span class="normal">1053</span>
+<span class="normal">1054</span>
+<span class="normal">1055</span>
+<span class="normal">1056</span>
+<span class="normal">1057</span>
+<span class="normal">1058</span>
+<span class="normal">1059</span>
+<span class="normal">1060</span>
+<span class="normal">1061</span>
+<span class="normal">1062</span>
+<span class="normal">1063</span>
+<span class="normal">1064</span>
+<span class="normal">1065</span>
+<span class="normal">1066</span>
+<span class="normal">1067</span>
+<span class="normal">1068</span>
+<span class="normal">1069</span>
+<span class="normal">1070</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
     <span class="n">input_images_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">output_image_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1970,7 +1992,7 @@
 
 
 <h2 id="spectralmatch.utils.mask_rasters" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">mask_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include_touched_pixels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">mask_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">vector_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include_touched_pixels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resume_from_outputs</span><span class="o">=</span><span class="s1">&#39;no&#39;</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.utils.mask_rasters" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -2196,40 +2218,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span>
-<span class="normal">445</span>
-<span class="normal">446</span>
-<span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span>
-<span class="normal">450</span>
-<span class="normal">451</span>
-<span class="normal">452</span>
-<span class="normal">453</span>
-<span class="normal">454</span>
-<span class="normal">455</span>
-<span class="normal">456</span>
-<span class="normal">457</span>
-<span class="normal">458</span>
-<span class="normal">459</span>
-<span class="normal">460</span>
-<span class="normal">461</span>
-<span class="normal">462</span>
-<span class="normal">463</span>
-<span class="normal">464</span>
-<span class="normal">465</span>
-<span class="normal">466</span>
-<span class="normal">467</span>
-<span class="normal">468</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">468</span>
 <span class="normal">469</span>
 <span class="normal">470</span>
 <span class="normal">471</span>
@@ -2299,7 +2288,51 @@
 <span class="normal">535</span>
 <span class="normal">536</span>
 <span class="normal">537</span>
-<span class="normal">538</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2311,6 +2344,7 @@
     <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">include_touched_pixels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Applies a vector-based mask to one or more rasters using GDAL Warp.</span>
@@ -2359,6 +2393,14 @@
         <span class="n">output_images</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span> <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Mask.tif&quot;</span><span class="p">},</span>
     <span class="p">)</span>
+    <span class="n">reusable_output_paths</span> <span class="o">=</span> <span class="n">_resolve_reusable_output_paths</span><span class="p">(</span>
+        <span class="n">output_image_paths</span><span class="p">,</span>
+        <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+        <span class="n">step_name</span><span class="o">=</span><span class="s2">&quot;mask_rasters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reusable_output_paths</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_image_paths</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">output_image_paths</span>
 
     <span class="n">input_image_names</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">p</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">input_image_paths</span>
@@ -2389,8 +2431,10 @@
             <span class="n">custom_nodata_value</span><span class="p">,</span>
             <span class="n">tile_thread_workers</span><span class="p">,</span>
             <span class="n">tile_thread_on</span><span class="p">,</span>
+            <span class="n">resume_from_outputs</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">output_image_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reusable_output_paths</span>
     <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
@@ -2413,7 +2457,7 @@
 
 
 <h2 id="spectralmatch.utils.merge_rasters" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">merge_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="s1">&#39;highest&#39;</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">merge_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="s1">&#39;highest&#39;</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resume_from_outputs</span><span class="o">=</span><span class="s1">&#39;no&#39;</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.utils.merge_rasters" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -2639,32 +2683,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span>
-<span class="normal">335</span>
-<span class="normal">336</span>
-<span class="normal">337</span>
-<span class="normal">338</span>
-<span class="normal">339</span>
-<span class="normal">340</span>
-<span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
-<span class="normal">346</span>
-<span class="normal">347</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">347</span>
 <span class="normal">348</span>
 <span class="normal">349</span>
 <span class="normal">350</span>
@@ -2749,7 +2768,40 @@
 <span class="normal">429</span>
 <span class="normal">430</span>
 <span class="normal">431</span>
-<span class="normal">432</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -2762,6 +2814,7 @@
     <span class="n">resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;highest&quot;</span><span class="p">,</span> <span class="s2">&quot;average&quot;</span><span class="p">,</span> <span class="s2">&quot;lowest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;highest&quot;</span><span class="p">,</span>
     <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Merges multiple rasters into a single output.</span>
@@ -2797,6 +2850,13 @@
     <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_merge_rasters</span><span class="p">(</span>
         <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">_existing_outputs_are_reusable</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">output_image_path</span><span class="p">],</span>
+        <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+        <span class="n">step_name</span><span class="o">=</span><span class="s2">&quot;merge_rasters&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="n">output_image_path</span>
 
     <span class="c1"># Setup parallel</span>
     <span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
@@ -3000,13 +3060,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
 <span class="normal">25</span>
@@ -3072,7 +3126,13 @@
 <span class="normal">85</span>
 <span class="normal">86</span>
 <span class="normal">87</span>
-<span class="normal">88</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_vectors</span><span class="p">(</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_vectors</span><span class="p">(</span>
     <span class="n">input_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">merged_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;intersection&quot;</span><span class="p">,</span> <span class="s2">&quot;union&quot;</span><span class="p">,</span> <span class="s2">&quot;keep&quot;</span><span class="p">],</span>
@@ -3231,7 +3291,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       

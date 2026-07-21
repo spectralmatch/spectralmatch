@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -879,48 +879,21 @@
 
     <div class="doc doc-contents first">
 
-        <p>Run the standard spectral matching mosaic workflow as a single pipeline.</p>
-<p>The default matching order is: global matching -&gt; local matching. Override
-this with <code>matching_order</code> to run the matching stages in a different
-sequence or omit one of them entirely.</p>
-<p>Matching stages are controlled by <code>matching_order</code>. Intermediate outputs default to a temporary directory that is created automatically unless <code>shared_temp_dir</code> is provided. Set<code>delete_temp_dir=True</code> to remove the temp directory after processing.</p>
+        <p>Run the spectral matching workflow as an ordered pipeline.</p>
+<p><code>steps</code> defines the exact step order. Intermediate outputs are written
+inside the pipeline temp directory. The final step writes to
+<code>shared_output_image_path</code>:</p>
+<ul>
+<li>If the final step writes multiple rasters, <code>shared_output_image_path</code>
+  must be a folder, a template containing <code>$</code>, or a list of paths.</li>
+<li>If the final step writes a single raster or vector, it must be a single
+  file path without <code>$</code>.</li>
+</ul>
 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/chain.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 22</span>
-<span class="normal"> 23</span>
-<span class="normal"> 24</span>
-<span class="normal"> 25</span>
-<span class="normal"> 26</span>
-<span class="normal"> 27</span>
-<span class="normal"> 28</span>
-<span class="normal"> 29</span>
-<span class="normal"> 30</span>
-<span class="normal"> 31</span>
-<span class="normal"> 32</span>
-<span class="normal"> 33</span>
-<span class="normal"> 34</span>
-<span class="normal"> 35</span>
-<span class="normal"> 36</span>
-<span class="normal"> 37</span>
-<span class="normal"> 38</span>
-<span class="normal"> 39</span>
-<span class="normal"> 40</span>
-<span class="normal"> 41</span>
-<span class="normal"> 42</span>
-<span class="normal"> 43</span>
-<span class="normal"> 44</span>
-<span class="normal"> 45</span>
-<span class="normal"> 46</span>
-<span class="normal"> 47</span>
-<span class="normal"> 48</span>
-<span class="normal"> 49</span>
-<span class="normal"> 50</span>
-<span class="normal"> 51</span>
-<span class="normal"> 52</span>
-<span class="normal"> 53</span>
-<span class="normal"> 54</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 54</span>
 <span class="normal"> 55</span>
 <span class="normal"> 56</span>
 <span class="normal"> 57</span>
@@ -1337,19 +1310,14 @@ sequence or omit one of them entirely.</p>
 <span class="normal">468</span>
 <span class="normal">469</span>
 <span class="normal">470</span>
-<span class="normal">471</span>
-<span class="normal">472</span>
-<span class="normal">473</span>
-<span class="normal">474</span>
-<span class="normal">475</span>
-<span class="normal">476</span>
-<span class="normal">477</span>
-<span class="normal">478</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">471</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
-    <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">shared_temp_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">delete_temp_dir</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">delete_previous_step</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">shared_resume_from_steps</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
     <span class="n">shared_debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">shared_cache</span><span class="p">:</span> <span class="n">AutoCache</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
     <span class="n">shared_custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1360,15 +1328,7 @@ sequence or omit one of them entirely.</p>
     <span class="n">shared_calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
     <span class="n">shared_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">shared_save_as_cog</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SaveAsCog</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">matching_order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MatchingOrderStep</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">MatchingOrderStep</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s2">&quot;global_regression&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">,</span>
-    <span class="p">),</span>
-    <span class="n">align_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;align_rasters&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">&quot;align_rasters&quot;</span><span class="p">,</span>
-    <span class="n">seamline_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">,</span>
-    <span class="n">clip_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;mask_rasters&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">&quot;mask_rasters&quot;</span><span class="p">,</span>
-    <span class="n">merge_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;merge_rasters&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">&quot;merge_rasters&quot;</span><span class="p">,</span>
-    <span class="n">global_regression_output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">PipelineStep</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PipelineStep</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_PIPELINE_STEPS</span><span class="p">,</span>
     <span class="n">global_regression_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_estimate_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">global_regression_specify_model_images</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;exclude&quot;</span><span class="p">,</span> <span class="s2">&quot;include&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1387,7 +1347,6 @@ sequence or omit one of them entirely.</p>
     <span class="n">global_regression_pif_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;orb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orb&quot;</span><span class="p">,</span>
     <span class="n">global_regression_pif_save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">local_block_adjustment_output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_number_of_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;coefficient_of_variation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">local_block_adjustment_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
@@ -1396,34 +1355,43 @@ sequence or omit one of them entirely.</p>
     <span class="n">local_block_adjustment_load_block_maps</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_override_bounds_canvas_coords</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">align_rasters_output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">align_rasters_resampling_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;nearest&quot;</span><span class="p">,</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="s2">&quot;cubic&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
     <span class="n">align_rasters_tap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">align_rasters_resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;highest&quot;</span><span class="p">,</span> <span class="s2">&quot;average&quot;</span><span class="p">,</span> <span class="s2">&quot;lowest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;highest&quot;</span><span class="p">,</span>
-    <span class="n">voronoi_center_seamline_output_mask</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_aoi_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_vector_mask</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_min_point_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_min_cut_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_debug_vectors_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">mask_rasters_output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">weighted_seamline_input_polygons</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">weighted_seamline_rank_function</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">weighted_seamline_image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+    <span class="n">weighted_seamline_input_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">weighted_seamline_output_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;seamlines&quot;</span><span class="p">,</span>
+    <span class="n">weighted_seamline_rank_descending</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">mask_rasters_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">mask_rasters_include_touched_pixels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">merge_rasters_resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;highest&quot;</span><span class="p">,</span> <span class="s2">&quot;average&quot;</span><span class="p">,</span> <span class="s2">&quot;lowest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;highest&quot;</span><span class="p">,</span>
     <span class="n">merge_rasters_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Run the standard spectral matching mosaic workflow as a single pipeline.</span>
+<span class="sd">    Run the spectral matching workflow as an ordered pipeline.</span>
 
-<span class="sd">    The default matching order is: global matching -&gt; local matching. Override</span>
-<span class="sd">    this with ``matching_order`` to run the matching stages in a different</span>
-<span class="sd">    sequence or omit one of them entirely.</span>
+<span class="sd">    ``steps`` defines the exact step order. Intermediate outputs are written</span>
+<span class="sd">    inside the pipeline temp directory. The final step writes to</span>
+<span class="sd">    ``shared_output_image_path``:</span>
 
-<span class="sd">    Matching stages are controlled by ``matching_order``. Intermediate outputs default to a temporary directory that is created automatically unless ``shared_temp_dir`` is provided. Set``delete_temp_dir=True`` to remove the temp directory after processing.</span>
+<span class="sd">    - If the final step writes multiple rasters, ``shared_output_image_path``</span>
+<span class="sd">      must be a folder, a template containing ``$``, or a list of paths.</span>
+<span class="sd">    - If the final step writes a single raster or vector, it must be a single</span>
+<span class="sd">      file path without ``$``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">shared_temp_dir</span> <span class="ow">or</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;spectralmatch_pipeline_&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">delete_temp_dir</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">):</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
         <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">shared_input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
     <span class="p">)</span>
@@ -1441,28 +1409,9 @@ sequence or omit one of them entirely.</p>
         <span class="n">shared_output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
         <span class="n">shared_temp_dir</span><span class="o">=</span><span class="n">shared_temp_dir</span><span class="p">,</span>
         <span class="n">delete_temp_dir</span><span class="o">=</span><span class="n">delete_temp_dir</span><span class="p">,</span>
+        <span class="n">delete_previous_step</span><span class="o">=</span><span class="n">delete_previous_step</span><span class="p">,</span>
+        <span class="n">shared_resume_from_steps</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">for</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">method_value</span><span class="p">,</span> <span class="n">allowed_values</span> <span class="ow">in</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;align_method&quot;</span><span class="p">,</span> <span class="n">align_method</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;align_rasters&quot;</span><span class="p">}),</span>
-        <span class="p">(</span><span class="s2">&quot;seamline_method&quot;</span><span class="p">,</span> <span class="n">seamline_method</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">}),</span>
-        <span class="p">(</span><span class="s2">&quot;clip_method&quot;</span><span class="p">,</span> <span class="n">clip_method</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;mask_rasters&quot;</span><span class="p">}),</span>
-        <span class="p">(</span><span class="s2">&quot;merge_method&quot;</span><span class="p">,</span> <span class="n">merge_method</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;merge_rasters&quot;</span><span class="p">}),</span>
-    <span class="p">]:</span>
-        <span class="n">PipelineValidation</span><span class="o">.</span><span class="n">_validate_method_choice</span><span class="p">(</span>
-            <span class="n">method_name</span><span class="o">=</span><span class="n">method_name</span><span class="p">,</span>
-            <span class="n">method_value</span><span class="o">=</span><span class="n">method_value</span><span class="p">,</span>
-            <span class="n">allowed_values</span><span class="o">=</span><span class="n">allowed_values</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matching_order</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;matching_order must be a list or tuple of matching step names.&quot;</span><span class="p">)</span>
-    <span class="n">matching_order</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">matching_order</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">matching_order</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">step</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;global_regression&quot;</span><span class="p">,</span> <span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;matching_order values must be &#39;global_regression&#39; or &#39;local_block_adjustment&#39;.&quot;</span>
-            <span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">matching_order</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matching_order</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;matching_order cannot contain duplicate steps.&quot;</span><span class="p">)</span>
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">shared_input_images</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
@@ -1476,125 +1425,13 @@ sequence or omit one of them entirely.</p>
         <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
         <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="s2">&quot;global_regression&quot;</span> <span class="ow">in</span> <span class="n">matching_order</span><span class="p">:</span>
-        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
-            <span class="n">input_images</span><span class="o">=</span><span class="n">shared_input_images</span><span class="p">,</span>
-            <span class="n">output_images</span><span class="o">=</span><span class="n">global_regression_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;global&quot;</span><span class="p">),</span>
-            <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
-            <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-            <span class="n">vector_mask</span><span class="o">=</span><span class="n">global_regression_vector_mask</span><span class="p">,</span>
-            <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-            <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
-            <span class="n">calculation_dtype</span><span class="o">=</span><span class="n">shared_calculation_dtype</span><span class="p">,</span>
-            <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
-            <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-            <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
-            <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-            <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-            <span class="n">estimate_stats</span><span class="o">=</span><span class="n">global_regression_estimate_stats</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">MatchValidation</span><span class="o">.</span><span class="n">_validate_match</span><span class="p">(</span><span class="n">specify_model_images</span><span class="o">=</span><span class="n">global_regression_specify_model_images</span><span class="p">)</span>
-        <span class="n">MatchValidation</span><span class="o">.</span><span class="n">_validate_global_regression</span><span class="p">(</span>
-            <span class="n">custom_mean_factor</span><span class="o">=</span><span class="n">global_regression_custom_mean_factor</span><span class="p">,</span>
-            <span class="n">custom_std_factor</span><span class="o">=</span><span class="n">global_regression_custom_std_factor</span><span class="p">,</span>
-            <span class="n">save_adjustments</span><span class="o">=</span><span class="n">global_regression_save_adjustments</span><span class="p">,</span>
-            <span class="n">load_adjustments</span><span class="o">=</span><span class="n">global_regression_load_adjustments</span><span class="p">,</span>
-            <span class="n">pif_method</span><span class="o">=</span><span class="n">global_regression_pif_method</span><span class="p">,</span>
-            <span class="n">pif_feature_method</span><span class="o">=</span><span class="n">global_regression_pif_feature_method</span><span class="p">,</span>
-            <span class="n">pif_save_inz</span><span class="o">=</span><span class="n">global_regression_pif_save_inz</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="s2">&quot;local_block_adjustment&quot;</span> <span class="ow">in</span> <span class="n">matching_order</span><span class="p">:</span>
-        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
-            <span class="n">input_images</span><span class="o">=</span><span class="n">shared_input_images</span><span class="p">,</span>
-            <span class="n">output_images</span><span class="o">=</span><span class="n">local_block_adjustment_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;local&quot;</span><span class="p">),</span>
-            <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
-            <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-            <span class="n">vector_mask</span><span class="o">=</span><span class="n">local_block_adjustment_vector_mask</span><span class="p">,</span>
-            <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-            <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
-            <span class="n">calculation_dtype</span><span class="o">=</span><span class="n">shared_calculation_dtype</span><span class="p">,</span>
-            <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
-            <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-            <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
-            <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-            <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">MatchValidation</span><span class="o">.</span><span class="n">_validate_local_block_adjustment</span><span class="p">(</span>
-            <span class="n">number_of_blocks</span><span class="o">=</span><span class="n">local_block_adjustment_number_of_blocks</span><span class="p">,</span>
-            <span class="n">alpha</span><span class="o">=</span><span class="n">local_block_adjustment_alpha</span><span class="p">,</span>
-            <span class="n">correction_method</span><span class="o">=</span><span class="n">local_block_adjustment_correction_method</span><span class="p">,</span>
-            <span class="n">save_block_maps</span><span class="o">=</span><span class="n">local_block_adjustment_save_block_maps</span><span class="p">,</span>
-            <span class="n">load_block_maps</span><span class="o">=</span><span class="n">local_block_adjustment_load_block_maps</span><span class="p">,</span>
-            <span class="n">override_bounds_canvas_coords</span><span class="o">=</span><span class="n">local_block_adjustment_override_bounds_canvas_coords</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="n">align_method</span> <span class="o">==</span> <span class="s2">&quot;align_rasters&quot;</span><span class="p">:</span>
-        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
-            <span class="n">input_images</span><span class="o">=</span><span class="n">shared_input_images</span><span class="p">,</span>
-            <span class="n">output_images</span><span class="o">=</span><span class="n">align_rasters_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;aligned&quot;</span><span class="p">),</span>
-            <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-            <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-            <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-            <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
-            <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-            <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_align_rasters</span><span class="p">(</span>
-            <span class="n">resampling_method</span><span class="o">=</span><span class="n">align_rasters_resampling_method</span><span class="p">,</span>
-            <span class="n">tap</span><span class="o">=</span><span class="n">align_rasters_tap</span><span class="p">,</span>
-            <span class="n">resolution</span><span class="o">=</span><span class="n">align_rasters_resolution</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="n">seamline_method</span> <span class="o">==</span> <span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">:</span>
-        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">input_images</span><span class="o">=</span><span class="n">shared_input_images</span><span class="p">)</span>
-        <span class="n">SeamlineValidation</span><span class="o">.</span><span class="n">_validate_voronoi_center_seamline</span><span class="p">(</span>
-            <span class="n">output_mask</span><span class="o">=</span><span class="n">voronoi_center_seamline_output_mask</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;seamline&quot;</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span>
-            <span class="n">aoi_path</span><span class="o">=</span><span class="n">voronoi_center_seamline_aoi_path</span><span class="p">,</span>
-            <span class="n">vector_mask</span><span class="o">=</span><span class="n">voronoi_center_seamline_vector_mask</span><span class="p">,</span>
-            <span class="n">image_field_name</span><span class="o">=</span><span class="n">voronoi_center_seamline_image_field_name</span><span class="p">,</span>
-            <span class="n">min_point_spacing</span><span class="o">=</span><span class="n">voronoi_center_seamline_min_point_spacing</span><span class="p">,</span>
-            <span class="n">min_cut_length</span><span class="o">=</span><span class="n">voronoi_center_seamline_min_cut_length</span><span class="p">,</span>
-            <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">voronoi_center_seamline_debug_vectors_path</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="n">clip_method</span> <span class="o">==</span> <span class="s2">&quot;mask_rasters&quot;</span><span class="p">:</span>
-        <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="n">mask_rasters_vector_mask</span>
-        <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">seamline_method</span> <span class="o">==</span> <span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">:</span>
-            <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">&quot;include&quot;</span><span class="p">,</span>
-                <span class="n">voronoi_center_seamline_output_mask</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;seamline&quot;</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span>
-                <span class="n">voronoi_center_seamline_image_field_name</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;mask_rasters requires a vector mask. Set mask_rasters_vector_mask or enable the seamline stage.&quot;</span>
-            <span class="p">)</span>
-        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
-            <span class="n">input_images</span><span class="o">=</span><span class="n">shared_input_images</span><span class="p">,</span>
-            <span class="n">output_images</span><span class="o">=</span><span class="n">mask_rasters_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;clip&quot;</span><span class="p">),</span>
-            <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-            <span class="n">vector_mask</span><span class="o">=</span><span class="n">clip_vector_mask</span><span class="p">,</span>
-            <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-            <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
-            <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-            <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
-            <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-            <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_mask_rasters</span><span class="p">(</span>
-            <span class="n">include_touched_pixels</span><span class="o">=</span><span class="n">mask_rasters_include_touched_pixels</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="n">merge_method</span> <span class="o">==</span> <span class="s2">&quot;merge_rasters&quot;</span><span class="p">:</span>
-        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
-            <span class="n">input_images</span><span class="o">=</span><span class="n">shared_input_images</span><span class="p">,</span>
-            <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-            <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-            <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-            <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-            <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
-            <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-            <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_merge_rasters</span><span class="p">(</span>
-            <span class="n">resolution</span><span class="o">=</span><span class="n">merge_rasters_resolution</span><span class="p">,</span>
-        <span class="p">)</span>
+
+    <span class="n">resolved_steps</span> <span class="o">=</span> <span class="n">_validate_pipeline_steps</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
+    <span class="n">last_step</span> <span class="o">=</span> <span class="n">resolved_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">resolved_steps</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">_validate_shared_output_for_last_step</span><span class="p">(</span>
+        <span class="n">shared_output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
+        <span class="n">last_step</span><span class="o">=</span><span class="n">last_step</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">start_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
     <span class="n">start_perf</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
@@ -1602,8 +1439,10 @@ sequence or omit one of them entirely.</p>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pipeline temp dir: </span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of input images: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">current_images</span> <span class="o">=</span> <span class="n">shared_input_images</span>
-    <span class="n">seamline_mask_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">current_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span> <span class="o">=</span> <span class="n">shared_input_images</span>
+    <span class="n">seamline_mask_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">seamline_mask_image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">previous_cleanup_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;temp_dir&quot;</span><span class="p">:</span> <span class="n">temp_dir</span><span class="p">,</span>
@@ -1614,17 +1453,24 @@ sequence or omit one of them entirely.</p>
         <span class="s2">&quot;resolved_shared_tile_threads&quot;</span><span class="p">:</span> <span class="n">shared_tile_threads</span><span class="p">,</span>
         <span class="s2">&quot;num_input_images&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span>
         <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">&quot;seconds&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;matching_order&quot;</span><span class="p">:</span> <span class="n">matching_order</span><span class="p">,</span>
+        <span class="s2">&quot;steps&quot;</span><span class="p">:</span> <span class="n">resolved_steps</span><span class="p">,</span>
+        <span class="s2">&quot;shared_resume_from_steps&quot;</span><span class="p">:</span> <span class="n">shared_resume_from_steps</span><span class="p">,</span>
     <span class="p">}</span>
+
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">matching_step</span> <span class="ow">in</span> <span class="n">matching_order</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">matching_step</span> <span class="o">==</span> <span class="s2">&quot;global_regression&quot;</span><span class="p">:</span>
-                <span class="n">global_output_images</span> <span class="o">=</span> <span class="n">global_regression_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;global&quot;</span>
+        <span class="k">for</span> <span class="n">step_index</span><span class="p">,</span> <span class="n">step_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">resolved_steps</span><span class="p">):</span>
+            <span class="n">is_last_step</span> <span class="o">=</span> <span class="n">step_index</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolved_steps</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">step_cleanup_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">if</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;global_regression&quot;</span><span class="p">:</span>
+                <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">shared_output_image_path</span>
+                    <span class="k">if</span> <span class="n">is_last_step</span>
+                    <span class="k">else</span> <span class="n">_step_temp_output</span><span class="p">(</span><span class="n">step_name</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
                 <span class="p">)</span>
                 <span class="n">current_images</span> <span class="o">=</span> <span class="n">Match</span><span class="o">.</span><span class="n">global_regression</span><span class="p">(</span>
                     <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
-                    <span class="n">output_images</span><span class="o">=</span><span class="n">global_output_images</span><span class="p">,</span>
+                    <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
                     <span class="n">calculation_dtype</span><span class="o">=</span><span class="n">shared_calculation_dtype</span><span class="p">,</span>
                     <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
                     <span class="n">vector_mask</span><span class="o">=</span><span class="n">global_regression_vector_mask</span><span class="p">,</span>
@@ -1653,15 +1499,22 @@ sequence or omit one of them entirely.</p>
                     <span class="n">pif_feature_method</span><span class="o">=</span><span class="n">global_regression_pif_feature_method</span><span class="p">,</span>
                     <span class="n">pif_save_inz</span><span class="o">=</span><span class="n">global_regression_pif_save_inz</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">global_regression_build_overviews</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">results</span><span class="p">[</span><span class="s2">&quot;global_regression&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
-            <span class="k">elif</span> <span class="n">matching_step</span> <span class="o">==</span> <span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">:</span>
-                <span class="n">local_output_images</span> <span class="o">=</span> <span class="n">local_block_adjustment_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;local&quot;</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">:</span>
+                <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">shared_output_image_path</span>
+                    <span class="k">if</span> <span class="n">is_last_step</span>
+                    <span class="k">else</span> <span class="n">_step_temp_output</span><span class="p">(</span><span class="n">step_name</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
                 <span class="p">)</span>
                 <span class="n">current_images</span> <span class="o">=</span> <span class="n">Match</span><span class="o">.</span><span class="n">local_block_adjustment</span><span class="p">(</span>
                     <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
-                    <span class="n">output_images</span><span class="o">=</span><span class="n">local_output_images</span><span class="p">,</span>
+                    <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
                     <span class="n">calculation_dtype</span><span class="o">=</span><span class="n">shared_calculation_dtype</span><span class="p">,</span>
                     <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
                     <span class="n">vector_mask</span><span class="o">=</span><span class="n">local_block_adjustment_vector_mask</span><span class="p">,</span>
@@ -1680,113 +1533,183 @@ sequence or omit one of them entirely.</p>
                     <span class="n">load_block_maps</span><span class="o">=</span><span class="n">local_block_adjustment_load_block_maps</span><span class="p">,</span>
                     <span class="n">override_bounds_canvas_coords</span><span class="o">=</span><span class="n">local_block_adjustment_override_bounds_canvas_coords</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">local_block_adjustment_build_overviews</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">results</span><span class="p">[</span><span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
-
-        <span class="k">if</span> <span class="n">align_method</span> <span class="o">==</span> <span class="s2">&quot;align_rasters&quot;</span><span class="p">:</span>
-            <span class="n">align_output_images</span> <span class="o">=</span> <span class="n">align_rasters_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;aligned&quot;</span>
-            <span class="p">)</span>
-            <span class="n">current_images</span> <span class="o">=</span> <span class="n">align_rasters</span><span class="p">(</span>
-                <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
-                <span class="n">output_images</span><span class="o">=</span><span class="n">align_output_images</span><span class="p">,</span>
-                <span class="n">resampling_method</span><span class="o">=</span><span class="n">align_rasters_resampling_method</span><span class="p">,</span>
-                <span class="n">tap</span><span class="o">=</span><span class="n">align_rasters_tap</span><span class="p">,</span>
-                <span class="n">resolution</span><span class="o">=</span><span class="n">align_rasters_resolution</span><span class="p">,</span>
-                <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-                <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-                <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-                <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
-                <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-                <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;align_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
-        <span class="k">elif</span> <span class="n">align_method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;align_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported align_method: </span><span class="si">{</span><span class="n">align_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">seamline_method</span> <span class="o">==</span> <span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">:</span>
-            <span class="n">seamline_mask_path</span> <span class="o">=</span> <span class="n">voronoi_center_seamline_output_mask</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;seamline&quot;</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span>
-            <span class="p">)</span>
-            <span class="n">Seamline</span><span class="o">.</span><span class="n">voronoi</span><span class="p">(</span>
-                <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
-                <span class="n">output_mask</span><span class="o">=</span><span class="n">seamline_mask_path</span><span class="p">,</span>
-                <span class="n">aoi_path</span><span class="o">=</span><span class="n">voronoi_center_seamline_aoi_path</span><span class="p">,</span>
-                <span class="n">vector_mask</span><span class="o">=</span><span class="n">voronoi_center_seamline_vector_mask</span><span class="p">,</span>
-                <span class="n">image_field_name</span><span class="o">=</span><span class="n">voronoi_center_seamline_image_field_name</span><span class="p">,</span>
-                <span class="n">min_point_spacing</span><span class="o">=</span><span class="n">voronoi_center_seamline_min_point_spacing</span><span class="p">,</span>
-                <span class="n">min_cut_length</span><span class="o">=</span><span class="n">voronoi_center_seamline_min_cut_length</span><span class="p">,</span>
-                <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-                <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">voronoi_center_seamline_debug_vectors_path</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
-        <span class="k">elif</span> <span class="n">seamline_method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported seamline_method: </span><span class="si">{</span><span class="n">seamline_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">clip_method</span> <span class="o">==</span> <span class="s2">&quot;mask_rasters&quot;</span><span class="p">:</span>
-            <span class="n">mask_output_images</span> <span class="o">=</span> <span class="n">mask_rasters_output_images</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;clip&quot;</span><span class="p">)</span>
-            <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="n">mask_rasters_vector_mask</span>
-            <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">seamline_mask_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">&quot;include&quot;</span><span class="p">,</span>
-                    <span class="n">seamline_mask_path</span><span class="p">,</span>
-                    <span class="n">voronoi_center_seamline_image_field_name</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;mask_rasters requires a vector mask. Set mask_rasters_vector_mask &quot;</span>
-                    <span class="s2">&quot;or enable the seamline stage.&quot;</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
-            <span class="n">current_images</span> <span class="o">=</span> <span class="n">mask_rasters</span><span class="p">(</span>
-                <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
-                <span class="n">output_images</span><span class="o">=</span><span class="n">mask_output_images</span><span class="p">,</span>
-                <span class="n">vector_mask</span><span class="o">=</span><span class="n">clip_vector_mask</span><span class="p">,</span>
-                <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-                <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-                <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-                <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
-                <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-                <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-                <span class="n">include_touched_pixels</span><span class="o">=</span><span class="n">mask_rasters_include_touched_pixels</span><span class="p">,</span>
-                <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;mask_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
-        <span class="k">elif</span> <span class="n">clip_method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;mask_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported clip_method: </span><span class="si">{</span><span class="n">clip_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;align&quot;</span><span class="p">:</span>
+                <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">shared_output_image_path</span>
+                    <span class="k">if</span> <span class="n">is_last_step</span>
+                    <span class="k">else</span> <span class="n">_step_temp_output</span><span class="p">(</span><span class="n">step_name</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">current_images</span> <span class="o">=</span> <span class="n">align_rasters</span><span class="p">(</span>
+                    <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
+                    <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+                    <span class="n">resampling_method</span><span class="o">=</span><span class="n">align_rasters_resampling_method</span><span class="p">,</span>
+                    <span class="n">tap</span><span class="o">=</span><span class="n">align_rasters_tap</span><span class="p">,</span>
+                    <span class="n">resolution</span><span class="o">=</span><span class="n">align_rasters_resolution</span><span class="p">,</span>
+                    <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
+                    <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
+                    <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
+                    <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
+                    <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;align_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
+                <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">merge_method</span> <span class="o">==</span> <span class="s2">&quot;merge_rasters&quot;</span><span class="p">:</span>
-            <span class="n">merged_output</span> <span class="o">=</span> <span class="n">merge_rasters</span><span class="p">(</span>
-                <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
-                <span class="n">output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
-                <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
-                <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
-                <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
-                <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
-                <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
-                <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
-                <span class="n">resolution</span><span class="o">=</span><span class="n">merge_rasters_resolution</span><span class="p">,</span>
-                <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
-                <span class="n">build_overviews</span><span class="o">=</span><span class="n">merge_rasters_build_overviews</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;merge_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
-        <span class="k">elif</span> <span class="n">merge_method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;merge_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">:</span>
+                <span class="n">seamline_mask_path</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">shared_output_image_path</span>
+                    <span class="k">if</span> <span class="n">is_last_step</span>
+                    <span class="k">else</span> <span class="n">_step_temp_output</span><span class="p">(</span><span class="n">step_name</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seamline_mask_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;shared_output_image_path must be a single file path when the final step is a seamline.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">seamline_mask_image_field_name</span> <span class="o">=</span> <span class="n">voronoi_center_seamline_image_field_name</span>
+                <span class="n">Seamline</span><span class="o">.</span><span class="n">voronoi</span><span class="p">(</span>
+                    <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
+                    <span class="n">output_mask</span><span class="o">=</span><span class="n">seamline_mask_path</span><span class="p">,</span>
+                    <span class="n">aoi_path</span><span class="o">=</span><span class="n">voronoi_center_seamline_aoi_path</span><span class="p">,</span>
+                    <span class="n">vector_mask</span><span class="o">=</span><span class="n">voronoi_center_seamline_vector_mask</span><span class="p">,</span>
+                    <span class="n">image_field_name</span><span class="o">=</span><span class="n">voronoi_center_seamline_image_field_name</span><span class="p">,</span>
+                    <span class="n">min_point_spacing</span><span class="o">=</span><span class="n">voronoi_center_seamline_min_point_spacing</span><span class="p">,</span>
+                    <span class="n">min_cut_length</span><span class="o">=</span><span class="n">voronoi_center_seamline_min_cut_length</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
+                    <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">voronoi_center_seamline_debug_vectors_path</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">seamline_mask_path</span><span class="p">,</span> <span class="n">temp_dir</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;weighted_seamline&quot;</span><span class="p">:</span>
+                <span class="n">seamline_mask_path</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">shared_output_image_path</span>
+                    <span class="k">if</span> <span class="n">is_last_step</span>
+                    <span class="k">else</span> <span class="n">_step_temp_output</span><span class="p">(</span><span class="n">step_name</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seamline_mask_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;shared_output_image_path must be a single file path when the final step is a seamline.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">seamline_mask_image_field_name</span> <span class="o">=</span> <span class="n">weighted_seamline_image_field_name</span>
+                <span class="n">Seamline</span><span class="o">.</span><span class="n">weighted</span><span class="p">(</span>
+                    <span class="n">input_polygons</span><span class="o">=</span><span class="n">weighted_seamline_input_polygons</span><span class="p">,</span>
+                    <span class="n">output_mask</span><span class="o">=</span><span class="n">seamline_mask_path</span><span class="p">,</span>
+                    <span class="n">rank_function</span><span class="o">=</span><span class="n">weighted_seamline_rank_function</span><span class="p">,</span>
+                    <span class="n">image_field_name</span><span class="o">=</span><span class="n">weighted_seamline_image_field_name</span><span class="p">,</span>
+                    <span class="n">input_layer</span><span class="o">=</span><span class="n">weighted_seamline_input_layer</span><span class="p">,</span>
+                    <span class="n">output_layer</span><span class="o">=</span><span class="n">weighted_seamline_output_layer</span><span class="p">,</span>
+                    <span class="n">rank_descending</span><span class="o">=</span><span class="n">weighted_seamline_rank_descending</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;weighted_seamline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">seamline_mask_path</span><span class="p">,</span> <span class="n">temp_dir</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;mask&quot;</span><span class="p">:</span>
+                <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">shared_output_image_path</span>
+                    <span class="k">if</span> <span class="n">is_last_step</span>
+                    <span class="k">else</span> <span class="n">_step_temp_output</span><span class="p">(</span><span class="n">step_name</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="n">mask_rasters_vector_mask</span>
+                <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">seamline_mask_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;include&quot;</span><span class="p">,</span>
+                        <span class="n">seamline_mask_path</span><span class="p">,</span>
+                        <span class="n">seamline_mask_image_field_name</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;mask_rasters requires a vector mask. Set mask_rasters_vector_mask &quot;</span>
+                        <span class="s2">&quot;or run a seamline step earlier in the pipeline.&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="n">current_images</span> <span class="o">=</span> <span class="n">mask_rasters</span><span class="p">(</span>
+                    <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
+                    <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+                    <span class="n">vector_mask</span><span class="o">=</span><span class="n">clip_vector_mask</span><span class="p">,</span>
+                    <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
+                    <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
+                    <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
+                    <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
+                    <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">include_touched_pixels</span><span class="o">=</span><span class="n">mask_rasters_include_touched_pixels</span><span class="p">,</span>
+                    <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;mask_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;merge&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shared_output_image_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;shared_output_image_path must be a single file path when the final step is merge.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">merged_output</span> <span class="o">=</span> <span class="n">merge_rasters</span><span class="p">(</span>
+                    <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
+                    <span class="n">output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
+                    <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
+                    <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
+                    <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
+                    <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
+                    <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
+                    <span class="n">resolution</span><span class="o">=</span><span class="n">merge_rasters_resolution</span><span class="p">,</span>
+                    <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
+                    <span class="n">build_overviews</span><span class="o">=</span><span class="n">merge_rasters_build_overviews</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">current_images</span> <span class="o">=</span> <span class="n">merged_output</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;merge&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;merge_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">merged_output</span><span class="p">,</span> <span class="n">temp_dir</span>
+                <span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported pipeline step: </span><span class="si">{</span><span class="n">step_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">delete_previous_step</span> <span class="ow">and</span> <span class="n">previous_cleanup_paths</span><span class="p">:</span>
+                <span class="n">_delete_step_outputs_if_inactive</span><span class="p">(</span>
+                    <span class="n">previous_cleanup_paths</span><span class="o">=</span><span class="n">previous_cleanup_paths</span><span class="p">,</span>
+                    <span class="n">current_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
+                    <span class="n">seamline_mask_path</span><span class="o">=</span><span class="n">seamline_mask_path</span><span class="p">,</span>
+                    <span class="n">temp_dir</span><span class="o">=</span><span class="n">temp_dir</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">previous_cleanup_paths</span> <span class="o">=</span> <span class="n">step_cleanup_paths</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved_steps</span><span class="p">:</span>
             <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+        <span class="k">elif</span> <span class="n">last_step</span> <span class="ow">in</span> <span class="n">SEAMLINE_STEPS</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported merge_method: </span><span class="si">{</span><span class="n">merge_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
 
         <span class="n">end_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
         <span class="n">duration_seconds</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_perf</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">{</span>
+        <span class="n">final_results</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
             <span class="s2">&quot;temp_dir&quot;</span><span class="p">:</span> <span class="n">temp_dir</span><span class="p">,</span>
             <span class="s2">&quot;num_input_images&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span>
@@ -1798,6 +1721,10 @@ sequence or omit one of them entirely.</p>
             <span class="s2">&quot;resolved_shared_io_threads&quot;</span><span class="p">:</span> <span class="n">shared_io_threads</span><span class="p">,</span>
             <span class="s2">&quot;resolved_shared_tile_threads&quot;</span><span class="p">:</span> <span class="n">shared_tile_threads</span><span class="p">,</span>
         <span class="p">}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">final_results</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">final_results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">final_results</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">delete_temp_dir</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">):</span>
             <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1879,7 +1806,7 @@ sequence or omit one of them entirely.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       

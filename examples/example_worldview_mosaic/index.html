@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1594,7 +1594,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=288ea704">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=765ad5d8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1625,7 +1625,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d800dbb6">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=912041da">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1655,6 +1655,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
     <span class="n">merge_rasters</span><span class="p">,</span>
     <span class="n">search_paths</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline</span><span class="p">,</span>
+    <span class="n">weighted_seamline</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="c1"># Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder</span>
@@ -1686,6 +1687,7 @@ from spectralmatch import (
     merge_rasters,
     search_paths,
     voronoi_center_seamline,
+    weighted_seamline,
 )
 
 # Important: If this does not automatically find the correct CWD, manually copy the path to the /data_worldview folder
@@ -1710,7 +1712,7 @@ debug_mode = True</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=13846f42">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=971224f1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1781,7 +1783,7 @@ global_regression(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=3f430ed1">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=eec2942e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1846,7 +1848,7 @@ local_block_adjustment(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=1ca0f07a">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=bc83c9f2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1894,7 +1896,7 @@ align_rasters(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=52b5ecd7">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=cb7bc975">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1912,29 +1914,55 @@ align_rasters(
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">voronoi_center_seamline</span><span class="p">(</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Option 1: Voronoi center seamlines from the raster footprints</span>
+
+<span class="n">voronoi_center_seamline</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
     <span class="n">output_mask</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"ImageMasks.gpkg"</span><span class="p">),</span>
     <span class="n">image_field_name</span><span class="o">=</span><span class="s2">"image"</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_mode</span><span class="p">,</span>
     <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">"DebugVectors.gpkg"</span><span class="p">),</span>
 <span class="p">)</span>
+
+<span class="c1"># Option 2: Weighted seamlines from a polygon layer that already contains ranking attributes. This is useful when another workflow prepares footprint polygons plus metadata fields for ranking. Rank placeholders support direct fields like {quality_score}.</span>
+<span class="c1"># weighted_seamline(</span>
+<span class="c1">#     input_polygons=os.path.join(working_directory, "SeamlineMetadata.gpkg"),</span>
+<span class="c1">#     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),</span>
+<span class="c1">#     input_layer="footprints",</span>
+<span class="c1">#     image_field_name="image",</span>
+<span class="c1">#     rank_function="{quality_score} - {cloud_cover}",</span>
+<span class="c1">#     rank_descending=True,</span>
+<span class="c1">#     debug_logs=debug_mode,</span>
+<span class="c1"># )</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">
+# Option 1: Voronoi center seamlines from the raster footprints
+
 voronoi_center_seamline(
     input_images=aligned_folder,
     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
     image_field_name="image",
     debug_logs=debug_mode,
     debug_vectors_path=os.path.join(working_directory, "DebugVectors.gpkg"),
-)</div>
+)
+
+# Option 2: Weighted seamlines from a polygon layer that already contains ranking attributes. This is useful when another workflow prepares footprint polygons plus metadata fields for ranking. Rank placeholders support direct fields like {quality_score}.
+# weighted_seamline(
+#     input_polygons=os.path.join(working_directory, "SeamlineMetadata.gpkg"),
+#     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
+#     input_layer="footprints",
+#     image_field_name="image",
+#     rank_function="{quality_score} - {cloud_cover}",
+#     rank_descending=True,
+#     debug_logs=debug_mode,
+# )</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a5b804a2">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=cae490e9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1980,7 +2008,7 @@ mask_rasters(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=474baad9">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=04b6ded3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2024,7 +2052,7 @@ merge_rasters(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=91fa3d43">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=26eb2ff7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2151,7 +2179,7 @@ compare_before_after_all_images(
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 5, 2026 03:19:44 UTC">May 5, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 21, 2026 01:04:20 UTC">July 21, 2026</span>
   </span>
 
     
@@ -2204,7 +2232,7 @@ compare_before_after_all_images(
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       

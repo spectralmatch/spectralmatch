@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -25,7 +25,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -879,6 +879,141 @@ The following content includes function signatures and docstrings from Python so
 
 
 ## Python Section
+### File: chain.py
+
+def pipeline(shared_input_images, shared_output_image_path):
+    """Run the spectral matching workflow as an ordered pipeline.
+
+``steps`` defines the exact step order. Intermediate outputs are written
+inside the pipeline temp directory. The final step writes to
+``shared_output_image_path``:
+
+- If the final step writes multiple rasters, ``shared_output_image_path``
+  must be a folder, a template containing ``$``, or a list of paths.
+- If the final step writes a single raster or vector, it must be a single
+  file path without ``$``."""
+
+def _validate_pipeline_steps(steps):
+
+def _validate_shared_output_for_last_step():
+
+def _step_temp_output(step_name, temp_dir):
+
+def _collect_step_cleanup_paths(step_name, step_output, temp_dir):
+
+def _delete_step_outputs_if_inactive():
+
+def _path_is_within(path, root):
+
+def _paths_overlap(path_a, path_b):
+
+def _resolve_auto_shared_settings():
+
+def _resolve_auto_cache_gb():
+
+def _get_total_memory_bytes():
+
+### File: utils_multiprocessing.py
+
+def _choose_context(prefer_fork):
+    """Chooses the most appropriate multiprocessing context based on platform and preference.
+
+Args:
+    prefer_fork (bool): If True, prefers "fork" context where available; default is True.
+
+Returns:
+    mp.context.BaseContext: Selected multiprocessing context ("fork", "forkserver", or "spawn")."""
+
+def _resolve_parallel_config(workers):
+    """Parses a parallel worker config into execution flags and worker count.
+
+Args:
+    workers ("cpu" | int | None): Number of workers.
+        - "cpu" → use os.cpu_count()
+        - int   → use that many workers
+        - None  → disables parallelism
+
+Returns:
+    Tuple[bool, Optional[int]]:
+        - Whether to run in parallel,
+        - Number of workers."""
+
+def _get_executor(backend, max_workers, initializer, initargs):
+    """Creates a parallel executor (process or thread) with optional initialization logic.
+
+Args:
+    backend (str): Execution backend, either "process" or "thread".
+    max_workers (int): Maximum number of worker processes or threads.
+    initializer (Callable, optional): Function to initialize worker context.
+    initargs (tuple, optional): Arguments to pass to the initializer.
+
+Returns:
+    Executor: An instance of ThreadPoolExecutor or ProcessPoolExecutor.
+
+Raises:
+    ValueError: If the backend is not "process" or "thread"."""
+
+### File: statistics.py
+
+def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel, line_width, estimate_stats):
+    """Plots paired spectral profiles for before-and-after image comparisons.
+
+Args:
+    image_groups_dict (dict): Mapping of labels to image path pairs (before, after):
+        {'Image A': [
+            '/image/before/a.tif',
+            'image/after/a.tif'
+        ],
+        'Image B': [
+            '/image/before/b.tif',
+            '/image/after/b.tif'
+        ]}
+    output_figure_path (str): Path to save the resulting comparison figure.
+    title (str): Title of the plot.
+    xlabel (str): X-axis label.
+    ylabel (str): Y-axis label.
+    line_width (float, optional): Width of the spectral profiles lines. Default is 1.
+    estimate_stats (bool, optional): Whether to estimate band statistics. Default is True.
+
+Outputs:
+    Saves a spectral comparison plot showing pre- and post-processing profiles."""
+
+def compare_spatial_spectral_difference_band_average(input_images, output_figure_path, title, diff_label, subtitle, scale):
+    """Computes and visualizes the mean per-pixel spectral difference between two coregistered, equal-size images.
+
+Args:
+    input_images (list): List of two image file paths [before, after].
+    output_figure_path (str): Path to save the resulting difference image (PNG).
+    title (str): Title for the plot.
+    diff_label (str): Label for the colorbar.
+    subtitle (str): Subtitle text shown below the image.
+    scale (tuple, optional): Tuple (vmin, vmax) to fix the color scale. Centered at 0.
+
+Raises:
+    ValueError: If the input list doesn't contain exactly two image paths, or shapes mismatch."""
+
+def compare_before_after_all_images(input_images_1, input_images_2, output_figure_path, title, ylabel_1, ylabel_2, image_names):
+    """Creates a two-row image grid to compare before-and-after raster pairs with consistent per-row contrast stretching. Each column shows a pair of aligned images with transparent nodata. Supports 1- and 3-band rasters.
+
+Args:
+    input_images_1 (list): List of file paths to the "before" images (top row).
+    input_images_2 (list): List of file paths to the "after" images (bottom row).
+    output_figure_path (str): Destination path to save the output PNG figure.
+    title (str): Title of the entire figure.
+    ylabel_1 (str): Y-axis label for the top row.
+    ylabel_2 (str): Y-axis label for the bottom row.
+    image_names (list, optional): List of image names to use as column titles. Must match the number of image pairs.
+
+Raises:
+    AssertionError: If input lists have mismatched lengths or if `image_names` does not match image count.
+
+Output:
+    Saves a PNG file with the comparison figure."""
+
+def read_as_3band(ds):
+
+def compute_row_stretch(paths):
+
 ### File: utils.py
 
 def merge_vectors(input_vectors, merged_vector_path, method, debug_logs, create_name_attribute):
@@ -913,7 +1048,7 @@ Args:
 Returns:
     List[str]: Paths to the locally adjusted output raster images."""
 
-def _align_process_image(image_name, in_path, out_path, target_res, resampling_method, tap, window_size, tile_threads, debug_logs):
+def _align_process_image(image_name, in_path, out_path, target_res, resampling_method, tap, window_size, tile_threads, debug_logs, resume_from_outputs):
     """Align a single raster to a target resolution and grid using GDAL Warp.
 
 Args:
@@ -951,7 +1086,7 @@ Args:
 Returns:
     str: Path of the merged raster."""
 
-def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, cache, image_threads, io_threads, tile_threads, include_touched_pixels, custom_nodata_value):
+def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, cache, image_threads, io_threads, tile_threads, include_touched_pixels, custom_nodata_value, resume_from_outputs):
     """Applies a vector-based mask to one or more rasters using GDAL Warp.
 
 Args:
@@ -970,7 +1105,7 @@ Args:
 Returns:
     list: Output image paths after masking."""
 
-def _mask_raster_process_image(input_image_path, output_image_path, image_name, mode, cutline_path, field_given, debug_logs, include_touched_pixels, custom_nodata_value, tile_threads, tile_thread_on):
+def _mask_raster_process_image(input_image_path, output_image_path, image_name, mode, cutline_path, field_given, debug_logs, include_touched_pixels, custom_nodata_value, tile_threads, tile_thread_on, resume_from_outputs):
     """Applies a GDAL Warp mask to a single image using cutline and nodata configuration.
 
 Args:
@@ -1080,6 +1215,14 @@ Args:
 Returns:
     List[str]: List of resolved input."""
 
+def _existing_outputs_are_reusable(output_paths):
+
+def _resolve_reusable_output_paths(output_paths):
+
+def _is_gdal_raster_path(path):
+
+def _gdal_raster_is_valid(path):
+
 def search_paths(search_pattern):
     """Search for files using a glob pattern, or a folder with a default file pattern.
 
@@ -1157,92 +1300,6 @@ Args:
 Returns:
     float | None: The chosen NoData value."""
 
-### File: chain.py
-
-def pipeline(shared_input_images, shared_output_image_path):
-    """Run the standard spectral matching mosaic workflow as a single pipeline.
-
-The default matching order is: global matching -> local matching. Override
-this with ``matching_order`` to run the matching stages in a different
-sequence or omit one of them entirely.
-
-Matching stages are controlled by ``matching_order``. Intermediate outputs default to a temporary directory that is created automatically unless ``shared_temp_dir`` is provided. Set``delete_temp_dir=True`` to remove the temp directory after processing."""
-
-def _resolve_auto_shared_settings():
-
-def _resolve_auto_cache_gb():
-
-def _get_total_memory_bytes():
-
-### File: cli.py
-
-def _cli_version():
-
-def _build_cli():
-
-def main():
-
-### File: statistics.py
-
-def compare_image_spectral_profiles_pairs(image_groups_dict, output_figure_path, title, xlabel, ylabel, line_width, estimate_stats):
-    """Plots paired spectral profiles for before-and-after image comparisons.
-
-Args:
-    image_groups_dict (dict): Mapping of labels to image path pairs (before, after):
-        {'Image A': [
-            '/image/before/a.tif',
-            'image/after/a.tif'
-        ],
-        'Image B': [
-            '/image/before/b.tif',
-            '/image/after/b.tif'
-        ]}
-    output_figure_path (str): Path to save the resulting comparison figure.
-    title (str): Title of the plot.
-    xlabel (str): X-axis label.
-    ylabel (str): Y-axis label.
-    line_width (float, optional): Width of the spectral profiles lines. Default is 1.
-    estimate_stats (bool, optional): Whether to estimate band statistics. Default is True.
-
-Outputs:
-    Saves a spectral comparison plot showing pre- and post-processing profiles."""
-
-def compare_spatial_spectral_difference_band_average(input_images, output_figure_path, title, diff_label, subtitle, scale):
-    """Computes and visualizes the mean per-pixel spectral difference between two coregistered, equal-size images.
-
-Args:
-    input_images (list): List of two image file paths [before, after].
-    output_figure_path (str): Path to save the resulting difference image (PNG).
-    title (str): Title for the plot.
-    diff_label (str): Label for the colorbar.
-    subtitle (str): Subtitle text shown below the image.
-    scale (tuple, optional): Tuple (vmin, vmax) to fix the color scale. Centered at 0.
-
-Raises:
-    ValueError: If the input list doesn't contain exactly two image paths, or shapes mismatch."""
-
-def compare_before_after_all_images(input_images_1, input_images_2, output_figure_path, title, ylabel_1, ylabel_2, image_names):
-    """Creates a two-row image grid to compare before-and-after raster pairs with consistent per-row contrast stretching. Each column shows a pair of aligned images with transparent nodata. Supports 1- and 3-band rasters.
-
-Args:
-    input_images_1 (list): List of file paths to the "before" images (top row).
-    input_images_2 (list): List of file paths to the "after" images (bottom row).
-    output_figure_path (str): Destination path to save the output PNG figure.
-    title (str): Title of the entire figure.
-    ylabel_1 (str): Y-axis label for the top row.
-    ylabel_2 (str): Y-axis label for the bottom row.
-    image_names (list, optional): List of image names to use as column titles. Must match the number of image pairs.
-
-Raises:
-    AssertionError: If input lists have mismatched lengths or if `image_names` does not match image count.
-
-Output:
-    Saves a PNG file with the comparison figure."""
-
-def read_as_3band(ds):
-
-def compute_row_stretch(paths):
-
 ### File: types_and_validation.py
 
 def _validate_threads(x, name):
@@ -1267,392 +1324,59 @@ def _validate_merge_rasters():
 
 def _validate_voronoi_center_seamline():
 
-### File: utils_multiprocessing.py
+def _validate_weighted_seamline():
 
-def _choose_context(prefer_fork):
-    """Chooses the most appropriate multiprocessing context based on platform and preference.
+### File: cli.py
 
-Args:
-    prefer_fork (bool): If True, prefers "fork" context where available; default is True.
+def _cli_version():
 
-Returns:
-    mp.context.BaseContext: Selected multiprocessing context ("fork", "forkserver", or "spawn")."""
+def _build_cli():
 
-def _resolve_parallel_config(workers):
-    """Parses a parallel worker config into execution flags and worker count.
+def main():
 
-Args:
-    workers ("cpu" | int | None): Number of workers.
-        - "cpu" → use os.cpu_count()
-        - int   → use that many workers
-        - None  → disables parallelism
+### File: pif/pif.py
 
-Returns:
-    Tuple[bool, Optional[int]]:
-        - Whether to run in parallel,
-        - Number of workers."""
+def _resolve_pair_output_path(base_path, main_name, reference_name, pair_index, total_pairs):
 
-def _get_executor(backend, max_workers, initializer, initargs):
-    """Creates a parallel executor (process or thread) with optional initialization logic.
+def _find_overlaps(image_bounds_dict):
 
-Args:
-    backend (str): Execution backend, either "process" or "thread".
-    max_workers (int): Maximum number of worker processes or threads.
-    initializer (Callable, optional): Function to initialize worker context.
-    initargs (tuple, optional): Arguments to pass to the initializer.
+def _merge_whole_stat_updates(all_whole_stats, updates):
 
-Returns:
-    Executor: An instance of ThreadPoolExecutor or ProcessPoolExecutor.
+def _calculate_pair_pif_stats(reference_path, sensed_path, reference_name, sensed_name, num_bands, nodata_value, calculation_dtype, red_band_index, nir_band_index, vegetation_threshold, inz_threshold, region_radius, max_samples, min_samples, feature_method, cache, io_threads, tile_threads, save_inz_path, debug_logs):
 
-Raises:
-    ValueError: If the backend is not "process" or "thread"."""
+def _build_overlap_vrts(reference_path, sensed_path, tmpdir):
 
-### File: mask/mask.py
+def _write_expression_vrt(output_path, sources, expression, width, height, gt, projection, data_type, nodata_value):
 
-def create_cloud_mask_with_omnicloudmask(input_images, output_images, red_band_index, green_band_index, nir_band_index):
-    """Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
+def _translate_vrt_to_raster(vrt_path, output_path, output_type, nodata_value):
 
-Args:
-    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_CloudMask.tif), ["/input/one.tif", "/input/two.tif"].
-    red_band_index (int): Index of red band in the image.
-    green_band_index (int): Index of green band in the image.
-    nir_band_index (int): Index of NIR band in the image.
-    down_sample_m (float, optional): If set, resamples input to this resolution in meters. Recommended to use a target resolution of 10 m or lower.
-    debug_logs (bool, optional): If True, prints progress and debug info.
-    image_threads (Literal["cpu"] | int | None): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
-    omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.
+def _build_valid_mask_raster(ref_vrt, sensed_vrt, width, height, gt, projection, tmpdir):
 
-Raises:
-    Exception: Propagates any error from processing individual images."""
+def _build_inz_stable_mask_raster():
 
-def _process_cloud_mask_image(input_image_path, output_mask_path, red_band_index, green_band_index, nir_band_index, down_sample_m, debug_logs, omnicloud_kwargs):
-    """Processes a single image to generate a cloud mask using OmniCloudMask.
-
-Args:
-    input_image_path (str): Path to input image.
-    output_mask_path (str): Path to save output mask.
-    red_band_index (int): Index of red band.
-    green_band_index (int): Index of green band.
-    nir_band_index (int): Index of NIR band.
-    down_sample_m (float): Target resolution (if resampling).
-    debug_logs (bool): If True, print progress info.
-    omnicloud_kwargs (dict | None): Passed to predict_from_array.
-
-Raises:
-    Exception: If any step in reading, prediction, or writing fails."""
-
-def band_math(input_images, output_images, threshold_math):
-    """Applies a thresholding operation to input raster images using a mathematical expression string.
-
-Args:
-    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Threshold.tif), ["/input/one.tif", "/input/two.tif"].
-    threshold_math (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as >, <, >=, <=, ==, !=, &&, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 > 5) && (B2 < 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.
-    debug_logs (bool, optional): If True, prints debug messages.
-    custom_nodata_value (float | int | None, optional): Override the dataset's nodata value.
-    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
-    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
-    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
-    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-    window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.
-    custom_output_dtype (CustomOutputDtype, optional): Output data type override.
-    calculation_dtype (CalculationDtype, optional): Internal computation dtype.
-
-Returns:
-    List[str]: Paths to the thresholded output images."""
-
-def _band_math_process_image(input_image_path, output_image_path, name, threshold_math, debug_logs, nodata_value, tile_threads_on, tile_thread_workers, window_size, output_dtype, calculation_dtype):
-    """Processes a single input raster image using a threshold expression and writes the result to disk.
-
-Args:
-    input_image_path (str): Path to input raster image.
-    output_image_path (str): Path to save the output thresholded image.
-    name (str): Image name for worker context.
-    threshold_math (str): Expression string to evaluate pixel-wise conditions.
-    debug_logs (bool): Enable debug logging.
-    nodata_value (float | int | None): Value considered as nodata.
-    tile_threads_on (bool): Enable GDAL multithreaded tiling if ``True``.
-    tile_thread_workers (int): Number of worker threads for GDAL tiling.
-    window_size: Window tiling size for memory efficiency.
-    output_dtype: Output raster data type.
-    calculation_dtype: Data type used for internal calculations.
-
-Returns:
-    None"""
-
-def _calculate_threshold_from_percent(input_image_path, threshold, band_index, debug_logs, nodata_value, bins, estimate_statistics):
-    """Compute a percentile value for a raster band using GDAL.
-
-Args:
-    input_image_path: Path to the input raster file.
-    threshold: Desired percentile (e.g., 95 for the 95th percentile).
-    band_index: 1-based index of the band to process.
-    debug_logs: If True, print debug information.
-    nodata_value: Value to be treated as nodata.
-    bins: Number of histogram bins (default is 1000).
-    estimate_statistics: If True, allow GDAL to approximate min/max and histogram for speed.
-
-Returns:
-    float: The pixel value corresponding to the requested percentile."""
-
-def replace_percent_with_threshold(match):
-
-### File: mask/utils_mask.py
-
-def process_raster_values_to_vector_polygons(input_images, output_vectors):
-    """Converts raster values into vector polygons based on an expression and optional filtering logic.
-
-Args:
-    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
-    output_vectors (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.gpkg", "/input/folder" (assumes $_Vectorized.gpkg), ["/input/one.gpkg", "/input/two.gpkg"].
-    extraction_expression (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as >, <, >=, <=, ==, !=, &&, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 > 5) && (B2 < 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.
-    custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.
-    custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.
-    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
-    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
-    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
-    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-    debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
-    filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., ">95%").
-    polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.
-    value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData.
-    estimate_statistics (bool, optional): Whether to estimate statistics for percentile thresholds. Defaults to True."""
-
-def _process_image_to_polygons(input_image_path, output_vector_path, extraction_expression, filter_by_polygon_size, polygon_buffer, value_mapping, custom_nodata_value, debug_logs, estimate_statistics, tile_thread_on, tile_thread_workers):
-    """Processes a single raster file and extracts polygons based on logical expressions and optional filters.
-
-Args:
-    input_image_path (str): Path to the input raster image.
-    output_vector_path (str): Output file path for the resulting vector file (GeoPackage format).
-    extraction_expression (str): Logical expression using band indices (e.g., "b1 > 5 & b2 < 10").
-    filter_by_polygon_size (str): Area filter for polygons. Supports direct comparisons (">100") or percentiles ("90%").
-    polygon_buffer (float): Amount of buffer to apply to polygons in projection units.
-    value_mapping (dict): Dictionary mapping original raster values to new ones. Set value to `None` to mark as NoData.
-    custom_nodata_value: Custom NoData value to use during processing.
-    debug_logs (bool): Whether to print debug logging information.
-    estimate_statistics (bool): Whether to estimate statistics for percentile thresholds.
-    tile_thread_on (bool): Whether to use tiled processing.
-    tile_thread_workers (int): Number of worker threads to use for tiled processing."""
-
-def _sub(m):
-
-def _apply_mapping_feat(feat):
-
-def _area_ok(geom_area, areas):
-
-### File: geometric_correction/geometric_correction.py
-
-def geometric_correction(reference_overlap_vrt, sensed_overlap_vrt, output_raster_path):
-    """Geometrically correct an overlap raster using conjugate points and return the
-corrected raster path plus the matched point pairs used to estimate the warp."""
-
-def _extract_conjugate_point_pairs(ref_vrt, sensed_vrt, valid_mask, feature_method):
-
-def _filter_point_pairs(point_pairs, debug_logs):
-
-def _drop_duplicate_point_pairs(point_pairs):
-
-def _keep_affine_inlier_pairs(point_pairs):
+def _reference_seed_points_from_pairs(point_pairs, height, width):
 
 def _read_mask(mask_path):
 
-def _build_overlap_valid_mask(ref_ds, sensed_ds):
+def _build_seed_mask_raster(seed_points, width, height, gt, projection, radius, tmpdir):
 
-def _read_uint8_gray(raster_path, valid_mask):
+def _combine_masks_raster(stable_mask_path, seed_mask_path, width, height, gt, projection, tmpdir):
 
-def _pixel_to_map_coords(gt, row, col):
+def _count_mask_pixels(mask_path):
 
-def _get_bounds_from_gt(gt, width, height):
+def _sample_mask_raster(mask_path, max_samples, width, height, gt, projection, tmpdir):
 
-def _infer_gdal_format(output_path):
+def _masked_band_stats(raster_path, band_index, mask_path):
 
-def _get_creation_options(format_name):
+def flood_from_match_points(input_images):
+    """Generate correction parameters using PIFs flooded from matched points.
 
-### File: match/global_regression.py
-
-def _solve_global_model(num_bands, num_total, all_image_names, included_names, input_image_names, all_overlap_stats, all_whole_stats, custom_mean_factor, custom_std_factor, overlapping_pairs, debug_logs, apply_size_weighting):
-    """Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.
-
-Args:
-    num_bands: Number of image bands.
-    num_total: Total number of images (including loaded).
-    all_image_names: Ordered list of all image names.
-    included_names: Subset of images used to constrain the model.
-    input_image_names: Names of input images to apply normalization to.
-    all_overlap_stats: Pairwise overlap statistics per band.
-    all_whole_stats: Whole-image stats (mean, std) per band.
-    custom_mean_factor: Weight for mean constraints.
-    custom_std_factor: Weight for std constraints.
-    overlapping_pairs: Pairs of overlapping images.
-    debug_logs: If True, prints debug information.
-    apply_size_weighting (bool): Whether to use the overlap size to weight its influence.
+This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.
 
 Returns:
-    np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1)."""
-
-def _finalize_pif_whole_stats(all_whole_stats):
-
-def _solve_pif_global_model():
-
-def _apply_adjustments_process_image(tile_thread_on, tile_thread_workers, image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, output_dtype, calculation_dtype, save_as_cog, debug_logs):
-    """Applies per-band linear radiometric adjustments to an image using GDAL VRT metadata and materializes the result as a GeoTIFF or COG. Each band is transformed according to: y = a * x + b, where `a` = scale and `b` = offset.
-
-Args:
-    tile_thread_on (bool): Enable multithreaded GDAL translation for tile-level work.
-    tile_thread_workers (int): Number of worker threads if `tile_thread_on=True`.
-    image_name (str): Basename (no extension) of the input image; used for temporary files.
-    input_image_path (str): Path to the input image to adjust.
-    output_image_path (str): Path where the adjusted raster will be written.
-    scale (np.ndarray): 1D array of per-band scale coefficients (length = num_bands).
-    offset (np.ndarray): 1D array of per-band offset coefficients (length = num_bands).
-    num_bands (int): Number of data bands to adjust (alpha not included).
-    nodata_val (int | float | None): NoData value to assign to output bands, if provided.
-    window_size: Window size used for tiling (currently not applied at pixel level).
-    output_dtype (str | None): Desired GDAL output data type (e.g., "UInt16"). If None, preserves source dtype.
-    calculation_dtype (str | None): Desired GDAL calculation dtype.
-    save_as_cog (bool): If True, writes output as Cloud-Optimized GeoTIFF (COG); otherwise, writes a standard tiled GeoTIFF.
-    debug_logs (bool, optional): If True, print detailed logging about the process. Defaults to False.
-
-Returns:
-    None"""
-
-def _save_adjustments(save_path, input_image_names, all_params, all_whole_stats, all_overlap_stats, num_bands, calculation_dtype):
-    """Saves adjustment parameters, whole-image stats, and overlap stats in a nested JSON format.
-
-Args:
-    save_path (str): Output JSON path.
-    input_image_names (List[str]): List of input image names.
-    all_params (np.ndarray): Adjustment parameters, shape (bands, 2 * num_images, 1).
-    all_whole_stats (dict): Per-image stats (keyed by image name).
-    all_overlap_stats (dict): Per-pair overlap stats (keyed by image name).
-    num_bands (int): Number of bands.
-    calculation_dtype (str): Precision for saving values (e.g., "float32")."""
-
-def _validate_adjustment_model_structure(model):
-    """Validates the structure of a loaded adjustment model dictionary.
-
-Ensures that:
-- Each top-level key is an image name mapping to a dictionary.
-- Each image has 'adjustments' and 'whole_stats' with per-band keys like 'band_0'.
-- Each band entry in 'adjustments' contains 'scale' and 'offset'.
-- Each band entry in 'whole_stats' contains 'mean', 'std', and 'size'.
-- If present, 'overlap_stats' maps to other image names with valid per-band statistics.
-
-The expected model structure is a dictionary with this format:
-
-{
-    "image_name_1": {
-        "adjustments": {
-            "band_0": {"scale": float, "offset": float},
-            "band_1": {"scale": float, "offset": float},
-            ...
-        },
-        "whole_stats": {
-            "band_0": {"mean": float, "std": float, "size": int},
-            "band_1": {"mean": float, "std": float, "size": int},
-            ...
-        },
-        "overlap_stats": {
-            "image_name_2": {
-                "band_0": {"mean": float, "std": float, "size": int},
-                "band_1": {"mean": float, "std": float, "size": int},
-                ...
-            },
-            ...
-        }
-    },
-    ...
-}
-
-- Keys are image basenames (without extension).
-- Band keys are of the form "band_0", "band_1", etc.
-- All numerical values are stored as floats (except 'size', which is an int).
-
-Args:
-    model (dict): Parsed JSON adjustment model.
-
-Raises:
-    ValueError: If any structural issues or missing keys are detected."""
-
-def _print_constraint_system(constraint_matrix, adjustment_params, observed_values_vector, overlap_pairs, image_names_with_id):
-    """Prints the constraint matrix system with labeled rows and columns for debugging regression inputs.
-
-Args:
-    constraint_matrix (ndarray): Coefficient matrix used in the regression system.
-    adjustment_params (ndarray): Solved adjustment parameters (regression output).
-    observed_values_vector (ndarray): Target values in the regression system.
-    overlap_pairs (tuple): Pairs of overlapping image indices used in constraints.
-    image_names_with_id (list of tuple): List of (ID, name) pairs corresponding to each image's position in the system.
-
-Returns:
-    None"""
-
-def _find_overlaps(image_bounds_dict):
-    """Finds all pairs of image names with overlapping spatial bounds.
-
-Args:
-    image_bounds_dict: Map of image name -> (minx, miny, maxx, maxy).
-
-Returns:
-    Tuple of (name_i, name_j) pairs with overlapping extents."""
-
-def _overlap_stats_process_image(tile_thread_on, tile_thread_workers, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, estimate_stats, debug_logs):
-    """Computes per-band overlap statistics between two images using alpha masks, without VRT recursion.
-
-Args:
-    tile_thread_on (bool): Enable multithreaded GDAL warp/translate operations for per-tile work.
-    tile_thread_workers (int): Number of worker threads when `tile_thread_on=True`.
-    num_bands (int): Number of data bands to analyze.
-    input_image_path_i (str): Path to image I.
-    input_image_path_j (str): Path to image J.
-    name_i (str): Basename (no extension) for image I; used as a key in outputs.
-    name_j (str): Basename (no extension) for image J; used as a key in outputs.
-    bound_i: (minx, miny, maxx, maxy) bounds for image I (dataset CRS).
-    bound_j: (minx, miny, maxx, maxy) bounds for image J (dataset CRS).
-    estimate_stats (bool): If True, use GDAL’s approximate statistics; if False, use exact.
-    debug_logs (bool, optional): If True, print progress and intermediate details. Defaults to False.
-
-Returns:
-    Dict[str, Dict[str, Dict[int, Dict[str, float]]]]: Nested mapping of overlap stats:
-        {
-          name_i: {
-            name_j: {
-              band_index: {"mean": float, "std": float, "size": int},  # band_index is 0-based
-              ...
-            }
-          },
-          name_j: {
-            name_i: { ... }  # symmetric entries
-          }
-        }"""
-
-def _whole_stats_process_image(tile_thread_on, tile_thread_worker, input_image_path, num_bands, image_name, estimate_stats, debug_logs):
-    """Computes whole-image statistics (mean, standard deviation, valid pixel count) for each band of a masked raster.
-
-Args:
-    tile_thread_on (bool): Enable multithreaded GDAL operations for tile-level work.
-    tile_thread_worker (int): Number of worker threads if `tile_thread_on=True`.
-    input_image_path (str): Path to an input raster (VRT with alpha/nodata applied).
-    num_bands (int): Number of data bands to compute stats for (alpha excluded).
-    image_name (str): Basename (no extension) of the image; used as key in output.
-    estimate_stats (bool): If True, use GDAL’s approximate statistics; if False, compute exact statistics.
-    debug_logs (bool): If True, print detailed per-band statistics.
-
-Returns:
-    Dict[str, Dict[int, Dict[str, float]]]: Mapping of image name to per-band stats:
-        {
-          image_name: {
-            band_index: {
-              "mean": float,  # band mean
-              "std": float,   # band standard deviation
-              "size": int     # count of valid pixels (shared across bands)
-            },
-            ...
-          }
-        }"""
-
-def _make_stats_vrt(base_vrt, out_vrt):
+    np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
+    and band, entries are ``scale`` then ``offset`` such that
+    ``corrected = scale * image + offset``."""
 
 ### File: match/local_block_adjustment.py
 
@@ -1697,7 +1421,7 @@ Args:
 Returns:
     np.ndarray: Reference block map of shape (num_row, num_col, num_bands)"""
 
-def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, tile_thread_on, tile_thread_workers, save_as_cog, estimate_stats):
+def _apply_adjustment_process_image(name, img_path, out_path, num_bands, block_reference_mean, block_local_mean, bounds_canvas_coords, window_size, num_row, num_col, nodata_val, alpha, correction_method, calculation_dtype, output_dtype, debug_logs, tile_thread_on, tile_thread_workers, save_as_cog, resume_from_outputs, estimate_stats):
     """Apply local radiometric adjustment (linear or gamma) to a raster image using block-based reference and local mean surfaces. Builds parameter surfaces as rasters, warps them to the image grid, and creates a VRT with per-pixel expressions, then materializes the output as GTiff or COG.
 
 Args:
@@ -1897,7 +1621,342 @@ Args:
 Returns:
     List[str]: Paths to the locally adjusted output raster images."""
 
+### File: match/global_regression.py
+
+def _solve_global_model(num_bands, num_total, all_image_names, included_names, input_image_names, all_overlap_stats, all_whole_stats, custom_mean_factor, custom_std_factor, overlapping_pairs, debug_logs, apply_size_weighting):
+    """Computes global radiometric normalization parameters (scale and offset) for each image and band using least squares regression.
+
+Args:
+    num_bands: Number of image bands.
+    num_total: Total number of images (including loaded).
+    all_image_names: Ordered list of all image names.
+    included_names: Subset of images used to constrain the model.
+    input_image_names: Names of input images to apply normalization to.
+    all_overlap_stats: Pairwise overlap statistics per band.
+    all_whole_stats: Whole-image stats (mean, std) per band.
+    custom_mean_factor: Weight for mean constraints.
+    custom_std_factor: Weight for std constraints.
+    overlapping_pairs: Pairs of overlapping images.
+    debug_logs: If True, prints debug information.
+    apply_size_weighting (bool): Whether to use the overlap size to weight its influence.
+
+Returns:
+    np.ndarray: Adjustment parameters of shape (bands, 2 * num_images, 1)."""
+
+def _finalize_pif_whole_stats(all_whole_stats):
+
+def _solve_pif_global_model():
+
+def _apply_adjustments_process_image(tile_thread_on, tile_thread_workers, image_name, input_image_path, output_image_path, scale, offset, num_bands, nodata_val, window_size, output_dtype, calculation_dtype, save_as_cog, debug_logs, resume_from_outputs):
+    """Applies per-band linear radiometric adjustments to an image using GDAL VRT metadata and materializes the result as a GeoTIFF or COG. Each band is transformed according to: y = a * x + b, where `a` = scale and `b` = offset.
+
+Args:
+    tile_thread_on (bool): Enable multithreaded GDAL translation for tile-level work.
+    tile_thread_workers (int): Number of worker threads if `tile_thread_on=True`.
+    image_name (str): Basename (no extension) of the input image; used for temporary files.
+    input_image_path (str): Path to the input image to adjust.
+    output_image_path (str): Path where the adjusted raster will be written.
+    scale (np.ndarray): 1D array of per-band scale coefficients (length = num_bands).
+    offset (np.ndarray): 1D array of per-band offset coefficients (length = num_bands).
+    num_bands (int): Number of data bands to adjust (alpha not included).
+    nodata_val (int | float | None): NoData value to assign to output bands, if provided.
+    window_size: Window size used for tiling (currently not applied at pixel level).
+    output_dtype (str | None): Desired GDAL output data type (e.g., "UInt16"). If None, preserves source dtype.
+    calculation_dtype (str | None): Desired GDAL calculation dtype.
+    save_as_cog (bool): If True, writes output as Cloud-Optimized GeoTIFF (COG); otherwise, writes a standard tiled GeoTIFF.
+    debug_logs (bool, optional): If True, print detailed logging about the process. Defaults to False.
+
+Returns:
+    None"""
+
+def _save_adjustments(save_path, input_image_names, all_params, all_whole_stats, all_overlap_stats, num_bands, calculation_dtype):
+    """Saves adjustment parameters, whole-image stats, and overlap stats in a nested JSON format.
+
+Args:
+    save_path (str): Output JSON path.
+    input_image_names (List[str]): List of input image names.
+    all_params (np.ndarray): Adjustment parameters, shape (bands, 2 * num_images, 1).
+    all_whole_stats (dict): Per-image stats (keyed by image name).
+    all_overlap_stats (dict): Per-pair overlap stats (keyed by image name).
+    num_bands (int): Number of bands.
+    calculation_dtype (str): Precision for saving values (e.g., "float32")."""
+
+def _validate_adjustment_model_structure(model):
+    """Validates the structure of a loaded adjustment model dictionary.
+
+Ensures that:
+- Each top-level key is an image name mapping to a dictionary.
+- Each image has 'adjustments' and 'whole_stats' with per-band keys like 'band_0'.
+- Each band entry in 'adjustments' contains 'scale' and 'offset'.
+- Each band entry in 'whole_stats' contains 'mean', 'std', and 'size'.
+- If present, 'overlap_stats' maps to other image names with valid per-band statistics.
+
+The expected model structure is a dictionary with this format:
+
+{
+    "image_name_1": {
+        "adjustments": {
+            "band_0": {"scale": float, "offset": float},
+            "band_1": {"scale": float, "offset": float},
+            ...
+        },
+        "whole_stats": {
+            "band_0": {"mean": float, "std": float, "size": int},
+            "band_1": {"mean": float, "std": float, "size": int},
+            ...
+        },
+        "overlap_stats": {
+            "image_name_2": {
+                "band_0": {"mean": float, "std": float, "size": int},
+                "band_1": {"mean": float, "std": float, "size": int},
+                ...
+            },
+            ...
+        }
+    },
+    ...
+}
+
+- Keys are image basenames (without extension).
+- Band keys are of the form "band_0", "band_1", etc.
+- All numerical values are stored as floats (except 'size', which is an int).
+
+Args:
+    model (dict): Parsed JSON adjustment model.
+
+Raises:
+    ValueError: If any structural issues or missing keys are detected."""
+
+def _print_constraint_system(constraint_matrix, adjustment_params, observed_values_vector, overlap_pairs, image_names_with_id):
+    """Prints the constraint matrix system with labeled rows and columns for debugging regression inputs.
+
+Args:
+    constraint_matrix (ndarray): Coefficient matrix used in the regression system.
+    adjustment_params (ndarray): Solved adjustment parameters (regression output).
+    observed_values_vector (ndarray): Target values in the regression system.
+    overlap_pairs (tuple): Pairs of overlapping image indices used in constraints.
+    image_names_with_id (list of tuple): List of (ID, name) pairs corresponding to each image's position in the system.
+
+Returns:
+    None"""
+
+def _find_overlaps(image_bounds_dict):
+    """Finds all pairs of image names with overlapping spatial bounds.
+
+Args:
+    image_bounds_dict: Map of image name -> (minx, miny, maxx, maxy).
+
+Returns:
+    Tuple of (name_i, name_j) pairs with overlapping extents."""
+
+def _overlap_stats_process_image(tile_thread_on, tile_thread_workers, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, estimate_stats, debug_logs):
+    """Computes per-band overlap statistics between two images using alpha masks, without VRT recursion.
+
+Args:
+    tile_thread_on (bool): Enable multithreaded GDAL warp/translate operations for per-tile work.
+    tile_thread_workers (int): Number of worker threads when `tile_thread_on=True`.
+    num_bands (int): Number of data bands to analyze.
+    input_image_path_i (str): Path to image I.
+    input_image_path_j (str): Path to image J.
+    name_i (str): Basename (no extension) for image I; used as a key in outputs.
+    name_j (str): Basename (no extension) for image J; used as a key in outputs.
+    bound_i: (minx, miny, maxx, maxy) bounds for image I (dataset CRS).
+    bound_j: (minx, miny, maxx, maxy) bounds for image J (dataset CRS).
+    estimate_stats (bool): If True, use GDAL’s approximate statistics; if False, use exact.
+    debug_logs (bool, optional): If True, print progress and intermediate details. Defaults to False.
+
+Returns:
+    Dict[str, Dict[str, Dict[int, Dict[str, float]]]]: Nested mapping of overlap stats:
+        {
+          name_i: {
+            name_j: {
+              band_index: {"mean": float, "std": float, "size": int},  # band_index is 0-based
+              ...
+            }
+          },
+          name_j: {
+            name_i: { ... }  # symmetric entries
+          }
+        }"""
+
+def _whole_stats_process_image(tile_thread_on, tile_thread_worker, input_image_path, num_bands, image_name, estimate_stats, debug_logs):
+    """Computes whole-image statistics (mean, standard deviation, valid pixel count) for each band of a masked raster.
+
+Args:
+    tile_thread_on (bool): Enable multithreaded GDAL operations for tile-level work.
+    tile_thread_worker (int): Number of worker threads if `tile_thread_on=True`.
+    input_image_path (str): Path to an input raster (VRT with alpha/nodata applied).
+    num_bands (int): Number of data bands to compute stats for (alpha excluded).
+    image_name (str): Basename (no extension) of the image; used as key in output.
+    estimate_stats (bool): If True, use GDAL’s approximate statistics; if False, compute exact statistics.
+    debug_logs (bool): If True, print detailed per-band statistics.
+
+Returns:
+    Dict[str, Dict[int, Dict[str, float]]]: Mapping of image name to per-band stats:
+        {
+          image_name: {
+            band_index: {
+              "mean": float,  # band mean
+              "std": float,   # band standard deviation
+              "size": int     # count of valid pixels (shared across bands)
+            },
+            ...
+          }
+        }"""
+
+def _make_stats_vrt(base_vrt, out_vrt):
+
+### File: mask/utils_mask.py
+
+def process_raster_values_to_vector_polygons(input_images, output_vectors):
+    """Converts raster values into vector polygons based on an expression and optional filtering logic.
+
+Args:
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_vectors (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.gpkg", "/input/folder" (assumes $_Vectorized.gpkg), ["/input/one.gpkg", "/input/two.gpkg"].
+    extraction_expression (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as >, <, >=, <=, ==, !=, &&, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 > 5) && (B2 < 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.
+    custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.
+    custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
+    filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., ">95%").
+    polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.
+    value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData.
+    estimate_statistics (bool, optional): Whether to estimate statistics for percentile thresholds. Defaults to True."""
+
+def _process_image_to_polygons(input_image_path, output_vector_path, extraction_expression, filter_by_polygon_size, polygon_buffer, value_mapping, custom_nodata_value, debug_logs, estimate_statistics, tile_thread_on, tile_thread_workers):
+    """Processes a single raster file and extracts polygons based on logical expressions and optional filters.
+
+Args:
+    input_image_path (str): Path to the input raster image.
+    output_vector_path (str): Output file path for the resulting vector file (GeoPackage format).
+    extraction_expression (str): Logical expression using band indices (e.g., "b1 > 5 & b2 < 10").
+    filter_by_polygon_size (str): Area filter for polygons. Supports direct comparisons (">100") or percentiles ("90%").
+    polygon_buffer (float): Amount of buffer to apply to polygons in projection units.
+    value_mapping (dict): Dictionary mapping original raster values to new ones. Set value to `None` to mark as NoData.
+    custom_nodata_value: Custom NoData value to use during processing.
+    debug_logs (bool): Whether to print debug logging information.
+    estimate_statistics (bool): Whether to estimate statistics for percentile thresholds.
+    tile_thread_on (bool): Whether to use tiled processing.
+    tile_thread_workers (int): Number of worker threads to use for tiled processing."""
+
+def _sub(m):
+
+def _apply_mapping_feat(feat):
+
+def _area_ok(geom_area, areas):
+
+### File: mask/mask.py
+
+def create_cloud_mask_with_omnicloudmask(input_images, output_images, red_band_index, green_band_index, nir_band_index):
+    """Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
+
+Args:
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_CloudMask.tif), ["/input/one.tif", "/input/two.tif"].
+    red_band_index (int): Index of red band in the image.
+    green_band_index (int): Index of green band in the image.
+    nir_band_index (int): Index of NIR band in the image.
+    down_sample_m (float, optional): If set, resamples input to this resolution in meters. Recommended to use a target resolution of 10 m or lower.
+    debug_logs (bool, optional): If True, prints progress and debug info.
+    image_threads (Literal["cpu"] | int | None): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
+    omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.
+
+Raises:
+    Exception: Propagates any error from processing individual images."""
+
+def _process_cloud_mask_image(input_image_path, output_mask_path, red_band_index, green_band_index, nir_band_index, down_sample_m, debug_logs, omnicloud_kwargs):
+    """Processes a single image to generate a cloud mask using OmniCloudMask.
+
+Args:
+    input_image_path (str): Path to input image.
+    output_mask_path (str): Path to save output mask.
+    red_band_index (int): Index of red band.
+    green_band_index (int): Index of green band.
+    nir_band_index (int): Index of NIR band.
+    down_sample_m (float): Target resolution (if resampling).
+    debug_logs (bool): If True, print progress info.
+    omnicloud_kwargs (dict | None): Passed to predict_from_array.
+
+Raises:
+    Exception: If any step in reading, prediction, or writing fails."""
+
+def band_math(input_images, output_images, threshold_math):
+    """Applies a thresholding operation to input raster images using a mathematical expression string.
+
+Args:
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Threshold.tif), ["/input/one.tif", "/input/two.tif"].
+    threshold_math (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as >, <, >=, <=, ==, !=, &&, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 > 5) && (B2 < 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.
+    debug_logs (bool, optional): If True, prints debug messages.
+    custom_nodata_value (float | int | None, optional): Override the dataset's nodata value.
+    cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.
+    image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
+    io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
+    tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.
+    custom_output_dtype (CustomOutputDtype, optional): Output data type override.
+    calculation_dtype (CalculationDtype, optional): Internal computation dtype.
+
+Returns:
+    List[str]: Paths to the thresholded output images."""
+
+def _band_math_process_image(input_image_path, output_image_path, name, threshold_math, debug_logs, nodata_value, tile_threads_on, tile_thread_workers, window_size, output_dtype, calculation_dtype):
+    """Processes a single input raster image using a threshold expression and writes the result to disk.
+
+Args:
+    input_image_path (str): Path to input raster image.
+    output_image_path (str): Path to save the output thresholded image.
+    name (str): Image name for worker context.
+    threshold_math (str): Expression string to evaluate pixel-wise conditions.
+    debug_logs (bool): Enable debug logging.
+    nodata_value (float | int | None): Value considered as nodata.
+    tile_threads_on (bool): Enable GDAL multithreaded tiling if ``True``.
+    tile_thread_workers (int): Number of worker threads for GDAL tiling.
+    window_size: Window tiling size for memory efficiency.
+    output_dtype: Output raster data type.
+    calculation_dtype: Data type used for internal calculations.
+
+Returns:
+    None"""
+
+def _calculate_threshold_from_percent(input_image_path, threshold, band_index, debug_logs, nodata_value, bins, estimate_statistics):
+    """Compute a percentile value for a raster band using GDAL.
+
+Args:
+    input_image_path: Path to the input raster file.
+    threshold: Desired percentile (e.g., 95 for the 95th percentile).
+    band_index: 1-based index of the band to process.
+    debug_logs: If True, print debug information.
+    nodata_value: Value to be treated as nodata.
+    bins: Number of histogram bins (default is 1000).
+    estimate_statistics: If True, allow GDAL to approximate min/max and histogram for speed.
+
+Returns:
+    float: The pixel value corresponding to the requested percentile."""
+
+def replace_percent_with_threshold(match):
+
 ### File: seamline/seamline.py
+
+def weighted(input_polygons, output_mask):
+    """Generate seamline polygons by ranking image footprints with a weighted expression.
+
+Args:
+    input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one.
+    output_mask (str): Output GeoPackage path for the ranked seamline polygons.
+    rank_function (str): Ranking expression using field placeholders like ``{cloud_cover}`` or formulas like ``1 / ({sun_elevation} + 1)``.
+    image_field_name (str, optional): Field containing the image identifier. Features sharing the same value are merged before ranking. Defaults to ``"image"``.
+    input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
+    output_layer (str, optional): Output GeoPackage layer name. Defaults to ``"seamlines"``.
+    rank_descending (bool, optional): If True, larger scores rank higher and remain on top. Defaults to True.
+    debug_logs (bool, optional): If True, prints ranking details. Defaults to False.
+
+Returns:
+    str: Written output GeoPackage path."""
 
 def voronoi(input_images, output_mask):
     """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
@@ -1915,6 +1974,15 @@ Args:
 
 Outputs:
     Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""
+
+### File: seamline/weighted_seamline.py
+
+def weighted_seamline(input_polygons, output_mask):
+    """Generate ranked seamline polygons from input polygons and a score expression.
+
+Rank function placeholders support field references like ``{cloud_cover}``."""
+
+def _evaluate_weighted_expression(row, expression):
 
 ### File: seamline/voronoi_center_seamline.py
 
@@ -2025,457 +2093,35 @@ Args:
 Returns:
     list[Polygon]: List of clipped polygons (empties dropped)."""
 
-### File: pif/pif.py
+### File: geometric_correction/geometric_correction.py
 
-def _resolve_pair_output_path(base_path, main_name, reference_name, pair_index, total_pairs):
+def geometric_correction(reference_overlap_vrt, sensed_overlap_vrt, output_raster_path):
+    """Geometrically correct an overlap raster using conjugate points and return the
+corrected raster path plus the matched point pairs used to estimate the warp."""
 
-def _find_overlaps(image_bounds_dict):
+def _extract_conjugate_point_pairs(ref_vrt, sensed_vrt, valid_mask, feature_method):
 
-def _merge_whole_stat_updates(all_whole_stats, updates):
+def _filter_point_pairs(point_pairs, debug_logs):
 
-def _calculate_pair_pif_stats(reference_path, sensed_path, reference_name, sensed_name, num_bands, nodata_value, calculation_dtype, red_band_index, nir_band_index, vegetation_threshold, inz_threshold, region_radius, max_samples, min_samples, feature_method, cache, io_threads, tile_threads, save_inz_path, debug_logs):
+def _drop_duplicate_point_pairs(point_pairs):
 
-def _build_overlap_vrts(reference_path, sensed_path, tmpdir):
-
-def _write_expression_vrt(output_path, sources, expression, width, height, gt, projection, data_type, nodata_value):
-
-def _translate_vrt_to_raster(vrt_path, output_path, output_type, nodata_value):
-
-def _build_valid_mask_raster(ref_vrt, sensed_vrt, width, height, gt, projection, tmpdir):
-
-def _build_inz_stable_mask_raster():
-
-def _reference_seed_points_from_pairs(point_pairs, height, width):
+def _keep_affine_inlier_pairs(point_pairs):
 
 def _read_mask(mask_path):
 
-def _build_seed_mask_raster(seed_points, width, height, gt, projection, radius, tmpdir):
+def _build_overlap_valid_mask(ref_ds, sensed_ds):
 
-def _combine_masks_raster(stable_mask_path, seed_mask_path, width, height, gt, projection, tmpdir):
+def _read_uint8_gray(raster_path, valid_mask):
 
-def _count_mask_pixels(mask_path):
+def _pixel_to_map_coords(gt, row, col):
 
-def _sample_mask_raster(mask_path, max_samples, width, height, gt, projection, tmpdir):
+def _get_bounds_from_gt(gt, width, height):
 
-def _masked_band_stats(raster_path, band_index, mask_path):
+def _infer_gdal_format(output_path):
 
-def flood_from_match_points(input_images):
-    """Generate correction parameters using PIFs flooded from matched points.
-
-This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.
-
-Returns:
-    np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
-    and band, entries are ``scale`` then ``offset`` such that
-    ``corrected = scale * image + offset``."""
+def _get_creation_options(format_name):
 
 ## Markdown Section
-### File: index.md
-# spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series
-
-[![PyPI version](https://img.shields.io/pypi/v/spectralmatch.svg)](https://pypi.org/project/spectralmatch/)
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/spectralmatch?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=GREEN&left_text=pypi+downloads)](https://pepy.tech/projects/spectralmatch)
-[![QGIS Plugin](https://img.shields.io/badge/QGIS-Plugin-589632?logo=qgis)](https://plugins.qgis.org/plugins/spectralmatch_qgis/)
-[![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
-[![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C)](https://codecov.io/gh/spectralmatch/spectralmatch)
-[![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
-[![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15312878.svg)](https://doi.org/10.5281/zenodo.15312878)
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.08974/status.svg)](https://doi.org/10.21105/joss.08974)
-
-## Overview
-
-![Global and Local Matching](./images/spectralmatch.png)
-
-Spectralmatch provides algorithms to perform relative radiometric normalization (RRN) to enhance spectral consistency across raster mosaics and time series. It is built for geoscientific use, with a sensor- and unit-agnostic design, optimized for automation and efficiency on arbitrarily many images and bands, and works well with Very High Resolution Imagery (VHRI) as it does not require pixel co-registration. In addition to matching algorithms, the software supports cloud and vegetation masking, pseudo invariant feature (PIF) based exclusion, seamline network generation, raster merging, and plotting statistics. The toolkit is available as an open-source Python library, command line interface, and QGIS plugin.
-
-> Please cite as: Lindiwe et al., (2026). Spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series. Journal of Open Source Software, 11(117), 8974, https://doi.org/10.21105/joss.08974
-
-## Features
-
-- **Automated, Efficient, and Scalable:** Designed for large-scale workflows with no manual steps, leveraging multiprocessing and Cloud Optimized GeoTIFF support for fast, efficient processing across images, windows, and bands. 
-
-- **Resumable Processing:** Save image stats and block maps for quicker reprocessing.
-
-- **Integrated Seamline and Cloud Masking:** Generate seamlines and detect clouds within the same workflow.
-
-- **Specify Model Images** Include all or specified images in the matching solution to bring all images to a central tendency or selected images spectral profile.
-
-- **Consistent Multi-image Analysis:** Performs minimal necessary adjustments to achieve inter-image consistency while preserving the original spectral characteristics.
-
-- **Sensor and Unit Agnostic:** Supports optical imagery from handheld cameras, drones, crewed aircraft, and satellites for reliable single sensor and multi-sensor analysis, while preserving spectral integrity across all pixel units—including negative values and reflectance.
-
-- **Enhanced Imagery:** Helpful when performing mosaics and time series analysis by blending large image collections and normalizing them over time, providing consistent, high-quality data for machine learning and other analytical tasks.
-
-- **Open Source and Collaborative:** Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows. Accessible through a python library, command line interface, and QGIS plugin.
-
-![Poster_AGU.pdf](./images/Poster.webp)
-
----
-
-## Current Matching Algorithms
-
-### Global to local matching
-This method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center or specified set of images center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
-However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion. Pseudo invariant features can be automatically created by aligning image overlaps by [orb](https://docs.opencv.org/4.x/d1/d89/tutorial_py_orb.html) match points and extracting low difference raster values. These methods draw on work from ['An auto-adapting global-to-local color balancing method for optical imagery mosaic' by Yu et al](https://doi.org/10.1016/j.isprsjprs.2017.08.002), ['Integrated Preprocessing of Multitemporal Very-High-Resolution Satellite Images via Conjugate Points-Based Pseudo-Invariant Feature Extraction' by Taeheon Kim and Youkyung Han](https://doi.org/10.3390/rs13193990), and others.
-
-#### Assumptions
-
-- **Consistent Spectral Profile:** The true spectral response of overlapping areas remains the same throughout the images.
-
-- **Least Squares Modeling:** A least squares approach can effectively model and fit all images' spectral profiles.
-
-- **Scale and Offset Adjustment:** Applying scale and offset corrections can effectively harmonize images.
-
-- **Minimized Color Differences:** The best color correction is achieved when color differences are minimized.
-
-- **Geometric Alignment:** Images are assumed to be geometrically aligned with known relative positions via a geotransform. However, they only need to be roughly aligned as pixel co-registration is not required.
-
-- **Global Consistency:** Overlapping color differences are consistent across the entire image.
-
-- **Local Adjustments:** Block-level color differences result from the global application of adjustments.
-
----
-## Installation
-
-> For additional installation instructions see the [Installation Methods](https://spectralmatch.github.io/spectralmatch/installation/) in the docs.
-
-### Installation as a QGIS Plugin
-In the [QGIS](https://qgis.org/download/) plugin manager, install 'spectralmatch' and find it in the Processing Toolbox.
-
-### Installation as a Python Library and CLI
-
-Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.11`; then use pip to install the library:
-
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.11&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
-conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
-pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
-</code></pre></div></td></tr></table></div>
-
----
-
-## Usage
-### Python
-Example scripts and sample data are provided to verify a successful installation and help you get started quickly in the repository at [`/docs/examples`](https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/) and downloadable [here](https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&filename=spectralmatch_examples). This is an example mosaic workflow using folders for each step:
-
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
-<span class="normal"> 2</span>
-<span class="normal"> 3</span>
-<span class="normal"> 4</span>
-<span class="normal"> 5</span>
-<span class="normal"> 6</span>
-<span class="normal"> 7</span>
-<span class="normal"> 8</span>
-<span class="normal"> 9</span>
-<span class="normal">10</span>
-<span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Match</span><span class="p">,</span>
-    <span class="n">Seamline</span><span class="p">,</span>
-    <span class="n">align_rasters</span><span class="p">,</span>
-    <span class="n">mask_rasters</span><span class="p">,</span>
-    <span class="n">merge_rasters</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;/path/to/working/directory&quot;</span>
-<span class="n">input_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Input&quot;</span><span class="p">)</span>
-<span class="n">global_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;GlobalMatch&quot;</span><span class="p">)</span>
-<span class="n">local_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;LocalMatch&quot;</span><span class="p">)</span>
-<span class="n">aligned_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Aligned&quot;</span><span class="p">)</span>
-<span class="n">clipped_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Clipped&quot;</span><span class="p">)</span>
-
-<span class="n">Match</span><span class="o">.</span><span class="n">global_regression</span><span class="p">(</span>
-    <span class="n">input_images</span><span class="o">=</span><span class="n">input_folder</span><span class="p">,</span>
-    <span class="n">output_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">Match</span><span class="o">.</span><span class="n">local_block_adjustment</span><span class="p">(</span>
-    <span class="n">input_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
-    <span class="n">output_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">align_rasters</span><span class="p">(</span>
-    <span class="n">input_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
-    <span class="n">output_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
-    <span class="n">tap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">Seamline</span><span class="o">.</span><span class="n">voronoi</span><span class="p">(</span>
-    <span class="n">input_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
-    <span class="n">output_mask</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span>
-    <span class="n">image_field_name</span><span class="o">=</span><span class="s2">&quot;image&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">mask_rasters</span><span class="p">(</span>
-    <span class="n">input_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
-    <span class="n">output_images</span><span class="o">=</span><span class="n">clipped_folder</span><span class="p">,</span>
-    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;include&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span> <span class="s2">&quot;image&quot;</span><span class="p">),</span>
-<span class="p">)</span>
-
-<span class="n">merge_rasters</span><span class="p">(</span>
-    <span class="n">input_images</span><span class="o">=</span><span class="n">clipped_folder</span><span class="p">,</span>
-    <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;MergedImage.tif&quot;</span><span class="p">),</span>
-<span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-
-### CLI
-There is a CLI that can be used for each function individually or with the [pipeline](https://spectralmatch.github.io/spectralmatch/api/pipeline) function (also available in python):
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch pipeline /input/folder /output/file.tif --shared_debug_logs=True
-</code></pre></div></td></tr></table></div>
-
-### QGIS Plugin
-There is a QGIS plugin available that wraps the library to provide an easy to use gui available [here](https://plugins.qgis.org/plugins/spectralmatch_qgis).
-
----
-
-## Documentation
-
-Documentation is available at [spectralmatch.github.io/spectralmatch/](https://spectralmatch.github.io/spectralmatch/).
-
----
-## Contributing Guide
-
-Contributing Guide is available at [spectralmatch.github.io/spectralmatch/contributing](https://spectralmatch.github.io/spectralmatch/contributing/).
-
----
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](https://github.com/spectralmatch/spectralmatch/blob/main/LICENSE) for details.
-
-## Project Support
-This library was developed at the [Spatial Data Analysis and Visualization Lab (SDAV)](https://hilo.hawaii.edu/sdav/) at the University of Hawaii at Hilo by Kanoa Lindiwe. Funding was partly provided by the [Hau‘oli Mau Loa Foundation](https://www.hauolimauloa.org/), in addition to the National Science Foundation EPSCoR grant 2149133, Change Hawaiʻi: Harnessing the Data Revolution for Island Resilience.
-
-
-### File: formats_and_requirements.md
-# File Formats and Input Requirements
-
-## Input Raster Requirements
-Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():
-
-- Have a valid geotransform
-- Share the same coordinate reference system (CRS)
-- Have an identical number of bands
-- Use consistent nodata values
-
-Additionally, all rasters should:
-
- - Be a `.tif` file
- - Have overlap which represents the same data in each raster
- - Have a consistent spectral profile 
-
-## Regression Parameters File
-Regression parameters can be stored in a `json` file which includes:
-
- - Adjustments: Per-band scale and offset values applied to each image.
- - Whole Stats: Per-band mean, std, and size representing overall image statistics.
- - Overlap Stats: Per-image pair mean, std, and size for overlapping geometry regions.
-
-The structure is a dictionary keyed by images basenames (no extension) with the following format:
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
-<span class="normal"> 2</span>
-<span class="normal"> 3</span>
-<span class="normal"> 4</span>
-<span class="normal"> 5</span>
-<span class="normal"> 6</span>
-<span class="normal"> 7</span>
-<span class="normal"> 8</span>
-<span class="normal"> 9</span>
-<span class="normal">10</span>
-<span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;image_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;adjustments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;scale&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">},</span>
-<span class="w">      </span><span class="err">...</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;whole_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
-<span class="w">      </span><span class="err">...</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;overlap_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;other_image&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
-<span class="w">        </span><span class="err">...</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="err">...</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="err">...</span>
-<span class="p">}</span>
-</code></pre></div></td></tr></table></div>
-This format represents the following: For each image_name there are adjustment, whole_stats and overlap_stats. For each adjustments, for each band, there is scale and offset. For each whole_stats and overlap_stats, for each band, there is mean, std, and size (number of pixels). Each band key follows the format band_0, band_1, etc. Mean and std are floats and size is an integer.
-
-This structure is validated by `_validate_adjustment_model_structure()` before use to ensure consistency and completeness across images and bands. Global regression does not actually use 'adjustments' field because they are recalculated every run.
-
-## Block Maps File
-Block maps are spatial summaries of raster data, where each block represents the mean values of a group of pixels over a fixed region. They are used to reduce image resolution while preserving local radiometric characteristics, enabling efficient comparison and adjustment across images. Each map is structured as a grid of blocks with values for each spectral band. They can be saved as regular `geotif` files and together store this information: block_local_means, block_reference_mean, num_row, num_col, bounds_canvas_coords. 
-
-There are two types of block maps, although their format is exactly the same:
-
- - **Local Block Map:** Each block stores the mean value of all pixels within its boundary for a single image.
- - **Reference Block Map:** Each block is the mean of all images means for its boundary; simply the mean of all local block maps.
-
-Both block maps have the shape: `num_row, num_col, num_bands`, however, there are multiple (one for each image) local block maps and only one reference block map. Once a reference block map is created it is unique to its input images and cannot be accurately modified to add additional images. However, images can be 'brought' to a reference block map even if they were not involved in its creation as long as it covers that image.
-
-
-### File: rrn_methods.md
-# Relative Radiometric Normalization (RRN) Methods
-
-RRN methods differ not only in the algorithms used to adjust image values but also in the requirements images must have and other techniques that can be used in conjunction. The following taxonomy summarizes the core dimensions along which RRN techniques vary:
-
- - **Matching algorithm:** The core transformation applied to align radiometry between images.
- - **Geometric alignment required:** The level of spatial alignment necessary for the method.
- - **Pixel selection (PIFs/RCS):** How pseudo-invariant features/control sets are identified.
- - **Adjustment scope:** How corrections are applied to the images.
- - **Overlap:** Whether the method requires overlapping pixels.
- - **Pixel units:** The radiometric units the method is able to operate on.
- - **Bands:** Whether bands relationships are preserved.
- - **Target reference:** What the target image is normalized to.
-
-Multiple matching algorithms can be used in conjunction with multiple pixel selection methods. Note that the most restrictive method will dictate the image requirements (e.g. if using `Global regression` with `Overlapping area` the `Geometric alignment` will need to be `Moderate`). The specific matching algorithm used in each method is flexible and not fixed; it may involve least squares, RANSAC, Theil–Sen, Huber, or other forms of robust regression.
-
-## Matching Algorithms
-
-| Matching algorithm                      | Description                                                                                            | Geometric alignment | Adjustment granularity          | Applies                        | Overlap required | Pixel units | Bands                  | Target reference                           | Year introduced | Key papers                                                                               | Software                                                                                                                                                                                                |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------- | ------------------------------- | ------------------------------ | ---------------- | ----------- | ---------------------- | ------------------------------------------ | --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Histogram Matching (HM)                 | Matches histogram distributions between images                                                         | None                | Global                          | Lookup table                   | no               | Any         | Independent            | Reference histogram                        | 1980s           |                                                                                          | ENVI; [HistMatch QGIS Plugin](https://github.com/Gustavoohs/HistMatch); ArcGIS Pro; IMAGINE Mosaic Pro; [landsat R library via histmatch()](https://cran.r-project.org/web/packages/landsat/index.html) |
-| Minimum–Maximum Scale Normalization     | Linearly scales pixel values to match reference min/max                                                | None                | Global                          | Min/max                        | No               | Any         | Independent            | Reference min/max                          | 1980s           |                                                                                          |                                                                                                                                                                                                         |
-| Mean–Standard Deviation Regression      | Fits linear regression using mean and std dev                                                          | None                | Global                          | Gain/offset                    | No               | Any         | Independent/Correlated | Reference mean/std                         | 1980s           |                                                                                          | ArcGIS Pro; [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch)                                                                                              |
-| Overlaping pixel-wise Linear Regression | Fits linear regression using overlapping pairs of pixels                                               | Co-registered       | Model                           | Gain/offset                    | Yes              | Any         | Independent/Correlated | Reference image pixels                     | 1980s           |                                                                                          | ArcGIS Pro; [landsat R library via relnorm()](https://cran.r-project.org/web/packages/landsat/index.html)                                                                                               |
-| Block adjusted gamma correction         | Adjusts local brightness via block-based gamma scaling                                                 | Moderate            | Blocks/interpolation resolution | Power function                 | Yes              | Any         | Independent            | Reference block map (mean of local blocks) |                 |                                                                                          | [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch)                                                                                                          |
-| CCA/KCCA-Based                          | Finding the most correlated combinations between images                                                | Co-registered       | CCA space resolution            | Matrix                         | Yes              | Any         | Correlated             | Reference canonical components             |                 |                                                                                          |                                                                                                                                                                                                         |
-| Dodging                                 | Smooths brightness using low-pass filtering to reduce lighting artifacts                               | Co-registered       | Blur resolution                 | Low-pass brightness correction | Yes              | Any         | Independent            | Blur created brightness values             |                 |                                                                                          | ArcGIS Pro; IMAGINE Mosaic Pro                                                                                                                                                                          |
-| Illumination Equalization               | Models and removes large-scale illumination differences across images                                  | Co-registered       | Surface model resolution        | Modeled lighting correction    | Yes              | Any         | Independent            | Computed illumination values               |                 |                                                                                          | IMAGINE Mosaic Pro                                                                                                                                                                                      |
-| Wavelet reconstruction                  | Uses ancillary data to model and reconstruct image values at multiple detail levels                    | Co-registered       | Ancillary data resolution       | Decomposition/reconstruction   | Yes              | Any         | Correlated             | Ancillary data                             |                 | [(Gan et al., 2021)](https://doi.org/10.1109/JSTARS.2021.3069855)                        |                                                                                                                                                                                                         |
-| Dual-reference affine interpolation     | Models corrections from the two nearest reference images and applies temporally weighted interpolation | Co-registered       | Model                           | Gain/offset                    | Yes              | Any         | Independent            | Two closest high-quality reference images  | 2020            | [(Hessel et al., 2020)](https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/) | [rrn-multisensor-multidate Python scripts](https://github.com/chlsl/rrn-multisensor-multidate)                                                                                                          |
-
-## Pixel Selection
-
-| Pixel selection (PIFs/RCS)              | Description                                                                                                                                                                       | Type        | Geometric alignment | Overlap required | Pixel units                        | Year introduced | Key papers                                                                                             | Software                                                                                       |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------- | ---------------- | ---------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| Whole image                             | Uses all pixels without selection or masking                                                                                                                                      | None        | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
-| Overlapping area                        | Uses only pixels in the spatial overlap between images                                                                                                                            | None        | Moderate            | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
-| Manual polygons or pixels               | User-defined areas or points chosen as invariant                                                                                                                                  | Manual      | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
-| Manual threshold                        | Selects pixels based on value threshold                                                                                                                                           | Threshold   | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
-| Dark/Bright Set (DB)                    | Selects darkest and brightest pixels assumed to be invariant                                                                                                                      | Threshold   | None                | No               | Any/reflectance may perform better |                 |                                                                                                        |                                                                                                |
-| NDVI ratio                              | Uses vegetation indices to isolate vegetated areas for normalization                                                                                                              | Band ratio  | None                | No               | Reflectance                        |                 |                                                                                                        | [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch) |
-| K-T ratio                               | Uses the Kauth–Thomas transformation to identify invariant pixels in greenness–brightness space                                                                                   | Band ratio  | None                | No               | Reflectance                        |                 | [(Hall et al., 1991)](https://www.sciencedirect.com/science/article/pii/003442579190062B?via%3Dihub)   | [landsat R library via RCS()](https://cran.r-project.org/web/packages/landsat/index.html)      |
-| Urban materials ratio                   | Assumes that certain **man-made surfaces** (e.g., roads, rooftops) have **stable reflectance over time** and uses their statistical properties to correct radiometric differences | Band ratio  | None                | No               | Reflectance                        | 1988            | [(Schott et al., 1988)](https://www.sciencedirect.com/science/article/pii/0034425788901162?via%3Dihub) | [landsat R library via PIF()](https://cran.r-project.org/web/packages/landsat/index.html)      |
-| No-change  Scattergrams (NC)            | Selects pixels near the scatterplot diagonal where reference and target values match closely                                                                                      | Statistical | Co-registered       | Yes              | Any                                |                 | [(De Carvalho et al., 2013)](https://www.mdpi.com/2072-4292/5/6/2763)                                  |                                                                                                |
-| Multivariate Alteration Detection (MAD) | Identifies invariant pixels by transforming image differences into uncorrelated components; selects pixels with minimal change across all bands                                   | Statistical | Co-registered       | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
-| Iteratively Reweighted MAD (IR-MAD)     | Refines MAD by reweighting pixels to improve change detection                                                                                                                     | Statistical | Co-registered       | Yes              | Any                                |                 | [(Canty & Nielsen, 2008)](https://doi.org/10.1016/j.rse.2007.07.013)                                   | [ArrNorm Python scripts](https://github.com/SMByC/ArrNorm)                                     |
-| Multi-Rule-Based Normalization          | Combines several selection rules to identify invariant pixels                                                                                                                     | Statistical | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
-| PCA                                     | Uses principal component analysis to identify pseudo-invariant pixels along the major axis of multitemporal scatterplots                                                          | Statistical | Co-registered       | Yes              | Any                                | 2002            | [(Du et al., 2002)](https://www.sciencedirect.com/science/article/pii/S0034425702000299?via%3Dihub)    |                                                                                                |
-| Gradient angle similarity               | Selecting the 10% of pixels with the smallest gradient angle differences between an image and its reference                                                                       | Statistical | Co-registered       | Yes              | Any                                | 2020            | [(Hessel et al., 2020)](https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/)               | [rrn-multisensor-multidate Python scripts](https://github.com/chlsl/rrn-multisensor-multidate) |
-| Feature-Based (Keypoint) RRN            | Matches distinctive features between images and uses their correspondence to guide normalization                                                                                  | Geometric   | Moderate            | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
-| Location-Independent RRN (LIRRN)        | Groups pixels by brightness or spectral similarity, then matches these groups between images to perform group-wise normalization                                                  | Geometric   | Moderate            | Yes              | Any                                | 2024            | [(Maghimi et al., 2024)](https://www.mdpi.com/1424-8220/24/7/2272)                                     | [LIRRN MATLAB scripts](https://github.com/ArminMoghimi/LIRRN/tree/main)                        |
-
-
-### File: cli.md
-# Command Line Interface
-
-## Installation
-The command line interface will be installed automatically when the Python library is installed. See instructions on the installation [page](https://spectralmatch.github.io/spectralmatch/installation/). Use the api reference or command --help to see options to pass into python functions.
-
-## Usage
-
-Print general help:
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>--help
-</code></pre></div></td></tr></table></div>
-
-Print help for a specific command:
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>COMMAND<span class="w"> </span>--help
-</code></pre></div></td></tr></table></div>
-
-Print help for a class method:
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>Match<span class="w"> </span>global_regression<span class="w"> </span>--help
-</code></pre></div></td></tr></table></div>
-
-Print installed version:
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>--version
-</code></pre></div></td></tr></table></div>
-
-Run a specific command:
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>COMMAND<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
-</code></pre></div></td></tr></table></div>
-
-Run a class method:
-
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span>
-<span class="normal">4</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>Match<span class="w"> </span>global_regression<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
-spectralmatch<span class="w"> </span>Match<span class="w"> </span>local_block_adjustment<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
-spectralmatch<span class="w"> </span>Seamline<span class="w"> </span>voronoi<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
-spectralmatch<span class="w"> </span>Pif<span class="w"> </span>flood_from_match_points<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
-</code></pre></div></td></tr></table></div>
-
-## Pipeline Helper Function
-The pipeline function serves as a way to run steps sequentially. While sensible defaults are set, you can modify all params to the underlying functions as seen [here](https://spectralmatch.github.io/spectralmatch/api/pipeline); visit each functions api reference for the exact structure of the params. In its simplest form all that needs to be specified is the input and output:
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch pipeline /input/folder /output/file.tif --shared_debug_logs=True
-</code></pre></div></td></tr></table></div>
-
-## Commands
-{commands_content}
-
-
 ### File: contributing.md
 # Contributing Guide
 
@@ -2857,6 +2503,412 @@ make<span class="w"> </span>python-build<span class="w"> </span><span class="c1"
 </code></pre></div></td></tr></table></div>
 
 
+### File: rrn_methods.md
+# Relative Radiometric Normalization (RRN) Methods
+
+RRN methods differ not only in the algorithms used to adjust image values but also in the requirements images must have and other techniques that can be used in conjunction. The following taxonomy summarizes the core dimensions along which RRN techniques vary:
+
+ - **Matching algorithm:** The core transformation applied to align radiometry between images.
+ - **Geometric alignment required:** The level of spatial alignment necessary for the method.
+ - **Pixel selection (PIFs/RCS):** How pseudo-invariant features/control sets are identified.
+ - **Adjustment scope:** How corrections are applied to the images.
+ - **Overlap:** Whether the method requires overlapping pixels.
+ - **Pixel units:** The radiometric units the method is able to operate on.
+ - **Bands:** Whether bands relationships are preserved.
+ - **Target reference:** What the target image is normalized to.
+
+Multiple matching algorithms can be used in conjunction with multiple pixel selection methods. Note that the most restrictive method will dictate the image requirements (e.g. if using `Global regression` with `Overlapping area` the `Geometric alignment` will need to be `Moderate`). The specific matching algorithm used in each method is flexible and not fixed; it may involve least squares, RANSAC, Theil–Sen, Huber, or other forms of robust regression.
+
+## Matching Algorithms
+
+| Matching algorithm                      | Description                                                                                            | Geometric alignment | Adjustment granularity          | Applies                        | Overlap required | Pixel units | Bands                  | Target reference                           | Year introduced | Key papers                                                                               | Software                                                                                                                                                                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------- | ------------------------------- | ------------------------------ | ---------------- | ----------- | ---------------------- | ------------------------------------------ | --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Histogram Matching (HM)                 | Matches histogram distributions between images                                                         | None                | Global                          | Lookup table                   | no               | Any         | Independent            | Reference histogram                        | 1980s           |                                                                                          | ENVI; [HistMatch QGIS Plugin](https://github.com/Gustavoohs/HistMatch); ArcGIS Pro; IMAGINE Mosaic Pro; [landsat R library via histmatch()](https://cran.r-project.org/web/packages/landsat/index.html) |
+| Minimum–Maximum Scale Normalization     | Linearly scales pixel values to match reference min/max                                                | None                | Global                          | Min/max                        | No               | Any         | Independent            | Reference min/max                          | 1980s           |                                                                                          |                                                                                                                                                                                                         |
+| Mean–Standard Deviation Regression      | Fits linear regression using mean and std dev                                                          | None                | Global                          | Gain/offset                    | No               | Any         | Independent/Correlated | Reference mean/std                         | 1980s           |                                                                                          | ArcGIS Pro; [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch)                                                                                              |
+| Overlaping pixel-wise Linear Regression | Fits linear regression using overlapping pairs of pixels                                               | Co-registered       | Model                           | Gain/offset                    | Yes              | Any         | Independent/Correlated | Reference image pixels                     | 1980s           |                                                                                          | ArcGIS Pro; [landsat R library via relnorm()](https://cran.r-project.org/web/packages/landsat/index.html)                                                                                               |
+| Block adjusted gamma correction         | Adjusts local brightness via block-based gamma scaling                                                 | Moderate            | Blocks/interpolation resolution | Power function                 | Yes              | Any         | Independent            | Reference block map (mean of local blocks) |                 |                                                                                          | [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch)                                                                                                          |
+| CCA/KCCA-Based                          | Finding the most correlated combinations between images                                                | Co-registered       | CCA space resolution            | Matrix                         | Yes              | Any         | Correlated             | Reference canonical components             |                 |                                                                                          |                                                                                                                                                                                                         |
+| Dodging                                 | Smooths brightness using low-pass filtering to reduce lighting artifacts                               | Co-registered       | Blur resolution                 | Low-pass brightness correction | Yes              | Any         | Independent            | Blur created brightness values             |                 |                                                                                          | ArcGIS Pro; IMAGINE Mosaic Pro                                                                                                                                                                          |
+| Illumination Equalization               | Models and removes large-scale illumination differences across images                                  | Co-registered       | Surface model resolution        | Modeled lighting correction    | Yes              | Any         | Independent            | Computed illumination values               |                 |                                                                                          | IMAGINE Mosaic Pro                                                                                                                                                                                      |
+| Wavelet reconstruction                  | Uses ancillary data to model and reconstruct image values at multiple detail levels                    | Co-registered       | Ancillary data resolution       | Decomposition/reconstruction   | Yes              | Any         | Correlated             | Ancillary data                             |                 | [(Gan et al., 2021)](https://doi.org/10.1109/JSTARS.2021.3069855)                        |                                                                                                                                                                                                         |
+| Dual-reference affine interpolation     | Models corrections from the two nearest reference images and applies temporally weighted interpolation | Co-registered       | Model                           | Gain/offset                    | Yes              | Any         | Independent            | Two closest high-quality reference images  | 2020            | [(Hessel et al., 2020)](https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/) | [rrn-multisensor-multidate Python scripts](https://github.com/chlsl/rrn-multisensor-multidate)                                                                                                          |
+
+## Pixel Selection
+
+| Pixel selection (PIFs/RCS)              | Description                                                                                                                                                                       | Type        | Geometric alignment | Overlap required | Pixel units                        | Year introduced | Key papers                                                                                             | Software                                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------- | ---------------- | ---------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Whole image                             | Uses all pixels without selection or masking                                                                                                                                      | None        | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| Overlapping area                        | Uses only pixels in the spatial overlap between images                                                                                                                            | None        | Moderate            | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
+| Manual polygons or pixels               | User-defined areas or points chosen as invariant                                                                                                                                  | Manual      | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| Manual threshold                        | Selects pixels based on value threshold                                                                                                                                           | Threshold   | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| Dark/Bright Set (DB)                    | Selects darkest and brightest pixels assumed to be invariant                                                                                                                      | Threshold   | None                | No               | Any/reflectance may perform better |                 |                                                                                                        |                                                                                                |
+| NDVI ratio                              | Uses vegetation indices to isolate vegetated areas for normalization                                                                                                              | Band ratio  | None                | No               | Reflectance                        |                 |                                                                                                        | [spectralmatch Python library and QGIS plugin](https://github.com/spectralmatch/spectralmatch) |
+| K-T ratio                               | Uses the Kauth–Thomas transformation to identify invariant pixels in greenness–brightness space                                                                                   | Band ratio  | None                | No               | Reflectance                        |                 | [(Hall et al., 1991)](https://www.sciencedirect.com/science/article/pii/003442579190062B?via%3Dihub)   | [landsat R library via RCS()](https://cran.r-project.org/web/packages/landsat/index.html)      |
+| Urban materials ratio                   | Assumes that certain **man-made surfaces** (e.g., roads, rooftops) have **stable reflectance over time** and uses their statistical properties to correct radiometric differences | Band ratio  | None                | No               | Reflectance                        | 1988            | [(Schott et al., 1988)](https://www.sciencedirect.com/science/article/pii/0034425788901162?via%3Dihub) | [landsat R library via PIF()](https://cran.r-project.org/web/packages/landsat/index.html)      |
+| No-change  Scattergrams (NC)            | Selects pixels near the scatterplot diagonal where reference and target values match closely                                                                                      | Statistical | Co-registered       | Yes              | Any                                |                 | [(De Carvalho et al., 2013)](https://www.mdpi.com/2072-4292/5/6/2763)                                  |                                                                                                |
+| Multivariate Alteration Detection (MAD) | Identifies invariant pixels by transforming image differences into uncorrelated components; selects pixels with minimal change across all bands                                   | Statistical | Co-registered       | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
+| Iteratively Reweighted MAD (IR-MAD)     | Refines MAD by reweighting pixels to improve change detection                                                                                                                     | Statistical | Co-registered       | Yes              | Any                                |                 | [(Canty & Nielsen, 2008)](https://doi.org/10.1016/j.rse.2007.07.013)                                   | [ArrNorm Python scripts](https://github.com/SMByC/ArrNorm)                                     |
+| Multi-Rule-Based Normalization          | Combines several selection rules to identify invariant pixels                                                                                                                     | Statistical | None                | No               | Any                                |                 |                                                                                                        |                                                                                                |
+| PCA                                     | Uses principal component analysis to identify pseudo-invariant pixels along the major axis of multitemporal scatterplots                                                          | Statistical | Co-registered       | Yes              | Any                                | 2002            | [(Du et al., 2002)](https://www.sciencedirect.com/science/article/pii/S0034425702000299?via%3Dihub)    |                                                                                                |
+| Gradient angle similarity               | Selecting the 10% of pixels with the smallest gradient angle differences between an image and its reference                                                                       | Statistical | Co-registered       | Yes              | Any                                | 2020            | [(Hessel et al., 2020)](https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/)               | [rrn-multisensor-multidate Python scripts](https://github.com/chlsl/rrn-multisensor-multidate) |
+| Feature-Based (Keypoint) RRN            | Matches distinctive features between images and uses their correspondence to guide normalization                                                                                  | Geometric   | Moderate            | Yes              | Any                                |                 |                                                                                                        |                                                                                                |
+| Location-Independent RRN (LIRRN)        | Groups pixels by brightness or spectral similarity, then matches these groups between images to perform group-wise normalization                                                  | Geometric   | Moderate            | Yes              | Any                                | 2024            | [(Maghimi et al., 2024)](https://www.mdpi.com/1424-8220/24/7/2272)                                     | [LIRRN MATLAB scripts](https://github.com/ArminMoghimi/LIRRN/tree/main)                        |
+
+
+### File: formats_and_requirements.md
+# File Formats and Input Requirements
+
+## Input Raster Requirements
+Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():
+
+- Have a valid geotransform
+- Share the same coordinate reference system (CRS)
+- Have an identical number of bands
+- Use consistent nodata values
+
+Additionally, all rasters should:
+
+ - Be a `.tif` file
+ - Have overlap which represents the same data in each raster
+ - Have a consistent spectral profile 
+
+## Regression Parameters File
+Regression parameters can be stored in a `json` file which includes:
+
+ - Adjustments: Per-band scale and offset values applied to each image.
+ - Whole Stats: Per-band mean, std, and size representing overall image statistics.
+ - Overlap Stats: Per-image pair mean, std, and size for overlapping geometry regions.
+
+The structure is a dictionary keyed by images basenames (no extension) with the following format:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;image_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;adjustments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;scale&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">},</span>
+<span class="w">      </span><span class="err">...</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;whole_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
+<span class="w">      </span><span class="err">...</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;overlap_stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;other_image&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;band_0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;mean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;std&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">fl</span><span class="err">oa</span><span class="kc">t</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">i</span><span class="kc">nt</span><span class="p">},</span>
+<span class="w">        </span><span class="err">...</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="err">...</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+This format represents the following: For each image_name there are adjustment, whole_stats and overlap_stats. For each adjustments, for each band, there is scale and offset. For each whole_stats and overlap_stats, for each band, there is mean, std, and size (number of pixels). Each band key follows the format band_0, band_1, etc. Mean and std are floats and size is an integer.
+
+This structure is validated by `_validate_adjustment_model_structure()` before use to ensure consistency and completeness across images and bands. Global regression does not actually use 'adjustments' field because they are recalculated every run.
+
+## Block Maps File
+Block maps are spatial summaries of raster data, where each block represents the mean values of a group of pixels over a fixed region. They are used to reduce image resolution while preserving local radiometric characteristics, enabling efficient comparison and adjustment across images. Each map is structured as a grid of blocks with values for each spectral band. They can be saved as regular `geotif` files and together store this information: block_local_means, block_reference_mean, num_row, num_col, bounds_canvas_coords. 
+
+There are two types of block maps, although their format is exactly the same:
+
+ - **Local Block Map:** Each block stores the mean value of all pixels within its boundary for a single image.
+ - **Reference Block Map:** Each block is the mean of all images means for its boundary; simply the mean of all local block maps.
+
+Both block maps have the shape: `num_row, num_col, num_bands`, however, there are multiple (one for each image) local block maps and only one reference block map. Once a reference block map is created it is unique to its input images and cannot be accurately modified to add additional images. However, images can be 'brought' to a reference block map even if they were not involved in its creation as long as it covers that image.
+
+
+### File: index.md
+# spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series
+
+[![PyPI version](https://img.shields.io/pypi/v/spectralmatch.svg)](https://pypi.org/project/spectralmatch/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/spectralmatch?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=GREEN&left_text=pypi+downloads)](https://pepy.tech/projects/spectralmatch)
+[![QGIS Plugin](https://img.shields.io/badge/QGIS-Plugin-589632?logo=qgis)](https://plugins.qgis.org/plugins/spectralmatch_qgis/)
+[![Your-License-Badge](https://img.shields.io/badge/License-MIT-green)](#)
+[![codecov](https://codecov.io/gh/spectralmatch/spectralmatch/graph/badge.svg?token=03JTHNK76C)](https://codecov.io/gh/spectralmatch/spectralmatch)
+[![Open in Cloud Shell](https://img.shields.io/badge/Launch-Google_Cloud_Shell-blue?logo=googlecloud)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/spectralmatch/spectralmatch&cloudshell_working_dir=.)
+[![📋 Copy LLM Prompt](https://img.shields.io/badge/📋_Copy-LLM_Prompt-brightgreen)](https://spectralmatch.github.io/spectralmatch/llm_prompt)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15312878.svg)](https://doi.org/10.5281/zenodo.15312878)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.08974/status.svg)](https://doi.org/10.21105/joss.08974)
+
+## Overview
+
+![Global and Local Matching](./images/spectralmatch.png)
+
+Spectralmatch provides algorithms to perform relative radiometric normalization (RRN) to enhance spectral consistency across raster mosaics and time series. It is built for geoscientific use, with a sensor- and unit-agnostic design, optimized for automation and efficiency on arbitrarily many images and bands, and works well with Very High Resolution Imagery (VHRI) as it does not require pixel co-registration. In addition to matching algorithms, the software supports cloud and vegetation masking, pseudo invariant feature (PIF) based exclusion, seamline network generation, raster merging, and plotting statistics. The toolkit is available as an open-source Python library, command line interface, and QGIS plugin.
+
+> Please cite as: Lindiwe et al., (2026). Spectralmatch: relative radiometric normalization toolkit for raster mosaics and time series. Journal of Open Source Software, 11(117), 8974, https://doi.org/10.21105/joss.08974
+
+## Features
+
+- **Automated, Efficient, and Scalable:** Designed for large-scale workflows with no manual steps, leveraging multiprocessing and Cloud Optimized GeoTIFF support for fast, efficient processing across images, windows, and bands. 
+
+- **Resumable Processing:** Save image stats and block maps for quicker reprocessing.
+
+- **Integrated Seamline and Cloud Masking:** Generate seamlines and detect clouds within the same workflow.
+
+- **Specify Model Images** Include all or specified images in the matching solution to bring all images to a central tendency or selected images spectral profile.
+
+- **Consistent Multi-image Analysis:** Performs minimal necessary adjustments to achieve inter-image consistency while preserving the original spectral characteristics.
+
+- **Sensor and Unit Agnostic:** Supports optical imagery from handheld cameras, drones, crewed aircraft, and satellites for reliable single sensor and multi-sensor analysis, while preserving spectral integrity across all pixel units—including negative values and reflectance.
+
+- **Enhanced Imagery:** Helpful when performing mosaics and time series analysis by blending large image collections and normalizing them over time, providing consistent, high-quality data for machine learning and other analytical tasks.
+
+- **Open Source and Collaborative:** Free under the MIT License with a modular design that supports community contributions and easy development of new features and workflows. Accessible through a python library, command line interface, and QGIS plugin.
+
+![Poster_AGU.pdf](./images/Poster.webp)
+
+---
+
+## Current Matching Algorithms
+
+### Global to local matching
+This method applies least squares regression to estimate scale and offset parameters that align the histograms of all images toward a shared spectral center or specified set of images center. This is achieved by constructing a global model based on the overlapping areas of adjacent images, where the spectral relationships are defined. This global model ensures that each image conforms to a consistent radiometric baseline while preserving overall color fidelity.
+However, global correction alone cannot capture intra-image variability so a second local adjustment phase is performed. The overlap areas are divided into smaller blocks, and each block’s mean is used to fine-tune the color correction. This block-wise tuning helps maintain local contrast and reduces visible seams, resulting in seamless and spectrally consistent mosaics with minimal distortion. Pseudo invariant features can be automatically created by aligning image overlaps by [orb](https://docs.opencv.org/4.x/d1/d89/tutorial_py_orb.html) match points and extracting low difference raster values. These methods draw on work from ['An auto-adapting global-to-local color balancing method for optical imagery mosaic' by Yu et al](https://doi.org/10.1016/j.isprsjprs.2017.08.002), ['Integrated Preprocessing of Multitemporal Very-High-Resolution Satellite Images via Conjugate Points-Based Pseudo-Invariant Feature Extraction' by Taeheon Kim and Youkyung Han](https://doi.org/10.3390/rs13193990), and others.
+
+#### Assumptions
+
+- **Consistent Spectral Profile:** The true spectral response of overlapping areas remains the same throughout the images.
+
+- **Least Squares Modeling:** A least squares approach can effectively model and fit all images' spectral profiles.
+
+- **Scale and Offset Adjustment:** Applying scale and offset corrections can effectively harmonize images.
+
+- **Minimized Color Differences:** The best color correction is achieved when color differences are minimized.
+
+- **Geometric Alignment:** Images are assumed to be geometrically aligned with known relative positions via a geotransform. However, they only need to be roughly aligned as pixel co-registration is not required.
+
+- **Global Consistency:** Overlapping color differences are consistent across the entire image.
+
+- **Local Adjustments:** Block-level color differences result from the global application of adjustments.
+
+---
+## Installation
+
+> For additional installation instructions see the [Installation Methods](https://spectralmatch.github.io/spectralmatch/installation/) in the docs.
+
+### Installation as a QGIS Plugin
+In the [QGIS](https://qgis.org/download/) plugin manager, install 'spectralmatch' and find it in the Processing Toolbox.
+
+### Installation as a Python Library and CLI
+
+Ensure you have the following system-level prerequisites: `Python ≥ 3.10 and ≤ 3.12`, `pip`, `PROJ ≥ 9.3`, and `GDAL ≥ 3.11`; then use pip to install the library:
+
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.11&quot;</span><span class="w"> </span><span class="s2">&quot;proj&gt;=9.3&quot;</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
+conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
+pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
+</code></pre></div></td></tr></table></div>
+
+---
+
+## Usage
+### Python
+Example scripts and sample data are provided to verify a successful installation and help you get started quickly in the repository at [`/docs/examples`](https://github.com/spectralmatch/spectralmatch/blob/main/docs/examples/) and downloadable [here](https://download-directory.github.io/?url=https://github.com/spectralmatch/spectralmatch/tree/main/docs/examples&filename=spectralmatch_examples). This is an example mosaic workflow using folders for each step:
+
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Match</span><span class="p">,</span>
+    <span class="n">Seamline</span><span class="p">,</span>
+    <span class="n">align_rasters</span><span class="p">,</span>
+    <span class="n">mask_rasters</span><span class="p">,</span>
+    <span class="n">merge_rasters</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;/path/to/working/directory&quot;</span>
+<span class="n">input_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Input&quot;</span><span class="p">)</span>
+<span class="n">global_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;GlobalMatch&quot;</span><span class="p">)</span>
+<span class="n">local_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;LocalMatch&quot;</span><span class="p">)</span>
+<span class="n">aligned_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Aligned&quot;</span><span class="p">)</span>
+<span class="n">clipped_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;Clipped&quot;</span><span class="p">)</span>
+
+<span class="n">Match</span><span class="o">.</span><span class="n">global_regression</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">input_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">Match</span><span class="o">.</span><span class="n">local_block_adjustment</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">global_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">align_rasters</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">local_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
+    <span class="n">tap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">Seamline</span><span class="o">.</span><span class="n">voronoi</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
+    <span class="n">output_mask</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span>
+    <span class="n">image_field_name</span><span class="o">=</span><span class="s2">&quot;image&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">mask_rasters</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">aligned_folder</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="n">clipped_folder</span><span class="p">,</span>
+    <span class="n">vector_mask</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;include&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;ImageMasks.gpkg&quot;</span><span class="p">),</span> <span class="s2">&quot;image&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">merge_rasters</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="n">clipped_folder</span><span class="p">,</span>
+    <span class="n">output_image_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;MergedImage.tif&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+### CLI
+There is a CLI that can be used for each function individually or with the [pipeline](https://spectralmatch.github.io/spectralmatch/api/pipeline) function (also available in python):
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch pipeline /input/folder /output/file.tif --shared_debug_logs=True
+</code></pre></div></td></tr></table></div>
+
+### QGIS Plugin
+There is a QGIS plugin available that wraps the library to provide an easy to use gui available [here](https://plugins.qgis.org/plugins/spectralmatch_qgis).
+
+---
+
+## Documentation
+
+Documentation is available at [spectralmatch.github.io/spectralmatch/](https://spectralmatch.github.io/spectralmatch/).
+
+---
+## Contributing Guide
+
+Contributing Guide is available at [spectralmatch.github.io/spectralmatch/contributing](https://spectralmatch.github.io/spectralmatch/contributing/).
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](https://github.com/spectralmatch/spectralmatch/blob/main/LICENSE) for details.
+
+## Project Support
+This library was developed at the [Spatial Data Analysis and Visualization Lab (SDAV)](https://hilo.hawaii.edu/sdav/) at the University of Hawaii at Hilo by Kanoa Lindiwe. Funding was partly provided by the [Hau‘oli Mau Loa Foundation](https://www.hauolimauloa.org/), in addition to the National Science Foundation EPSCoR grant 2149133, Change Hawaiʻi: Harnessing the Data Revolution for Island Resilience.
+
+
+### File: cli.md
+# Command Line Interface
+
+## Installation
+The command line interface will be installed automatically when the Python library is installed. See instructions on the installation [page](https://spectralmatch.github.io/spectralmatch/installation/). Use the api reference or command --help to see options to pass into python functions.
+
+## Usage
+
+Print general help:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>--help
+</code></pre></div></td></tr></table></div>
+
+Print help for a specific command:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>COMMAND<span class="w"> </span>--help
+</code></pre></div></td></tr></table></div>
+
+Print help for a class method:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>Match<span class="w"> </span>global_regression<span class="w"> </span>--help
+</code></pre></div></td></tr></table></div>
+
+Print installed version:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>--version
+</code></pre></div></td></tr></table></div>
+
+Run a specific command:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>COMMAND<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</code></pre></div></td></tr></table></div>
+
+Run a class method:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch<span class="w"> </span>Match<span class="w"> </span>global_regression<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+spectralmatch<span class="w"> </span>Match<span class="w"> </span>local_block_adjustment<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+spectralmatch<span class="w"> </span>Seamline<span class="w"> </span>voronoi<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+spectralmatch<span class="w"> </span>Pif<span class="w"> </span>flood_from_match_points<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</code></pre></div></td></tr></table></div>
+
+## Pipeline Helper Function
+The pipeline function serves as a way to run steps sequentially. While sensible defaults are set, you can modify all params to the underlying functions as seen [here](https://spectralmatch.github.io/spectralmatch/api/pipeline); visit each functions api reference for the exact structure of the params. In its simplest form all that needs to be specified is the input and output:
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>spectralmatch pipeline /input/folder /output/file.tif --shared_debug_logs=True
+</code></pre></div></td></tr></table></div>
+
+## Commands
+{commands_content}
+
+
 ### File: installation.md
 # Installation Methods
 
@@ -2951,6 +3003,10 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </code></pre></div></td></tr></table></div>
 
 
+### File: api/pipeline.md
+::: spectralmatch.pipeline
+
+
 ### File: api/mask.md
 ::: spectralmatch.mask.mask
 
@@ -2958,32 +3014,28 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 ::: spectralmatch.mask.utils_mask
 
 
-### File: api/pipeline.md
-::: spectralmatch.pipeline
-
-
-### File: api/statistics.md
-::: spectralmatch.statistics
-
-
 ### File: api/handlers.md
 ::: spectralmatch.handlers
-
-
-### File: api/pif.md
-::: spectralmatch.pif.Pif
-
-
-### File: api/seamline.md
-::: spectralmatch.seamline.Seamline
 
 
 ### File: api/match.md
 ::: spectralmatch.match.Match
 
 
+### File: api/pif.md
+::: spectralmatch.pif.Pif
+
+
 ### File: api/utils.md
 ::: spectralmatch.utils
+
+
+### File: api/statistics.md
+::: spectralmatch.statistics
+
+
+### File: api/seamline.md
+::: spectralmatch.seamline.Seamline
 
 
   </pre>
@@ -3052,7 +3104,7 @@ function copyToClipboard() {
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       
