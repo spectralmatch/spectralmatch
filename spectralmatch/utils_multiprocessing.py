@@ -8,7 +8,7 @@ from typing import Tuple, Literal, Callable, Optional
 from .types_and_validation import (
     Universal,
     _validate_dask_scheduler,
-    _validate_image_processing_config,
+    _validate_concurrent_processing_config,
 )
 
 
@@ -54,7 +54,7 @@ def _choose_context(prefer_fork: bool = True) -> mp.context.BaseContext:
 
 def _resolve_parallel_config(
     workers: Literal["cpu"] | int | None,
-    image_processing_backend: Universal.ImageProcessingBackend = "local",
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
 ) -> Tuple[bool, Optional[int]]:
     """
@@ -71,10 +71,10 @@ def _resolve_parallel_config(
             - Whether to run in parallel,
             - Number of workers.
     """
-    _validate_image_processing_config(
-        image_processing_backend, dask_scheduler, workers
+    _validate_concurrent_processing_config(
+        concurrent_processing_backend, dask_scheduler, workers
     )
-    if image_processing_backend == "dask":
+    if concurrent_processing_backend == "dask":
         return True, None
     if workers is None:
         return False, 1
@@ -87,7 +87,7 @@ def _get_executor(
     max_workers: Optional[int],
     initializer: Optional[Callable] = None,
     initargs: Optional[tuple] = None,
-    image_processing_backend: Universal.ImageProcessingBackend = "local",
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
 ):
     """
@@ -98,7 +98,7 @@ def _get_executor(
         max_workers (int): Maximum number of worker processes or threads.
         initializer (Callable, optional): Function to initialize worker context.
         initargs (tuple, optional): Arguments to pass to the initializer.
-        image_processing_backend: Execution backend for image-level tasks.
+        concurrent_processing_backend: Execution backend for image-level tasks.
         dask_scheduler: Existing scheduler connection tuple required by Dask mode.
 
     Returns:
@@ -108,10 +108,10 @@ def _get_executor(
         ValueError: If the backend is not "process" or "thread".
     """
 
-    _validate_image_processing_config(
-        image_processing_backend, dask_scheduler, None
+    _validate_concurrent_processing_config(
+        concurrent_processing_backend, dask_scheduler, None
     )
-    if image_processing_backend == "dask":
+    if concurrent_processing_backend == "dask":
         return _DaskExecutor(dask_scheduler)
 
     if backend == "process":

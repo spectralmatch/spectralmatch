@@ -62,7 +62,7 @@ class Match:
         tile_threads,
         window_size,
         save_as_cog,
-        image_processing_backend,
+        concurrent_processing_backend,
         dask_scheduler,
         estimate_stats=None,
     ) -> dict:
@@ -80,7 +80,7 @@ class Match:
             "image_threads": image_threads,
             "io_threads": io_threads,
             "tile_threads": tile_threads,
-            "image_processing_backend": image_processing_backend,
+            "concurrent_processing_backend": concurrent_processing_backend,
             "dask_scheduler": dask_scheduler,
         }
         if estimate_stats is not None:
@@ -126,7 +126,7 @@ class Match:
         nodata_val = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
         image_backend = "thread"
         image_threads_on, image_thread_workers = _resolve_parallel_config(
-            image_threads, image_processing_backend, dask_scheduler
+            image_threads, concurrent_processing_backend, dask_scheduler
         )
         tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
@@ -159,7 +159,7 @@ class Match:
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
         tile_threads: Universal.Threads = None,
-        image_processing_backend: Universal.ImageProcessingBackend = "local",
+        concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
         dask_scheduler: Universal.DaskScheduler = None,
         window_size: Universal.WindowSize = None,
         save_as_cog: Universal.SaveAsCog = False,
@@ -197,7 +197,7 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-    image_processing_backend: Use local threads or an existing Dask cluster.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
     dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     window_size (int | None): Output image tile size. Defaults to input image tile size.
     save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
@@ -253,7 +253,7 @@ Returns:
             tile_threads=tile_threads,
             window_size=window_size,
             save_as_cog=save_as_cog,
-            image_processing_backend=image_processing_backend,
+            concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
             estimate_stats=estimate_stats,
         )
@@ -369,7 +369,7 @@ Returns:
             with _get_executor(
                 image_backend,
                 image_thread_workers,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             ) as executor:
                 futures = [executor.submit(_overlap_stats_process_image, *args) for args in parallel_args]
@@ -415,7 +415,7 @@ Returns:
             with _get_executor(
                 image_backend,
                 image_thread_workers,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             ) as executor:
                 futures = [executor.submit(_whole_stats_process_image, *args) for args in parallel_args]
@@ -464,7 +464,7 @@ Returns:
                 io_threads=io_threads,
                 tile_threads=tile_threads,
                 save_inz=pif_save_inz,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             )
         else:
@@ -519,7 +519,7 @@ Returns:
             with _get_executor(
                 image_backend,
                 image_thread_workers,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             ) as executor:
                 futures = [executor.submit(_apply_adjustments_process_image, *args) for args in parallel_args]
@@ -536,7 +536,7 @@ Returns:
                 io_threads=io_threads,
                 image_threads=image_threads,
                 tile_threads=tile_threads,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
                 debug_logs=debug_logs,
             )
@@ -557,7 +557,7 @@ Returns:
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
         tile_threads: Universal.Threads = None,
-        image_processing_backend: Universal.ImageProcessingBackend = "local",
+        concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
         dask_scheduler: Universal.DaskScheduler = None,
         window_size: Universal.WindowSize = None,
         save_as_cog: Universal.SaveAsCog = False,
@@ -586,7 +586,7 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-    image_processing_backend: Use local threads or an existing Dask cluster.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
     dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     window_size (int | None): Output image tile size. Defaults to input image tile size.
     save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
@@ -638,7 +638,7 @@ Returns:
             tile_threads=tile_threads,
             window_size=window_size,
             save_as_cog=save_as_cog,
-            image_processing_backend=image_processing_backend,
+            concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
         )
         input_image_paths = setup["input_image_paths"]
@@ -770,7 +770,7 @@ Returns:
                 with _get_executor(
                     image_backend,
                     image_thread_workers,
-                    image_processing_backend=image_processing_backend,
+                    concurrent_processing_backend=concurrent_processing_backend,
                     dask_scheduler=dask_scheduler,
                 ) as executor:
                     results = [
@@ -854,7 +854,7 @@ Returns:
             with _get_executor(
                 image_backend,
                 image_thread_workers,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             ) as executor:
                 futures = [executor.submit(_apply_local_adjustment_process_image, *arg) for arg in args]
@@ -871,7 +871,7 @@ Returns:
                 io_threads=io_threads,
                 image_threads=image_threads,
                 tile_threads=tile_threads,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
                 debug_logs=debug_logs,
             )

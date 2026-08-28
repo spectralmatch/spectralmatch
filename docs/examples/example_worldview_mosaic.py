@@ -37,8 +37,8 @@ io_threads = 3
 tile_threads = 3
 debug_mode = True
 
-image_processing_backend = "local"  # "dask" | Default: "local"
-dask_scheduler = None  # Dask: ("file", f"/tmp/spectralmatch-dask-1.json") | Default: None
+concurrent_processing_backend = "process_pool"  # process_pool | dask
+dask_scheduler = None  # None | ("file", f"/tmp/spectralmatch-dask-1.json") | ("address", "tcp://scheduler:8786")
 
 # %% Joint coregistration
 joint_coregistration(
@@ -51,7 +51,7 @@ joint_coregistration(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
-    image_processing_backend=image_processing_backend,
+    concurrent_processing_backend=concurrent_processing_backend,
     dask_scheduler=dask_scheduler,
 )
 
@@ -67,7 +67,7 @@ joint_coregistration(
 #     image_threads=image_threads,
 #     io_threads=io_threads,
 #     tile_threads=tile_threads,
-#     image_processing_backend=image_processing_backend,
+#     concurrent_processing_backend=concurrent_processing_backend,
 #     dask_scheduler=dask_scheduler,
 # )
 
@@ -82,7 +82,7 @@ global_regression(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
-    image_processing_backend=image_processing_backend,
+    concurrent_processing_backend=concurrent_processing_backend,
     dask_scheduler=dask_scheduler,
     save_as_cog=True,
     # custom_nodata_value=-9999,
@@ -111,7 +111,7 @@ local_block_adjustment(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
-    image_processing_backend=image_processing_backend,
+    concurrent_processing_backend=concurrent_processing_backend,
     dask_scheduler=dask_scheduler,
     save_as_cog=True,
     # custom_nodata_value=-9999,
@@ -156,7 +156,7 @@ mask_rasters(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
-    image_processing_backend=image_processing_backend,
+    concurrent_processing_backend=concurrent_processing_backend,
     dask_scheduler=dask_scheduler,
 )
 

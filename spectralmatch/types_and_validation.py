@@ -14,7 +14,7 @@ class Universal:
     WindowSize = int | None
     CustomNodataValue = float | int | None
     Threads = Literal["cpu"] | int | None
-    ImageProcessingBackend = Literal["local", "dask"]
+    ConcurrentProcessingBackend = Literal["process_pool", "dask"]
     DaskScheduler = Tuple[Literal["file", "address"], str] | None
     Cache = float | None
     CalculationDtype = str
@@ -41,7 +41,7 @@ class Universal:
         io_threads=_UNSET,
         tile_threads=_UNSET,
         estimate_stats=_UNSET,
-        image_processing_backend=_UNSET,
+        concurrent_processing_backend=_UNSET,
         dask_scheduler=_UNSET,
     ):
         if input_images is not _UNSET:
@@ -155,18 +155,18 @@ class Universal:
             if not isinstance(estimate_stats, bool):
                 raise ValueError("estimate_stats must be a boolean.")
 
-        if image_processing_backend is not _UNSET:
-            if image_processing_backend not in {"local", "dask"}:
+        if concurrent_processing_backend is not _UNSET:
+            if concurrent_processing_backend not in {"process_pool", "dask"}:
                 raise ValueError(
-                    'image_processing_backend must be "local" or "dask".'
+                    'concurrent_processing_backend must be "process_pool" or "dask".'
                 )
 
         if dask_scheduler is not _UNSET:
             _validate_dask_scheduler(dask_scheduler)
 
-        if image_processing_backend is not _UNSET and dask_scheduler is not _UNSET:
-            _validate_image_processing_config(
-                image_processing_backend,
+        if concurrent_processing_backend is not _UNSET and dask_scheduler is not _UNSET:
+            _validate_concurrent_processing_config(
+                concurrent_processing_backend,
                 dask_scheduler,
                 None if image_threads is _UNSET else image_threads,
             )
@@ -197,20 +197,20 @@ def _validate_dask_scheduler(value):
         raise ValueError("dask_scheduler target must be a non-empty string.")
 
 
-def _validate_image_processing_config(backend, scheduler, image_threads):
+def _validate_concurrent_processing_config(backend, scheduler, image_threads):
     if backend == "dask":
         if scheduler is None:
             raise ValueError(
-                'image_processing_backend="dask" requires dask_scheduler.'
+                'concurrent_processing_backend="dask" requires dask_scheduler.'
             )
         if image_threads is not None:
             raise ValueError(
-                'image_threads must be None when image_processing_backend="dask"; '
+                'image_threads must be None when concurrent_processing_backend="dask"; '
                 "Dask worker capacity is configured on the cluster."
             )
     elif scheduler is not None:
         raise ValueError(
-            'dask_scheduler requires image_processing_backend="dask".'
+            'dask_scheduler requires concurrent_processing_backend="dask".'
         )
 
 

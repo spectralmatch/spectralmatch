@@ -107,7 +107,7 @@ def align_rasters(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
-    image_processing_backend: Universal.ImageProcessingBackend = "local",
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
 ) -> None:
@@ -126,7 +126,7 @@ def align_rasters(
         image_threads: Python-level parallelism over images (e.g., ("process", 4)).
         io_threads: Sets GDAL_NUM_THREADS for internal GDAL multithreading (int or str).
         tile_threads: Sets GTiff/COG writer NUM_THREADS and Warp’s NUM_THREADS (int or str).
-        image_processing_backend: Use local threads or an existing Dask cluster.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
         dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
 
     Returns:
@@ -144,7 +144,7 @@ def align_rasters(
         image_threads=image_threads,
         io_threads=io_threads,
         tile_threads=tile_threads,
-        image_processing_backend=image_processing_backend,
+        concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler,
     )
     UtilsValidation._validate_align_rasters(
@@ -183,7 +183,7 @@ def align_rasters(
     # Setup parallel
     image_backend = "thread" # "process" or "thread"
     image_threads_on, image_thread_workers = _resolve_parallel_config(
-        image_threads, image_processing_backend, dask_scheduler
+        image_threads, concurrent_processing_backend, dask_scheduler
     )
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
@@ -230,7 +230,7 @@ def align_rasters(
         with _get_executor(
             image_backend,
             image_thread_workers,
-            image_processing_backend=image_processing_backend,
+            concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
         ) as executor:
             futures = [
@@ -504,7 +504,7 @@ def mask_rasters(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
-    image_processing_backend: Universal.ImageProcessingBackend = "local",
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
     include_touched_pixels: bool = False,
     custom_nodata_value: Universal.CustomNodataValue = None,
@@ -523,7 +523,7 @@ def mask_rasters(
         image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
         io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-        image_processing_backend: Use local threads or an existing Dask cluster.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
         dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask.
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
@@ -546,7 +546,7 @@ def mask_rasters(
         tile_threads=tile_threads,
         custom_nodata_value=custom_nodata_value,
         cache=cache,
-        image_processing_backend=image_processing_backend,
+        concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler,
     )
     UtilsValidation._validate_mask_rasters(
@@ -580,7 +580,7 @@ def mask_rasters(
     # Determine multiprocessing and worker count
     image_backend = "thread" # "thread" or "process"
     image_threads_on, image_thread_workers = _resolve_parallel_config(
-        image_threads, image_processing_backend, dask_scheduler
+        image_threads, concurrent_processing_backend, dask_scheduler
     )
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
@@ -605,7 +605,7 @@ def mask_rasters(
         with _get_executor(
             image_backend,
             image_thread_workers,
-            image_processing_backend=image_processing_backend,
+            concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
         ) as executor:
             futures = [executor.submit(_mask_raster_process_image, *arg) for arg in args]
@@ -934,7 +934,7 @@ def compute_overviews(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
-    image_processing_backend: Universal.ImageProcessingBackend = "local",
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: bool = False,
 ):
@@ -949,7 +949,7 @@ def compute_overviews(
         image_threads: Number of parallel workers for image-level processing.
         io_threads: GDAL IO worker configuration.
         tile_threads: GDAL internal threads for overview computation.
-        image_processing_backend: Use local threads or an existing Dask cluster.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
         dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         debug_logs: Enable verbose logging.
 
@@ -967,7 +967,7 @@ def compute_overviews(
         image_threads=image_threads,
         io_threads=io_threads,
         tile_threads=tile_threads,
-        image_processing_backend=image_processing_backend,
+        concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler,
     )
 
@@ -1017,7 +1017,7 @@ def compute_overviews(
 
     image_backend = "thread"
     image_threads_on, image_workers = _resolve_parallel_config(
-        image_threads, image_processing_backend, dask_scheduler
+        image_threads, concurrent_processing_backend, dask_scheduler
     )
     tile_thread_on, tile_workers = _resolve_parallel_config(tile_threads)
 
@@ -1027,7 +1027,7 @@ def compute_overviews(
         with _get_executor(
             image_backend,
             image_workers,
-            image_processing_backend=image_processing_backend,
+            concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
         ) as ex:
             futures = [

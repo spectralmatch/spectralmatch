@@ -140,21 +140,21 @@ VectorMask = Tuple[Literal["include", "exclude"], str, Optional[str]] | None
 ```
 
 ### Parallel Workers
-The image_threads parameter controls local image-level concurrency. Set `image_processing_backend="dask"` with `dask_scheduler=("file", scheduler_file)` or `("address", scheduler_address)` to run those same task boundaries on an existing Dask cluster. Dask worker capacity is configured when that external cluster starts, so `image_threads` must be None in Dask mode. Dask mode without a scheduler, a scheduler in local mode, and other contradictory combinations raise errors. `io_threads` configures GDAL I/O threading, `tile_threads` configures GDAL operations within each image task, and `cache` sets the per-process GDAL cache in GB. Source rasters, cutlines, and output folders must be accessible at identical paths from every Dask worker. Temporary inputs such as masked VRTs must be created and consumed inside the worker task.
+The image_threads parameter controls local image-level concurrency. Set `concurrent_processing_backend="dask"` with `dask_scheduler=("file", scheduler_file)` or `("address", scheduler_address)` to run those same task boundaries on an existing Dask cluster. Dask worker capacity is configured when that external cluster starts, so `image_threads` must be None in Dask mode. Dask mode without a scheduler, a scheduler in process-pool mode, and other contradictory combinations raise errors. `io_threads` configures GDAL I/O threading, `tile_threads` configures GDAL operations within each image task, and `cache` sets the per-process GDAL cache in GB. Source rasters, cutlines, and output folders must be accessible at identical paths from every Dask worker. Temporary inputs such as masked VRTs must be created and consumed inside the worker task.
 ```python
 # Params
 cache
 image_threads 
 io_threads
 tile_threads
-image_processing_backend
+concurrent_processing_backend
 dask_scheduler
 
 # Types
 Threads = Literal["cpu"] | int | None
 Cache = float | None
 DaskScheduler = Tuple[Literal["file", "address"], str] | None
-ImageProcessingBackend = Literal["local", "dask"]
+ConcurrentProcessingBackend = Literal["process_pool", "dask"]
 
 # Resolve
 _set_gdal_cache(cache, debug_logs)
@@ -162,7 +162,7 @@ _set_gdal_workers(io_threads, debug_logs)
 
 image_backend = "thread" # "thread" or "process"
 image_threads_on, image_thread_workers = _resolve_parallel_config(
-    image_threads, image_processing_backend, dask_scheduler
+    image_threads, concurrent_processing_backend, dask_scheduler
 )
 tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
@@ -172,7 +172,7 @@ if image_threads_on:
     with _get_executor(
         image_backend,
         image_thread_workers,
-        image_processing_backend=image_processing_backend,
+        concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler,
     ) as executor:
         futures = [executor.submit(_name_process_image, *args) for args in image_args]

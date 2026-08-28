@@ -154,7 +154,7 @@ There is a QGIS plugin available that wraps the library to provide an easy to us
 
 ### High Performance Compute (Super computer)
 Install the optional distributed Dask backend with `pip install spectralmatch[dask]` and `pip install spectralmatch[dask_gui]` for the gui.
-Any image-level multiprocessing function can connect to an existing cluster with `image_processing_backend="dask"` and either `dask_scheduler=("file", "/shared/scheduler.json")` or `dask_scheduler=("address", "tcp://scheduler:8786")`. SpectralMatch does not start Dask workers: worker count, threads per worker, memory limits, and
+Image-level concurrent processing uses `concurrent_processing_backend="process_pool"` by default. To connect to an existing cluster, use `concurrent_processing_backend="dask"` and either `dask_scheduler=("file", "/shared/scheduler.json")` or `dask_scheduler=("address", "tcp://scheduler:8786")`. SpectralMatch does not start Dask workers: worker count, threads per worker, memory limits, and
 scaling are configured when the external Dask cluster is launched. To start a simple Dask service on your computer, run: `make start-dask DASK_NWORKERS=8 DASK_MEMORY_LIMIT=2GiB' and optionally add additional params found in the Makefile.
 
 

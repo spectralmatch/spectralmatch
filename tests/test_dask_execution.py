@@ -57,18 +57,18 @@ def _install_fake_dask(monkeypatch, calls):
 
 def test_dask_scheduler_validation():
     Universal._validate(
-        image_processing_backend="dask",
+        concurrent_processing_backend="dask",
         dask_scheduler=("address", "tcp://scheduler:8786"),
     )
     with pytest.raises(ValueError, match="mode"):
         Universal._validate(
             cache=None,
-            image_processing_backend="dask",
+            concurrent_processing_backend="dask",
             dask_scheduler=("url", "tcp://scheduler:8786"),
         )
     with pytest.raises(ValueError, match="non-empty"):
         Universal._validate(
-            image_processing_backend="dask",
+            concurrent_processing_backend="dask",
             dask_scheduler=("address", ""),
         )
     assert _resolve_parallel_config(
@@ -83,7 +83,7 @@ def test_dask_scheduler_validation():
     "backend,scheduler,image_threads,message",
     [
         ("dask", None, None, "requires dask_scheduler"),
-        ("local", ("address", "tcp://scheduler:8786"), None, "requires image_processing_backend"),
+        ("process_pool", ("address", "tcp://scheduler:8786"), None, "requires concurrent_processing_backend"),
         ("dask", ("address", "tcp://scheduler:8786"), 2, "image_threads must be None"),
     ],
 )
@@ -92,7 +92,7 @@ def test_misaligned_parallel_parameters_are_rejected(
 ):
     with pytest.raises(ValueError, match=message):
         Universal._validate(
-            image_processing_backend=backend,
+            concurrent_processing_backend=backend,
             dask_scheduler=scheduler,
             image_threads=image_threads,
         )
@@ -104,7 +104,7 @@ def test_dask_executor_address_adapter(monkeypatch):
     with _get_executor(
         "thread",
         None,
-        image_processing_backend="dask",
+        concurrent_processing_backend="dask",
         dask_scheduler=("address", " tcp://scheduler:8786 "),
     ) as executor:
         assert executor.submit(pow, 3, 2).result() == 9

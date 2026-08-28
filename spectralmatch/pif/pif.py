@@ -42,7 +42,7 @@ class Pif:
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
         tile_threads: Universal.Threads = None,
-        image_processing_backend: Universal.ImageProcessingBackend = "local",
+        concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
         dask_scheduler: Universal.DaskScheduler = None,
         save_inz: str | None = None,
         debug_logs: Universal.DebugLogs = False,
@@ -56,7 +56,7 @@ class Pif:
         ``joint_coregistration``. Every processed overlap pair must contain at
         least three usable loaded points; otherwise an error is raised.
         Basenames and source pixel grids must match the current inputs.
-        ``image_processing_backend="dask"`` and ``dask_scheduler`` connect
+        ``concurrent_processing_backend="dask"`` and ``dask_scheduler`` connect
         image-pair tasks through an existing Dask
         scheduler using ``("file", path)`` or ``("address", address)``.
 
@@ -78,7 +78,7 @@ class Pif:
             image_threads=image_threads,
             io_threads=io_threads,
             tile_threads=tile_threads,
-            image_processing_backend=image_processing_backend,
+            concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
         )
 
@@ -102,7 +102,7 @@ class Pif:
         _set_gdal_workers(io_threads, debug_logs)
         image_backend = "thread"
         image_threads_on, image_thread_workers = _resolve_parallel_config(
-            image_threads, image_processing_backend, dask_scheduler
+            image_threads, concurrent_processing_backend, dask_scheduler
         )
 
         nodata_value = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
@@ -171,7 +171,7 @@ class Pif:
             with _get_executor(
                 image_backend,
                 image_thread_workers,
-                image_processing_backend=image_processing_backend,
+                concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             ) as executor:
                 futures = [executor.submit(_calculate_pair_pif_stats, *args) for args in parallel_args]

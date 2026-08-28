@@ -25,7 +25,7 @@ def process_raster_values_to_vector_polygons(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
-    image_processing_backend: Universal.ImageProcessingBackend = "local",
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: Universal.DebugLogs = False,
     filter_by_polygon_size: str | None = None,
@@ -46,7 +46,7 @@ def process_raster_values_to_vector_polygons(
         image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
         io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
-        image_processing_backend: Use local threads or an existing Dask cluster.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
         dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
         filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., ">95%").
@@ -67,7 +67,7 @@ def process_raster_values_to_vector_polygons(
         io_threads=io_threads,
         tile_threads=tile_threads,
         debug_logs=debug_logs,
-        image_processing_backend=image_processing_backend,
+        concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler,
     )
 
@@ -94,7 +94,7 @@ def process_raster_values_to_vector_polygons(
     # Determine multiprocessing and worker count
     image_backend = "thread" # "thread" or "process"
     image_threads_on, image_thread_workers = _resolve_parallel_config(
-        image_threads, image_processing_backend, dask_scheduler
+        image_threads, concurrent_processing_backend, dask_scheduler
     )
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
@@ -119,7 +119,7 @@ def process_raster_values_to_vector_polygons(
         with _get_executor(
             image_backend,
             image_thread_workers,
-            image_processing_backend=image_processing_backend,
+            concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
         ) as executor:
             futures = [
