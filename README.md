@@ -30,6 +30,8 @@ Spectralmatch provides algorithms to perform relative radiometric normalization 
 
 - **Consistent Multi-image Analysis:** Performs minimal necessary adjustments to achieve inter-image consistency while preserving the original spectral characteristics.
 
+- **Joint Coregistration:** Co-registers complete overlap networks with global correction followed by an optional smooth local displacement mesh to align features in the images.
+
 - **Sensor and Unit Agnostic:** Supports optical imagery from handheld cameras, drones, crewed aircraft, and satellites for reliable single sensor and multi-sensor analysis, while preserving spectral integrity across all pixel units—including negative values and reflectance.
 
 - **Enhanced Imagery:** Helpful when performing mosaics and time series analysis by blending large image collections and normalizing them over time, providing consistent, high-quality data for machine learning and other analytical tasks.
@@ -91,22 +93,29 @@ Example scripts and sample data are provided to verify a successful installation
 ```python
 import os
 from spectralmatch import (
+    joint_coregistration,
     Match,
     Seamline,
-    align_rasters,
     mask_rasters,
     merge_rasters,
 )
 
 working_directory = "/path/to/working/directory"
 input_folder = os.path.join(working_directory, "Input")
+coregistered_folder = os.path.join(working_directory, "Coregistered")
 global_folder = os.path.join(working_directory, "GlobalMatch")
 local_folder = os.path.join(working_directory, "LocalMatch")
-aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 
-Match.global_regression(
+joint_coregistration(
     input_images=input_folder,
+    output_images=coregistered_folder,
+    resolution="highest",
+    tap=True,
+)
+
+Match.global_regression(
+    input_images=coregistered_folder,
     output_images=global_folder,
 )
 
@@ -115,20 +124,14 @@ Match.local_block_adjustment(
     output_images=local_folder,
 )
 
-align_rasters(
-    input_images=local_folder,
-    output_images=aligned_folder,
-    tap=True,
-)
-
 Seamline.voronoi(
-    input_images=aligned_folder,
+    input_images=local_folder,
     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
     image_field_name="image",
 )
 
 mask_rasters(
-    input_images=aligned_folder,
+    input_images=local_folder,
     output_images=clipped_folder,
     vector_mask=("include", os.path.join(working_directory, "ImageMasks.gpkg"), "image"),
 )

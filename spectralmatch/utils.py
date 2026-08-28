@@ -1,4 +1,5 @@
 import os
+import math
 import geopandas as gpd
 import pandas as pd
 import numpy as np
@@ -100,7 +101,7 @@ def align_rasters(
     *,
     resampling_method: Literal["nearest", "bilinear", "cubic"] = "bilinear",
     tap: bool = False,
-    resolution: Literal["highest", "average", "lowest"] = "highest",
+    resolution: Universal.Resolution = None,
     window_size: Universal.WindowSize = None,
     debug_logs: Universal.DebugLogs = False,
     cache: Universal.Cache = None,
@@ -117,7 +118,7 @@ def align_rasters(
         output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
         resampling_method: "nearest" | "bilinear" | "cubic".
         tap: If True, snap output extent to target-aligned pixels (GDAL -tap behavior).
-        resolution: "highest" (min px size), "average", or "lowest" (max px size).
+        resolution: Shared pixel size strategy, positive CRS-unit pixel size, or None to preserve native resolution.
         window_size: Tile size for output blocks; used for GTiff creation options.
         debug_logs: Verbose logging.
         cache: Cache for processing.
@@ -235,7 +236,7 @@ def _align_process_image(
     image_name: str,
     in_path: str,
     out_path: str,
-    target_res: Tuple[float, float],
+    target_res: Tuple[float, float] | None,
     resampling_method: Literal["nearest", "bilinear", "cubic"],
     tap: bool,
     window_size: int,
@@ -250,7 +251,7 @@ def _align_process_image(
         image_name (str): Identifier for the raster, used for logging.
         in_path (str): Path to the input raster file.
         out_path (str): Path where the aligned raster will be written.
-        target_res (Tuple[float, float]): Target pixel resolution as ``(xres, yres)``.
+        target_res (Tuple[float, float] | None): Target pixel resolution, or None to preserve the source resolution.
         resampling_method (Literal["nearest", "bilinear", "cubic"]): Resampling algorithm.
         tap (bool): If True, snaps bounds to target-aligned pixels (GDAL -tap behavior).
         window_size (int): Tile size in pixels for output blocks (BLOCKXSIZE/BLOCKYSIZE).
@@ -269,13 +270,13 @@ def _align_process_image(
         step_name="align_rasters",
     ):
         return
+    window_size = max(16, int(math.ceil(window_size / 16)) * 16)
 
     # Resolve metadata (extent, transform) via GDAL
     ds = gdal.Open(in_path, gdal.GA_ReadOnly)
     proj_wkt = ds.GetProjectionRef()
+    transform = ds.GetGeoTransform()
     ds = None
-
-    xres, yres = float(target_res[0]), float(target_res[1])
 
     # Writer creation options
     co = [
@@ -304,21 +305,32 @@ def _align_process_image(
     except Exception:
         pass
 
-    ods = gdal.Warp(
-        out_path,
-        in_path,
-        options=gdal.WarpOptions(
-            format="GTiff",
-            xRes=xres,
-            yRes=yres,
-            dstSRS=proj_wkt or None,
-            resampleAlg=resamp,
-            targetAlignedPixels=tap,
-            creationOptions=co,
-            multithread=True,
-            warpOptions=(["SKIP_NOSOURCE=YES"]),
+    if target_res is None and not tap:
+        ods = gdal.Translate(
+            out_path,
+            in_path,
+            options=gdal.TranslateOptions(format="GTiff", creationOptions=co),
         )
-    )
+    else:
+        xres, yres = target_res or (
+            math.hypot(transform[1], transform[4]),
+            math.hypot(transform[2], transform[5]),
+        )
+        ods = gdal.Warp(
+            out_path,
+            in_path,
+            options=gdal.WarpOptions(
+                format="GTiff",
+                xRes=float(xres),
+                yRes=float(yres),
+                dstSRS=proj_wkt or None,
+                resampleAlg=resamp,
+                targetAlignedPixels=tap,
+                creationOptions=co,
+                multithread=True,
+                warpOptions=(["SKIP_NOSOURCE=YES"]),
+            )
+        )
 
     if ods is None:
         raise RuntimeError(f"gdal.Warp failed for {in_path}")
@@ -327,14 +339,19 @@ def _align_process_image(
 
 def compute_resolution(
     paths: list[str],
-    strategy: str
-    ) -> Tuple[float, float]:
+    strategy: Universal.Resolution,
+    ) -> Tuple[float, float] | None:
+    """Resolve a shared square/named resolution, or preserve native grids with None."""
+    UtilsValidation._validate_align_rasters(resolution=strategy)
+    if strategy is None:
+        return None
+    if isinstance(strategy, float):
+        return strategy, strategy
     res = []
     for p in paths:
         ds = gdal.Open(p, gdal.GA_ReadOnly)
         gt = ds.GetGeoTransform()
-        # Approximate pixel size (assume no rotation)
-        res.append((abs(gt[1]), abs(gt[5])))
+        res.append((math.hypot(gt[1], gt[4]), math.hypot(gt[2], gt[5])))
         ds = None
     res_arr = np.asarray(res, dtype=float)
     if strategy == "highest":

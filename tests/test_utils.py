@@ -208,10 +208,12 @@ def test_align_rasters_minimal(misaligned_raster_set):
 
     align_rasters(input_images=input_paths, output_images=output_paths)
 
-    for out_path in output_paths:
+    for out_path, expected_resolution in zip(output_paths, (1.0, 2.0)):
         assert os.path.exists(out_path)
         ds = gdal.Open(out_path)
         assert ds.RasterXSize > 0 and ds.RasterYSize > 0
+        assert abs(ds.GetGeoTransform()[1]) == pytest.approx(expected_resolution)
+        assert abs(ds.GetGeoTransform()[5]) == pytest.approx(expected_resolution)
         ds = None
 
 
@@ -235,3 +237,21 @@ def test_align_rasters_all_options(misaligned_raster_set):
         ds = gdal.Open(out_path)
         assert ds.RasterXSize > 0 and ds.RasterYSize > 0
         ds = None
+
+
+def test_align_rasters_accepts_numeric_resolution(misaligned_raster_set):
+    input_paths, output_paths = misaligned_raster_set
+
+    align_rasters(
+        input_images=input_paths,
+        output_images=output_paths,
+        resolution=1.5,
+        tap=True,
+    )
+
+    for out_path in output_paths:
+        transform = gdal.Open(out_path).GetGeoTransform()
+        assert abs(transform[1]) == pytest.approx(1.5)
+        assert abs(transform[5]) == pytest.approx(1.5)
+        assert transform[0] / 1.5 == pytest.approx(round(transform[0] / 1.5))
+        assert transform[3] / 1.5 == pytest.approx(round(transform[3] / 1.5))

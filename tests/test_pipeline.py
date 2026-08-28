@@ -1,3 +1,4 @@
+import json
 import os
 import geopandas as gpd
 
@@ -28,12 +29,31 @@ def test_pipeline_full_default_flow(tmp_path):
         )
         input_paths.append(str(path))
 
+    tie_points_path = tmp_path / "tie_points.json"
+    tie_points_path.write_text(
+        json.dumps(
+            {
+                "tie_points": [
+                    {
+                        "image_1": "A",
+                        "image_2": "B",
+                        "points": [[[10.0, 10.0], [2.0, 10.0]]],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
     results = pipeline(
         shared_input_images=input_paths,
         shared_output_image_path=str(output_path),
         delete_temp_dir=False,
         shared_debug_logs=True,
         shared_window_size=16,
+        joint_coregistration_local_model="none",
+        joint_coregistration_load_adjustments=str(tie_points_path),
+        joint_coregistration_robust_loss="none",
         merge_rasters_build_overviews=False,
     )
 
@@ -48,6 +68,9 @@ def test_pipeline_full_default_flow(tmp_path):
     assert "resolved_shared_image_threads" in results
     assert "resolved_shared_io_threads" in results
     assert "resolved_shared_tile_threads" in results
+    assert results["steps"][0] == "joint_coregistration"
+    assert "joint_coregistration" in results
+    assert "align" not in results["steps"]
 
 
 def test_pipeline_merge_only_with_custom_temp_dir(tmp_path):
@@ -264,3 +287,30 @@ def test_pipeline_delete_previous_step_removes_replaced_intermediate(tmp_path):
         str(output_dir / "B_Global_Local.tif"),
     ]
     assert not (temp_dir / "global").exists()
+
+
+def test_pipeline_forwards_global_pif_tie_point_path(tmp_path, monkeypatch):
+    input_path = tmp_path / "A.tif"
+    create_dummy_raster(input_path, count=1)
+    output_dir = tmp_path / "output"
+    tie_path = str(tmp_path / "tie_points.json")
+    captured = {}
+
+    def fake_global_regression(**kwargs):
+        captured.update(kwargs)
+        return [str(output_dir / "A_Global.tif")]
+
+    monkeypatch.setattr(
+        "spectralmatch.chain.Match.global_regression",
+        fake_global_regression,
+    )
+
+    pipeline(
+        shared_input_images=[str(input_path)],
+        shared_output_image_path=str(output_dir),
+        steps=("global_regression",),
+        global_regression_pif_method="flood_from_match_points",
+        global_regression_pif_load_tie_points=tie_path,
+    )
+
+    assert captured["pif_load_tie_points"] == tie_path

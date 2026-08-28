@@ -22,6 +22,7 @@ def test_cli_general_help():
         "compute_overviews",
         "create_cloud_mask_with_omnicloudmask",
         "global_regression",
+        "joint_coregistration",
         "local_block_adjustment",
         "mask_rasters",
         "match_paths",
@@ -44,7 +45,13 @@ def test_cli_general_help():
 def test_cli_command_help():
     result = _run_cli("global_regression", "--help")
     assert result.returncode == 0
-    assert "global_regression" in (result.stdout + result.stderr)
+    output = result.stdout + result.stderr
+    assert "global_regression" in output
+    assert "pif_load_tie_points" in output
+
+    result = _run_cli("joint_coregistration", "--help")
+    assert result.returncode == 0
+    assert "joint_coregistration" in (result.stdout + result.stderr)
 
 
 def test_cli_version():
