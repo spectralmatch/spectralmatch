@@ -2,13 +2,14 @@ import math
 import tempfile
 import numpy as np
 import os
+import shutil
 
 from scipy.ndimage import gaussian_filter
 from typing import Tuple, Optional, List, Literal
 from osgeo import gdal, osr
 
 from ..handlers import _existing_outputs_are_reusable
-from ..utils import _resolve_window_size, _gdal_dtype_str_to_enum, _get_valid_count
+from ..utils import _create_masked_vrt, _resolve_window_size, _gdal_dtype_str_to_enum, _get_valid_count
 
 
 def _get_pre_computed_block_maps(
@@ -416,6 +417,7 @@ def _apply_adjustment_process_image(
     if ods is None:
         raise RuntimeError("Failed to write adjusted image")
     ods = None
+    shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def _get_bounding_rectangle(
@@ -549,6 +551,33 @@ def _compute_mosaic_coefficient_of_variation(
 
 
 def _calculate_block_process_image(
+    name: str,
+    image_path: str,
+    bounds_canvas_coords: Tuple[float, float, float, float],
+    num_row: int,
+    num_col: int,
+    num_bands: int,
+    debug_logs: bool,
+    nodata_value: float,
+    calculation_dtype: str,
+    tile_thread_on: bool,
+    tile_thread_workers: int,
+    vector_mask=None,
+    ):
+    """Create one worker-local masked VRT and calculate its block statistics."""
+    with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
+        masked_path = _create_masked_vrt(
+            name, image_path, vector_mask=vector_mask, nodata_value=nodata_value,
+            out_dir=tmpdir, debug_logs=debug_logs,
+        )
+        return _calculate_blocks_from_masked_image(
+            name, masked_path, bounds_canvas_coords, num_row, num_col, num_bands,
+            debug_logs, nodata_value, calculation_dtype, tile_thread_on,
+            tile_thread_workers,
+        )
+
+
+def _calculate_blocks_from_masked_image(
     name: str,
     image_path: str,
     bounds_canvas_coords: Tuple[float, float, float, float],

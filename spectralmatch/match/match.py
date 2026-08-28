@@ -15,7 +15,6 @@ from ..handlers import (
 from ..pif.pif import Pif
 from ..types_and_validation import Universal, Match as MatchValidation
 from ..utils import (
-    _create_masked_vrts,
     _set_gdal_cache,
     _set_gdal_workers,
     _resolve_gdal_dtype,
@@ -63,6 +62,8 @@ class Match:
         tile_threads,
         window_size,
         save_as_cog,
+        image_processing_backend,
+        dask_scheduler,
         estimate_stats=None,
     ) -> dict:
         validate_kwargs = {
@@ -79,6 +80,8 @@ class Match:
             "image_threads": image_threads,
             "io_threads": io_threads,
             "tile_threads": tile_threads,
+            "image_processing_backend": image_processing_backend,
+            "dask_scheduler": dask_scheduler,
         }
         if estimate_stats is not None:
             validate_kwargs["estimate_stats"] = estimate_stats
@@ -122,7 +125,9 @@ class Match:
         )
         nodata_val = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
         image_backend = "thread"
-        image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+        image_threads_on, image_thread_workers = _resolve_parallel_config(
+            image_threads, image_processing_backend, dask_scheduler
+        )
         tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
         return {
@@ -154,6 +159,8 @@ class Match:
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
         tile_threads: Universal.Threads = None,
+        image_processing_backend: Universal.ImageProcessingBackend = "local",
+        dask_scheduler: Universal.DaskScheduler = None,
         window_size: Universal.WindowSize = None,
         save_as_cog: Universal.SaveAsCog = False,
         estimate_stats: bool = True,
@@ -190,6 +197,8 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    image_processing_backend: Use local threads or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     window_size (int | None): Output image tile size. Defaults to input image tile size.
     save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     estimate_stats (bool): If True, use an estimate algorithm to calculate the mean and sd to increase processing speeds. If False, use the exact algorithm. Defaults to True.
@@ -244,6 +253,8 @@ Returns:
             tile_threads=tile_threads,
             window_size=window_size,
             save_as_cog=save_as_cog,
+            image_processing_backend=image_processing_backend,
+            dask_scheduler=dask_scheduler,
             estimate_stats=estimate_stats,
         )
         input_image_paths = setup["input_image_paths"]
@@ -311,13 +322,6 @@ Returns:
             else:
                 print("    Excluded from model (0): []")
 
-        input_image_masked_path_pairs = _create_masked_vrts(
-            input_image_path_pairs,
-            vector_mask=vector_mask,
-            nodata_value=nodata_val,
-            debug_logs=debug_logs,
-        )
-
         if debug_logs:
             print("Calculating statistics")
         num_bands = gdal.Open(next(iter(input_image_path_pairs.values()))).RasterCount
@@ -346,13 +350,15 @@ Returns:
                 tile_thread_on,
                 tile_thread_workers,
                 num_bands,
-                input_image_masked_path_pairs[name_i],
-                input_image_masked_path_pairs[name_j],
+                input_image_path_pairs[name_i],
+                input_image_path_pairs[name_j],
                 name_i,
                 name_j,
                 all_bounds[name_i],
                 all_bounds[name_j],
                 estimate_stats,
+                vector_mask,
+                nodata_val,
                 debug_logs,
             )
             for name_i, name_j in overlapping_pairs
@@ -360,7 +366,12 @@ Returns:
             or name_j not in loaded_model.get(name_i, {}).get("overlap_stats", {})
         ]
         if image_threads_on:
-            with _get_executor(image_backend, image_thread_workers) as executor:
+            with _get_executor(
+                image_backend,
+                image_thread_workers,
+                image_processing_backend=image_processing_backend,
+                dask_scheduler=dask_scheduler,
+            ) as executor:
                 futures = [executor.submit(_overlap_stats_process_image, *args) for args in parallel_args]
                 for future in as_completed(futures):
                     stats = future.result()
@@ -393,13 +404,20 @@ Returns:
                 num_bands,
                 image_name,
                 estimate_stats,
+                vector_mask,
+                nodata_val,
                 debug_logs,
             )
-            for image_name, image_path in input_image_masked_path_pairs.items()
+            for image_name, image_path in input_image_path_pairs.items()
             if image_name not in loaded_model
         ]
         if image_threads_on:
-            with _get_executor(image_backend, image_thread_workers) as executor:
+            with _get_executor(
+                image_backend,
+                image_thread_workers,
+                image_processing_backend=image_processing_backend,
+                dask_scheduler=dask_scheduler,
+            ) as executor:
                 futures = [executor.submit(_whole_stats_process_image, *args) for args in parallel_args]
                 for future in as_completed(futures):
                     all_whole_stats.update(future.result())
@@ -446,6 +464,8 @@ Returns:
                 io_threads=io_threads,
                 tile_threads=tile_threads,
                 save_inz=pif_save_inz,
+                image_processing_backend=image_processing_backend,
+                dask_scheduler=dask_scheduler,
             )
         else:
             all_params = _solve_global_model(
@@ -496,7 +516,12 @@ Returns:
             for idx, (name, img_path) in enumerate(input_image_path_pairs.items())
         ]
         if image_threads_on:
-            with _get_executor(image_backend, image_thread_workers) as executor:
+            with _get_executor(
+                image_backend,
+                image_thread_workers,
+                image_processing_backend=image_processing_backend,
+                dask_scheduler=dask_scheduler,
+            ) as executor:
                 futures = [executor.submit(_apply_adjustments_process_image, *args) for args in parallel_args]
                 for future in as_completed(futures):
                     future.result()
@@ -511,6 +536,8 @@ Returns:
                 io_threads=io_threads,
                 image_threads=image_threads,
                 tile_threads=tile_threads,
+                image_processing_backend=image_processing_backend,
+                dask_scheduler=dask_scheduler,
                 debug_logs=debug_logs,
             )
         return output_image_paths
@@ -530,6 +557,8 @@ Returns:
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
         tile_threads: Universal.Threads = None,
+        image_processing_backend: Universal.ImageProcessingBackend = "local",
+        dask_scheduler: Universal.DaskScheduler = None,
         window_size: Universal.WindowSize = None,
         save_as_cog: Universal.SaveAsCog = False,
         number_of_blocks: int | Tuple[int, int] | Literal["coefficient_of_variation"] = 100,
@@ -557,6 +586,8 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    image_processing_backend: Use local threads or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     window_size (int | None): Output image tile size. Defaults to input image tile size.
     save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
@@ -607,6 +638,8 @@ Returns:
             tile_threads=tile_threads,
             window_size=window_size,
             save_as_cog=save_as_cog,
+            image_processing_backend=image_processing_backend,
+            dask_scheduler=dask_scheduler,
         )
         input_image_paths = setup["input_image_paths"]
         output_image_paths = setup["output_image_paths"]
@@ -631,12 +664,6 @@ Returns:
                 print("All output images already exist and are reusable. Skipping processing.")
             return output_image_paths
 
-        input_image_path_pairs_masked = _create_masked_vrts(
-            input_image_path_pairs,
-            vector_mask=vector_mask,
-            nodata_value=nodata_val,
-            debug_logs=debug_logs,
-        )
         if debug_logs:
             print(f"Global nodata value: {nodata_val}")
         num_bands = gdal.Open(next(iter(input_image_path_pairs.values()))).RasterCount
@@ -715,7 +742,7 @@ Returns:
         if debug_logs:
             print("Computing local block maps:")
         local_blocks_to_calculate = {
-            k: v for k, v in input_image_path_pairs_masked.items() if k in only_input
+            k: v for k, v in input_image_path_pairs.items() if k in only_input
         }
         local_blocks_to_load = {
             **{k: loaded_block_local_means[soft_matches[k]] for k in matched},
@@ -735,11 +762,17 @@ Returns:
                     calculation_dtype,
                     tile_thread_on,
                     tile_thread_workers,
+                    vector_mask,
                 )
                 for name, path in local_blocks_to_calculate.items()
             ]
             if image_threads_on:
-                with _get_executor(image_backend, image_thread_workers) as executor:
+                with _get_executor(
+                    image_backend,
+                    image_thread_workers,
+                    image_processing_backend=image_processing_backend,
+                    dask_scheduler=dask_scheduler,
+                ) as executor:
                     results = [
                         f.result()
                         for f in [executor.submit(_calculate_block_process_image, *arg) for arg in args]
@@ -818,7 +851,12 @@ Returns:
             for name in input_image_path_pairs
         ]
         if image_threads_on:
-            with _get_executor(image_backend, image_thread_workers) as executor:
+            with _get_executor(
+                image_backend,
+                image_thread_workers,
+                image_processing_backend=image_processing_backend,
+                dask_scheduler=dask_scheduler,
+            ) as executor:
                 futures = [executor.submit(_apply_local_adjustment_process_image, *arg) for arg in args]
                 for future in as_completed(futures):
                     future.result()
@@ -833,6 +871,8 @@ Returns:
                 io_threads=io_threads,
                 image_threads=image_threads,
                 tile_threads=tile_threads,
+                image_processing_backend=image_processing_backend,
+                dask_scheduler=dask_scheduler,
                 debug_logs=debug_logs,
             )
         return output_image_paths

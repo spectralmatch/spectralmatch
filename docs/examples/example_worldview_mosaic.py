@@ -32,10 +32,13 @@ clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 
 window_size = 1024
-image_threads = 3
+image_threads = 3 # Dask: None | int
 io_threads = 3
 tile_threads = 3
 debug_mode = True
+
+image_processing_backend = "local"  # "dask" | Default: "local"
+dask_scheduler = None  # Dask: ("file", f"/tmp/spectralmatch-dask-1.json") | Default: None
 
 # %% Joint coregistration
 joint_coregistration(
@@ -48,6 +51,8 @@ joint_coregistration(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
+    image_processing_backend=image_processing_backend,
+    dask_scheduler=dask_scheduler,
 )
 
 # %% Align rasters (or skip this step if images are already aligned or this is set in the joint_coregistration step)
@@ -62,6 +67,8 @@ joint_coregistration(
 #     image_threads=image_threads,
 #     io_threads=io_threads,
 #     tile_threads=tile_threads,
+#     image_processing_backend=image_processing_backend,
+#     dask_scheduler=dask_scheduler,
 # )
 
 # %% Global matching
@@ -75,6 +82,8 @@ global_regression(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
+    image_processing_backend=image_processing_backend,
+    dask_scheduler=dask_scheduler,
     save_as_cog=True,
     # custom_nodata_value=-9999,
     pif_method="flood_from_match_points",
@@ -102,6 +111,8 @@ local_block_adjustment(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
+    image_processing_backend=image_processing_backend,
+    dask_scheduler=dask_scheduler,
     save_as_cog=True,
     # custom_nodata_value=-9999,
     correction_method="offset",
@@ -145,6 +156,8 @@ mask_rasters(
     image_threads=image_threads,
     io_threads=io_threads,
     tile_threads=tile_threads,
+    image_processing_backend=image_processing_backend,
+    dask_scheduler=dask_scheduler,
 )
 
 # %% Merge rasters
