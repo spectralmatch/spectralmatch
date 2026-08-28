@@ -937,6 +937,8 @@ Args:
     image_threads: Python-level parallelism over images (e.g., ("process", 4)).
     io_threads: Sets GDAL_NUM_THREADS for internal GDAL multithreading (int or str).
     tile_threads: Sets GTiff/COG writer NUM_THREADS and Warp’s NUM_THREADS (int or str).
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
 
 Returns:
     List[str]: Paths to the locally adjusted output raster images."""
@@ -980,7 +982,7 @@ Args:
 Returns:
     str: Path of the merged raster."""
 
-def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, cache, image_threads, io_threads, tile_threads, include_touched_pixels, custom_nodata_value, resume_from_outputs):
+def mask_rasters(input_images, output_images, vector_mask, window_size, debug_logs, cache, image_threads, io_threads, tile_threads, concurrent_processing_backend, dask_scheduler, include_touched_pixels, custom_nodata_value, resume_from_outputs):
     """Applies a vector-based mask to one or more rasters using GDAL Warp.
 
 Args:
@@ -993,22 +995,22 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask.
     custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
 
 Returns:
     list: Output image paths after masking."""
 
-def _mask_raster_process_image(input_image_path, output_image_path, image_name, mode, cutline_path, field_given, debug_logs, include_touched_pixels, custom_nodata_value, tile_threads, tile_thread_on, resume_from_outputs):
+def _mask_raster_process_image(input_image_path, output_image_path, image_name, vector_mask, debug_logs, include_touched_pixels, custom_nodata_value, tile_threads, tile_thread_on, resume_from_outputs):
     """Applies a GDAL Warp mask to a single image using cutline and nodata configuration.
 
 Args:
     input_image_path (str): Path to the input raster.
     output_image_path (str): Path to the output masked raster.
     image_name (str): Short name for logging/debugging.
-    mode (str | None): Weather to "include" or "exclude".
-    cutline_path (str | None): Path to the cutline.
-    field_given (bool): If a filter field was provided.
+    vector_mask: Cutline mode, source path, and optional basename field.
     debug_logs (bool): If True, prints processing information.
     include_touched_pixels (bool): If True, enables CUTLINE_ALL_TOUCHED for Warp.
     custom_nodata_value (Universal.CustomNodataValue): Nodata value for masked-out pixels.
@@ -1018,12 +1020,10 @@ Args:
 Returns:
     None"""
 
-def _prepare_cutline_sources(vector_mask, image_names, debug_logs):
-    """Returns: (mode, per_image_path_or_None, original_vector_path, field_given)
-  - If field is given: dict[image_name] -> '/vsimem/<name>.geojson' or None if no match
-  - If no field: returns None dict, and you should pass the original vector as-is."""
+def _create_masked_vrt(image_name, image_path):
 
-def _create_masked_vrts(input_image_path_pairs):
+def _resolve_cutline_options(vector_mask, image_name):
+    """Return GDAL cutline options for one image without creating temporary data."""
 
 def _set_gdal_cache(cache, debug_logs):
 
@@ -1086,12 +1086,15 @@ Args:
     image_threads: Number of parallel workers for image-level processing.
     io_threads: GDAL IO worker configuration.
     tile_threads: GDAL internal threads for overview computation.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     debug_logs: Enable verbose logging.
 
 Returns:
     List[str]: Paths of images that received overviews."""
 
-def _process_image_overview(path):
+def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, debug_logs):
+    """Build overviews for one image; kept top-level for distributed serialization."""
 
 def _copy_files_if_needed(src_paths, dst_paths):
     """Copy src to dst."""
@@ -1257,6 +1260,9 @@ Returns:
 
 ### File: utils_multiprocessing.py
 
+def _parse_dask_scheduler(value):
+    """Validate and normalize a Dask scheduler connection tuple."""
+
 def _choose_context(prefer_fork):
     """Chooses the most appropriate multiprocessing context based on platform and preference.
 
@@ -1266,7 +1272,7 @@ Args:
 Returns:
     mp.context.BaseContext: Selected multiprocessing context ("fork", "forkserver", or "spawn")."""
 
-def _resolve_parallel_config(workers):
+def _resolve_parallel_config(workers, concurrent_processing_backend, dask_scheduler):
     """Parses a parallel worker config into execution flags and worker count.
 
 Args:
@@ -1280,7 +1286,7 @@ Returns:
         - Whether to run in parallel,
         - Number of workers."""
 
-def _get_executor(backend, max_workers, initializer, initargs):
+def _get_executor(backend, max_workers, initializer, initargs, concurrent_processing_backend, dask_scheduler):
     """Creates a parallel executor (process or thread) with optional initialization logic.
 
 Args:
@@ -1288,6 +1294,8 @@ Args:
     max_workers (int): Maximum number of worker processes or threads.
     initializer (Callable, optional): Function to initialize worker context.
     initargs (tuple, optional): Arguments to pass to the initializer.
+    concurrent_processing_backend: Execution backend for image-level tasks.
+    dask_scheduler: Existing scheduler connection tuple required by Dask mode.
 
 Returns:
     Executor: An instance of ThreadPoolExecutor or ProcessPoolExecutor.
@@ -1295,9 +1303,25 @@ Returns:
 Raises:
     ValueError: If the backend is not "process" or "thread"."""
 
+def __init__(self, scheduler):
+
+def submit():
+
+def shutdown(self, wait, cancel_futures):
+
+def __enter__(self):
+
+def __exit__(self, exc_type, exc_value, traceback):
+
+def complete(future):
+
 ### File: types_and_validation.py
 
 def _validate_threads(x, name):
+
+def _validate_dask_scheduler(value):
+
+def _validate_concurrent_processing_config(backend, scheduler, image_threads):
 
 def _validate_output_grid():
 
@@ -1420,6 +1444,9 @@ This follows the main PIF ideas from Kim and Han (2021): use matched points as s
 ``joint_coregistration``. Every processed overlap pair must contain at
 least three usable loaded points; otherwise an error is raised.
 Basenames and source pixel grids must match the current inputs.
+``concurrent_processing_backend="dask"`` and ``dask_scheduler`` connect
+image-pair tasks through an existing Dask
+scheduler using ``("file", path)`` or ``("address", address)``.
 
 Returns:
     np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
@@ -1440,6 +1467,8 @@ Args:
     down_sample_m (float, optional): If set, resamples input to this resolution in meters. Recommended to use a target resolution of 10 m or lower.
     debug_logs (bool, optional): If True, prints progress and debug info.
     image_threads (Literal["cpu"] | int | None): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.
 
 Raises:
@@ -1474,6 +1503,8 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.
     custom_output_dtype (CustomOutputDtype, optional): Output data type override.
     calculation_dtype (CalculationDtype, optional): Internal computation dtype.
@@ -1532,6 +1563,8 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
     filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., ">95%").
     polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.
@@ -1602,6 +1635,8 @@ Args:
     image_threads: Parallel workers for overlap matching and output images.
     io_threads: GDAL I/O workers.
     tile_threads: GDAL warp/tile workers.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     debug_logs: Print processing details.
     resume_from_outputs: Reuse no, existing, or validated existing outputs.
 
@@ -1616,7 +1651,7 @@ def _read_image_info(name, path):
 
 def _use_common_coordinate_frame(infos):
 
-def _collect_tie_points(overlaps, infos, loaded, feature_method, maximum_displacement, ransac_threshold, image_threads, debug_logs):
+def _collect_tie_points(overlaps, infos, loaded, feature_method, maximum_displacement, ransac_threshold, image_threads, debug_logs, concurrent_processing_backend, dask_scheduler):
 
 def _canonical_pair(name_i, name_j):
 
@@ -1756,6 +1791,8 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     window_size (int | None): Output image tile size. Defaults to input image tile size.
     save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     estimate_stats (bool): If True, use an estimate algorithm to calculate the mean and sd to increase processing speeds. If False, use the exact algorithm. Defaults to True.
@@ -1795,6 +1832,8 @@ Args:
     image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
     io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
     tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+    concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+    dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
     window_size (int | None): Output image tile size. Defaults to input image tile size.
     save_as_cog (bool): If True, saves output as a Cloud-Optimized GeoTIFF using proper band and block order.
     number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
@@ -1915,7 +1954,10 @@ Args:
 Returns:
     Tuple[int, int]: Estimated block size (rows, cols) adjusted based on coefficient of variation."""
 
-def _calculate_block_process_image(name, image_path, bounds_canvas_coords, num_row, num_col, num_bands, debug_logs, nodata_value, calculation_dtype, tile_thread_on, tile_thread_workers):
+def _calculate_block_process_image(name, image_path, bounds_canvas_coords, num_row, num_col, num_bands, debug_logs, nodata_value, calculation_dtype, tile_thread_on, tile_thread_workers, vector_mask):
+    """Create one worker-local masked VRT and calculate its block statistics."""
+
+def _calculate_blocks_from_masked_image(name, image_path, bounds_canvas_coords, num_row, num_col, num_bands, debug_logs, nodata_value, calculation_dtype, tile_thread_on, tile_thread_workers):
     """Compute area-weighted block means over a target grid using GDAL Warp.
 
 Args:
@@ -2109,7 +2151,10 @@ Args:
 Returns:
     Tuple of (name_i, name_j) pairs with overlapping extents."""
 
-def _overlap_stats_process_image(tile_thread_on, tile_thread_workers, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, estimate_stats, debug_logs):
+def _overlap_stats_process_image(tile_thread_on, tile_thread_workers, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, estimate_stats, vector_mask, nodata_value, debug_logs):
+    """Create worker-local masked VRTs and calculate one overlap pair."""
+
+def _overlap_stats_from_masked_images(tile_thread_on, tile_thread_workers, num_bands, input_image_path_i, input_image_path_j, name_i, name_j, bound_i, bound_j, estimate_stats, debug_logs):
     """Computes per-band overlap statistics between two images using alpha masks, without VRT recursion.
 
 Args:
@@ -2139,7 +2184,10 @@ Returns:
           }
         }"""
 
-def _whole_stats_process_image(tile_thread_on, tile_thread_worker, input_image_path, num_bands, image_name, estimate_stats, debug_logs):
+def _whole_stats_process_image(tile_thread_on, tile_thread_worker, input_image_path, num_bands, image_name, estimate_stats, vector_mask, nodata_value, debug_logs):
+    """Create one worker-local masked VRT and calculate whole-image statistics."""
+
+def _whole_stats_from_masked_image(tile_thread_on, tile_thread_worker, input_image_path, num_bands, image_name, estimate_stats, debug_logs):
     """Computes whole-image statistics (mean, standard deviation, valid pixel count) for each band of a masked raster.
 
 Args:
@@ -2416,6 +2464,12 @@ You can automatically install the library via [PyPI](https://pypi.org/). (this m
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
 </code></pre></div></td></tr></table></div>
 
+For distributed image-level execution on an existing Dask cluster, install the
+optional dependency on the submitting machine and every worker:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"spectralmatch[dask]"</span>
+</code></pre></div></td></tr></table></div>
+
 ---
 
 ## Installation via pixi as a Python Library and CLI
@@ -2460,9 +2514,11 @@ The `pyproject.toml` defines **core** dependancies to run the library and option
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
 <span class="normal">3</span>
-<span class="normal">4</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span><span class="c1"># Normal dependencies</span>
+<span class="normal">4</span>
+<span class="normal">5</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span><span class="c1"># Normal dependencies</span>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w">   </span><span class="c1"># Developer dependencies</span>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w">  </span><span class="c1"># Documentation dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dask]"</span><span class="w">  </span><span class="c1"># Distributed execution dependencies</span>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[qgis-build]"</span><span class="w"> </span><span class="c1"># Build qgis plugin</span>
 </code></pre></div></td></tr></table></div>
 
@@ -2668,6 +2724,12 @@ There is a CLI that can be used for each function individually or with the [pipe
 
 ### QGIS Plugin
 There is a QGIS plugin available that wraps the library to provide an easy to use gui available [here](https://plugins.qgis.org/plugins/spectralmatch_qgis).
+
+### High Performance Compute (Super computer)
+Install the optional distributed Dask backend with `pip install spectralmatch[dask]` and `pip install spectralmatch[dask_gui]` for the gui.
+Image-level concurrent processing uses `concurrent_processing_backend="process_pool"` by default. To connect to an existing cluster, use `concurrent_processing_backend="dask"` and either `dask_scheduler=("file", "/shared/scheduler.json")` or `dask_scheduler=("address", "tcp://scheduler:8786")`. SpectralMatch does not start Dask workers: worker count, threads per worker, memory limits, and
+scaling are configured when the external Dask cluster is launched. To start a simple Dask service on your computer, run: `make start-dask DASK_NWORKERS=8 DASK_MEMORY_LIMIT=2GiB' and optionally add additional params found in the Makefile.
+
 
 ---
 
@@ -2919,7 +2981,7 @@ The vector_mask parameter limits statistics calculations to specific areas and i
 </code></pre></div></td></tr></table></div>
 
 ### Parallel Workers
-The image_threads parameter defines the parallelization strategy at the image level. It accepts "cpu" or an int to enable multiprocessing across all available CPU cores or the number specified, respectively. Set it to None to disable image-level parallelism. io_threads determines reading and writing threads via the GDAL GDAL_NUM_THREADS command. tile_threads is passed into the GDAL commands as the NUM_THREADS param to determine tile level threading. The cache param is used to set the GDAL cache (input as GB) via SetCacheMax.
+The image_threads parameter controls local image-level concurrency. Set `concurrent_processing_backend="dask"` with `dask_scheduler=("file", scheduler_file)` or `("address", scheduler_address)` to run those same task boundaries on an existing Dask cluster. Dask worker capacity is configured when that external cluster starts, so `image_threads` must be None in Dask mode. Dask mode without a scheduler, a scheduler in process-pool mode, and other contradictory combinations raise errors. `io_threads` configures GDAL I/O threading, `tile_threads` configures GDAL operations within each image task, and `cache` sets the per-process GDAL cache in GB. Source rasters, cutlines, and output folders must be accessible at identical paths from every Dask worker. Temporary inputs such as masked VRTs must be created and consumed inside the worker task.
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
 <span class="normal"> 2</span>
 <span class="normal"> 3</span>
@@ -2950,28 +3012,50 @@ The image_threads parameter defines the parallelization strategy at the image le
 <span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
-<span class="normal">31</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="c1"># Params</span>
 <span class="n">cache</span>
 <span class="n">image_threads</span> 
 <span class="n">io_threads</span>
 <span class="n">tile_threads</span>
+<span class="n">concurrent_processing_backend</span>
+<span class="n">dask_scheduler</span>
 
 <span class="c1"># Types</span>
 <span class="n">Threads</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"cpu"</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="n">Cache</span> <span class="o">=</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">DaskScheduler</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">"file"</span><span class="p">,</span> <span class="s2">"address"</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">ConcurrentProcessingBackend</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"process_pool"</span><span class="p">,</span> <span class="s2">"dask"</span><span class="p">]</span>
 
 <span class="c1"># Resolve</span>
 <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
 <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
 
 <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
-<span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
+<span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
+    <span class="n">image_threads</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="p">,</span> <span class="n">dask_scheduler</span>
+<span class="p">)</span>
 <span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
 
 <span class="c1"># Main process example</span>
 <span class="n">image_args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span><span class="p">,</span> <span class="n">other_args</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
 <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-    <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_thread_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
+        <span class="n">image_backend</span><span class="p">,</span>
+        <span class="n">image_thread_workers</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
         <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_name_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
             <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>

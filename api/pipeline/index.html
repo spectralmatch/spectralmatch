@@ -1407,7 +1407,21 @@ inside the pipeline temp directory. The final step writes to
 <span class="normal">551</span>
 <span class="normal">552</span>
 <span class="normal">553</span>
-<span class="normal">554</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1422,6 +1436,8 @@ inside the pipeline temp directory. The final step writes to
     <span class="n">shared_image_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">shared_io_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">shared_tile_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">shared_concurrent_processing_backend</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ConcurrentProcessingBackend</span> <span class="o">=</span> <span class="s2">"process_pool"</span><span class="p">,</span>
+    <span class="n">shared_dask_scheduler</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DaskScheduler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">shared_calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">"float32"</span><span class="p">,</span>
     <span class="n">shared_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">shared_save_as_cog</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SaveAsCog</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1543,6 +1559,8 @@ inside the pipeline temp directory. The final step writes to
         <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
         <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
         <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">resolved_steps</span> <span class="o">=</span> <span class="n">_validate_pipeline_steps</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
@@ -1570,6 +1588,8 @@ inside the pipeline temp directory. The final step writes to
         <span class="s2">"resolved_shared_image_threads"</span><span class="p">:</span> <span class="n">shared_image_threads</span><span class="p">,</span>
         <span class="s2">"resolved_shared_io_threads"</span><span class="p">:</span> <span class="n">shared_io_threads</span><span class="p">,</span>
         <span class="s2">"resolved_shared_tile_threads"</span><span class="p">:</span> <span class="n">shared_tile_threads</span><span class="p">,</span>
+        <span class="s2">"shared_concurrent_processing_backend"</span><span class="p">:</span> <span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
+        <span class="s2">"shared_dask_scheduler"</span><span class="p">:</span> <span class="n">shared_dask_scheduler</span><span class="p">,</span>
         <span class="s2">"num_input_images"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span>
         <span class="s2">"start_time"</span><span class="p">:</span> <span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">"seconds"</span><span class="p">),</span>
         <span class="s2">"steps"</span><span class="p">:</span> <span class="n">resolved_steps</span><span class="p">,</span>
@@ -1645,6 +1665,8 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
+                    <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span><span class="p">,</span>
                     <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
                     <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
                     <span class="n">estimate_stats</span><span class="o">=</span><span class="n">global_regression_estimate_stats</span><span class="p">,</span>
@@ -1690,6 +1712,8 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
+                    <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span><span class="p">,</span>
                     <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
                     <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
                     <span class="n">number_of_blocks</span><span class="o">=</span><span class="n">local_block_adjustment_number_of_blocks</span><span class="p">,</span>
@@ -1724,6 +1748,8 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
+                    <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">results</span><span class="p">[</span><span class="s2">"align"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
@@ -1816,6 +1842,8 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
+                    <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span><span class="p">,</span>
                     <span class="n">include_touched_pixels</span><span class="o">=</span><span class="n">mask_rasters_include_touched_pixels</span><span class="p">,</span>
                     <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>

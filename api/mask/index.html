@@ -1045,7 +1045,7 @@
 
 
 <h2 id="spectralmatch.mask.mask.band_math" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">band_math</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">threshold_math</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">band_math</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">threshold_math</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="s1">'process_pool'</span><span class="p">,</span> <span class="n">dask_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.mask.band_math" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1212,6 +1212,38 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>concurrent_processing_backend</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.ConcurrentProcessingBackend">ConcurrentProcessingBackend</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Use a local process pool or an existing Dask cluster.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;process_pool&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dask_scheduler</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.DaskScheduler">DaskScheduler</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Existing Dask scheduler as ("file", path) or ("address", address).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>window_size</code>
             </td>
             <td>
@@ -1287,23 +1319,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">194</span>
 <span class="normal">195</span>
 <span class="normal">196</span>
 <span class="normal">197</span>
@@ -1406,7 +1422,36 @@
 <span class="normal">294</span>
 <span class="normal">295</span>
 <span class="normal">296</span>
-<span class="normal">297</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">band_math</span><span class="p">(</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">band_math</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">threshold_math</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1417,6 +1462,8 @@
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">concurrent_processing_backend</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ConcurrentProcessingBackend</span> <span class="o">=</span> <span class="s2">"process_pool"</span><span class="p">,</span>
+    <span class="n">dask_scheduler</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DaskScheduler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">custom_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">"float32"</span><span class="p">,</span>
@@ -1434,6 +1481,8 @@
 <span class="sd">        image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.</span>
 <span class="sd">        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.</span>
 <span class="sd">        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.</span>
+<span class="sd">        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.</span>
+<span class="sd">        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).</span>
 <span class="sd">        window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.</span>
 <span class="sd">        custom_output_dtype (CustomOutputDtype, optional): Output data type override.</span>
 <span class="sd">        calculation_dtype (CalculationDtype, optional): Internal computation dtype.</span>
@@ -1453,6 +1502,8 @@
         <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
         <span class="n">custom_output_dtype</span><span class="o">=</span><span class="n">custom_output_dtype</span><span class="p">,</span>
         <span class="n">calculation_dtype</span><span class="o">=</span><span class="n">calculation_dtype</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Set gdal params</span>
@@ -1493,7 +1544,9 @@
 
     <span class="c1"># Determine multiprocessing and worker count</span>
     <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
-    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
+    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
+        <span class="n">image_threads</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="p">,</span> <span class="n">dask_scheduler</span>
+    <span class="p">)</span>
     <span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
 
     <span class="c1"># Process each image</span>
@@ -1517,7 +1570,12 @@
     <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_thread_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
+            <span class="n">image_backend</span><span class="p">,</span>
+            <span class="n">image_thread_workers</span><span class="p">,</span>
+            <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+            <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
             <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_band_math_process_image</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
                 <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
@@ -1536,7 +1594,7 @@
 
 
 <h2 id="spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omnicloud_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">red_band_index</span><span class="p">,</span> <span class="n">green_band_index</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">down_sample_m</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="s1">'process_pool'</span><span class="p">,</span> <span class="n">dask_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omnicloud_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.mask.create_cloud_mask_with_omnicloudmask" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1687,6 +1745,38 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>concurrent_processing_backend</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.ConcurrentProcessingBackend">ConcurrentProcessingBackend</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Use a local process pool or an existing Dask cluster.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;process_pool&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dask_scheduler</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.DaskScheduler">DaskScheduler</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Existing Dask scheduler as ("file", path) or ("address", address).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>omnicloud_kwargs</code>
             </td>
             <td>
@@ -1730,88 +1820,103 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/mask/mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span>
-<span class="normal">93</span>
-<span class="normal">94</span>
-<span class="normal">95</span>
-<span class="normal">96</span>
-<span class="normal">97</span>
-<span class="normal">98</span>
-<span class="normal">99</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_cloud_mask_with_omnicloudmask</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">red_band_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1821,8 +1926,10 @@
     <span class="n">down_sample_m</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">concurrent_processing_backend</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ConcurrentProcessingBackend</span> <span class="o">=</span> <span class="s2">"process_pool"</span><span class="p">,</span>
+    <span class="n">dask_scheduler</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DaskScheduler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">omnicloud_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.</span>
 
@@ -1835,6 +1942,8 @@
 <span class="sd">        down_sample_m (float, optional): If set, resamples input to this resolution in meters. Recommended to use a target resolution of 10 m or lower.</span>
 <span class="sd">        debug_logs (bool, optional): If True, prints progress and debug info.</span>
 <span class="sd">        image_threads (Literal["cpu"] | int | None): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.</span>
+<span class="sd">        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.</span>
+<span class="sd">        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).</span>
 <span class="sd">        omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.</span>
 
 <span class="sd">    Raises:</span>
@@ -1845,7 +1954,10 @@
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
         <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
-        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span>
+        <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+        <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
@@ -1862,7 +1974,9 @@
 
     <span class="c1"># Determine multiprocessing and worker count</span>
     <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
-    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
+    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
+        <span class="n">image_threads</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="p">,</span> <span class="n">dask_scheduler</span>
+    <span class="p">)</span>
 
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
@@ -1884,7 +1998,12 @@
     <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_thread_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
+            <span class="n">image_backend</span><span class="p">,</span>
+            <span class="n">image_thread_workers</span><span class="p">,</span>
+            <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+            <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
             <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_process_cloud_mask_image</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span>
             <span class="p">]</span>
@@ -1893,6 +2012,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span><span class="p">:</span>
             <span class="n">_process_cloud_mask_image</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output_image_paths</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1938,7 +2058,7 @@
 
 
 <h2 id="spectralmatch.mask.utils_mask.process_raster_values_to_vector_polygons" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_vectors</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">extraction_expression</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">filter_by_polygon_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polygon_buffer</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">value_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">estimate_statistics</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">process_raster_values_to_vector_polygons</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_vectors</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">extraction_expression</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="s1">'process_pool'</span><span class="p">,</span> <span class="n">dask_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">filter_by_polygon_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">polygon_buffer</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">value_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">estimate_statistics</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.utils_mask.process_raster_values_to_vector_polygons" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -2105,6 +2225,38 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>concurrent_processing_backend</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.ConcurrentProcessingBackend">ConcurrentProcessingBackend</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Use a local process pool or an existing Dask cluster.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;process_pool&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dask_scheduler</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.DaskScheduler">DaskScheduler</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Existing Dask scheduler as ("file", path) or ("address", address).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>debug_logs</code>
             </td>
             <td>
@@ -2189,8 +2341,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/mask/utils_mask.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 16</span>
-<span class="normal"> 17</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 17</span>
 <span class="normal"> 18</span>
 <span class="normal"> 19</span>
 <span class="normal"> 20</span>
@@ -2292,7 +2443,21 @@
 <span class="normal">116</span>
 <span class="normal">117</span>
 <span class="normal">118</span>
-<span class="normal">119</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_raster_values_to_vector_polygons</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -2303,6 +2468,8 @@
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">concurrent_processing_backend</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ConcurrentProcessingBackend</span> <span class="o">=</span> <span class="s2">"process_pool"</span><span class="p">,</span>
+    <span class="n">dask_scheduler</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DaskScheduler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">filter_by_polygon_size</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">polygon_buffer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
@@ -2322,6 +2489,8 @@
 <span class="sd">        image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.</span>
 <span class="sd">        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.</span>
 <span class="sd">        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.</span>
+<span class="sd">        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.</span>
+<span class="sd">        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).</span>
 <span class="sd">        debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.</span>
 <span class="sd">        filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., "&gt;100") or percentile (e.g., "&gt;95%").</span>
 <span class="sd">        polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.</span>
@@ -2341,6 +2510,8 @@
         <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
         <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Set gdal params</span>
@@ -2365,7 +2536,9 @@
 
     <span class="c1"># Determine multiprocessing and worker count</span>
     <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
-    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
+    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
+        <span class="n">image_threads</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="p">,</span> <span class="n">dask_scheduler</span>
+    <span class="p">)</span>
     <span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
 
     <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
@@ -2386,7 +2559,12 @@
     <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_thread_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
+            <span class="n">image_backend</span><span class="p">,</span>
+            <span class="n">image_thread_workers</span><span class="p">,</span>
+            <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+            <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
             <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_process_image_to_polygons</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">image_args</span>

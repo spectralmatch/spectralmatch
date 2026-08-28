@@ -1093,7 +1093,26 @@
 <span class="normal">178</span>
 <span class="normal">179</span>
 <span class="normal">180</span>
-<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Pif</span><span class="p">:</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Pif</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Utilities for deriving radiometric adjustment parameters from PIF statistics."""</span>
 
     <span class="nd">@staticmethod</span>
@@ -1120,6 +1139,8 @@
         <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ConcurrentProcessingBackend</span> <span class="o">=</span> <span class="s2">"process_pool"</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DaskScheduler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -1132,6 +1153,9 @@
 <span class="sd">        ``joint_coregistration``. Every processed overlap pair must contain at</span>
 <span class="sd">        least three usable loaded points; otherwise an error is raised.</span>
 <span class="sd">        Basenames and source pixel grids must match the current inputs.</span>
+<span class="sd">        ``concurrent_processing_backend="dask"`` and ``dask_scheduler`` connect</span>
+<span class="sd">        image-pair tasks through an existing Dask</span>
+<span class="sd">        scheduler using ``("file", path)`` or ``("address", address)``.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image</span>
@@ -1147,6 +1171,13 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No input images found for flood_from_match_points."</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_tie_points must be a string or None."</span><span class="p">)</span>
+        <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
+            <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
+            <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
+            <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
+            <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+            <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">_check_raster_requirements</span><span class="p">(</span>
             <span class="n">input_image_paths</span><span class="p">,</span>
@@ -1167,7 +1198,9 @@
         <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
         <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
         <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span>
-        <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
+        <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
+            <span class="n">image_threads</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="p">,</span> <span class="n">dask_scheduler</span>
+        <span class="p">)</span>
 
         <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
         <span class="n">first_ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
@@ -1232,7 +1265,12 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_thread_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
+                <span class="n">image_backend</span><span class="p">,</span>
+                <span class="n">image_thread_workers</span><span class="p">,</span>
+                <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+                <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+            <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
                 <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_calculate_pair_pif_stats</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
                     <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
@@ -1277,7 +1315,7 @@
 
 
 <h2 id="spectralmatch.pif.Pif.flood_from_match_points" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">flood_from_match_points</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_image_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">included_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overlapping_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">feature_method</span><span class="o">=</span><span class="s1">'orb'</span><span class="p">,</span> <span class="n">load_tie_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">flood_from_match_points</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_image_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">included_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overlapping_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">feature_method</span><span class="o">=</span><span class="s1">'orb'</span><span class="p">,</span> <span class="n">load_tie_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="s1">'process_pool'</span><span class="p">,</span> <span class="n">dask_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
@@ -1293,7 +1331,10 @@
 <p><code>load_tie_points</code> accepts the compact JSON written by
 <code>joint_coregistration</code>. Every processed overlap pair must contain at
 least three usable loaded points; otherwise an error is raised.
-Basenames and source pixel grids must match the current inputs.</p>
+Basenames and source pixel grids must match the current inputs.
+<code>concurrent_processing_backend="dask"</code> and <code>dask_scheduler</code> connect
+image-pair tasks through an existing Dask
+scheduler using <code>("file", path)</code> or <code>("address", address)</code>.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -1501,7 +1542,26 @@ Basenames and source pixel grids must match the current inputs.</p>
 <span class="normal">178</span>
 <span class="normal">179</span>
 <span class="normal">180</span>
-<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">flood_from_match_points</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1525,6 +1585,8 @@ Basenames and source pixel grids must match the current inputs.</p>
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">concurrent_processing_backend</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ConcurrentProcessingBackend</span> <span class="o">=</span> <span class="s2">"process_pool"</span><span class="p">,</span>
+    <span class="n">dask_scheduler</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DaskScheduler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -1537,6 +1599,9 @@ Basenames and source pixel grids must match the current inputs.</p>
 <span class="sd">    ``joint_coregistration``. Every processed overlap pair must contain at</span>
 <span class="sd">    least three usable loaded points; otherwise an error is raised.</span>
 <span class="sd">    Basenames and source pixel grids must match the current inputs.</span>
+<span class="sd">    ``concurrent_processing_backend="dask"`` and ``dask_scheduler`` connect</span>
+<span class="sd">    image-pair tasks through an existing Dask</span>
+<span class="sd">    scheduler using ``("file", path)`` or ``("address", address)``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image</span>
@@ -1552,6 +1617,13 @@ Basenames and source pixel grids must match the current inputs.</p>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No input images found for flood_from_match_points."</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_tie_points must be a string or None."</span><span class="p">)</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
+        <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
+        <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
+        <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">_check_raster_requirements</span><span class="p">(</span>
         <span class="n">input_image_paths</span><span class="p">,</span>
@@ -1572,7 +1644,9 @@ Basenames and source pixel grids must match the current inputs.</p>
     <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
     <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
     <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span>
-    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
+    <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span>
+        <span class="n">image_threads</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="p">,</span> <span class="n">dask_scheduler</span>
+    <span class="p">)</span>
 
     <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
     <span class="n">first_ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
@@ -1637,7 +1711,12 @@ Basenames and source pixel grids must match the current inputs.</p>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">image_thread_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
+            <span class="n">image_backend</span><span class="p">,</span>
+            <span class="n">image_thread_workers</span><span class="p">,</span>
+            <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+            <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
             <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_calculate_pair_pif_stats</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
                 <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
