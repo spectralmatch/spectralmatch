@@ -630,6 +630,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../joint_coregistration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Joint Coregistration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mask/" class="md-nav__link">
         
   
@@ -1039,8 +1067,34 @@
 <span class="normal">152</span>
 <span class="normal">153</span>
 <span class="normal">154</span>
-<span class="normal">155</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Pif</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utilities for deriving radiometric adjustment parameters from PIF statistics.&quot;&quot;&quot;</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Pif</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Utilities for deriving radiometric adjustment parameters from PIF statistics."""</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">flood_from_match_points</span><span class="p">(</span>
@@ -1049,7 +1103,7 @@
         <span class="n">input_image_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">included_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">overlapping_pairs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+        <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">"float32"</span><span class="p">,</span>
         <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">red_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">nir_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1060,7 +1114,8 @@
         <span class="n">min_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
         <span class="n">custom_mean_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">custom_std_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;orb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orb&quot;</span><span class="p">,</span>
+        <span class="n">feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
+        <span class="n">load_tie_points</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cache</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Cache</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1068,23 +1123,30 @@
         <span class="n">save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Generate correction parameters using PIFs flooded from matched points.</span>
 
 <span class="sd">        This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.</span>
+
+<span class="sd">        ``load_tie_points`` accepts the compact JSON written by</span>
+<span class="sd">        ``joint_coregistration``. Every processed overlap pair must contain at</span>
+<span class="sd">        least three usable loaded points; otherwise an error is raised.</span>
+<span class="sd">        Basenames and source pixel grids must match the current inputs.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image</span>
 <span class="sd">            and band, entries are ``scale`` then ``offset`` such that</span>
 <span class="sd">            ``corrected = scale * image + offset``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-            <span class="s2">&quot;search&quot;</span><span class="p">,</span>
+            <span class="s2">"search"</span><span class="p">,</span>
             <span class="n">input_images</span><span class="p">,</span>
-            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">},</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"*.tif"</span><span class="p">},</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">input_image_paths</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No input images found for flood_from_match_points.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No input images found for flood_from_match_points."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_tie_points must be a string or None."</span><span class="p">)</span>
 
         <span class="n">_check_raster_requirements</span><span class="p">(</span>
             <span class="n">input_image_paths</span><span class="p">,</span>
@@ -1096,13 +1158,15 @@
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">input_image_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">input_image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+            <span class="n">input_image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">included_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">included_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_image_names</span><span class="p">)</span>
 
+        <span class="n">loaded_tie_points</span> <span class="o">=</span> <span class="n">_load_tie_points</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">)</span> <span class="k">if</span> <span class="n">load_tie_points</span> <span class="k">else</span> <span class="p">{}</span>
+
         <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
         <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
-        <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span>
+        <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span>
         <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
 
         <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
@@ -1117,6 +1181,12 @@
                 <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">image_path_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">}</span>
             <span class="n">overlapping_pairs</span> <span class="o">=</span> <span class="n">_find_overlaps</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug_logs</span> <span class="ow">and</span> <span class="n">load_tie_points</span><span class="p">:</span>
+            <span class="n">current_pairs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">pair</span><span class="p">))</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">overlapping_pairs</span><span class="p">}</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"Loaded tie-point pairs matching PIF overlaps: "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
 
         <span class="n">all_overlap_stats</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">all_whole_stats</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1126,6 +1196,15 @@
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">name_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span> <span class="ow">and</span> <span class="n">name_j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span><span class="p">:</span>
                 <span class="k">continue</span>
+            <span class="n">source_tie_points</span> <span class="o">=</span> <span class="n">_loaded_points_for_pair</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">name_j</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="n">source_tie_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Loaded tie-point JSON is missing overlap pair: </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2">."</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_tie_points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Loaded tie-point pair </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2"> must contain at least 3 points."</span>
+                <span class="p">)</span>
             <span class="n">parallel_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">(</span>
                     <span class="n">image_path_pairs</span><span class="p">[</span><span class="n">name_i</span><span class="p">],</span>
@@ -1143,6 +1222,7 @@
                     <span class="n">max_samples</span><span class="p">,</span>
                     <span class="n">min_samples</span><span class="p">,</span>
                     <span class="n">feature_method</span><span class="p">,</span>
+                    <span class="n">source_tie_points</span><span class="p">,</span>
                     <span class="n">cache</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="p">,</span>
@@ -1197,7 +1277,7 @@
 
 
 <h2 id="spectralmatch.pif.Pif.flood_from_match_points" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">flood_from_match_points</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_image_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">included_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overlapping_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">feature_method</span><span class="o">=</span><span class="s1">&#39;orb&#39;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">flood_from_match_points</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_image_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">included_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overlapping_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">feature_method</span><span class="o">=</span><span class="s1">'orb'</span><span class="p">,</span> <span class="n">load_tie_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
@@ -1210,6 +1290,10 @@
 
         <p>Generate correction parameters using PIFs flooded from matched points.</p>
 <p>This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.</p>
+<p><code>load_tie_points</code> accepts the compact JSON written by
+<code>joint_coregistration</code>. Every processed overlap pair must contain at
+least three usable loaded points; otherwise an error is raised.
+Basenames and source pixel grids must match the current inputs.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -1391,14 +1475,40 @@
 <span class="normal">152</span>
 <span class="normal">153</span>
 <span class="normal">154</span>
-<span class="normal">155</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">flood_from_match_points</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">input_image_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">included_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">overlapping_pairs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">"float32"</span><span class="p">,</span>
     <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">red_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nir_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1409,7 +1519,8 @@
     <span class="n">min_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">custom_mean_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">custom_std_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;orb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orb&quot;</span><span class="p">,</span>
+    <span class="n">feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
+    <span class="n">load_tie_points</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Cache</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1417,23 +1528,30 @@
     <span class="n">save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Generate correction parameters using PIFs flooded from matched points.</span>
 
 <span class="sd">    This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.</span>
+
+<span class="sd">    ``load_tie_points`` accepts the compact JSON written by</span>
+<span class="sd">    ``joint_coregistration``. Every processed overlap pair must contain at</span>
+<span class="sd">    least three usable loaded points; otherwise an error is raised.</span>
+<span class="sd">    Basenames and source pixel grids must match the current inputs.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image</span>
 <span class="sd">        and band, entries are ``scale`` then ``offset`` such that</span>
 <span class="sd">        ``corrected = scale * image + offset``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;search&quot;</span><span class="p">,</span>
+        <span class="s2">"search"</span><span class="p">,</span>
         <span class="n">input_images</span><span class="p">,</span>
-        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">},</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"*.tif"</span><span class="p">},</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">input_image_paths</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No input images found for flood_from_match_points.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No input images found for flood_from_match_points."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_tie_points must be a string or None."</span><span class="p">)</span>
 
     <span class="n">_check_raster_requirements</span><span class="p">(</span>
         <span class="n">input_image_paths</span><span class="p">,</span>
@@ -1445,13 +1563,15 @@
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">input_image_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">input_image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+        <span class="n">input_image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">included_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">included_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_image_names</span><span class="p">)</span>
 
+    <span class="n">loaded_tie_points</span> <span class="o">=</span> <span class="n">_load_tie_points</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">)</span> <span class="k">if</span> <span class="n">load_tie_points</span> <span class="k">else</span> <span class="p">{}</span>
+
     <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
     <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
-    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span>
+    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span>
     <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
 
     <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
@@ -1466,6 +1586,12 @@
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">image_path_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
         <span class="n">overlapping_pairs</span> <span class="o">=</span> <span class="n">_find_overlaps</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">debug_logs</span> <span class="ow">and</span> <span class="n">load_tie_points</span><span class="p">:</span>
+        <span class="n">current_pairs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">pair</span><span class="p">))</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">overlapping_pairs</span><span class="p">}</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">"Loaded tie-point pairs matching PIF overlaps: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
 
     <span class="n">all_overlap_stats</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">all_whole_stats</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1475,6 +1601,15 @@
             <span class="k">continue</span>
         <span class="k">if</span> <span class="n">name_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span> <span class="ow">and</span> <span class="n">name_j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span><span class="p">:</span>
             <span class="k">continue</span>
+        <span class="n">source_tie_points</span> <span class="o">=</span> <span class="n">_loaded_points_for_pair</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">name_j</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="n">source_tie_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Loaded tie-point JSON is missing overlap pair: </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_tie_points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Loaded tie-point pair </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2"> must contain at least 3 points."</span>
+            <span class="p">)</span>
         <span class="n">parallel_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="p">(</span>
                 <span class="n">image_path_pairs</span><span class="p">[</span><span class="n">name_i</span><span class="p">],</span>
@@ -1492,6 +1627,7 @@
                 <span class="n">max_samples</span><span class="p">,</span>
                 <span class="n">min_samples</span><span class="p">,</span>
                 <span class="n">feature_method</span><span class="p">,</span>
+                <span class="n">source_tie_points</span><span class="p">,</span>
                 <span class="n">cache</span><span class="p">,</span>
                 <span class="n">io_threads</span><span class="p">,</span>
                 <span class="n">tile_threads</span><span class="p">,</span>

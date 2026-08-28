@@ -1,6 +1,6 @@
 # %% Worldview Mosaic
 # This file demonstrates how to preprocess Worldview3 imagery into a mosaic using spectralmatch.
-# Starting from two overlapping Worldview3 images in reflectance, the process includes global matching, local matching, starting from saved block maps (optional for demonstration purposes), generating seamlines, and marging images, and before vs after statistics.
+# Starting from two overlapping Worldview3 images in reflectance, the process includes joint coregistration, global matching, local matching, starting from saved block maps (optional for demonstration purposes), generating seamlines, and marging images, and before vs after statistics.
 # This script is set up to perform matching on all .tif files from a folder within the working directory called "Input" e.g. working_directory/Input/*.tif. The easiest way to process your own imagery is to move it inside that folder or change the working_directory to another folder with this structure, alternatively, you can pass in custom lists of image paths.
 
 # %% Setup
@@ -10,6 +10,7 @@ from spectralmatch import (
     compare_before_after_all_images,
     compare_image_spectral_profiles_pairs,
     compare_spatial_spectral_difference_band_average,
+    joint_coregistration,
     global_regression,
     local_block_adjustment,
     mask_rasters,
@@ -24,9 +25,9 @@ working_directory = os.path.join(os.getcwd(), "data_worldview")
 print(working_directory)
 
 input_folder = os.path.join(working_directory, "Input")
+coregistration_folder = os.path.join(working_directory, "Coregistration")
 global_folder = os.path.join(working_directory, "GlobalMatch")
 local_folder = os.path.join(working_directory, "LocalMatch")
-aligned_folder = os.path.join(working_directory, "Aligned")
 clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 
@@ -36,11 +37,38 @@ io_threads = 3
 tile_threads = 3
 debug_mode = True
 
+# %% Joint coregistration
+joint_coregistration(
+    input_images=input_folder,
+    output_images=coregistration_folder,
+    tap=True,
+    resolution="highest",
+    debug_logs=debug_mode,
+    window_size=window_size,
+    image_threads=image_threads,
+    io_threads=io_threads,
+    tile_threads=tile_threads,
+)
+
+# %% Align rasters (or skip this step if images are already aligned or this is set in the joint_coregistration step)
+
+# align_rasters(
+#     input_images=input_folder,
+#     output_images=coregistration_folder,
+#     tap=True,
+#     resolution="highest",
+#     debug_logs=debug_mode,
+#     window_size=window_size,
+#     image_threads=image_threads,
+#     io_threads=io_threads,
+#     tile_threads=tile_threads,
+# )
+
 # %% Global matching
 inz_output_path = os.path.join(global_folder, "INZ", "$_to_$_INZ.tif")
 
 global_regression(
-    input_images=input_folder, # Automatically searches for all *.tif files if passed this way
+    input_images=coregistration_folder, # Automatically searches for all *.tif files if passed this way
     output_images=global_folder,
     debug_logs=debug_mode,
     window_size=window_size,
@@ -83,26 +111,12 @@ local_block_adjustment(
     # load_block_maps=(reference_map_path, searched_paths), # Local match from saved block maps (this code just passes in local maps, but if a reference map is passed in, it will match images to the reference map without recomputing it)
 )
 
-# %% Align rasters
-
-align_rasters(
-    input_images=local_folder,
-    output_images=aligned_folder,
-    tap=True,
-    resolution="highest",
-    debug_logs=debug_mode,
-    window_size=window_size,
-    image_threads=image_threads,
-    io_threads=io_threads,
-    tile_threads=tile_threads,
-)
-
 # %% Generate seamlines
 
 # Option 1: Voronoi center seamlines from the raster footprints
 
 voronoi_center_seamline(
-    input_images=aligned_folder,
+    input_images=local_folder,
     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
     image_field_name="image",
     debug_logs=debug_mode,
@@ -123,7 +137,7 @@ voronoi_center_seamline(
 # %% Clip
 
 mask_rasters(
-    input_images=aligned_folder,
+    input_images=local_folder,
     output_images=clipped_folder,
     vector_mask=("include", os.path.join(working_directory, "ImageMasks.gpkg"), "image"),
     debug_logs=debug_mode,

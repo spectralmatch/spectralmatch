@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/mask/">
       
       
-        <link rel="prev" href="../handlers/">
+        <link rel="prev" href="../joint_coregistration/">
       
       
         <link rel="next" href="../match/">
@@ -633,6 +633,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../joint_coregistration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Joint Coregistration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1017,7 +1045,7 @@
 
 
 <h2 id="spectralmatch.mask.mask.band_math" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">band_math</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">threshold_math</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">band_math</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">threshold_math</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.mask.mask.band_math" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1391,28 +1419,28 @@
     <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">custom_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="n">calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">"float32"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Applies a thresholding operation to input raster images using a mathematical expression string.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
-<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_Threshold.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Threshold.tif), ["/input/one.tif", "/input/two.tif"].</span>
 <span class="sd">        threshold_math (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;&amp;, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 &gt; 5) &amp;&amp; (B2 &lt; 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.</span>
 <span class="sd">        debug_logs (bool, optional): If True, prints debug messages.</span>
-<span class="sd">        custom_nodata_value (float | int | None, optional): Override the dataset&#39;s nodata value.</span>
+<span class="sd">        custom_nodata_value (float | int | None, optional): Override the dataset's nodata value.</span>
 <span class="sd">        cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.</span>
-<span class="sd">        image_threads (Literal[&quot;cpu&quot;] | int | None): Parallelism for per-image operations. &quot;cpu&quot; to get number of cores, int to assign number, and None to disable image level parallelism.</span>
-<span class="sd">        io_threads (Literal[&quot;cpu&quot;] | int | None): Parallelism for IO operations. &quot;cpu&quot; to get number of cores, int to assign number, and None to disable io level parallelism.</span>
-<span class="sd">        tile_threads (Literal[&quot;cpu&quot;] | int | None): &quot;cpu&quot; to get number of cores, int to assign number, and None to disable tile level parallelism.</span>
+<span class="sd">        image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.</span>
+<span class="sd">        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.</span>
+<span class="sd">        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.</span>
 <span class="sd">        window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.</span>
 <span class="sd">        custom_output_dtype (CustomOutputDtype, optional): Output data type override.</span>
 <span class="sd">        calculation_dtype (CalculationDtype, optional): Internal computation dtype.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[str]: Paths to the thresholded output images.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
@@ -1433,21 +1461,21 @@
 
     <span class="c1"># Resolve input and output paths based on the provided specification (folder, glob or list).</span>
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+        <span class="s2">"search"</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"*.tif"</span><span class="p">}</span>
     <span class="p">)</span>
     <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="s2">"create"</span><span class="p">,</span>
         <span class="n">output_images</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
-            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Threshold.tif&quot;</span><span class="p">,</span>
+            <span class="s2">"paths_or_bases"</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"$_Threshold.tif"</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
-    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+    <span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output images: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Output images: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="c1"># Dtype and nodata</span>
     <span class="n">nodata_value</span> <span class="o">=</span> <span class="n">_resolve_nodata_value</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">custom_nodata_value</span><span class="p">)</span>
@@ -1464,13 +1492,13 @@
     <span class="p">)</span>
 
     <span class="c1"># Determine multiprocessing and worker count</span>
-    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span> <span class="c1"># &quot;thread&quot; or &quot;process&quot;</span>
+    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
     <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
     <span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
 
     <span class="c1"># Process each image</span>
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Thresholding and saving results for:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Thresholding and saving results for:"</span><span class="p">)</span>
     <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span>
             <span class="n">in_path</span><span class="p">,</span>
@@ -1795,25 +1823,25 @@
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">omnicloud_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
-<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.tif&quot;, &quot;/input/folder&quot; (assumes $_CloudMask.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].</span>
+<span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_CloudMask.tif), ["/input/one.tif", "/input/two.tif"].</span>
 <span class="sd">        red_band_index (int): Index of red band in the image.</span>
 <span class="sd">        green_band_index (int): Index of green band in the image.</span>
 <span class="sd">        nir_band_index (int): Index of NIR band in the image.</span>
 <span class="sd">        down_sample_m (float, optional): If set, resamples input to this resolution in meters. Recommended to use a target resolution of 10 m or lower.</span>
 <span class="sd">        debug_logs (bool, optional): If True, prints progress and debug info.</span>
-<span class="sd">        image_threads (Literal[&quot;cpu&quot;] | int | None): Enables parallel execution. Note: &quot;process&quot; does not work on macOS due to PyTorch MPS limitations.</span>
+<span class="sd">        image_threads (Literal["cpu"] | int | None): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.</span>
 <span class="sd">        omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        Exception: Propagates any error from processing individual images.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start omnicloudmask&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Start omnicloudmask"</span><span class="p">)</span>
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
         <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
@@ -1821,25 +1849,25 @@
     <span class="p">)</span>
 
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+        <span class="s2">"search"</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"*.tif"</span><span class="p">}</span>
     <span class="p">)</span>
     <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="s2">"create"</span><span class="p">,</span>
         <span class="n">output_images</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
-            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_CloudClip.tif&quot;</span><span class="p">,</span>
+            <span class="s2">"paths_or_bases"</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"$_CloudClip.tif"</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
 
     <span class="c1"># Determine multiprocessing and worker count</span>
-    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span> <span class="c1"># &quot;thread&quot; or &quot;process&quot;</span>
+    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
     <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
 
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output images: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Input images: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Output images: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="n">image_args</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span>
@@ -2281,27 +2309,27 @@
     <span class="n">value_mapping</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">estimate_statistics</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Converts raster values into vector polygons based on an expression and optional filtering logic.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: &quot;/input/files/*.tif&quot;, &quot;/input/folder&quot; (assumes *.tif), [&quot;/input/one.tif&quot;, &quot;/input/two.tif&quot;].</span>
-<span class="sd">        output_vectors (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: &quot;/input/files/$.gpkg&quot;, &quot;/input/folder&quot; (assumes $_Vectorized.gpkg), [&quot;/input/one.gpkg&quot;, &quot;/input/two.gpkg&quot;].</span>
+<span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].</span>
+<span class="sd">        output_vectors (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.gpkg", "/input/folder" (assumes $_Vectorized.gpkg), ["/input/one.gpkg", "/input/two.gpkg"].</span>
 <span class="sd">        extraction_expression (str): A muparser‑compatible expression applied to the raster bands, see https://github.com/beltoforion/muparser. Bands are referenced as B1, B2, … and you can use C‑style comparison and logical operators (such as &gt;, &lt;, &gt;=, &lt;=, ==, !=, &amp;&amp;, ||, !) along with parentheses and ternary ? : constructs—for example, ((B1 &gt; 5) &amp;&amp; (B2 &lt; 10)) ? 1 : 0. Percentile‑based thresholds are supported: write 5%B1 to substitute the 5th‑percentile value of band 1 into the expression before evaluation.</span>
 <span class="sd">        custom_nodata_value (Universal.CustomNodataValue, optional): Custom NoData value to override the default from the raster metadata.</span>
 <span class="sd">        custom_output_dtype (Universal.CustomOutputDtype, optional): Desired output data type. If not set, defaults to raster’s dtype.</span>
 <span class="sd">        cache (float | None): Controls GDAL cache size in GB. Defaults to preset cache size. Applied via GDAL_CACHEMAX.</span>
-<span class="sd">        image_threads (Literal[&quot;cpu&quot;] | int | None): Parallelism for per-image operations. &quot;cpu&quot; to get number of cores, int to assign number, and None to disable image level parallelism.</span>
-<span class="sd">        io_threads (Literal[&quot;cpu&quot;] | int | None): Parallelism for IO operations. &quot;cpu&quot; to get number of cores, int to assign number, and None to disable io level parallelism.</span>
-<span class="sd">        tile_threads (Literal[&quot;cpu&quot;] | int | None): &quot;cpu&quot; to get number of cores, int to assign number, and None to disable tile level parallelism.</span>
+<span class="sd">        image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.</span>
+<span class="sd">        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.</span>
+<span class="sd">        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.</span>
 <span class="sd">        debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.</span>
-<span class="sd">        filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., &quot;&gt;100&quot;) or percentile (e.g., &quot;&gt;95%&quot;).</span>
+<span class="sd">        filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., "&gt;100") or percentile (e.g., "&gt;95%").</span>
 <span class="sd">        polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.</span>
 <span class="sd">        value_mapping (dict, optional): Mapping from original raster values to new values. Use `None` to convert to NoData.</span>
 <span class="sd">        estimate_statistics (bool, optional): Whether to estimate statistics for percentile thresholds. Defaults to True.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start raster value extraction to polygons&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Start raster value extraction to polygons"</span><span class="p">)</span>
 
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
@@ -2320,23 +2348,23 @@
     <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
 
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+        <span class="s2">"search"</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"*.tif"</span><span class="p">}</span>
     <span class="p">)</span>
     <span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;create&quot;</span><span class="p">,</span>
+        <span class="s2">"create"</span><span class="p">,</span>
         <span class="n">output_vectors</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
-            <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;$_Vectorized.gpkg&quot;</span><span class="p">,</span>
+            <span class="s2">"paths_or_bases"</span><span class="p">:</span> <span class="n">input_image_paths</span><span class="p">,</span>
+            <span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"$_Vectorized.gpkg"</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Input: </span><span class="si">{</span><span class="n">input_image_paths</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Output: </span><span class="si">{</span><span class="n">output_image_paths</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="c1"># Determine multiprocessing and worker count</span>
-    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span> <span class="c1"># &quot;thread&quot; or &quot;process&quot;</span>
+    <span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
     <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
     <span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
 

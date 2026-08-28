@@ -8,31 +8,31 @@
       
       
       
-        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/installation/">
+        <link rel="canonical" href="https://spectralmatch.github.io/spectralmatch/api/joint_coregistration/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../handlers/">
       
       
-        <link rel="next" href="../rrn_methods/">
+        <link rel="next" href="../mask/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Installation - spectralmatch</title>
+        <title>Joint Coregistration - spectralmatch</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,11 +51,11 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../docs/overrides/custom.css">
+      <link rel="stylesheet" href="../../docs/overrides/custom.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -77,11 +77,6 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#installation-methods" class="md-skip">
-          Skip to content
-        </a>
-      
     </div>
     <div data-md-component="announce">
       
@@ -94,9 +89,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="spectralmatch" class="md-header__button md-logo" aria-label="spectralmatch" data-md-component="logo">
+    <a href="../.." title="spectralmatch" class="md-header__button md-logo" aria-label="spectralmatch" data-md-component="logo">
       
-  <img src="../images/icon.png" alt="logo">
+  <img src="../../images/icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -113,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Joint Coregistration
             
           </span>
         </div>
@@ -203,9 +198,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="spectralmatch" class="md-nav__button md-logo" aria-label="spectralmatch" data-md-component="logo">
+    <a href="../.." title="spectralmatch" class="md-nav__button md-logo" aria-label="spectralmatch" data-md-component="logo">
       
-  <img src="../images/icon.png" alt="logo">
+  <img src="../../images/icon.png" alt="logo">
 
     </a>
     spectralmatch
@@ -232,7 +227,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -256,37 +251,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
         
   
   
@@ -302,70 +270,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation as a QGIS Plugin
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-via-pip-as-a-python-library-and-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation via pip as a Python Library and CLI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-via-pixi-as-a-python-library-and-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation via pixi as a Python Library and CLI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation from Source
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -377,7 +281,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rrn_methods/" class="md-nav__link">
+      <a href="../../rrn_methods/" class="md-nav__link">
         
   
   
@@ -458,7 +362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -485,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../formats_and_requirements/" class="md-nav__link">
+      <a href="../../formats_and_requirements/" class="md-nav__link">
         
   
   
@@ -559,7 +463,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../examples/example_worldview_mosaic/" class="md-nav__link">
+      <a href="../../examples/example_worldview_mosaic/" class="md-nav__link">
         
   
   
@@ -587,7 +491,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../examples/example_landsat_time_series/" class="md-nav__link">
+      <a href="../../examples/example_landsat_time_series/" class="md-nav__link">
         
   
   
@@ -615,7 +519,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../examples/benchmark/" class="md-nav__link">
+      <a href="../../examples/benchmark/" class="md-nav__link">
         
   
   
@@ -647,18 +551,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
         
           
           <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
@@ -679,7 +585,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
@@ -697,7 +603,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/handlers/" class="md-nav__link">
+      <a href="../handlers/" class="md-nav__link">
         
   
   
@@ -722,10 +628,17 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../api/joint_coregistration/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -741,6 +654,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -753,7 +667,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/mask/" class="md-nav__link">
+      <a href="../mask/" class="md-nav__link">
         
   
   
@@ -781,7 +695,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/match/" class="md-nav__link">
+      <a href="../match/" class="md-nav__link">
         
   
   
@@ -809,7 +723,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/seamline/" class="md-nav__link">
+      <a href="../seamline/" class="md-nav__link">
         
   
   
@@ -837,7 +751,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/utils/" class="md-nav__link">
+      <a href="../utils/" class="md-nav__link">
         
   
   
@@ -865,7 +779,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/statistics/" class="md-nav__link">
+      <a href="../statistics/" class="md-nav__link">
         
   
   
@@ -893,7 +807,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/pipeline/" class="md-nav__link">
+      <a href="../pipeline/" class="md-nav__link">
         
   
   
@@ -928,7 +842,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cli/" class="md-nav__link">
+      <a href="../../cli/" class="md-nav__link">
         
   
   
@@ -965,60 +879,6 @@
   
   
   
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation-as-a-qgis-plugin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation as a QGIS Plugin
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-via-pip-as-a-python-library-and-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation via pip as a Python Library and CLI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-via-pixi-as-a-python-library-and-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation via pixi as a Python Library and CLI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation from Source
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1038,83 +898,42 @@
   
 
 
-<h1 id="installation-methods">Installation Methods<a class="headerlink" href="#installation-methods" title="Permanent link">&para;</a></h1>
-<hr />
-<h2 id="installation-as-a-qgis-plugin">Installation as a QGIS Plugin<a class="headerlink" href="#installation-as-a-qgis-plugin" title="Permanent link">&para;</a></h2>
-<h3 id="1-get-qgis">1. Get QGIS<a class="headerlink" href="#1-get-qgis" title="Permanent link">&para;</a></h3>
-<p><a href="https://qgis.org/download/">Download</a> and install QGIS.</p>
-<blockquote>
-<p>This plugin requires Python ≥ 3.10 and ≤ 3.12. QGIS ships with different versions of Python, to check, in the QGIS menu, go to QGIS&gt;About gis. If your version of Python is not supported, you can update your QGIS (if available) or install it containerized with conda: <code>conda create --name qgis_env python=3.12</code>, <code>conda activate qgis_env</code>, <code>conda install -c conda-forge qgis</code>, then <code>qgis</code> to start the program.</p>
-</blockquote>
-<h3 id="2-install-spactalmatch-qgis-plugin">2. Install spactalmatch QGIS plugin<a class="headerlink" href="#2-install-spactalmatch-qgis-plugin" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Go to Plugins → Manage and Install Plugins…</li>
-<li>Find spectralmatch in the list, install, and enable it</li>
-<li>Find the plugin in the Processing Toolbox</li>
-</ul>
-<h3 id="3-install-spectralmatch-python-library">3. Install spectralmatch Python library<a class="headerlink" href="#3-install-spectralmatch-python-library" title="Permanent link">&para;</a></h3>
-<p>The plugin will attempt to automatically install all Python dependencies that it requires in the QGIS Python interpreter. It uses <a href="https://github.com/opengisch/qpip">QPIP</a>, in addition to custom installation scripts, to do this. If it is unable to, the user must manually locate the QGIS python interpreter and install the spectralmatch python library and all of its dependencies.</p>
-<hr />
-<h2 id="installation-via-pip-as-a-python-library-and-cli">Installation via pip as a Python Library and CLI<a class="headerlink" href="#installation-via-pip-as-a-python-library-and-cli" title="Permanent link">&para;</a></h2>
-<h3 id="1-system-requirements">1. System requirements<a class="headerlink" href="#1-system-requirements" title="Permanent link">&para;</a></h3>
-<p>Before installing, ensure you have the following system-level prerequisites:</p>
-<ul>
-<li>Python ≥ 3.10 and ≤ 3.12</li>
-<li>PROJ ≥ 9.3</li>
-<li>GDAL ≥ 3.11</li>
-<li>pip</li>
-</ul>
-<p>An easy way to install these dependancies is to use <a href="https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions">Miniconda</a>:
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">"gdal&gt;=3.11"</span><span class="w"> </span><span class="s2">"proj&gt;=9.3"</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
-conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
-</code></pre></div></td></tr></table></div></p>
-<h3 id="2-install-spectralmatch">2. Install spectralmatch<a class="headerlink" href="#2-install-spectralmatch" title="Permanent link">&para;</a></h3>
-<p>You can automatically install the library via <a href="https://pypi.org/">PyPI</a>. (this method installs only the core code as a library):</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>spectralmatch
-</code></pre></div></td></tr></table></div>
-<hr />
-<h2 id="installation-via-pixi-as-a-python-library-and-cli">Installation via pixi as a Python Library and CLI<a class="headerlink" href="#installation-via-pixi-as-a-python-library-and-cli" title="Permanent link">&para;</a></h2>
-<p>Installing via pixi can be easier as it handles the system level dependencies:</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span>
-<span class="normal">4</span></pre></div></td><td class="code"><div><pre><span></span><code>pixi<span class="w"> </span>init<span class="w"> </span>myproject
-<span class="nb">cd</span><span class="w"> </span>myproject
-pixi<span class="w"> </span>add<span class="w"> </span><span class="s2">"python&gt;=3.9,&lt;3.13"</span><span class="w"> </span><span class="s2">"gdal&gt;=3.11"</span>
-pixi<span class="w"> </span>add<span class="w"> </span>spectralmatch<span class="w"> </span>--pypi
-</code></pre></div></td></tr></table></div>
-<h2 id="installation-from-source">Installation from Source<a class="headerlink" href="#installation-from-source" title="Permanent link">&para;</a></h2>
-<h3 id="1-clone-the-repository">1. Clone the Repository<a class="headerlink" href="#1-clone-the-repository" title="Permanent link">&para;</a></h3>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/spectralmatch/spectralmatch.git
-<span class="nb">cd</span><span class="w"> </span>spectralmatch
-</code></pre></div></td></tr></table></div>
-<blockquote>
-<p>Assuming you have Make installed, you can then run <code>make install-setup</code> to automatically complete the remaining setup steps.</p>
-</blockquote>
-<h3 id="2-system-requirements">2. System requirements<a class="headerlink" href="#2-system-requirements" title="Permanent link">&para;</a></h3>
-<p>Before installing, ensure you have the following system-level prerequisites:</p>
-<ul>
-<li>Python ≥ 3.10 and ≤ 3.12</li>
-<li>PROJ ≥ 9.3</li>
-<li>GDAL = 3.11</li>
-</ul>
-<p>An easy way to install these dependancies is to use <a href="https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions">Miniconda</a>:
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span></pre></div></td><td class="code"><div><pre><span></span><code>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>spectralmatch<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">"gdal&gt;=3.11"</span><span class="w"> </span><span class="s2">"proj&gt;=9.3"</span><span class="w"> </span>-c<span class="w"> </span>conda-forge
-conda<span class="w"> </span>activate<span class="w"> </span>spectralmatch
-</code></pre></div></td></tr></table></div></p>
-<h3 id="3-install-dependancies">3. Install Dependancies<a class="headerlink" href="#3-install-dependancies" title="Permanent link">&para;</a></h3>
-<p>The <code>pyproject.toml</code> defines <strong>core</strong> dependancies to run the library and optional <strong>dev</strong>, and <strong>docs</strong> dependancies.</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span>
-<span class="normal">4</span></pre></div></td><td class="code"><div><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span><span class="c1"># Normal dependencies</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w">   </span><span class="c1"># Developer dependencies</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w">  </span><span class="c1"># Documentation dependencies</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[qgis-build]"</span><span class="w"> </span><span class="c1"># Build qgis plugin</span>
-</code></pre></div></td></tr></table></div>
+  <h1>Joint Coregistration</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
@@ -1135,7 +954,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 10, 2026 12:01:31 UTC">February 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 28, 2026 07:35:06 UTC">August 28, 2026</span>
   </span>
 
     
@@ -1185,10 +1004,10 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
       

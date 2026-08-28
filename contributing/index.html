@@ -802,6 +802,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../api/joint_coregistration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Joint Coregistration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/mask/" class="md-nav__link">
         
   
@@ -1243,9 +1271,9 @@
 <span class="n">CreateInFolderOrListFiles</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="c1"># Required</span>
 
 <span class="c1"># Resolve</span>
-<span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span><span class="s2">&quot;*.tif&quot;</span><span class="p">})</span>
-<span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;paths_or_bases&quot;</span><span class="p">:</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span><span class="s2">&quot;$_Global.tif&quot;</span><span class="p">})</span>
-<span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
+<span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">"search"</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span><span class="s2">"*.tif"</span><span class="p">})</span>
+<span class="n">output_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">"create"</span><span class="p">,</span> <span class="n">output_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"paths_or_bases"</span><span class="p">:</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="s2">"default_file_pattern"</span><span class="p">:</span><span class="s2">"$_Global.tif"</span><span class="p">})</span>
+<span class="n">image_names</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">)</span>
 <span class="c1"># This pattern can also be used with other input types like vectors</span>
 </code></pre></div></td></tr></table></div></p>
 <h3 id="output-dtype">Output dtype<a class="headerlink" href="#output-dtype" title="Permanent link">&para;</a></h3>
@@ -1312,7 +1340,7 @@
 <span class="n">vector_mask</span>
 
 <span class="c1"># Type</span>
-<span class="n">VectorMask</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;include&quot;</span><span class="p">,</span> <span class="s2">&quot;exclude&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">VectorMask</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">"include"</span><span class="p">,</span> <span class="s2">"exclude"</span><span class="p">],</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
 
 <span class="c1"># No resolve function necessary</span>
 </code></pre></div></td></tr></table></div>
@@ -1355,14 +1383,14 @@
 <span class="n">tile_threads</span>
 
 <span class="c1"># Types</span>
-<span class="n">Threads</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">Threads</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"cpu"</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="n">Cache</span> <span class="o">=</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
 
 <span class="c1"># Resolve</span>
 <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
 <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
 
-<span class="n">image_backend</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span> <span class="c1"># &quot;thread&quot; or &quot;process&quot;</span>
+<span class="n">image_backend</span> <span class="o">=</span> <span class="s2">"thread"</span> <span class="c1"># "thread" or "process"</span>
 <span class="n">image_threads_on</span><span class="p">,</span> <span class="n">image_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">image_threads</span><span class="p">)</span>
 <span class="n">tile_thread_on</span><span class="p">,</span> <span class="n">tile_thread_workers</span> <span class="o">=</span> <span class="n">_resolve_parallel_config</span><span class="p">(</span><span class="n">tile_threads</span><span class="p">)</span>
 

@@ -14,7 +14,7 @@
         <link rel="prev" href="../../examples/benchmark/">
       
       
-        <link rel="next" href="../mask/">
+        <link rel="next" href="../joint_coregistration/">
       
       
         
@@ -712,6 +712,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../joint_coregistration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Joint Coregistration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mask/" class="md-nav__link">
         
   
@@ -1017,7 +1045,7 @@
 
 
 <h2 id="spectralmatch.handlers.create_paths" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_paths</span><span class="p">(</span><span class="n">template_pattern</span><span class="p">,</span> <span class="n">paths_or_bases</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">default_file_pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">replace_symbol</span><span class="o">=</span><span class="s1">&#39;$&#39;</span><span class="p">,</span> <span class="n">create_folders</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">create_paths</span><span class="p">(</span><span class="n">template_pattern</span><span class="p">,</span> <span class="n">paths_or_bases</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">default_file_pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">replace_symbol</span><span class="o">=</span><span class="s1">'$'</span><span class="p">,</span> <span class="n">create_folders</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.handlers.create_paths" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1244,30 +1272,30 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">default_file_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">replace_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;$&quot;</span><span class="p">,</span>
+    <span class="n">replace_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"$"</span><span class="p">,</span>
     <span class="n">create_folders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Create output paths using a filename template_pattern and a list of reference paths or names.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        template_pattern (str, required): Defines output files from a glob path or folder to match input paths or names. Specify like: &quot;/input/files/$.tif&quot; or &quot;/input/folder&quot; (while passing default_file_pattern like: &#39;$.tif&#39;)</span>
+<span class="sd">        template_pattern (str, required): Defines output files from a glob path or folder to match input paths or names. Specify like: "/input/files/$.tif" or "/input/folder" (while passing default_file_pattern like: '$.tif')</span>
 <span class="sd">        paths_or_bases (List[str]): List of full paths or base names to derive the replace_symbol from.</span>
 <span class="sd">        default_file_pattern (str, optional): Used if `template_pattern` is a directory.</span>
 <span class="sd">        debug_logs (bool): Whether to print the created paths.</span>
 <span class="sd">        replace_symbol (str): Placeholder symbol in the template to replace with base names.</span>
-<span class="sd">        create_folders (bool): Whether to create output folders if they don&#39;t exist.</span>
+<span class="sd">        create_folders (bool): Whether to create output folders if they don't exist.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[str]: List of constructed file paths.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If `template_pattern` is a directory and `default_file_pattern` is not provided.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">template_pattern</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">template_pattern</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"."</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">default_file_pattern</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Template is a directory, but no default_file_pattern was provided.&quot;</span>
+                <span class="s2">"Template is a directory, but no default_file_pattern was provided."</span>
             <span class="p">)</span>
         <span class="n">template_pattern</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">template_pattern</span><span class="p">,</span> <span class="n">default_file_pattern</span><span class="p">)</span>
 
@@ -1275,7 +1303,7 @@
     <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">paths_or_bases</span><span class="p">:</span>
         <span class="n">base</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ref</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">ref</span> <span class="ow">or</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">ref</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s2">"/"</span> <span class="ow">in</span> <span class="n">ref</span> <span class="ow">or</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">ref</span><span class="p">)</span>
             <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">ref</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="n">filename</span> <span class="o">=</span> <span class="n">template_pattern</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">replace_symbol</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
@@ -1286,9 +1314,9 @@
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">output_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> paths:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">output_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> paths:"</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">output_paths</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">output_paths</span>
 </code></pre></div></td></tr></table></div>
@@ -1505,13 +1533,13 @@
     <span class="n">match_regex</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Match `reference_paths` to `input_match_paths` using a regex applied to the basenames of `input_match_paths`. The extracted key must be a substring of the reference filename.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_match_paths (List[str]): List of candidate paths to extract keys from.</span>
 <span class="sd">        reference_paths (List[str]): List of reference paths to align to.</span>
-<span class="sd">        match_regex (str): Regex applied to basenames of input_match_paths to extract a key to match via *inclusion* in reference_paths (e.g. &quot;(.*)_LocalMatch\\.gpkg$&quot; (without one of the backslashes)).</span>
+<span class="sd">        match_regex (str): Regex applied to basenames of input_match_paths to extract a key to match via *inclusion* in reference_paths (e.g. "(.*)_LocalMatch\\.gpkg$" (without one of the backslashes)).</span>
 <span class="sd">        debug_logs (bool): If True, print matched and unmatched file basenames.</span>
 
 <span class="sd">    Returns:</span>
@@ -1520,7 +1548,7 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If output list length does not match reference_paths length.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">match_regex</span><span class="p">)</span>
     <span class="n">match_keys</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">used_matches</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -1548,7 +1576,7 @@
 
     <span class="c1"># Validate output length</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_list</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">reference_paths</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Matched list length does not match reference_paths length.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Matched list length does not match reference_paths length."</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">matched_list</span>
 </code></pre></div></td></tr></table></div>
@@ -1761,11 +1789,11 @@
     <span class="n">match_to_paths</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Search for files using a glob pattern, or a folder with a default file pattern.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        search_pattern (str, required): Defines input files from a glob path or folder. Specify like: &quot;/input/files/*.tif&quot; or &quot;/input/folder&quot; (while passing default_file_pattern like: &#39;*.tif&#39;)</span>
+<span class="sd">        search_pattern (str, required): Defines input files from a glob path or folder. Specify like: "/input/files/*.tif" or "/input/folder" (while passing default_file_pattern like: '*.tif')</span>
 <span class="sd">        default_file_pattern (str, optional): Used when `pattern` is a directory. If not set and `pattern` is a folder, raises an error.</span>
 <span class="sd">        recursive (bool, optional): Whether to search recursively.</span>
 <span class="sd">        match_to_paths (Tuple[List[str], str], optional): Matches input files to a reference list using a regex.</span>
@@ -1776,18 +1804,18 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If `search_pattern` is a directory and `default_file_pattern` is not provided.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">search_pattern</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">search_pattern</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"."</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">default_file_pattern</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Pattern is a directory, but no default_file_pattern was provided.&quot;</span>
+                <span class="s2">"Pattern is a directory, but no default_file_pattern was provided."</span>
             <span class="p">)</span>
         <span class="n">search_pattern</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">search_pattern</span><span class="p">,</span> <span class="n">default_file_pattern</span><span class="p">)</span>
 
     <span class="n">input_paths</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">search_pattern</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">input_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> file(s) matching: </span><span class="si">{</span><span class="n">search_pattern</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">input_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> file(s) matching: </span><span class="si">{</span><span class="n">search_pattern</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">match_to_paths</span><span class="p">:</span>
         <span class="n">input_paths</span> <span class="o">=</span> <span class="n">match_paths</span><span class="p">(</span><span class="n">input_paths</span><span class="p">,</span> <span class="o">*</span><span class="n">match_to_paths</span><span class="p">)</span>

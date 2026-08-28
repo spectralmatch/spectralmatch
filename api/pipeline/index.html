@@ -631,6 +631,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../joint_coregistration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Joint Coregistration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mask/" class="md-nav__link">
         
   
@@ -893,21 +921,7 @@ inside the pipeline temp directory. The final step writes to
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/chain.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 54</span>
-<span class="normal"> 55</span>
-<span class="normal"> 56</span>
-<span class="normal"> 57</span>
-<span class="normal"> 58</span>
-<span class="normal"> 59</span>
-<span class="normal"> 60</span>
-<span class="normal"> 61</span>
-<span class="normal"> 62</span>
-<span class="normal"> 63</span>
-<span class="normal"> 64</span>
-<span class="normal"> 65</span>
-<span class="normal"> 66</span>
-<span class="normal"> 67</span>
-<span class="normal"> 68</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 68</span>
 <span class="normal"> 69</span>
 <span class="normal"> 70</span>
 <span class="normal"> 71</span>
@@ -1310,33 +1324,140 @@ inside the pipeline temp directory. The final step writes to
 <span class="normal">468</span>
 <span class="normal">469</span>
 <span class="normal">470</span>
-<span class="normal">471</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">shared_temp_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">delete_temp_dir</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">delete_previous_step</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">shared_resume_from_steps</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;no&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;validate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no&quot;</span><span class="p">,</span>
+    <span class="n">shared_resume_from_steps</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"no"</span><span class="p">,</span> <span class="s2">"yes"</span><span class="p">,</span> <span class="s2">"validate"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"no"</span><span class="p">,</span>
     <span class="n">shared_debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">shared_cache</span><span class="p">:</span> <span class="n">AutoCache</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="n">shared_cache</span><span class="p">:</span> <span class="n">AutoCache</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">shared_custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">shared_window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
-    <span class="n">shared_image_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
-    <span class="n">shared_io_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
-    <span class="n">shared_tile_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
-    <span class="n">shared_calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="n">shared_image_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">shared_io_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">shared_tile_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">shared_calculation_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CalculationDtype</span> <span class="o">=</span> <span class="s2">"float32"</span><span class="p">,</span>
     <span class="n">shared_output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">shared_save_as_cog</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SaveAsCog</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">PipelineStep</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PipelineStep</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_PIPELINE_STEPS</span><span class="p">,</span>
+    <span class="n">joint_coregistration_global_model</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"none"</span><span class="p">,</span> <span class="s2">"translation"</span><span class="p">,</span> <span class="s2">"similarity"</span><span class="p">,</span> <span class="s2">"affine"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"translation"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_global_image_position_preservation_weights</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_global_tie_point_alignment_strength</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">joint_coregistration_local_model</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"none"</span><span class="p">,</span> <span class="s2">"bilinear"</span><span class="p">,</span> <span class="s2">"piecewise_affine"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"piecewise_affine"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_local_image_position_preservation_weights</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_local_tie_point_alignment_strength</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">joint_coregistration_local_grid_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">joint_coregistration_local_smoothness_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">joint_coregistration_local_bending_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">joint_coregistration_local_anchor_falloff_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">joint_coregistration_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_maximum_tie_point_displacement</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_ransac_reprojection_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_robust_loss</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"none"</span><span class="p">,</span> <span class="s2">"huber"</span><span class="p">,</span> <span class="s2">"soft_l1"</span><span class="p">,</span> <span class="s2">"cauchy"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"huber"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_robust_loss_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_save_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_load_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_resampling_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"nearest"</span><span class="p">,</span> <span class="s2">"bilinear"</span><span class="p">,</span> <span class="s2">"cubic"</span><span class="p">,</span> <span class="s2">"lanczos"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"bilinear"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">joint_coregistration_resolution</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Resolution</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">align_rasters_resampling_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"nearest"</span><span class="p">,</span> <span class="s2">"bilinear"</span><span class="p">,</span> <span class="s2">"cubic"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"bilinear"</span><span class="p">,</span>
+    <span class="n">align_rasters_tap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">align_rasters_resolution</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Resolution</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_estimate_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">global_regression_specify_model_images</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;exclude&quot;</span><span class="p">,</span> <span class="s2">&quot;include&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">global_regression_specify_model_images</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="s2">"include"</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_custom_mean_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">global_regression_custom_std_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">global_regression_save_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_load_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">global_regression_pif_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;entire&quot;</span><span class="p">,</span> <span class="s2">&quot;flood_from_match_points&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;entire&quot;</span><span class="p">,</span>
+    <span class="n">global_regression_pif_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"entire"</span><span class="p">,</span> <span class="s2">"flood_from_match_points"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"entire"</span><span class="p">,</span>
     <span class="n">global_regression_pif_red_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_pif_nir_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_pif_vegetation_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
@@ -1344,38 +1465,36 @@ inside the pipeline temp directory. The final step writes to
     <span class="n">global_regression_pif_region_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
     <span class="n">global_regression_pif_max_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span>
     <span class="n">global_regression_pif_min_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
-    <span class="n">global_regression_pif_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;orb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orb&quot;</span><span class="p">,</span>
+    <span class="n">global_regression_pif_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
+    <span class="n">global_regression_pif_load_tie_points</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_pif_save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">local_block_adjustment_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">local_block_adjustment_number_of_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;coefficient_of_variation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">local_block_adjustment_number_of_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"coefficient_of_variation"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">local_block_adjustment_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">local_block_adjustment_correction_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;gamma&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;offset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;offset&quot;</span><span class="p">,</span>
+    <span class="n">local_block_adjustment_correction_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"gamma"</span><span class="p">,</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"offset"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"offset"</span><span class="p">,</span>
     <span class="n">local_block_adjustment_save_block_maps</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_load_block_maps</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_override_bounds_canvas_coords</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">align_rasters_resampling_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;nearest&quot;</span><span class="p">,</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="s2">&quot;cubic&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
-    <span class="n">align_rasters_tap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">align_rasters_resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;highest&quot;</span><span class="p">,</span> <span class="s2">&quot;average&quot;</span><span class="p">,</span> <span class="s2">&quot;lowest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;highest&quot;</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_aoi_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_vector_mask</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">voronoi_center_seamline_image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+    <span class="n">voronoi_center_seamline_image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"image"</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_min_point_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_min_cut_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_debug_vectors_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">weighted_seamline_input_polygons</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">weighted_seamline_rank_function</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">weighted_seamline_image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+    <span class="n">weighted_seamline_image_field_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"image"</span><span class="p">,</span>
     <span class="n">weighted_seamline_input_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">weighted_seamline_output_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;seamlines&quot;</span><span class="p">,</span>
+    <span class="n">weighted_seamline_output_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"seamlines"</span><span class="p">,</span>
     <span class="n">weighted_seamline_rank_descending</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">mask_rasters_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">mask_rasters_include_touched_pixels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">merge_rasters_resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;highest&quot;</span><span class="p">,</span> <span class="s2">&quot;average&quot;</span><span class="p">,</span> <span class="s2">&quot;lowest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;highest&quot;</span><span class="p">,</span>
+    <span class="n">merge_rasters_resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"highest"</span><span class="p">,</span> <span class="s2">"average"</span><span class="p">,</span> <span class="s2">"lowest"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"highest"</span><span class="p">,</span>
     <span class="n">merge_rasters_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Run the spectral matching workflow as an ordered pipeline.</span>
 
 <span class="sd">    ``steps`` defines the exact step order. Intermediate outputs are written</span>
@@ -1386,14 +1505,14 @@ inside the pipeline temp directory. The final step writes to
 <span class="sd">      must be a folder, a template containing ``$``, or a list of paths.</span>
 <span class="sd">    - If the final step writes a single raster or vector, it must be a single</span>
 <span class="sd">      file path without ``$``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">shared_temp_dir</span> <span class="ow">or</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;spectralmatch_pipeline_&quot;</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">shared_temp_dir</span> <span class="ow">or</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"spectralmatch_pipeline_"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">delete_temp_dir</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">):</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
-        <span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">shared_input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default_file_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;*.tif&quot;</span><span class="p">}</span>
+        <span class="s2">"search"</span><span class="p">,</span> <span class="n">shared_input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"*.tif"</span><span class="p">}</span>
     <span class="p">)</span>
     <span class="n">shared_cache</span><span class="p">,</span> <span class="n">shared_image_threads</span><span class="p">,</span> <span class="n">shared_io_threads</span><span class="p">,</span> <span class="n">shared_tile_threads</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_resolve_auto_shared_settings</span><span class="p">(</span>
@@ -1435,9 +1554,9 @@ inside the pipeline temp directory. The final step writes to
 
     <span class="n">start_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
     <span class="n">start_perf</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pipeline start: </span><span class="si">{</span><span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s1">&#39;seconds&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pipeline temp dir: </span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of input images: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Pipeline start: </span><span class="si">{</span><span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s1">'seconds'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Pipeline temp dir: </span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Number of input images: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="n">current_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span> <span class="o">=</span> <span class="n">shared_input_images</span>
     <span class="n">seamline_mask_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1445,16 +1564,16 @@ inside the pipeline temp directory. The final step writes to
     <span class="n">previous_cleanup_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;temp_dir&quot;</span><span class="p">:</span> <span class="n">temp_dir</span><span class="p">,</span>
-        <span class="s2">&quot;input_images&quot;</span><span class="p">:</span> <span class="n">shared_input_images</span><span class="p">,</span>
-        <span class="s2">&quot;resolved_shared_cache&quot;</span><span class="p">:</span> <span class="n">shared_cache</span><span class="p">,</span>
-        <span class="s2">&quot;resolved_shared_image_threads&quot;</span><span class="p">:</span> <span class="n">shared_image_threads</span><span class="p">,</span>
-        <span class="s2">&quot;resolved_shared_io_threads&quot;</span><span class="p">:</span> <span class="n">shared_io_threads</span><span class="p">,</span>
-        <span class="s2">&quot;resolved_shared_tile_threads&quot;</span><span class="p">:</span> <span class="n">shared_tile_threads</span><span class="p">,</span>
-        <span class="s2">&quot;num_input_images&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span>
-        <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">&quot;seconds&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;steps&quot;</span><span class="p">:</span> <span class="n">resolved_steps</span><span class="p">,</span>
-        <span class="s2">&quot;shared_resume_from_steps&quot;</span><span class="p">:</span> <span class="n">shared_resume_from_steps</span><span class="p">,</span>
+        <span class="s2">"temp_dir"</span><span class="p">:</span> <span class="n">temp_dir</span><span class="p">,</span>
+        <span class="s2">"input_images"</span><span class="p">:</span> <span class="n">shared_input_images</span><span class="p">,</span>
+        <span class="s2">"resolved_shared_cache"</span><span class="p">:</span> <span class="n">shared_cache</span><span class="p">,</span>
+        <span class="s2">"resolved_shared_image_threads"</span><span class="p">:</span> <span class="n">shared_image_threads</span><span class="p">,</span>
+        <span class="s2">"resolved_shared_io_threads"</span><span class="p">:</span> <span class="n">shared_io_threads</span><span class="p">,</span>
+        <span class="s2">"resolved_shared_tile_threads"</span><span class="p">:</span> <span class="n">shared_tile_threads</span><span class="p">,</span>
+        <span class="s2">"num_input_images"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span>
+        <span class="s2">"start_time"</span><span class="p">:</span> <span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">"seconds"</span><span class="p">),</span>
+        <span class="s2">"steps"</span><span class="p">:</span> <span class="n">resolved_steps</span><span class="p">,</span>
+        <span class="s2">"shared_resume_from_steps"</span><span class="p">:</span> <span class="n">shared_resume_from_steps</span><span class="p">,</span>
     <span class="p">}</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -1462,7 +1581,53 @@ inside the pipeline temp directory. The final step writes to
             <span class="n">is_last_step</span> <span class="o">=</span> <span class="n">step_index</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolved_steps</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
             <span class="n">step_cleanup_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="k">if</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;global_regression&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"joint_coregistration"</span><span class="p">:</span>
+                <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">shared_output_image_path</span>
+                    <span class="k">if</span> <span class="n">is_last_step</span>
+                    <span class="k">else</span> <span class="n">_step_temp_output</span><span class="p">(</span><span class="n">step_name</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">current_images</span> <span class="o">=</span> <span class="n">joint_coregistration</span><span class="p">(</span>
+                    <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
+                    <span class="n">output_images</span><span class="o">=</span><span class="n">output_images</span><span class="p">,</span>
+                    <span class="n">global_model</span><span class="o">=</span><span class="n">joint_coregistration_global_model</span><span class="p">,</span>
+                    <span class="n">global_image_position_preservation_weights</span><span class="o">=</span><span class="n">joint_coregistration_global_image_position_preservation_weights</span><span class="p">,</span>
+                    <span class="n">global_tie_point_alignment_strength</span><span class="o">=</span><span class="n">joint_coregistration_global_tie_point_alignment_strength</span><span class="p">,</span>
+                    <span class="n">local_model</span><span class="o">=</span><span class="n">joint_coregistration_local_model</span><span class="p">,</span>
+                    <span class="n">local_image_position_preservation_weights</span><span class="o">=</span><span class="n">joint_coregistration_local_image_position_preservation_weights</span><span class="p">,</span>
+                    <span class="n">local_tie_point_alignment_strength</span><span class="o">=</span><span class="n">joint_coregistration_local_tie_point_alignment_strength</span><span class="p">,</span>
+                    <span class="n">local_grid_spacing</span><span class="o">=</span><span class="n">joint_coregistration_local_grid_spacing</span><span class="p">,</span>
+                    <span class="n">local_smoothness_weight</span><span class="o">=</span><span class="n">joint_coregistration_local_smoothness_weight</span><span class="p">,</span>
+                    <span class="n">local_bending_weight</span><span class="o">=</span><span class="n">joint_coregistration_local_bending_weight</span><span class="p">,</span>
+                    <span class="n">local_anchor_falloff_distance</span><span class="o">=</span><span class="n">joint_coregistration_local_anchor_falloff_distance</span><span class="p">,</span>
+                    <span class="n">feature_method</span><span class="o">=</span><span class="n">joint_coregistration_feature_method</span><span class="p">,</span>
+                    <span class="n">maximum_tie_point_displacement</span><span class="o">=</span><span class="n">joint_coregistration_maximum_tie_point_displacement</span><span class="p">,</span>
+                    <span class="n">ransac_reprojection_threshold</span><span class="o">=</span><span class="n">joint_coregistration_ransac_reprojection_threshold</span><span class="p">,</span>
+                    <span class="n">robust_loss</span><span class="o">=</span><span class="n">joint_coregistration_robust_loss</span><span class="p">,</span>
+                    <span class="n">robust_loss_scale</span><span class="o">=</span><span class="n">joint_coregistration_robust_loss_scale</span><span class="p">,</span>
+                    <span class="n">save_adjustments</span><span class="o">=</span><span class="n">joint_coregistration_save_adjustments</span><span class="p">,</span>
+                    <span class="n">load_adjustments</span><span class="o">=</span><span class="n">joint_coregistration_load_adjustments</span><span class="p">,</span>
+                    <span class="n">resampling_method</span><span class="o">=</span><span class="n">joint_coregistration_resampling_method</span><span class="p">,</span>
+                    <span class="n">tap</span><span class="o">=</span><span class="n">joint_coregistration_tap</span><span class="p">,</span>
+                    <span class="n">resolution</span><span class="o">=</span><span class="n">joint_coregistration_resolution</span><span class="p">,</span>
+                    <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
+                    <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
+                    <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
+                    <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
+                    <span class="n">build_overviews</span><span class="o">=</span><span class="n">joint_coregistration_build_overviews</span><span class="p">,</span>
+                    <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
+                    <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
+                    <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
+                    <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
+                    <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"joint_coregistration"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
+                    <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"global_regression"</span><span class="p">:</span>
                 <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">shared_output_image_path</span>
                     <span class="k">if</span> <span class="n">is_last_step</span>
@@ -1497,16 +1662,17 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">pif_max_samples</span><span class="o">=</span><span class="n">global_regression_pif_max_samples</span><span class="p">,</span>
                     <span class="n">pif_min_samples</span><span class="o">=</span><span class="n">global_regression_pif_min_samples</span><span class="p">,</span>
                     <span class="n">pif_feature_method</span><span class="o">=</span><span class="n">global_regression_pif_feature_method</span><span class="p">,</span>
+                    <span class="n">pif_load_tie_points</span><span class="o">=</span><span class="n">global_regression_pif_load_tie_points</span><span class="p">,</span>
                     <span class="n">pif_save_inz</span><span class="o">=</span><span class="n">global_regression_pif_save_inz</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">global_regression_build_overviews</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;global_regression&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"global_regression"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
                 <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
                     <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
-            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"local_block_adjustment"</span><span class="p">:</span>
                 <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">shared_output_image_path</span>
                     <span class="k">if</span> <span class="n">is_last_step</span>
@@ -1535,12 +1701,12 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">local_block_adjustment_build_overviews</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;local_block_adjustment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"local_block_adjustment"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
                 <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
                     <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
-            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;align&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"align"</span><span class="p">:</span>
                 <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">shared_output_image_path</span>
                     <span class="k">if</span> <span class="n">is_last_step</span>
@@ -1560,13 +1726,13 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;align_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"align"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"align_rasters"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
                 <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
                     <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
-            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"voronoi_center_seamline"</span><span class="p">:</span>
                 <span class="n">seamline_mask_path</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">shared_output_image_path</span>
                     <span class="k">if</span> <span class="n">is_last_step</span>
@@ -1574,7 +1740,7 @@ inside the pipeline temp directory. The final step writes to
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seamline_mask_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">&quot;shared_output_image_path must be a single file path when the final step is a seamline.&quot;</span>
+                        <span class="s2">"shared_output_image_path must be a single file path when the final step is a seamline."</span>
                     <span class="p">)</span>
                 <span class="n">seamline_mask_image_field_name</span> <span class="o">=</span> <span class="n">voronoi_center_seamline_image_field_name</span>
                 <span class="n">Seamline</span><span class="o">.</span><span class="n">voronoi</span><span class="p">(</span>
@@ -1589,12 +1755,12 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">debug_vectors_path</span><span class="o">=</span><span class="n">voronoi_center_seamline_debug_vectors_path</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;voronoi_center_seamline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"voronoi_center_seamline"</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
                 <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
                     <span class="n">step_name</span><span class="p">,</span> <span class="n">seamline_mask_path</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
-            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;weighted_seamline&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"weighted_seamline"</span><span class="p">:</span>
                 <span class="n">seamline_mask_path</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">shared_output_image_path</span>
                     <span class="k">if</span> <span class="n">is_last_step</span>
@@ -1602,7 +1768,7 @@ inside the pipeline temp directory. The final step writes to
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seamline_mask_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">&quot;shared_output_image_path must be a single file path when the final step is a seamline.&quot;</span>
+                        <span class="s2">"shared_output_image_path must be a single file path when the final step is a seamline."</span>
                     <span class="p">)</span>
                 <span class="n">seamline_mask_image_field_name</span> <span class="o">=</span> <span class="n">weighted_seamline_image_field_name</span>
                 <span class="n">Seamline</span><span class="o">.</span><span class="n">weighted</span><span class="p">(</span>
@@ -1616,12 +1782,12 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;weighted_seamline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"weighted_seamline"</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
                 <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
                     <span class="n">step_name</span><span class="p">,</span> <span class="n">seamline_mask_path</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
-            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;mask&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"mask"</span><span class="p">:</span>
                 <span class="n">output_images</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">shared_output_image_path</span>
                     <span class="k">if</span> <span class="n">is_last_step</span>
@@ -1630,14 +1796,14 @@ inside the pipeline temp directory. The final step writes to
                 <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="n">mask_rasters_vector_mask</span>
                 <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">seamline_mask_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">clip_vector_mask</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="s2">&quot;include&quot;</span><span class="p">,</span>
+                        <span class="s2">"include"</span><span class="p">,</span>
                         <span class="n">seamline_mask_path</span><span class="p">,</span>
                         <span class="n">seamline_mask_image_field_name</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="k">if</span> <span class="n">clip_vector_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">&quot;mask_rasters requires a vector mask. Set mask_rasters_vector_mask &quot;</span>
-                        <span class="s2">&quot;or run a seamline step earlier in the pipeline.&quot;</span>
+                        <span class="s2">"mask_rasters requires a vector mask. Set mask_rasters_vector_mask "</span>
+                        <span class="s2">"or run a seamline step earlier in the pipeline."</span>
                     <span class="p">)</span>
 
                 <span class="n">current_images</span> <span class="o">=</span> <span class="n">mask_rasters</span><span class="p">(</span>
@@ -1654,16 +1820,16 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;mask_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"mask"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"mask_rasters"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
                 <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
                     <span class="n">step_name</span><span class="p">,</span> <span class="n">current_images</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
-            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">&quot;merge&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"merge"</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shared_output_image_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">&quot;shared_output_image_path must be a single file path when the final step is merge.&quot;</span>
+                        <span class="s2">"shared_output_image_path must be a single file path when the final step is merge."</span>
                     <span class="p">)</span>
                 <span class="n">merged_output</span> <span class="o">=</span> <span class="n">merge_rasters</span><span class="p">(</span>
                     <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
@@ -1680,14 +1846,14 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">current_images</span> <span class="o">=</span> <span class="n">merged_output</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;merge&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
-                <span class="n">results</span><span class="p">[</span><span class="s2">&quot;merge_rasters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"merge"</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"merge_rasters"</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged_output</span>
                 <span class="n">step_cleanup_paths</span> <span class="o">=</span> <span class="n">_collect_step_cleanup_paths</span><span class="p">(</span>
                     <span class="n">step_name</span><span class="p">,</span> <span class="n">merged_output</span><span class="p">,</span> <span class="n">temp_dir</span>
                 <span class="p">)</span>
 
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported pipeline step: </span><span class="si">{</span><span class="n">step_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported pipeline step: </span><span class="si">{</span><span class="n">step_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">delete_previous_step</span> <span class="ow">and</span> <span class="n">previous_cleanup_paths</span><span class="p">:</span>
                 <span class="n">_delete_step_outputs_if_inactive</span><span class="p">(</span>
@@ -1700,26 +1866,26 @@ inside the pipeline temp directory. The final step writes to
             <span class="n">previous_cleanup_paths</span> <span class="o">=</span> <span class="n">step_cleanup_paths</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved_steps</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+            <span class="n">results</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
         <span class="k">elif</span> <span class="n">last_step</span> <span class="ow">in</span> <span class="n">SEAMLINE_STEPS</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
+            <span class="n">results</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">seamline_mask_path</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
+            <span class="n">results</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
 
         <span class="n">end_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
         <span class="n">duration_seconds</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_perf</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="n">final_results</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;temp_dir&quot;</span><span class="p">:</span> <span class="n">temp_dir</span><span class="p">,</span>
-            <span class="s2">&quot;num_input_images&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span>
-            <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">&quot;seconds&quot;</span><span class="p">),</span>
-            <span class="s2">&quot;end_time&quot;</span><span class="p">:</span> <span class="n">end_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">&quot;seconds&quot;</span><span class="p">),</span>
-            <span class="s2">&quot;duration_seconds&quot;</span><span class="p">:</span> <span class="n">duration_seconds</span><span class="p">,</span>
-            <span class="s2">&quot;resolved_shared_cache&quot;</span><span class="p">:</span> <span class="n">shared_cache</span><span class="p">,</span>
-            <span class="s2">&quot;resolved_shared_image_threads&quot;</span><span class="p">:</span> <span class="n">shared_image_threads</span><span class="p">,</span>
-            <span class="s2">&quot;resolved_shared_io_threads&quot;</span><span class="p">:</span> <span class="n">shared_io_threads</span><span class="p">,</span>
-            <span class="s2">&quot;resolved_shared_tile_threads&quot;</span><span class="p">:</span> <span class="n">shared_tile_threads</span><span class="p">,</span>
+            <span class="s2">"output"</span><span class="p">:</span> <span class="n">results</span><span class="p">[</span><span class="s2">"output"</span><span class="p">],</span>
+            <span class="s2">"temp_dir"</span><span class="p">:</span> <span class="n">temp_dir</span><span class="p">,</span>
+            <span class="s2">"num_input_images"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span>
+            <span class="s2">"start_time"</span><span class="p">:</span> <span class="n">start_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">"seconds"</span><span class="p">),</span>
+            <span class="s2">"end_time"</span><span class="p">:</span> <span class="n">end_dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">"seconds"</span><span class="p">),</span>
+            <span class="s2">"duration_seconds"</span><span class="p">:</span> <span class="n">duration_seconds</span><span class="p">,</span>
+            <span class="s2">"resolved_shared_cache"</span><span class="p">:</span> <span class="n">shared_cache</span><span class="p">,</span>
+            <span class="s2">"resolved_shared_image_threads"</span><span class="p">:</span> <span class="n">shared_image_threads</span><span class="p">,</span>
+            <span class="s2">"resolved_shared_io_threads"</span><span class="p">:</span> <span class="n">shared_io_threads</span><span class="p">,</span>
+            <span class="s2">"resolved_shared_tile_threads"</span><span class="p">:</span> <span class="n">shared_tile_threads</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">final_results</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
