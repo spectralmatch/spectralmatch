@@ -1,6 +1,7 @@
 import tempfile
 import re
 import os
+import shutil
 import numpy as np
 
 from typing import List
@@ -25,8 +26,10 @@ def create_cloud_mask_with_omnicloudmask(
     down_sample_m: float = None,
     debug_logs: Universal.DebugLogs = False,
     image_threads: Universal.Threads = None,
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    dask_scheduler: Universal.DaskScheduler = None,
     omnicloud_kwargs: dict | None = None,
-):
+) -> list[str]:
     """
     Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
 
@@ -39,6 +42,8 @@ def create_cloud_mask_with_omnicloudmask(
         down_sample_m (float, optional): If set, resamples input to this resolution in meters. Recommended to use a target resolution of 10 m or lower.
         debug_logs (bool, optional): If True, prints progress and debug info.
         image_threads (Literal["cpu"] | int | None): Enables parallel execution. Note: "process" does not work on macOS due to PyTorch MPS limitations.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         omnicloud_kwargs (dict | None): Additional arguments forwarded to predict_from_array.
 
     Raises:
@@ -49,7 +54,10 @@ def create_cloud_mask_with_omnicloudmask(
     Universal._validate(
         input_images=input_images,
         output_images=output_images,
-        debug_logs=debug_logs
+        debug_logs=debug_logs,
+        image_threads=image_threads,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
     )
 
     input_image_paths = _resolve_paths(
@@ -66,7 +74,9 @@ def create_cloud_mask_with_omnicloudmask(
 
     # Determine multiprocessing and worker count
     image_backend = "thread" # "thread" or "process"
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    image_threads_on, image_thread_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
 
 
     if debug_logs:
@@ -88,7 +98,12 @@ def create_cloud_mask_with_omnicloudmask(
     ]
 
     if image_threads_on:
-        with _get_executor(image_backend, image_thread_workers) as executor:
+        with _get_executor(
+            image_backend,
+            image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as executor:
             futures = [
                 executor.submit(_process_cloud_mask_image, *args) for args in image_args
             ]
@@ -97,6 +112,7 @@ def create_cloud_mask_with_omnicloudmask(
     else:
         for args in image_args:
             _process_cloud_mask_image(*args)
+    return output_image_paths
 
 
 def _process_cloud_mask_image(
@@ -186,6 +202,8 @@ def band_math(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    dask_scheduler: Universal.DaskScheduler = None,
     window_size: Universal.WindowSize = None,
     custom_output_dtype: Universal.CustomOutputDtype = None,
     calculation_dtype: Universal.CalculationDtype = "float32",
@@ -203,6 +221,8 @@ def band_math(
         image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
         io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         window_size (WindowSize, optional): Window tiling strategy for memory-efficient processing.
         custom_output_dtype (CustomOutputDtype, optional): Output data type override.
         calculation_dtype (CalculationDtype, optional): Internal computation dtype.
@@ -222,6 +242,8 @@ def band_math(
         window_size=window_size,
         custom_output_dtype=custom_output_dtype,
         calculation_dtype=calculation_dtype,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
     )
 
     # Set gdal params
@@ -262,7 +284,9 @@ def band_math(
 
     # Determine multiprocessing and worker count
     image_backend = "thread" # "thread" or "process"
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    image_threads_on, image_thread_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
     # Process each image
@@ -286,7 +310,12 @@ def band_math(
     ]
 
     if image_threads_on:
-        with _get_executor(image_backend, image_thread_workers) as executor:
+        with _get_executor(
+            image_backend,
+            image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as executor:
             futures = [executor.submit(_band_math_process_image, *args) for args in image_args]
             for future in as_completed(futures):
                 future.result()
@@ -440,6 +469,7 @@ def _band_math_process_image(
 
     out_ds = None
     ds = None
+    shutil.rmtree(tmpdir, ignore_errors=True)
 
     if debug_logs:
         print(f"    Wrote: {output_image_path}")

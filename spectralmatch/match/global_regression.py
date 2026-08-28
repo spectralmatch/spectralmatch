@@ -13,7 +13,7 @@ from numpy import ndarray
 from scipy.optimize import least_squares
 
 from ..handlers import _existing_outputs_are_reusable
-from ..utils import  _resolve_window_size, _get_valid_count
+from ..utils import _create_masked_vrt, _resolve_window_size, _get_valid_count
 
 
 def _solve_global_model(
@@ -27,7 +27,7 @@ def _solve_global_model(
     custom_mean_factor: float,
     custom_std_factor: float,
     overlapping_pairs: tuple[tuple[str, str], ...],
-    debug_logs: bool = False,
+    debug_logs: bool,
     apply_size_weighting: bool = False,
 ) -> np.ndarray:
     """
@@ -671,6 +671,37 @@ def _overlap_stats_process_image(
     bound_i: tuple[float, float, float, float],
     bound_j: tuple[float, float, float, float],
     estimate_stats: bool,
+    vector_mask=None,
+    nodata_value=None,
+    debug_logs: bool = False,
+) -> Dict[str, Dict[str, Dict[int, Dict[str, float]]]]:
+    """Create worker-local masked VRTs and calculate one overlap pair."""
+    with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
+        masked_i = _create_masked_vrt(
+            name_i, input_image_path_i, vector_mask=vector_mask,
+            nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
+        )
+        masked_j = _create_masked_vrt(
+            name_j, input_image_path_j, vector_mask=vector_mask,
+            nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
+        )
+        return _overlap_stats_from_masked_images(
+            tile_thread_on, tile_thread_workers, num_bands, masked_i, masked_j,
+            name_i, name_j, bound_i, bound_j, estimate_stats, debug_logs,
+        )
+
+
+def _overlap_stats_from_masked_images(
+    tile_thread_on: bool,
+    tile_thread_workers: int,
+    num_bands: int,
+    input_image_path_i: str,
+    input_image_path_j: str,
+    name_i: str,
+    name_j: str,
+    bound_i: tuple[float, float, float, float],
+    bound_j: tuple[float, float, float, float],
+    estimate_stats: bool,
     debug_logs: bool = False,
 ) -> Dict[str, Dict[str, Dict[int, Dict[str, float]]]]:
     """
@@ -848,6 +879,29 @@ def _overlap_stats_process_image(
 
 
 def _whole_stats_process_image(
+    tile_thread_on: bool,
+    tile_thread_worker: int,
+    input_image_path: str,
+    num_bands: int,
+    image_name: str,
+    estimate_stats: bool,
+    vector_mask=None,
+    nodata_value=None,
+    debug_logs: bool = False,
+) -> Dict[str, Dict[int, Dict[str, float]]]:
+    """Create one worker-local masked VRT and calculate whole-image statistics."""
+    with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
+        masked_path = _create_masked_vrt(
+            image_name, input_image_path, vector_mask=vector_mask,
+            nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
+        )
+        return _whole_stats_from_masked_image(
+            tile_thread_on, tile_thread_worker, masked_path, num_bands,
+            image_name, estimate_stats, debug_logs,
+        )
+
+
+def _whole_stats_from_masked_image(
     tile_thread_on: bool,
     tile_thread_worker: int,
     input_image_path: str,

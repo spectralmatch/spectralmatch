@@ -41,6 +41,13 @@ You can automatically install the library via [PyPI](https://pypi.org/). (this m
 pip install spectralmatch
 ```
 
+For distributed image-level execution on an existing Dask cluster, install the
+optional dependency on the submitting machine and every worker:
+
+```bash
+pip install "spectralmatch[dask]"
+```
+
 ---
 
 ## Installation via pixi as a Python Library and CLI
@@ -84,5 +91,6 @@ The `pyproject.toml` defines **core** dependancies to run the library and option
 pip install . # Normal dependencies
 pip install -e ".[dev]"   # Developer dependencies
 pip install -e ".[docs]"  # Documentation dependencies
+pip install -e ".[dask]"  # Distributed execution dependencies
 pip install -e ".[qgis-build]" # Build qgis plugin
 ```

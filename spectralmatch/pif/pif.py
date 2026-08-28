@@ -42,6 +42,8 @@ class Pif:
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
         tile_threads: Universal.Threads = None,
+        concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+        dask_scheduler: Universal.DaskScheduler = None,
         save_inz: str | None = None,
         debug_logs: Universal.DebugLogs = False,
     ) -> np.ndarray:
@@ -54,6 +56,9 @@ class Pif:
         ``joint_coregistration``. Every processed overlap pair must contain at
         least three usable loaded points; otherwise an error is raised.
         Basenames and source pixel grids must match the current inputs.
+        ``concurrent_processing_backend="dask"`` and ``dask_scheduler`` connect
+        image-pair tasks through an existing Dask
+        scheduler using ``("file", path)`` or ``("address", address)``.
 
         Returns:
             np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
@@ -69,6 +74,13 @@ class Pif:
             raise ValueError("No input images found for flood_from_match_points.")
         if load_tie_points is not None and not isinstance(load_tie_points, str):
             raise ValueError("load_tie_points must be a string or None.")
+        Universal._validate(
+            image_threads=image_threads,
+            io_threads=io_threads,
+            tile_threads=tile_threads,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        )
 
         _check_raster_requirements(
             input_image_paths,
@@ -89,7 +101,9 @@ class Pif:
         _set_gdal_cache(cache, debug_logs)
         _set_gdal_workers(io_threads, debug_logs)
         image_backend = "thread"
-        image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+        image_threads_on, image_thread_workers = _resolve_parallel_config(
+            image_threads, concurrent_processing_backend, dask_scheduler
+        )
 
         nodata_value = _resolve_nodata_value(input_image_paths[0], custom_nodata_value)
         first_ds = gdal.Open(input_image_paths[0], gdal.GA_ReadOnly)
@@ -154,7 +168,12 @@ class Pif:
             )
 
         if image_threads_on:
-            with _get_executor(image_backend, image_thread_workers) as executor:
+            with _get_executor(
+                image_backend,
+                image_thread_workers,
+                concurrent_processing_backend=concurrent_processing_backend,
+                dask_scheduler=dask_scheduler,
+            ) as executor:
                 futures = [executor.submit(_calculate_pair_pif_stats, *args) for args in parallel_args]
                 for future in as_completed(futures):
                     pair_stats, whole_updates = future.result()

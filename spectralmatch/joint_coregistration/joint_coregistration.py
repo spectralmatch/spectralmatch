@@ -137,6 +137,8 @@ def joint_coregistration(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: Universal.DebugLogs = False,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
 ) -> list[str]:
@@ -179,6 +181,8 @@ def joint_coregistration(
         image_threads: Parallel workers for overlap matching and output images.
         io_threads: GDAL I/O workers.
         tile_threads: GDAL warp/tile workers.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         debug_logs: Print processing details.
         resume_from_outputs: Reuse no, existing, or validated existing outputs.
 
@@ -198,6 +202,8 @@ def joint_coregistration(
         image_threads=image_threads,
         io_threads=io_threads,
         tile_threads=tile_threads,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
     )
     JointCoregistration._validate(
         global_model=global_model,
@@ -284,6 +290,8 @@ def joint_coregistration(
             ransac_reprojection_threshold,
             image_threads,
             debug_logs,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
         )
     else:
         tie_points, raw_tie_points, thresholds = {}, {}, []
@@ -320,7 +328,9 @@ def joint_coregistration(
         debug_logs,
     )
 
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    image_threads_on, image_thread_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
     output_dtype_names = {
         name: _resolve_gdal_dtype(output_dtype, infos[name].path, debug_logs)
@@ -352,7 +362,12 @@ def joint_coregistration(
     if debug_logs:
         print("Apply joint coregistration and saving results for:")
     if image_threads_on:
-        with _get_executor("thread", image_thread_workers) as executor:
+        with _get_executor(
+            "thread",
+            image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as executor:
             futures = [executor.submit(_apply_alignment_process_image, *arg) for arg in args]
             for future in as_completed(futures):
                 future.result()
@@ -367,6 +382,8 @@ def joint_coregistration(
             image_threads=image_threads,
             io_threads=io_threads,
             tile_threads=tile_threads,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
             debug_logs=debug_logs,
         )
     return output_paths
@@ -434,6 +451,8 @@ def _collect_tie_points(
     ransac_threshold,
     image_threads,
     debug_logs,
+    concurrent_processing_backend="process_pool",
+    dask_scheduler=None,
 ):
     current_pairs = {_canonical_pair(*pair) for pair in overlaps}
     raw_tie_points = {pair: points for pair, points in loaded.items() if pair in current_pairs}
@@ -465,9 +484,16 @@ def _collect_tie_points(
         )
         for name_i, name_j in missing
     ]
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    image_threads_on, image_thread_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
     if image_threads_on:
-        with _get_executor("thread", image_thread_workers) as executor:
+        with _get_executor(
+            "thread",
+            image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as executor:
             futures = [executor.submit(_extract_pair_tie_points, *arg) for arg in args]
             results = [future.result() for future in as_completed(futures)]
     else:

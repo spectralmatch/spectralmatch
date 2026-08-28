@@ -80,6 +80,8 @@ def pipeline(
     shared_image_threads: AutoThreads = "auto",
     shared_io_threads: AutoThreads = "auto",
     shared_tile_threads: AutoThreads = "auto",
+    shared_concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    shared_dask_scheduler: Universal.DaskScheduler = None,
     shared_calculation_dtype: Universal.CalculationDtype = "float32",
     shared_output_dtype: Universal.CustomOutputDtype = None,
     shared_save_as_cog: Universal.SaveAsCog = False,
@@ -201,6 +203,8 @@ def pipeline(
         io_threads=shared_io_threads,
         tile_threads=shared_tile_threads,
         save_as_cog=shared_save_as_cog,
+        concurrent_processing_backend=shared_concurrent_processing_backend,
+        dask_scheduler=shared_dask_scheduler,
     )
 
     resolved_steps = _validate_pipeline_steps(steps)
@@ -228,6 +232,8 @@ def pipeline(
         "resolved_shared_image_threads": shared_image_threads,
         "resolved_shared_io_threads": shared_io_threads,
         "resolved_shared_tile_threads": shared_tile_threads,
+        "shared_concurrent_processing_backend": shared_concurrent_processing_backend,
+        "shared_dask_scheduler": shared_dask_scheduler,
         "num_input_images": len(input_image_paths),
         "start_time": start_dt.isoformat(timespec="seconds"),
         "steps": resolved_steps,
@@ -303,6 +309,8 @@ def pipeline(
                     image_threads=shared_image_threads,
                     io_threads=shared_io_threads,
                     tile_threads=shared_tile_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
                     window_size=shared_window_size,
                     save_as_cog=shared_save_as_cog,
                     estimate_stats=global_regression_estimate_stats,
@@ -348,6 +356,8 @@ def pipeline(
                     image_threads=shared_image_threads,
                     io_threads=shared_io_threads,
                     tile_threads=shared_tile_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
                     window_size=shared_window_size,
                     save_as_cog=shared_save_as_cog,
                     number_of_blocks=local_block_adjustment_number_of_blocks,
@@ -382,6 +392,8 @@ def pipeline(
                     image_threads=shared_image_threads,
                     io_threads=shared_io_threads,
                     tile_threads=shared_tile_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
                     resume_from_outputs=shared_resume_from_steps,
                 )
                 results["align"] = current_images
@@ -474,6 +486,8 @@ def pipeline(
                     image_threads=shared_image_threads,
                     io_threads=shared_io_threads,
                     tile_threads=shared_tile_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
                     include_touched_pixels=mask_rasters_include_touched_pixels,
                     custom_nodata_value=shared_custom_nodata_value,
                     resume_from_outputs=shared_resume_from_steps,

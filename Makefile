@@ -2,6 +2,13 @@ MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ENV_NAME = spectralmatch
 BUILD_PLUGIN=python spectralmatch_qgis/build_plugin.py
 QGISPLUGINNAME = spectralmatch_qgis
+DASK_SCHEDULER_FILE ?= /tmp/spectralmatch-dask-1.json
+DASK_LOCAL_DIRECTORY ?= /tmp/spectralmatch-dask-worker-1
+DASK_NWORKERS ?= 4
+DASK_NTHREADS ?= 1
+DASK_MEMORY_LIMIT ?= 4GiB
+
+.PHONY: start-dask
 
 # Install
 install:
@@ -24,6 +31,45 @@ install-setup:
 		pre-commit install && \
 		echo '✅ Setup complete. Environment \"$(ENV_NAME)\" is ready.' \
 	"
+
+
+# Local Dask cluster; example: make start-dask DASK_NWORKERS=8 DASK_MEMORY_LIMIT=2GiB
+start-dask:
+	@bash -c 'set -eu; \
+		if ! command -v dask >/dev/null 2>&1; then \
+			echo "Dask is not installed. Run: pip install -e '\''.[dask]'\''" >&2; exit 1; \
+		fi; \
+		scheduler_file="$(DASK_SCHEDULER_FILE)"; \
+		local_directory="$(DASK_LOCAL_DIRECTORY)"; \
+		rm -f "$$scheduler_file"; \
+		mkdir -p "$$local_directory"; \
+		cleanup() { \
+			trap - EXIT INT TERM; \
+			if [ -n "$${worker_pid:-}" ]; then kill "$$worker_pid" 2>/dev/null || true; fi; \
+			if [ -n "$${scheduler_pid:-}" ]; then kill "$$scheduler_pid" 2>/dev/null || true; fi; \
+			wait $${worker_pid:-} $${scheduler_pid:-} 2>/dev/null || true; \
+			rm -f "$$scheduler_file"; \
+		}; \
+		trap cleanup EXIT INT TERM; \
+		echo "Starting Dask scheduler (dashboard: http://localhost:8787/status)"; \
+		dask scheduler --scheduler-file "$$scheduler_file" & scheduler_pid=$$!; \
+		attempt=0; \
+		while [ ! -s "$$scheduler_file" ]; do \
+			if ! kill -0 "$$scheduler_pid" 2>/dev/null; then \
+				echo "Dask scheduler failed to start" >&2; exit 1; \
+			fi; \
+			attempt=$$((attempt + 1)); \
+			if [ "$$attempt" -ge 100 ]; then echo "Timed out waiting for Dask scheduler" >&2; exit 1; fi; \
+			sleep 0.1; \
+		done; \
+		echo "Starting $(DASK_NWORKERS) workers with $(DASK_NTHREADS) thread(s) and $(DASK_MEMORY_LIMIT) memory each"; \
+		echo "Connect with dask_scheduler=(\"file\", \"$$scheduler_file\")"; \
+		dask worker --scheduler-file "$$scheduler_file" \
+			--nworkers "$(DASK_NWORKERS)" \
+			--nthreads "$(DASK_NTHREADS)" \
+			--memory-limit "$(DASK_MEMORY_LIMIT)" \
+			--local-directory "$$local_directory" & worker_pid=$$!; \
+		wait "$$worker_pid"'
 
 
 # Docs

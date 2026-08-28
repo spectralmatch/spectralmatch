@@ -1,5 +1,6 @@
 import os
 import tempfile
+import shutil
 import numpy as np
 import re
 
@@ -24,6 +25,8 @@ def process_raster_values_to_vector_polygons(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: Universal.DebugLogs = False,
     filter_by_polygon_size: str | None = None,
     polygon_buffer: float = 0.0,
@@ -43,6 +46,8 @@ def process_raster_values_to_vector_polygons(
         image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
         io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         debug_logs (Universal.DebugLogs, optional): Whether to print debug logs to the console.
         filter_by_polygon_size (str, optional): Area filter for resulting polygons. Can be a number (e.g., ">100") or percentile (e.g., ">95%").
         polygon_buffer (float, optional): Distance in coordinate units to buffer the resulting polygons. Default is 0.
@@ -62,6 +67,8 @@ def process_raster_values_to_vector_polygons(
         io_threads=io_threads,
         tile_threads=tile_threads,
         debug_logs=debug_logs,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
     )
 
     # Set gdal params
@@ -86,7 +93,9 @@ def process_raster_values_to_vector_polygons(
 
     # Determine multiprocessing and worker count
     image_backend = "thread" # "thread" or "process"
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    image_threads_on, image_thread_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
     image_args = [
@@ -107,7 +116,12 @@ def process_raster_values_to_vector_polygons(
     ]
 
     if image_threads_on:
-        with _get_executor(image_backend, image_thread_workers) as executor:
+        with _get_executor(
+            image_backend,
+            image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as executor:
             futures = [
                 executor.submit(_process_image_to_polygons, *args)
                 for args in image_args
@@ -288,4 +302,5 @@ def _process_image_to_polygons(
     for fid in del_ids: layer.DeleteFeature(fid)
 
     rds = None; vds = None; ds = None
+    shutil.rmtree(tmpdir, ignore_errors=True)
     if debug_logs: print(f"Wrote: {output_vector_path}")

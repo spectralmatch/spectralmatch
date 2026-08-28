@@ -3,9 +3,8 @@ import math
 import geopandas as gpd
 import pandas as pd
 import numpy as np
-import tempfile
 
-from typing import Optional, Literal, Tuple, Dict, List
+from typing import Optional, Literal, Tuple, List
 from concurrent.futures import as_completed
 from osgeo import gdal, ogr, osr
 
@@ -108,6 +107,8 @@ def align_rasters(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    dask_scheduler: Universal.DaskScheduler = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
 ) -> None:
     """
@@ -125,6 +126,8 @@ def align_rasters(
         image_threads: Python-level parallelism over images (e.g., ("process", 4)).
         io_threads: Sets GDAL_NUM_THREADS for internal GDAL multithreading (int or str).
         tile_threads: Sets GTiff/COG writer NUM_THREADS and Warp’s NUM_THREADS (int or str).
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
 
     Returns:
         List[str]: Paths to the locally adjusted output raster images.
@@ -141,6 +144,8 @@ def align_rasters(
         image_threads=image_threads,
         io_threads=io_threads,
         tile_threads=tile_threads,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
     )
     UtilsValidation._validate_align_rasters(
         resampling_method=resampling_method,
@@ -177,7 +182,9 @@ def align_rasters(
 
     # Setup parallel
     image_backend = "thread" # "process" or "thread"
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
+    image_threads_on, image_thread_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
     tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
 
@@ -219,8 +226,13 @@ def align_rasters(
         if output_image_paths[i] not in reusable_output_paths
     ]
 
-    if image_threads:
-        with _get_executor(image_backend, image_thread_workers) as executor:
+    if image_threads_on:
+        with _get_executor(
+            image_backend,
+            image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as executor:
             futures = [
                 executor.submit(_align_process_image, *arg) for arg in args
             ]
@@ -492,6 +504,8 @@ def mask_rasters(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    dask_scheduler: Universal.DaskScheduler = None,
     include_touched_pixels: bool = False,
     custom_nodata_value: Universal.CustomNodataValue = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
@@ -509,6 +523,8 @@ def mask_rasters(
         image_threads (Literal["cpu"] | int | None): Parallelism for per-image operations. "cpu" to get number of cores, int to assign number, and None to disable image level parallelism.
         io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask.
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
 
@@ -530,6 +546,8 @@ def mask_rasters(
         tile_threads=tile_threads,
         custom_nodata_value=custom_nodata_value,
         cache=cache,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
     )
     UtilsValidation._validate_mask_rasters(
         include_touched_pixels=include_touched_pixels,
@@ -561,21 +579,17 @@ def mask_rasters(
 
     # Determine multiprocessing and worker count
     image_backend = "thread" # "thread" or "process"
-    image_threads_on, image_thread_workers = _resolve_parallel_config(image_threads)
-    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
-
-    mode, per_image_cutlines, original_vector_path, field_given = _prepare_cutline_sources(
-        vector_mask, input_image_names, debug_logs
+    image_threads_on, image_thread_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
     )
+    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
     args = [
         (
             input_image_paths[i],
             output_image_paths[i],
             input_image_names[i],
-            mode,
-            (per_image_cutlines[input_image_names[i]] if field_given else original_vector_path),
-            field_given,
+            vector_mask,
             debug_logs,
             include_touched_pixels,
             custom_nodata_value,
@@ -588,7 +602,12 @@ def mask_rasters(
     ]
 
     if image_threads_on:
-        with _get_executor(image_backend, image_thread_workers) as executor:
+        with _get_executor(
+            image_backend,
+            image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as executor:
             futures = [executor.submit(_mask_raster_process_image, *arg) for arg in args]
             for future in as_completed(futures):
                 future.result()
@@ -603,9 +622,7 @@ def _mask_raster_process_image(
     input_image_path: str,
     output_image_path: str,
     image_name: str,
-    mode: str | None,
-    cutline_path: str | None,
-    field_given: bool,
+    vector_mask: Universal.VectorMask,
     debug_logs: bool,
     include_touched_pixels: bool,
     custom_nodata_value: Universal.CustomNodataValue,
@@ -620,9 +637,7 @@ def _mask_raster_process_image(
         input_image_path (str): Path to the input raster.
         output_image_path (str): Path to the output masked raster.
         image_name (str): Short name for logging/debugging.
-        mode (str | None): Weather to "include" or "exclude".
-        cutline_path (str | None): Path to the cutline.
-        field_given (bool): If a filter field was provided.
+        vector_mask: Cutline mode, source path, and optional basename field.
         debug_logs (bool): If True, prints processing information.
         include_touched_pixels (bool): If True, enables CUTLINE_ALL_TOUCHED for Warp.
         custom_nodata_value (Universal.CustomNodataValue): Nodata value for masked-out pixels.
@@ -656,11 +671,12 @@ def _mask_raster_process_image(
         warp_options["multithread"] = True
         warp_options["warpOptions"].append(f"NUM_THREADS={tile_threads}")
 
-    if cutline_path:
+    mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
+    if cutline_options:
         invert = (mode == "exclude")
         warp_options.update({
-            "cutlineDSName": cutline_path,
-            "cropToCutline": not invert if field_given else not invert,  # same behavior
+            **cutline_options,
+            "cropToCutline": not invert,
             "cutlineBlend": 0,
             "dstAlpha": False,
             "copyMetadata": True,
@@ -672,136 +688,80 @@ def _mask_raster_process_image(
     gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options))
 
 
-def _prepare_cutline_sources(vector_mask, image_names, debug_logs=False):
-    """
-    Returns: (mode, per_image_path_or_None, original_vector_path, field_given)
-      - If field is given: dict[image_name] -> '/vsimem/<name>.geojson' or None if no match
-      - If no field: returns None dict, and you should pass the original vector as-is.
-    """
-    if not vector_mask:
-        return None, None, None, False
-
-    mode, vector_path, *maybe_field = vector_mask
-    field_given = bool(maybe_field)
-    if not field_given:
-        return mode, None, vector_path, False
-
-    field_name = maybe_field[0]
-    vds = ogr.Open(vector_path)
-    if vds is None:
-        raise RuntimeError(f"Failed to open vector: {vector_path}")
-    layer = vds.GetLayer(0)
-    layer_srs = layer.GetSpatialRef()
-    defn = layer.GetLayerDefn()
-    fidx = defn.GetFieldIndex(field_name)
-    if fidx < 0:
-        raise ValueError(f"Field '{field_name}' not found in {vector_path}")
-
-    wanted = set(image_names)
-    out = {name: None for name in image_names}
-
-    drv = ogr.GetDriverByName("GeoJSON")
-    for feat in layer:
-        key = str(feat.GetField(fidx))
-        if key not in wanted:
-            continue
-        geom = feat.GetGeometryRef()
-        if not geom or geom.IsEmpty():
-            continue
-        # write single-feature GeoJSON in /vsimem
-        vs = f"/vsimem/{key}_cut.geojson"
-        try:
-            drv.DeleteDataSource(vs)
-        except:
-            pass
-        ds = drv.CreateDataSource(vs)
-        lyr = ds.CreateLayer("cut", srs=layer_srs, geom_type=geom.GetGeometryType())
-        of = ogr.Feature(lyr.GetLayerDefn()); of.SetGeometry(geom.Clone())
-        lyr.CreateFeature(of); of = None; ds = None
-        out[key] = vs
-        if debug_logs:
-            print(f"cutline[{key}] -> {vs}")
-
-    return mode, out, vector_path, True
-
-
-def _create_masked_vrts(
-    input_image_path_pairs: Dict[str, str],
+def _create_masked_vrt(
+    image_name: str,
+    image_path: str,
     *,
     vector_mask: Universal.VectorMask = None,
     nodata_value: Optional[float] = None,
-    out_dir: Optional[str] = None,
+    out_dir: str,
     debug_logs: bool = False,
-) -> Dict[str, str]:
+) -> str:
 
-    workdir = out_dir or tempfile.mkdtemp(prefix="spectralmatch_masks_")
+    workdir = out_dir
     if debug_logs: print(f"Creating VRTs: {workdir}")
 
     # Pre-parse mask configuration once
-    mask_mode = None
-    mask_path = None
-    mask_field = None
+    mask_mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
 
-    if vector_mask:
-        mask_mode, mask_path, *field = vector_mask
-        mask_field = field[0] if field else None
+    if debug_logs:
+        print(f"    {image_name}")
 
-    out_vrts: Dict[str, str] = {}
+    src = gdal.Open(image_path, gdal.GA_ReadOnly)
+    if src is None:
+        raise RuntimeError(f"Could not open {image_path}")
+    dst_wkt = src.GetProjectionRef() or ""
+    src = None
 
-    for image_name, image_path in input_image_path_pairs.items():
+    vrt_path = os.path.join(workdir, f"vrt_{image_name}.vrt")
+    warp_kwargs = {
+        "format": "VRT",
+        "dstSRS": dst_wkt or None,
+        "dstAlpha": True,
+        "dstNodata": nodata_value,
+        "cropToCutline": False,
+        "resampleAlg": gdal.GRA_NearestNeighbour,
+        "multithread": True,
+        "warpOptions": [
+            "SKIP_NOSOURCE=YES",
+            "NUM_THREADS=ALL_CPUS",
+            "UNIFIED_SRC_NODATA=YES",
+        ],
+    }
 
-        if debug_logs:
-            print(f"    {image_name}")
+    if cutline_options:
+        warp_kwargs.update(cutline_options)
+        if mask_mode == "exclude":
+            warp_kwargs["warpOptions"].append("CUTLINE_INVERT=YES")
 
-        src = gdal.Open(image_path, gdal.GA_ReadOnly)
-        if src is None:
-            raise RuntimeError(f"Could not open {image_path}")
+    out_ds = gdal.Warp(vrt_path, image_path, options=gdal.WarpOptions(**warp_kwargs))
+    if out_ds is None:
+        raise RuntimeError(f"Failed to build masked VRT for {image_name}")
+    out_ds = None
+    return vrt_path
 
-        dst_wkt = src.GetProjectionRef() or ""
-        src = None
 
-        vrt_path = os.path.join(workdir, f"vrt_{image_name}.vrt")
-
-        warp_kwargs = {
-            "format": "VRT",
-            "dstSRS": dst_wkt or None,
-            "dstAlpha": True,
-            "dstNodata": nodata_value,
-            "cropToCutline": False,
-            "resampleAlg": gdal.GRA_NearestNeighbour,
-            "multithread": True,
-            "warpOptions": [
-                "SKIP_NOSOURCE=YES",
-                "NUM_THREADS=ALL_CPUS",
-                "UNIFIED_SRC_NODATA=YES",
-            ],
-        }
-
-        # Attach cutline
-        if mask_path:
-            warp_kwargs["cutlineDSName"] = mask_path
-
-            # Attribute filter
-            if mask_field:
-                safe_name = image_name.replace("'", "''")
-                warp_kwargs["cutlineWhere"] = (
-                    f"{mask_field} LIKE '%{safe_name}%'"
-                )
-
-            # Exclude mode uses invert flag
-            if mask_mode == "exclude":
-                warp_kwargs["warpOptions"].append("CUTLINE_INVERT=YES")
-
-        warp_opts = gdal.WarpOptions(**warp_kwargs)
-
-        out_ds = gdal.Warp(vrt_path, image_path, options=warp_opts)
-        if out_ds is None:
-            raise RuntimeError(f"Failed to build masked VRT for {image_name}")
-
-        out_ds = None
-        out_vrts[image_name] = vrt_path
-
-    return out_vrts
+def _resolve_cutline_options(vector_mask, image_name):
+    """Return GDAL cutline options for one image without creating temporary data."""
+    if not vector_mask:
+        return None, {}
+    mode, path, *field = vector_mask
+    options = {"cutlineDSName": path}
+    if field:
+        vector = ogr.Open(path)
+        if vector is None:
+            raise RuntimeError(f"Could not open cutline dataset: {path}")
+        layer = vector.GetLayer(0)
+        if layer is None or layer.GetLayerDefn().GetFieldIndex(field[0]) < 0:
+            raise ValueError(f"Cutline field '{field[0]}' was not found in {path}")
+        safe_name = image_name.replace("'", "''")
+        safe_field = field[0].replace('"', '""')
+        where = f'"{safe_field}" LIKE \'%{safe_name}%\''
+        layer.SetAttributeFilter(where)
+        if layer.GetFeatureCount() == 0:
+            return None, {}
+        options["cutlineWhere"] = where
+    return mode, options
 
 
 def _set_gdal_cache(
@@ -974,6 +934,8 @@ def compute_overviews(
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
+    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
+    dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: bool = False,
 ):
     """
@@ -987,6 +949,8 @@ def compute_overviews(
         image_threads: Number of parallel workers for image-level processing.
         io_threads: GDAL IO worker configuration.
         tile_threads: GDAL internal threads for overview computation.
+        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
+        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         debug_logs: Enable verbose logging.
 
     Returns:
@@ -1003,27 +967,9 @@ def compute_overviews(
         image_threads=image_threads,
         io_threads=io_threads,
         tile_threads=tile_threads,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
     )
-
-    # Worker
-    def _process_image_overview(path: str):
-        ds = gdal.Open(path, gdal.GA_Update)
-        if ds is None:
-            raise RuntimeError(f"Cannot open {path}")
-
-        opts = []
-        if tile_thread_on:
-            opts.append(f"NUM_THREADS={tile_workers}")
-
-        ds.BuildOverviews(
-            "AVERAGE",
-            window_scales,
-            options=opts,
-        )
-        ds = None
-
-        if debug_logs:
-            print(f"Overviews built for: {path}")
 
     def _copy_files_if_needed(
             src_paths: List[str],
@@ -1070,18 +1016,40 @@ def compute_overviews(
     _set_gdal_workers(io_threads, debug_logs)
 
     image_backend = "thread"
-    image_threads_on, image_workers = _resolve_parallel_config(image_threads)
+    image_threads_on, image_workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
     tile_thread_on, tile_workers = _resolve_parallel_config(tile_threads)
 
 
     # Execute
     if image_threads_on:
-        with _get_executor(image_backend, image_workers) as ex:
-            futures = [ex.submit(_process_image_overview, p) for p in target_paths]
+        with _get_executor(
+            image_backend,
+            image_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler,
+        ) as ex:
+            futures = [
+                ex.submit(_process_image_overview, p, window_scales, tile_thread_on, tile_workers, debug_logs)
+                for p in target_paths
+            ]
             for f in as_completed(futures):
                 f.result()
     else:
         for p in target_paths:
-            _process_image_overview(p)
+            _process_image_overview(p, window_scales, tile_thread_on, tile_workers, debug_logs)
 
     return target_paths
+
+
+def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, debug_logs):
+    """Build overviews for one image; kept top-level for distributed serialization."""
+    dataset = gdal.Open(path, gdal.GA_Update)
+    if dataset is None:
+        raise RuntimeError(f"Cannot open {path}")
+    options = [f"NUM_THREADS={tile_workers}"] if tile_threads_on else []
+    dataset.BuildOverviews("AVERAGE", window_scales, options=options)
+    dataset = None
+    if debug_logs:
+        print(f"Overviews built for: {path}")
