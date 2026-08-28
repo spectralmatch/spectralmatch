@@ -1,3 +1,4 @@
+import math
 from typing import Tuple, List, Literal, Optional
 
 _UNSET = object()
@@ -17,6 +18,7 @@ class Universal:
     CalculationDtype = str
     CustomOutputDtype = str | None
     CreateNameAttribute: Tuple[str, str] | None
+    Resolution = Literal["highest", "average", "lowest"] | float | None
 
     @staticmethod
     def _validate(
@@ -161,6 +163,116 @@ def _validate_threads(x, name):
     raise ValueError(f'{name} must be "cpu", an int, or None.')
 
 
+def _validate_output_grid(*, tap=_UNSET, resolution=_UNSET):
+    if tap is not _UNSET and not isinstance(tap, bool):
+        raise ValueError("tap must be a boolean.")
+    if resolution is _UNSET or resolution is None:
+        return
+    if isinstance(resolution, str) and resolution in {"highest", "average", "lowest"}:
+        return
+    if (
+        isinstance(resolution, float)
+        and math.isfinite(resolution)
+        and resolution > 0
+    ):
+        return
+    raise ValueError(
+        "resolution must be 'highest', 'average', 'lowest', a positive float, or None."
+    )
+
+
+class JointCoregistration:
+    @staticmethod
+    def _validate(
+        *,
+        global_model,
+        global_image_position_preservation_weights,
+        global_tie_point_alignment_strength,
+        local_model,
+        local_image_position_preservation_weights,
+        local_tie_point_alignment_strength,
+        local_grid_spacing,
+        local_smoothness_weight,
+        local_bending_weight,
+        local_anchor_falloff_distance,
+        feature_method,
+        maximum_tie_point_displacement,
+        ransac_reprojection_threshold,
+        robust_loss,
+        robust_loss_scale,
+        resampling_method,
+        tap,
+        resolution,
+        build_overviews,
+        save_adjustments,
+        load_adjustments,
+        resume_from_outputs,
+    ):
+        if global_model not in {"none", "translation", "similarity", "affine"}:
+            raise ValueError("global_model must be 'none', 'translation', 'similarity', or 'affine'.")
+        if local_model not in {"none", "bilinear", "piecewise_affine"}:
+            raise ValueError("local_model must be 'none', 'bilinear', or 'piecewise_affine'.")
+        for name, value in (
+            ("global_tie_point_alignment_strength", global_tie_point_alignment_strength),
+            ("local_tie_point_alignment_strength", local_tie_point_alignment_strength),
+        ):
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError(f"{name} must be a number from 0 to 1.")
+        for name, weights in (
+            ("global_image_position_preservation_weights", global_image_position_preservation_weights),
+            ("local_image_position_preservation_weights", local_image_position_preservation_weights),
+        ):
+            if weights is not None and (
+                not isinstance(weights, dict)
+                or not all(isinstance(key, str) for key in weights)
+                or not all(
+                    isinstance(value, (int, float))
+                    and not isinstance(value, bool)
+                    and math.isfinite(value)
+                    and value > 0
+                    for value in weights.values()
+                )
+            ):
+                raise ValueError(f"{name} must be a dictionary of basename: positive-number values or None.")
+        for name, value, allow_zero in (
+            ("local_grid_spacing", local_grid_spacing, False),
+            ("local_smoothness_weight", local_smoothness_weight, True),
+            ("local_bending_weight", local_bending_weight, True),
+            ("local_anchor_falloff_distance", local_anchor_falloff_distance, False),
+        ):
+            valid = isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+            valid = valid and (value >= 0 if allow_zero else value > 0)
+            if not valid:
+                qualifier = "non-negative" if allow_zero else "positive"
+                raise ValueError(f"{name} must be a {qualifier} number.")
+        for name, value in (
+            ("maximum_tie_point_displacement", maximum_tie_point_displacement),
+            ("ransac_reprojection_threshold", ransac_reprojection_threshold),
+            ("robust_loss_scale", robust_loss_scale),
+        ):
+            if value is not None and (
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(value)
+                or value <= 0
+            ):
+                raise ValueError(f"{name} must be a positive number or None.")
+        if feature_method != "orb":
+            raise ValueError("Only feature_method='orb' is currently supported.")
+        if robust_loss not in {"none", "huber", "soft_l1", "cauchy"}:
+            raise ValueError("robust_loss must be 'none', 'huber', 'soft_l1', or 'cauchy'.")
+        if resampling_method not in {"nearest", "bilinear", "cubic", "lanczos"}:
+            raise ValueError("resampling_method must be 'nearest', 'bilinear', 'cubic', or 'lanczos'.")
+        _validate_output_grid(tap=tap, resolution=resolution)
+        if not isinstance(build_overviews, bool):
+            raise ValueError("build_overviews must be a boolean.")
+        for name, value in (("save_adjustments", save_adjustments), ("load_adjustments", load_adjustments)):
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"{name} must be a string or None.")
+        if resume_from_outputs not in {"no", "yes", "validate"}:
+            raise ValueError("resume_from_outputs must be 'no', 'yes', or 'validate'.")
+
+
 # Match-specific only
 class Match:
     SpecifyModelImages = Tuple[Literal["exclude", "include"], List[str]] | None
@@ -191,6 +303,7 @@ class Match:
         load_adjustments=_UNSET,
         pif_method=_UNSET,
         pif_feature_method=_UNSET,
+        pif_load_tie_points=_UNSET,
         pif_save_inz=_UNSET,
     ):
         if pif_method is not _UNSET:
@@ -215,6 +328,14 @@ class Match:
         if load_adjustments is not _UNSET and load_adjustments is not None:
             if not isinstance(load_adjustments, str):
                 raise ValueError("load_adjustments must be a string or None.")
+
+        if pif_load_tie_points is not _UNSET and pif_load_tie_points is not None:
+            if not isinstance(pif_load_tie_points, str):
+                raise ValueError("pif_load_tie_points must be a string or None.")
+            if pif_method is _UNSET or pif_method != "flood_from_match_points":
+                raise ValueError(
+                    "pif_load_tie_points requires pif_method='flood_from_match_points'."
+                )
 
         if pif_save_inz is not _UNSET and pif_save_inz is not None:
             if not isinstance(pif_save_inz, str):
@@ -368,13 +489,9 @@ class Utils:
                     "resampling_method must be one of 'nearest', 'bilinear', or 'cubic'."
                 )
         if tap is not _UNSET:
-            if not isinstance(tap, bool):
-                raise ValueError("tap must be a boolean.")
+            _validate_output_grid(tap=tap)
         if resolution is not _UNSET:
-            if resolution not in {"highest", "average", "lowest"}:
-                raise ValueError(
-                    "resolution must be one of 'highest', 'average', or 'lowest'."
-                )
+            _validate_output_grid(resolution=resolution)
 
     @staticmethod
     def _validate_mask_rasters(

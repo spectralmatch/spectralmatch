@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from .handlers import _resolve_paths
+from .joint_coregistration import joint_coregistration
 from .match.match import Match
 from .seamline.seamline import Seamline
 from .types_and_validation import Universal, Pipeline as PipelineValidation
@@ -17,6 +18,7 @@ from .utils import align_rasters, mask_rasters, merge_rasters
 AutoCache = Universal.Cache | Literal["auto"]
 AutoThreads = Universal.Threads | Literal["auto"]
 PipelineStep = Literal[
+    "joint_coregistration",
     "global_regression",
     "local_block_adjustment",
     "align",
@@ -25,8 +27,19 @@ PipelineStep = Literal[
     "mask",
     "merge",
 ]
+PIPELINE_STEP_ORDER: tuple[PipelineStep, ...] = (
+    "joint_coregistration",
+    "align",
+    "global_regression",
+    "local_block_adjustment",
+    "voronoi_center_seamline",
+    "weighted_seamline",
+    "mask",
+    "merge",
+)
 
 MULTI_RASTER_STEPS = {
+    "joint_coregistration",
     "global_regression",
     "local_block_adjustment",
     "align",
@@ -34,14 +47,15 @@ MULTI_RASTER_STEPS = {
 }
 SEAMLINE_STEPS = {"voronoi_center_seamline", "weighted_seamline"}
 DEFAULT_PIPELINE_STEPS: tuple[PipelineStep, ...] = (
+    "joint_coregistration",
     "global_regression",
     "local_block_adjustment",
-    "align",
     "voronoi_center_seamline",
     "mask",
     "merge",
 )
 STEP_TEMP_OUTPUTS = {
+    "joint_coregistration": os.path.join("coregistered"),
     "global_regression": os.path.join("global"),
     "local_block_adjustment": os.path.join("local"),
     "align": os.path.join("aligned"),
@@ -70,6 +84,30 @@ def pipeline(
     shared_output_dtype: Universal.CustomOutputDtype = None,
     shared_save_as_cog: Universal.SaveAsCog = False,
     steps: list[PipelineStep] | tuple[PipelineStep, ...] = DEFAULT_PIPELINE_STEPS,
+    joint_coregistration_global_model: Literal["none", "translation", "similarity", "affine"] = "translation",
+    joint_coregistration_global_image_position_preservation_weights: dict[str, float] | None = None,
+    joint_coregistration_global_tie_point_alignment_strength: float = 1.0,
+    joint_coregistration_local_model: Literal["none", "bilinear", "piecewise_affine"] = "piecewise_affine",
+    joint_coregistration_local_image_position_preservation_weights: dict[str, float] | None = None,
+    joint_coregistration_local_tie_point_alignment_strength: float = 1.0,
+    joint_coregistration_local_grid_spacing: float = 500.0,
+    joint_coregistration_local_smoothness_weight: float = 1.0,
+    joint_coregistration_local_bending_weight: float = 1.0,
+    joint_coregistration_local_anchor_falloff_distance: float = 500.0,
+    joint_coregistration_feature_method: Literal["orb"] = "orb",
+    joint_coregistration_maximum_tie_point_displacement: float | None = None,
+    joint_coregistration_ransac_reprojection_threshold: float | None = None,
+    joint_coregistration_robust_loss: Literal["none", "huber", "soft_l1", "cauchy"] = "huber",
+    joint_coregistration_robust_loss_scale: float | None = None,
+    joint_coregistration_save_adjustments: str | None = None,
+    joint_coregistration_load_adjustments: str | None = None,
+    joint_coregistration_resampling_method: Literal["nearest", "bilinear", "cubic", "lanczos"] = "bilinear",
+    joint_coregistration_tap: bool = False,
+    joint_coregistration_resolution: Universal.Resolution = None,
+    joint_coregistration_build_overviews: bool = False,
+    align_rasters_resampling_method: Literal["nearest", "bilinear", "cubic"] = "bilinear",
+    align_rasters_tap: bool = False,
+    align_rasters_resolution: Universal.Resolution = None,
     global_regression_vector_mask: Universal.VectorMask = None,
     global_regression_estimate_stats: bool = True,
     global_regression_specify_model_images: tuple[Literal["exclude", "include"], list[str]] | None = None,
@@ -86,6 +124,7 @@ def pipeline(
     global_regression_pif_max_samples: int | None = 100000,
     global_regression_pif_min_samples: int | None = 32,
     global_regression_pif_feature_method: Literal["orb"] = "orb",
+    global_regression_pif_load_tie_points: str | None = None,
     global_regression_pif_save_inz: str | None = None,
     global_regression_build_overviews: bool = False,
     local_block_adjustment_vector_mask: Universal.VectorMask = None,
@@ -96,9 +135,6 @@ def pipeline(
     local_block_adjustment_load_block_maps: tuple[str | None, list[str] | None] | None = None,
     local_block_adjustment_override_bounds_canvas_coords: tuple[float, float, float, float] | None = None,
     local_block_adjustment_build_overviews: bool = False,
-    align_rasters_resampling_method: Literal["nearest", "bilinear", "cubic"] = "bilinear",
-    align_rasters_tap: bool = True,
-    align_rasters_resolution: Literal["highest", "average", "lowest"] = "highest",
     voronoi_center_seamline_aoi_path: str | None = None,
     voronoi_center_seamline_vector_mask: tuple[str, str] | None = None,
     voronoi_center_seamline_image_field_name: str = "image",
@@ -203,7 +239,53 @@ def pipeline(
             is_last_step = step_index == len(resolved_steps) - 1
             step_cleanup_paths: list[str] = []
 
-            if step_name == "global_regression":
+            if step_name == "joint_coregistration":
+                output_images = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                current_images = joint_coregistration(
+                    input_images=current_images,
+                    output_images=output_images,
+                    global_model=joint_coregistration_global_model,
+                    global_image_position_preservation_weights=joint_coregistration_global_image_position_preservation_weights,
+                    global_tie_point_alignment_strength=joint_coregistration_global_tie_point_alignment_strength,
+                    local_model=joint_coregistration_local_model,
+                    local_image_position_preservation_weights=joint_coregistration_local_image_position_preservation_weights,
+                    local_tie_point_alignment_strength=joint_coregistration_local_tie_point_alignment_strength,
+                    local_grid_spacing=joint_coregistration_local_grid_spacing,
+                    local_smoothness_weight=joint_coregistration_local_smoothness_weight,
+                    local_bending_weight=joint_coregistration_local_bending_weight,
+                    local_anchor_falloff_distance=joint_coregistration_local_anchor_falloff_distance,
+                    feature_method=joint_coregistration_feature_method,
+                    maximum_tie_point_displacement=joint_coregistration_maximum_tie_point_displacement,
+                    ransac_reprojection_threshold=joint_coregistration_ransac_reprojection_threshold,
+                    robust_loss=joint_coregistration_robust_loss,
+                    robust_loss_scale=joint_coregistration_robust_loss_scale,
+                    save_adjustments=joint_coregistration_save_adjustments,
+                    load_adjustments=joint_coregistration_load_adjustments,
+                    resampling_method=joint_coregistration_resampling_method,
+                    tap=joint_coregistration_tap,
+                    resolution=joint_coregistration_resolution,
+                    output_dtype=shared_output_dtype,
+                    custom_nodata_value=shared_custom_nodata_value,
+                    window_size=shared_window_size,
+                    save_as_cog=shared_save_as_cog,
+                    build_overviews=joint_coregistration_build_overviews,
+                    cache=shared_cache,
+                    image_threads=shared_image_threads,
+                    io_threads=shared_io_threads,
+                    tile_threads=shared_tile_threads,
+                    debug_logs=shared_debug_logs,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                results["joint_coregistration"] = current_images
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, current_images, temp_dir
+                )
+
+            elif step_name == "global_regression":
                 output_images = (
                     shared_output_image_path
                     if is_last_step
@@ -238,6 +320,7 @@ def pipeline(
                     pif_max_samples=global_regression_pif_max_samples,
                     pif_min_samples=global_regression_pif_min_samples,
                     pif_feature_method=global_regression_pif_feature_method,
+                    pif_load_tie_points=global_regression_pif_load_tie_points,
                     pif_save_inz=global_regression_pif_save_inz,
                     build_overviews=global_regression_build_overviews,
                     resume_from_outputs=shared_resume_from_steps,
@@ -477,7 +560,7 @@ def _validate_pipeline_steps(
     if not isinstance(steps, (list, tuple)):
         raise ValueError("steps must be a list or tuple of pipeline step names.")
     resolved_steps = list(steps)
-    allowed_steps = set(DEFAULT_PIPELINE_STEPS) | SEAMLINE_STEPS
+    allowed_steps = set(PIPELINE_STEP_ORDER)
     for step_name in resolved_steps:
         if step_name not in allowed_steps:
             raise ValueError(f"Unsupported pipeline step: {step_name}")

@@ -7,7 +7,7 @@ from html import escape
 import numpy as np
 from osgeo import gdal
 
-from ..geometric_correction import geometric_correction
+from ..joint_coregistration.joint_coregistration import _coregister_overlap, _load_tie_points
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths
 from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal
@@ -37,6 +37,7 @@ class Pif:
         custom_mean_factor: float = 1.0,
         custom_std_factor: float = 1.0,
         feature_method: Literal["orb"] = "orb",
+        load_tie_points: str | None = None,
         cache: Universal.Cache = None,
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
@@ -48,6 +49,11 @@ class Pif:
         Generate correction parameters using PIFs flooded from matched points.
 
         This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.
+
+        ``load_tie_points`` accepts the compact JSON written by
+        ``joint_coregistration``. Every processed overlap pair must contain at
+        least three usable loaded points; otherwise an error is raised.
+        Basenames and source pixel grids must match the current inputs.
 
         Returns:
             np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
@@ -61,6 +67,8 @@ class Pif:
         )
         if not input_image_paths:
             raise ValueError("No input images found for flood_from_match_points.")
+        if load_tie_points is not None and not isinstance(load_tie_points, str):
+            raise ValueError("load_tie_points must be a string or None.")
 
         _check_raster_requirements(
             input_image_paths,
@@ -75,6 +83,8 @@ class Pif:
             input_image_names = _resolve_paths("name", input_image_paths)
         if included_names is None:
             included_names = list(input_image_names)
+
+        loaded_tie_points = _load_tie_points(load_tie_points) if load_tie_points else {}
 
         _set_gdal_cache(cache, debug_logs)
         _set_gdal_workers(io_threads, debug_logs)
@@ -93,6 +103,12 @@ class Pif:
                 for name, path in image_path_pairs.items()
             }
             overlapping_pairs = _find_overlaps(bounds)
+        if debug_logs and load_tie_points:
+            current_pairs = {tuple(sorted(pair)) for pair in overlapping_pairs}
+            print(
+                "Loaded tie-point pairs matching PIF overlaps: "
+                f"{len(current_pairs & set(loaded_tie_points))}/{len(current_pairs)}"
+            )
 
         all_overlap_stats = {}
         all_whole_stats = {}
@@ -102,6 +118,15 @@ class Pif:
                 continue
             if name_i not in included_names and name_j not in included_names:
                 continue
+            source_tie_points = _loaded_points_for_pair(loaded_tie_points, name_i, name_j)
+            if load_tie_points and source_tie_points is None:
+                raise ValueError(
+                    f"Loaded tie-point JSON is missing overlap pair: {name_i} <-> {name_j}."
+                )
+            if load_tie_points and len(source_tie_points) < 3:
+                raise ValueError(
+                    f"Loaded tie-point pair {name_i} <-> {name_j} must contain at least 3 points."
+                )
             parallel_args.append(
                 (
                     image_path_pairs[name_i],
@@ -119,6 +144,7 @@ class Pif:
                     max_samples,
                     min_samples,
                     feature_method,
+                    source_tie_points,
                     cache,
                     io_threads,
                     tile_threads,
@@ -197,6 +223,14 @@ def _find_overlaps(
     return tuple(overlaps)
 
 
+def _loaded_points_for_pair(loaded, name_i: str, name_j: str):
+    pair = tuple(sorted((name_i, name_j)))
+    points = loaded.get(pair)
+    if points is None or pair == (name_i, name_j):
+        return points
+    return points[:, [2, 3, 0, 1]]
+
+
 def _merge_whole_stat_updates(
     all_whole_stats: dict,
     updates: dict[str, dict[int, dict[str, float | int]]],
@@ -206,6 +240,68 @@ def _merge_whole_stat_updates(
         for band_index, stats in band_values.items():
             all_whole_stats[name].setdefault(band_index, [])
             all_whole_stats[name][band_index].append(stats)
+
+
+def _source_tie_points_to_overlap_pairs(
+    source_tie_points,
+    reference_path,
+    sensed_path,
+    reference_overlap_path,
+    sensed_overlap_path,
+    valid_mask_path,
+):
+    if source_tie_points is None:
+        return []
+    points = np.asarray(source_tie_points, dtype=float)
+    if points.ndim != 2 or points.shape[1] != 4 or not np.isfinite(points).all():
+        raise ValueError("Loaded tie points must contain finite pixel-coordinate quadruples.")
+    reference_grid = _raster_grid(reference_path)
+    sensed_grid = _raster_grid(sensed_path)
+    reference_overlap_grid = _raster_grid(reference_overlap_path)
+    sensed_overlap_grid = _raster_grid(sensed_overlap_path)
+    reference_inverse = gdal.InvGeoTransform(reference_overlap_grid[0])
+    sensed_inverse = gdal.InvGeoTransform(sensed_overlap_grid[0])
+    valid_mask = _read_mask(valid_mask_path)
+    converted = []
+    for ref_col, ref_row, sensed_col, sensed_row in points:
+        if not _pixel_is_inside(ref_col, ref_row, reference_grid[1:]):
+            continue
+        if not _pixel_is_inside(sensed_col, sensed_row, sensed_grid[1:]):
+            continue
+        out_ref_row, out_ref_col = _pixel_between_grids(
+            reference_grid[0], reference_inverse, ref_col, ref_row
+        )
+        out_sensed_row, out_sensed_col = _pixel_between_grids(
+            sensed_grid[0], sensed_inverse, sensed_col, sensed_row
+        )
+        if abs(out_ref_col - out_sensed_col) > 20 or abs(out_ref_row - out_sensed_row) > 20:
+            continue
+        if not _pixel_is_inside(out_ref_col, out_ref_row, (valid_mask.shape[1], valid_mask.shape[0])):
+            continue
+        if not _pixel_is_inside(out_sensed_col, out_sensed_row, (valid_mask.shape[1], valid_mask.shape[0])):
+            continue
+        if valid_mask[out_ref_row, out_ref_col] and valid_mask[out_sensed_row, out_sensed_col]:
+            converted.append((out_ref_row, out_ref_col, out_sensed_row, out_sensed_col))
+    return converted
+
+
+def _raster_grid(path):
+    dataset = gdal.Open(path, gdal.GA_ReadOnly)
+    if dataset is None:
+        raise RuntimeError(f"Could not open raster for tie-point conversion: {path}")
+    grid = (tuple(dataset.GetGeoTransform()), dataset.RasterXSize, dataset.RasterYSize)
+    dataset = None
+    return grid
+
+
+def _pixel_between_grids(source_transform, destination_inverse, column, row):
+    x, y = gdal.ApplyGeoTransform(source_transform, column + 0.5, row + 0.5)
+    destination_column, destination_row = gdal.ApplyGeoTransform(destination_inverse, x, y)
+    return int(round(destination_row - 0.5)), int(round(destination_column - 0.5))
+
+
+def _pixel_is_inside(column, row, size):
+    return 0 <= column < size[0] and 0 <= row < size[1]
 
 
 def _calculate_pair_pif_stats(
@@ -224,6 +320,7 @@ def _calculate_pair_pif_stats(
     max_samples: int | None,
     min_samples: int | None,
     feature_method: str,
+    source_tie_points: np.ndarray | None,
     cache,
     io_threads,
     tile_threads,
@@ -251,12 +348,28 @@ def _calculate_pair_pif_stats(
             projection,
             tmpdir,
         )
+        loaded_point_pairs = _source_tie_points_to_overlap_pairs(
+            source_tie_points,
+            reference_path,
+            sensed_path,
+            ref_vrt,
+            sensed_vrt,
+            valid_mask_path,
+        )
+        if source_tie_points is not None and len(loaded_point_pairs) < 3:
+            raise ValueError(
+                f"Loaded tie-point pair {reference_name} <-> {sensed_name} has fewer than "
+                "3 usable points after overlap validation."
+            )
+        if debug_logs and source_tie_points is not None:
+            print(f"    Reusing loaded tie points: {len(loaded_point_pairs)}")
         corrected_sensed_path = os.path.join(tmpdir, "sensed_overlap_corrected.tif")
-        corrected_sensed_path, point_pairs = geometric_correction(
+        corrected_sensed_path, point_pairs = _coregister_overlap(
             ref_vrt,
             sensed_vrt,
             corrected_sensed_path,
             valid_mask_path=valid_mask_path,
+            tie_point_pairs=loaded_point_pairs if source_tie_points is not None else None,
             feature_method=feature_method,
             cache=cache,
             io_threads=io_threads,
@@ -331,8 +444,12 @@ def _calculate_pair_pif_stats(
         pair_stats = {reference_name: {sensed_name: {}}, sensed_name: {reference_name: {}}}
         whole_updates = {reference_name: {}, sensed_name: {}}
         for band_index in range(num_bands):
-            ref_stats = _masked_band_stats(ref_vrt, band_index + 1, pif_mask_path)
-            sensed_stats = _masked_band_stats(corrected_sensed_path, band_index + 1, pif_mask_path)
+            ref_stats = _masked_band_stats(
+                ref_vrt, band_index + 1, pif_mask_path, pif_count
+            )
+            sensed_stats = _masked_band_stats(
+                corrected_sensed_path, band_index + 1, pif_mask_path, pif_count
+            )
             if min_samples is not None and ref_stats["size"] < min_samples:
                 raise ValueError(
                     f"Band {band_index + 1} has {ref_stats['size']} flood_from_match_points PIF "
@@ -712,8 +829,20 @@ def _combine_masks_raster(
 
 
 def _count_mask_pixels(mask_path: str) -> int:
-    mask = _read_mask(mask_path)
-    return int(np.count_nonzero(mask))
+    dataset = gdal.Open(mask_path, gdal.GA_ReadOnly)
+    if dataset is None:
+        raise RuntimeError(f"Could not open mask raster: {mask_path}")
+    histogram = dataset.GetRasterBand(1).GetHistogram(
+        min=-0.5,
+        max=1.5,
+        buckets=2,
+        include_out_of_range=0,
+        approx_ok=0,
+    )
+    dataset = None
+    if histogram is None:
+        raise RuntimeError(f"Could not count mask pixels: {mask_path}")
+    return int(histogram[1])
 
 
 def _sample_mask_raster(
@@ -759,6 +888,7 @@ def _masked_band_stats(
     raster_path: str,
     band_index: int,
     mask_path: str,
+    mask_pixel_count: int | None = None,
 ) -> dict[str, float | int]:
     raster_ds = gdal.Open(raster_path, gdal.GA_ReadOnly)
     mask_ds = gdal.Open(mask_path, gdal.GA_ReadOnly)
@@ -798,5 +928,9 @@ def _masked_band_stats(
     return {
         "mean": float(mean),
         "std": float(std),
-        "size": _count_mask_pixels(mask_path),
+        "size": (
+            int(mask_pixel_count)
+            if mask_pixel_count is not None
+            else _count_mask_pixels(mask_path)
+        ),
     }

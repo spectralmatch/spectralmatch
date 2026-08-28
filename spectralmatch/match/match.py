@@ -171,6 +171,7 @@ class Match:
         pif_max_samples: int | None = 10000,
         pif_min_samples: int | None = 10,
         pif_feature_method: Literal["orb"] = "orb",
+        pif_load_tie_points: str | None = None,
         pif_save_inz: str | None = None,
         build_overviews: bool = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
@@ -197,15 +198,16 @@ Args:
     custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
     save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
     load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
-    pif_method (Literal["entire", "flood_from_match_points"], optional): Method used to select overlap pixels for the matching solution. Defaults to "entire".
+    pif_method (Literal["entire", "flood_from_match_points"], optional): Method used to select overlap pixels for the matching solution. Defaults to "flood_from_match_points".
     pif_red_band_index (int | None, optional): Index of the red band used for NDVI-based vegetation filtering. Defaults to None.
     pif_nir_band_index (int | None, optional): Index of the NIR band used for NDVI-based vegetation filtering. Defaults to None.
     pif_vegetation_threshold (float, optional): Vegetation threshold used with NDVI filtering. Defaults to 0.2.
     pif_inz_threshold (float, optional): Integrated normalized Z-score threshold used for flood_from_match_points. Defaults to 0.25.
     pif_region_radius (int, optional): Radius used to expand matched points into PIF seed areas. Defaults to 5.
-    pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 100000.
-    pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 32.
+    pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 10000.
+    pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 10.
     pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".
+    pif_load_tie_points (str | None, optional): Compact joint-coregistration tie-point JSON to reuse for matching image pairs on the same named source pixel grids. Requires pif_method="flood_from_match_points" and at least three usable points for every processed overlap pair; invalid or missing pair data raises an error. Defaults to None.
     pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.
     build_overviews (bool, optional): If True, computes overviews. Defaults to False.
 
@@ -223,6 +225,7 @@ Returns:
             load_adjustments=load_adjustments,
             pif_method=pif_method,
             pif_feature_method=pif_feature_method,
+            pif_load_tie_points=pif_load_tie_points,
             pif_save_inz=pif_save_inz,
         )
 
@@ -434,6 +437,7 @@ Returns:
                 max_samples=pif_max_samples,
                 min_samples=pif_min_samples,
                 feature_method=pif_feature_method,
+                load_tie_points=pif_load_tie_points,
                 custom_mean_factor=custom_mean_factor,
                 custom_std_factor=custom_std_factor,
                 debug_logs=debug_logs,

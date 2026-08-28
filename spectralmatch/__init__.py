@@ -5,7 +5,7 @@ from .mask.mask import create_cloud_mask_with_omnicloudmask, band_math
 from .mask.utils_mask import process_raster_values_to_vector_polygons
 from .pif import Pif
 from .chain import pipeline
-from .geometric_correction import geometric_correction
+from .joint_coregistration import joint_coregistration
 from .statistics import (
     compare_image_spectral_profiles_pairs,
     compare_before_after_all_images,
@@ -20,7 +20,7 @@ weighted_seamline = Seamline.weighted
 
 __all__ = [
     "Pif",
-    "geometric_correction",
+    "joint_coregistration",
     "global_regression",
     "local_block_adjustment",
     # Mask

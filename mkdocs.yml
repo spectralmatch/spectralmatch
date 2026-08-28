@@ -58,6 +58,7 @@ nav:
         - Benchmark Multithreading: examples/benchmark.py
     - API Reference:
         - Data Handlers: api/handlers.md
+        - Joint Coregistration: api/joint_coregistration.md
         - Create Masks: api/mask.md
         - Matching Algorithms: api/match.md
         - Create Seamlines: api/seamline.md
