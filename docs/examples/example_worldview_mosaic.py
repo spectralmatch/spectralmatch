@@ -164,12 +164,14 @@ mask_rasters(
 
 merge_rasters(
     input_images=clipped_folder,
-    output_image_path=os.path.join(working_directory, "MergedImage.tif"),
+    # output_image_path=os.path.join(working_directory, "MergedImage.tif"), # Use this for single tif output and set output_tiles=False
+    output_image_path=os.path.join(working_directory, "MergedImage"),
     debug_logs=debug_mode,
     window_size=window_size,
     io_threads=io_threads,
     tile_threads=tile_threads,
     build_overviews=True,
+    output_tiles=True
 )
 
 # %% Pre-coded quick Statistics

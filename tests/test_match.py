@@ -45,6 +45,18 @@ def _global_shared_kwargs(**overrides):
     return kwargs
 
 
+@pytest.mark.parametrize("method", ["global_regression", "local_block_adjustment"])
+def test_match_custom_overview_scales(tmp_path, method):
+    paths, outputs, _, _ = _make_two_test_rasters(tmp_path, [("A", 100), ("B", 120)])
+    options = {"pif_method": "entire"} if method == "global_regression" else {"number_of_blocks": 4}
+    getattr(Match, method)(paths, outputs, build_overviews=True, window_scales=(2, 4), **options)
+    for output in outputs:
+        dataset = gdal.Open(output)
+        band = dataset.GetRasterBand(1)
+        assert band.GetOverviewCount() == 2
+        assert [band.GetOverview(i).XSize for i in range(2)] == [8, 4]
+
+
 # global_regression
 def test_global_regression_full_options_save_model(tmp_path):
     paths, output_paths, _, _ = _make_two_test_rasters(

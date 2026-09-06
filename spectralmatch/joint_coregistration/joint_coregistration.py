@@ -133,6 +133,7 @@ def joint_coregistration(
     window_size: Universal.WindowSize = None,
     save_as_cog: Universal.SaveAsCog = False,
     build_overviews: bool = False,
+    window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
     cache: Universal.Cache = None,
     image_threads: Universal.Threads = None,
     io_threads: Universal.Threads = None,
@@ -177,6 +178,7 @@ def joint_coregistration(
         window_size: Output tile size.
         save_as_cog: Save Cloud-Optimized GeoTIFF outputs.
         build_overviews: Build output overviews.
+        window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
         cache: GDAL cache size in gigabytes.
         image_threads: Parallel workers for overlap matching and output images.
         io_threads: GDAL I/O workers.
@@ -192,6 +194,7 @@ def joint_coregistration(
     print("Start joint coregistration")
     Universal._validate(
         input_images=input_images,
+        window_scales=window_scales,
         output_images=output_images,
         save_as_cog=save_as_cog,
         debug_logs=debug_logs,
@@ -375,9 +378,10 @@ def joint_coregistration(
         for arg in args:
             _apply_alignment_process_image(*arg)
 
-    if build_overviews:
+    if build_overviews and window_scales:
         compute_overviews(
             input_images_paths=output_paths,
+            window_scales=window_scales,
             cache=cache,
             image_threads=image_threads,
             io_threads=io_threads,

@@ -181,6 +181,7 @@ class Match:
         pif_load_tie_points: str | None = None,
         pif_save_inz: str | None = None,
         build_overviews: bool = False,
+        window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> list:
         """Performs global radiometric normalization across overlapping images using least squares regression.
@@ -219,9 +220,11 @@ Args:
     pif_load_tie_points (str | None, optional): Compact joint-coregistration tie-point JSON to reuse for matching image pairs on the same named source pixel grids. Requires pif_method="flood_from_match_points" and at least three usable points for every processed overlap pair; invalid or missing pair data raises an error. Defaults to None.
     pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.
     build_overviews (bool, optional): If True, computes overviews. Defaults to False.
+    window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
 
 Returns:
     List[str]: Paths to the globally adjusted output raster images."""
+        Universal._validate(window_scales=window_scales)
         print("Start global regression")
 
         MatchValidation._validate_match(
@@ -529,9 +532,10 @@ Returns:
             for args in parallel_args:
                 _apply_adjustments_process_image(*args)
 
-        if build_overviews:
+        if build_overviews and window_scales:
             compute_overviews(
                 input_images_paths=output_image_paths,
+                window_scales=window_scales,
                 cache=cache,
                 io_threads=io_threads,
                 image_threads=image_threads,
@@ -570,6 +574,7 @@ Returns:
         ) = None,
         override_bounds_canvas_coords: Tuple[float, float, float, float] | None = None,
         build_overviews: bool = False,
+        window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     ) -> list:
         """Performs local radiometric adjustment on a set of raster images using block-based statistics.
@@ -609,9 +614,11 @@ Args:
             - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.
     override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.
     build_overviews (bool, optional): If True, computes overviews. Defaults to False.
+    window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
 
 Returns:
     List[str]: Paths to the locally adjusted output raster images."""
+        Universal._validate(window_scales=window_scales)
         print("Start local block adjustment")
 
         MatchValidation._validate_local_block_adjustment(
@@ -864,9 +871,10 @@ Returns:
             for arg in args:
                 _apply_local_adjustment_process_image(*arg)
 
-        if build_overviews:
+        if build_overviews and window_scales:
             compute_overviews(
                 input_images_paths=output_image_paths,
+                window_scales=window_scales,
                 cache=cache,
                 io_threads=io_threads,
                 image_threads=image_threads,

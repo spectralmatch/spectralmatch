@@ -1,6 +1,8 @@
 import json
 import os
 import geopandas as gpd
+import pytest
+from osgeo import gdal
 
 from spectralmatch import pipeline
 from shapely.geometry import box
@@ -8,7 +10,17 @@ from shapely.geometry import box
 from .utils_test import create_dummy_raster
 
 
-def test_pipeline_full_default_flow(tmp_path):
+@pytest.mark.parametrize("overview_options", [
+    {},
+    {
+        "shared_window_scales": (2, 8),
+        "joint_coregistration_build_overviews": True,
+        "global_regression_build_overviews": True,
+        "local_block_adjustment_build_overviews": True,
+        "merge_rasters_build_overviews": True,
+    },
+])
+def test_pipeline_full_default_flow(tmp_path, overview_options):
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     output_path = tmp_path / "merged.tif"
@@ -54,7 +66,7 @@ def test_pipeline_full_default_flow(tmp_path):
         joint_coregistration_local_model="none",
         joint_coregistration_load_adjustments=str(tie_points_path),
         joint_coregistration_robust_loss="none",
-        merge_rasters_build_overviews=False,
+        **{"merge_rasters_build_overviews": False, **overview_options},
     )
 
     assert os.path.exists(results["output"])
@@ -71,6 +83,15 @@ def test_pipeline_full_default_flow(tmp_path):
     assert results["steps"][0] == "joint_coregistration"
     assert "joint_coregistration" in results
     assert "align" not in results["steps"]
+    for stage in ("joint_coregistration", "global_regression", "local_block_adjustment", "merge_rasters"):
+        scales = overview_options.get("shared_window_scales")
+        if scales is not None:
+            outputs = results[stage]
+            for path in outputs if isinstance(outputs, list) else [outputs]:
+                dataset = gdal.Open(path)
+                band = dataset.GetRasterBand(1)
+                assert band.GetOverviewCount() == len(scales)
+                assert [band.GetOverview(i).XSize for i in range(len(scales))] == [(dataset.RasterXSize + scale - 1) // scale for scale in scales]
 
 
 def test_pipeline_merge_only_with_custom_temp_dir(tmp_path):

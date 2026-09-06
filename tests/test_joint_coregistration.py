@@ -37,6 +37,17 @@ def _translation_fixture(tmp_path):
     return [str(image_a), str(image_b)], str(ties)
 
 
+def test_joint_coregistration_custom_overview_scales(tmp_path):
+    inputs, ties = _translation_fixture(tmp_path)
+    outputs = [str(tmp_path / "out_a.tif"), str(tmp_path / "out_b.tif")]
+    joint_coregistration(inputs, outputs, local_model="none", load_adjustments=ties, build_overviews=True, window_scales=(2, 4))
+    for path in outputs:
+        dataset = gdal.Open(path)
+        band = dataset.GetRasterBand(1)
+        assert band.GetOverviewCount() == 2
+        assert [band.GetOverview(i).XSize for i in range(2)] == [12, 6]
+
+
 def test_joint_coregistration_global_weights_move_less_trusted_image_less(tmp_path):
     inputs, ties = _translation_fixture(tmp_path)
     outputs = [str(tmp_path / "out_a.tif"), str(tmp_path / "out_b.tif")]

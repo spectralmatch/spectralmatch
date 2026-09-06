@@ -77,6 +77,7 @@ def pipeline(
     shared_cache: AutoCache = "auto",
     shared_custom_nodata_value: Universal.CustomNodataValue = None,
     shared_window_size: Universal.WindowSize = 1024,
+    shared_window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
     shared_image_threads: AutoThreads = "auto",
     shared_io_threads: AutoThreads = "auto",
     shared_tile_threads: AutoThreads = "auto",
@@ -165,7 +166,11 @@ def pipeline(
       must be a folder, a template containing ``$``, or a list of paths.
     - If the final step writes a single raster or vector, it must be a single
       file path without ``$``.
+
+    Args:
+        shared_window_scales: Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.
     """
+    Universal._validate(window_scales=shared_window_scales)
     temp_dir = shared_temp_dir or tempfile.mkdtemp(prefix="spectralmatch_pipeline_")
     if delete_temp_dir and os.path.isdir(temp_dir):
         shutil.rmtree(temp_dir, ignore_errors=True)
@@ -279,6 +284,7 @@ def pipeline(
                     window_size=shared_window_size,
                     save_as_cog=shared_save_as_cog,
                     build_overviews=joint_coregistration_build_overviews,
+                    window_scales=shared_window_scales,
                     cache=shared_cache,
                     image_threads=shared_image_threads,
                     io_threads=shared_io_threads,
@@ -331,6 +337,7 @@ def pipeline(
                     pif_load_tie_points=global_regression_pif_load_tie_points,
                     pif_save_inz=global_regression_pif_save_inz,
                     build_overviews=global_regression_build_overviews,
+                    window_scales=shared_window_scales,
                     resume_from_outputs=shared_resume_from_steps,
                 )
                 results["global_regression"] = current_images
@@ -367,6 +374,7 @@ def pipeline(
                     load_block_maps=local_block_adjustment_load_block_maps,
                     override_bounds_canvas_coords=local_block_adjustment_override_bounds_canvas_coords,
                     build_overviews=local_block_adjustment_build_overviews,
+                    window_scales=shared_window_scales,
                     resume_from_outputs=shared_resume_from_steps,
                 )
                 results["local_block_adjustment"] = current_images
@@ -515,6 +523,7 @@ def pipeline(
                     resolution=merge_rasters_resolution,
                     window_size=shared_window_size,
                     build_overviews=merge_rasters_build_overviews,
+                    window_scales=shared_window_scales,
                     resume_from_outputs=shared_resume_from_steps,
                 )
                 current_images = merged_output

@@ -1,4 +1,5 @@
 import math
+import os
 from typing import Tuple, List, Literal, Optional
 
 _UNSET = object()
@@ -31,6 +32,7 @@ class Universal:
         debug_logs=_UNSET,
         vector_mask=_UNSET,
         window_size=_UNSET,
+        window_scales=_UNSET,
         custom_nodata_value=_UNSET,
         calculation_dtype=_UNSET,
         custom_output_dtype=_UNSET,
@@ -102,6 +104,12 @@ class Universal:
                     raise ValueError("window_size must be > 0.")
             else:
                 raise ValueError("window_size must be an int or None.")
+
+        if window_scales is not _UNSET and window_scales is not None:
+            if (not isinstance(window_scales, tuple)
+                    or not all(type(scale) is int and scale > 1 for scale in window_scales)
+                    or tuple(sorted(set(window_scales))) != window_scales):
+                raise ValueError("window_scales must be an increasing tuple of unique integers greater than 1, or None.")
 
         if custom_nodata_value is not _UNSET:
             if custom_nodata_value is not None and not isinstance(
@@ -557,12 +565,73 @@ class Utils:
     def _validate_merge_rasters(
         *,
         resolution=_UNSET,
+        output_tiles=False,
+        output_image_path=_UNSET,
+        image_threads=None,
+        concurrent_processing_backend=None,
+        dask_scheduler=None,
+        overlap=0,
+        window_size=None,
+        window_scales=None,
+        build_overviews=False,
+        resampling_method="nearest",
+        custom_tiles_csv=None,
+        create_vrts="MergedImage.vrt",
+        resume_from_outputs="no",
     ):
         if resolution is not _UNSET:
             if resolution not in {"highest", "average", "lowest"}:
                 raise ValueError(
                     "resolution must be one of 'highest', 'average', or 'lowest'."
                 )
+        if not isinstance(output_tiles, bool):
+            raise ValueError("output_tiles must be a boolean.")
+        if not isinstance(build_overviews, bool):
+            raise ValueError("build_overviews must be a boolean.")
+        if resampling_method not in {"nearest", "near", "bilinear", "cubic", "cubicspline", "lanczos"}:
+            raise ValueError("resampling_method must be nearest, near, bilinear, cubic, cubicspline, or lanczos.")
+        if resume_from_outputs not in {"no", "yes", "validate"}:
+            raise ValueError("resume_from_outputs must be 'no', 'yes', or 'validate'.")
+        if type(overlap) is not int or overlap < 0:
+            raise ValueError("overlap must be a nonnegative integer.")
+        if window_size is not None and type(window_size) is not int:
+            raise ValueError("window_size must be a positive integer or None.")
+        Universal._validate(window_scales=window_scales)
+        if window_scales is not None:
+            if output_tiles and window_scales != tuple(2 ** i for i in range(1, len(window_scales) + 1)):
+                raise ValueError("With output_tiles=True, window_scales must be consecutive powers of two starting at 2 (gdal_retile -levels).")
+        if not output_tiles:
+            if image_threads is not None or concurrent_processing_backend is not None or dask_scheduler is not None:
+                raise ValueError("image_threads, concurrent_processing_backend, and dask_scheduler require output_tiles=True.")
+            if overlap != 0 or custom_tiles_csv is not None:
+                raise ValueError("overlap and custom_tiles_csv require output_tiles=True.")
+            if create_vrts != "MergedImage.vrt":
+                raise ValueError("A custom create_vrts filename requires output_tiles=True.")
+            if window_size is not None and window_size % 16:
+                raise ValueError("window_size must be a multiple of 16 for a single tiled GeoTIFF.")
+        elif overlap >= (window_size or 256):
+            raise ValueError("overlap must be smaller than the output tile window_size (default 256).")
+        if custom_tiles_csv is not None:
+            if (not isinstance(custom_tiles_csv, str)
+                    or not custom_tiles_csv.lower().endswith(".csv")
+                    or os.path.basename(custom_tiles_csv) != custom_tiles_csv
+                    or "\\" in custom_tiles_csv):
+                raise ValueError("custom_tiles_csv must be a .csv filename within the output folder.")
+        if (not isinstance(create_vrts, str)
+                or not create_vrts.lower().endswith(".vrt")
+                or os.path.basename(create_vrts) != create_vrts
+                or "\\" in create_vrts
+                or not create_vrts[:-4].strip()):
+            raise ValueError("create_vrts must be a .vrt filename within the output folder.")
+        if output_image_path is not _UNSET:
+            if not isinstance(output_image_path, str) or not output_image_path.strip():
+                raise ValueError("output_image_path must be a nonempty path string.")
+            if output_tiles:
+                if (os.path.exists(output_image_path) and not os.path.isdir(output_image_path)
+                        or os.path.splitext(output_image_path.rstrip(os.sep))[1].lower() in {".tif", ".tiff", ".vrt", ".img", ".dat"}):
+                    raise ValueError("output_image_path must be a folder when output_tiles=True.")
+            elif os.path.isdir(output_image_path):
+                raise ValueError("output_image_path must be a file when output_tiles=False.")
 
 
 class Seamline:
