@@ -1,5 +1,6 @@
 import itertools
 import os
+from typing import Literal
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -106,23 +107,28 @@ def compare_spatial_spectral_difference_band_average(
     diff_label: str,
     subtitle: str,
     scale: tuple = None,
+    *,
+    resampling_method: Literal["nearest", "bilinear", "cubic", "lanczos"] = "bilinear",
 ):
     """
-    Computes and visualizes the mean per-pixel spectral difference between two coregistered, equal-size images.
+    Reprojects the after image onto the before image's geographic grid and plots the signed mean spectral difference (after minus before) across matching bands.
 
     Args:
-        input_images (list): List of two image file paths [before, after].
+        input_images (list): Two georeferenced raster paths [before, after] with matching band counts; dimensions, extents, pixel sizes, and CRSs may differ. The before image defines the comparison CRS, extent, and pixel grid; pixels must be valid in both images across all bands to contribute.
         output_figure_path (str): Path to save the resulting difference image (PNG).
         title (str): Title for the plot.
         diff_label (str): Label for the colorbar.
         subtitle (str): Subtitle text shown below the image.
         scale (tuple, optional): Tuple (vmin, vmax) to fix the color scale. Centered at 0.
+        resampling_method: Resampling used to project the after image onto the before grid: nearest, bilinear (default), cubic, or lanczos. Areas outside shared valid coverage remain transparent.
 
     Raises:
-        ValueError: If the input list doesn't contain exactly two image paths, or shapes mismatch.
+        ValueError: If the input count or resampling method is invalid, band counts differ, georeferencing is missing, or the images have no shared valid pixels.
     """
     if len(input_images) != 2:
         raise ValueError("input_images must be a list of exactly two image paths.")
+    if resampling_method not in {"nearest", "bilinear", "cubic", "lanczos"}:
+        raise ValueError("resampling_method must be nearest, bilinear, cubic, or lanczos.")
 
     path1, path2 = input_images
 
@@ -132,36 +138,13 @@ def compare_spatial_spectral_difference_band_average(
     if ds1 is None or ds2 is None:
         raise RuntimeError("Failed to open one or both input images.")
 
-    bands1, rows1, cols1 = ds1.RasterCount, ds1.RasterYSize, ds1.RasterXSize
-    bands2, rows2, cols2 = ds2.RasterCount, ds2.RasterYSize, ds2.RasterXSize
+    try:
+        mean_diff = _projected_mean_spectral_difference(ds1, ds2, resampling_method)
+    finally:
+        ds1 = None
+        ds2 = None
 
-    if (bands1, rows1, cols1) != (bands2, rows2, cols2):
-        raise ValueError("Images must have the same dimensions.")
-
-    # Read all bands
-    img1 = np.stack(
-        [ds1.GetRasterBand(i + 1).ReadAsArray() for i in range(bands1)]
-    ).astype("float32")
-
-    img2 = np.stack(
-        [ds2.GetRasterBand(i + 1).ReadAsArray() for i in range(bands2)]
-    ).astype("float32")
-
-    nodata = ds1.GetRasterBand(1).GetNoDataValue()
-
-    diff = img2 - img1
-
-    if nodata is not None:
-        mask = np.full(diff.shape[1:], True)
-        for b in range(diff.shape[0]):
-            mask &= (img1[b] != nodata) & (img2[b] != nodata)
-        diff[:, ~mask] = np.nan
-
-    with np.errstate(invalid="ignore"):
-        mean_diff = np.full(diff.shape[1:], np.nan)
-        valid_mask = ~np.all(np.isnan(diff), axis=0)
-        mean_diff[valid_mask] = np.nanmean(diff[:, valid_mask], axis=0)
-
+    os.makedirs(os.path.dirname(os.path.abspath(output_figure_path)), exist_ok=True)
     fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
 
     vmin, vmax = scale if scale else (np.nanmin(mean_diff), np.nanmax(mean_diff))
@@ -179,10 +162,66 @@ def compare_spatial_spectral_difference_band_average(
     plt.savefig(output_figure_path, dpi=300, bbox_inches="tight")
     plt.close()
 
-    ds1 = None
-    ds2 = None
-
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
+
+
+def _projected_mean_spectral_difference(before_ds, after_ds, resampling_method):
+    """Compute the signed band-average difference on the before grid, masking pixels invalid in either image in any band."""
+    if before_ds.RasterCount != after_ds.RasterCount or before_ds.RasterCount == 0:
+        raise ValueError("Images must have the same nonzero number of bands.")
+    for label, dataset in (("before", before_ds), ("after", after_ds)):
+        if not dataset.GetProjection() or dataset.GetGeoTransform(can_return_null=True) is None:
+            raise ValueError(f"The {label} image must have a CRS and affine geotransform for projected comparison.")
+
+    shape = (before_ds.RasterYSize, before_ds.RasterXSize)
+    mean_diff = np.zeros(shape, dtype=np.float64)
+    valid_pixels = np.ones(shape, dtype=bool)
+    aligned = gdal.GetDriverByName("MEM").Create("", shape[1], shape[0], 1, gdal.GDT_Float64)
+    # An explicit destination dataset preserves even a rotated reference grid.
+    aligned.SetProjection(before_ds.GetProjection())
+    aligned.SetGeoTransform(before_ds.GetGeoTransform())
+    aligned_band = aligned.GetRasterBand(1)
+    aligned_band.SetNoDataValue(np.nan)
+    source = None
+    try:
+        for index in range(1, before_ds.RasterCount + 1):
+            # Carry the band's mask as alpha: GDAL can ignore a regular mask
+            # when NoData is also set, whereas alpha and NoData work together.
+            source = gdal.Translate("", after_ds, format="VRT", bandList=[index, f"mask,{index}"], maskBand="none")
+            source.GetRasterBand(2).SetColorInterpretation(gdal.GCI_AlphaBand)
+            aligned_band.Fill(np.nan)
+            result = gdal.Warp(
+                aligned, source,
+                options=gdal.WarpOptions(
+                    resampleAlg=resampling_method, srcAlpha=True,
+                    dstNodata=np.nan, errorThreshold=0.0, overviewLevel="NONE",
+                ),
+            )
+            if not result:
+                raise RuntimeError(f"Failed to project after image band {index} onto the before grid.")
+            source = None
+
+            before_band = before_ds.GetRasterBand(index)
+            before = before_band.ReadAsArray().astype(np.float64)
+            after = aligned_band.ReadAsArray()
+            valid = np.isfinite(before) & np.isfinite(after) & (before_band.GetMaskBand().ReadAsArray() != 0)
+            nodata = before_band.GetNoDataValue()
+            if nodata is not None:
+                valid &= before != nodata
+            valid_pixels &= valid
+            np.subtract(after, before, out=after, where=valid)
+            mean_diff[valid] += after[valid]
+    finally:
+        source = None
+        aligned_band = None
+        aligned = None
+
+    if not np.any(valid_pixels):
+        raise ValueError("Images have no overlapping pixels valid in both images across all bands.")
+    mean_diff /= before_ds.RasterCount
+    mean_diff[~valid_pixels] = np.nan
+    return mean_diff
+
 
 def compare_before_after_all_images(
     input_images_1: list,
