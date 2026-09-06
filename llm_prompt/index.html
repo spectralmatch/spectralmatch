@@ -933,18 +933,22 @@ Outputs:
     Saves a spectral comparison plot showing pre- and post-processing profiles."""
 
 def compare_spatial_spectral_difference_band_average(input_images, output_figure_path, title, diff_label, subtitle, scale):
-    """Computes and visualizes the mean per-pixel spectral difference between two coregistered, equal-size images.
+    """Reprojects the after image onto the before image's geographic grid and plots the signed mean spectral difference (after minus before) across matching bands.
 
 Args:
-    input_images (list): List of two image file paths [before, after].
+    input_images (list): Two georeferenced raster paths [before, after] with matching band counts; dimensions, extents, pixel sizes, and CRSs may differ. The before image defines the comparison CRS, extent, and pixel grid; pixels must be valid in both images across all bands to contribute.
     output_figure_path (str): Path to save the resulting difference image (PNG).
     title (str): Title for the plot.
     diff_label (str): Label for the colorbar.
     subtitle (str): Subtitle text shown below the image.
     scale (tuple, optional): Tuple (vmin, vmax) to fix the color scale. Centered at 0.
+    resampling_method: Resampling used to project the after image onto the before grid: nearest, bilinear (default), cubic, or lanczos. Areas outside shared valid coverage remain transparent.
 
 Raises:
-    ValueError: If the input list doesn't contain exactly two image paths, or shapes mismatch."""
+    ValueError: If the input count or resampling method is invalid, band counts differ, georeferencing is missing, or the images have no shared valid pixels."""
+
+def _projected_mean_spectral_difference(before_ds, after_ds, resampling_method):
+    """Compute the signed band-average difference on the before grid, masking pixels invalid in either image in any band."""
 
 def compare_before_after_all_images(input_images_1, input_images_2, output_figure_path, title, ylabel_1, ylabel_2, image_names):
     """Creates a two-row image grid to compare before-and-after raster pairs with consistent per-row contrast stretching. Each column shows a pair of aligned images with transparent nodata. Supports 1- and 3-band rasters.
