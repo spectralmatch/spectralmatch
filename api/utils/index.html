@@ -1369,12 +1369,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">102</span>
 <span class="normal">103</span>
 <span class="normal">104</span>
 <span class="normal">105</span>
@@ -1516,7 +1511,12 @@
 <span class="normal">241</span>
 <span class="normal">242</span>
 <span class="normal">243</span>
-<span class="normal">244</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">align_rasters</span><span class="p">(</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">align_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1732,11 +1732,11 @@
                 <code>window_scales</code>
             </td>
             <td>
-                  <code><span title="tuple">tuple</span>[<span title="int">int</span>] | None</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Overview decimation factors (default: (2, 4, 8, 16, 32)).</p>
+                <p>Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple skips overview creation.</p>
               </div>
             </td>
             <td>
@@ -1883,126 +1883,130 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 928</span>
-<span class="normal"> 929</span>
-<span class="normal"> 930</span>
-<span class="normal"> 931</span>
-<span class="normal"> 932</span>
-<span class="normal"> 933</span>
-<span class="normal"> 934</span>
-<span class="normal"> 935</span>
-<span class="normal"> 936</span>
-<span class="normal"> 937</span>
-<span class="normal"> 938</span>
-<span class="normal"> 939</span>
-<span class="normal"> 940</span>
-<span class="normal"> 941</span>
-<span class="normal"> 942</span>
-<span class="normal"> 943</span>
-<span class="normal"> 944</span>
-<span class="normal"> 945</span>
-<span class="normal"> 946</span>
-<span class="normal"> 947</span>
-<span class="normal"> 948</span>
-<span class="normal"> 949</span>
-<span class="normal"> 950</span>
-<span class="normal"> 951</span>
-<span class="normal"> 952</span>
-<span class="normal"> 953</span>
-<span class="normal"> 954</span>
-<span class="normal"> 955</span>
-<span class="normal"> 956</span>
-<span class="normal"> 957</span>
-<span class="normal"> 958</span>
-<span class="normal"> 959</span>
-<span class="normal"> 960</span>
-<span class="normal"> 961</span>
-<span class="normal"> 962</span>
-<span class="normal"> 963</span>
-<span class="normal"> 964</span>
-<span class="normal"> 965</span>
-<span class="normal"> 966</span>
-<span class="normal"> 967</span>
-<span class="normal"> 968</span>
-<span class="normal"> 969</span>
-<span class="normal"> 970</span>
-<span class="normal"> 971</span>
-<span class="normal"> 972</span>
-<span class="normal"> 973</span>
-<span class="normal"> 974</span>
-<span class="normal"> 975</span>
-<span class="normal"> 976</span>
-<span class="normal"> 977</span>
-<span class="normal"> 978</span>
-<span class="normal"> 979</span>
-<span class="normal"> 980</span>
-<span class="normal"> 981</span>
-<span class="normal"> 982</span>
-<span class="normal"> 983</span>
-<span class="normal"> 984</span>
-<span class="normal"> 985</span>
-<span class="normal"> 986</span>
-<span class="normal"> 987</span>
-<span class="normal"> 988</span>
-<span class="normal"> 989</span>
-<span class="normal"> 990</span>
-<span class="normal"> 991</span>
-<span class="normal"> 992</span>
-<span class="normal"> 993</span>
-<span class="normal"> 994</span>
-<span class="normal"> 995</span>
-<span class="normal"> 996</span>
-<span class="normal"> 997</span>
-<span class="normal"> 998</span>
-<span class="normal"> 999</span>
-<span class="normal">1000</span>
-<span class="normal">1001</span>
-<span class="normal">1002</span>
-<span class="normal">1003</span>
-<span class="normal">1004</span>
-<span class="normal">1005</span>
-<span class="normal">1006</span>
-<span class="normal">1007</span>
-<span class="normal">1008</span>
-<span class="normal">1009</span>
-<span class="normal">1010</span>
-<span class="normal">1011</span>
-<span class="normal">1012</span>
-<span class="normal">1013</span>
-<span class="normal">1014</span>
-<span class="normal">1015</span>
-<span class="normal">1016</span>
-<span class="normal">1017</span>
-<span class="normal">1018</span>
-<span class="normal">1019</span>
-<span class="normal">1020</span>
-<span class="normal">1021</span>
-<span class="normal">1022</span>
-<span class="normal">1023</span>
-<span class="normal">1024</span>
-<span class="normal">1025</span>
-<span class="normal">1026</span>
-<span class="normal">1027</span>
-<span class="normal">1028</span>
-<span class="normal">1029</span>
-<span class="normal">1030</span>
-<span class="normal">1031</span>
-<span class="normal">1032</span>
-<span class="normal">1033</span>
-<span class="normal">1034</span>
-<span class="normal">1035</span>
-<span class="normal">1036</span>
-<span class="normal">1037</span>
-<span class="normal">1038</span>
-<span class="normal">1039</span>
-<span class="normal">1040</span>
-<span class="normal">1041</span>
-<span class="normal">1042</span>
-<span class="normal">1043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1195</span>
+<span class="normal">1196</span>
+<span class="normal">1197</span>
+<span class="normal">1198</span>
+<span class="normal">1199</span>
+<span class="normal">1200</span>
+<span class="normal">1201</span>
+<span class="normal">1202</span>
+<span class="normal">1203</span>
+<span class="normal">1204</span>
+<span class="normal">1205</span>
+<span class="normal">1206</span>
+<span class="normal">1207</span>
+<span class="normal">1208</span>
+<span class="normal">1209</span>
+<span class="normal">1210</span>
+<span class="normal">1211</span>
+<span class="normal">1212</span>
+<span class="normal">1213</span>
+<span class="normal">1214</span>
+<span class="normal">1215</span>
+<span class="normal">1216</span>
+<span class="normal">1217</span>
+<span class="normal">1218</span>
+<span class="normal">1219</span>
+<span class="normal">1220</span>
+<span class="normal">1221</span>
+<span class="normal">1222</span>
+<span class="normal">1223</span>
+<span class="normal">1224</span>
+<span class="normal">1225</span>
+<span class="normal">1226</span>
+<span class="normal">1227</span>
+<span class="normal">1228</span>
+<span class="normal">1229</span>
+<span class="normal">1230</span>
+<span class="normal">1231</span>
+<span class="normal">1232</span>
+<span class="normal">1233</span>
+<span class="normal">1234</span>
+<span class="normal">1235</span>
+<span class="normal">1236</span>
+<span class="normal">1237</span>
+<span class="normal">1238</span>
+<span class="normal">1239</span>
+<span class="normal">1240</span>
+<span class="normal">1241</span>
+<span class="normal">1242</span>
+<span class="normal">1243</span>
+<span class="normal">1244</span>
+<span class="normal">1245</span>
+<span class="normal">1246</span>
+<span class="normal">1247</span>
+<span class="normal">1248</span>
+<span class="normal">1249</span>
+<span class="normal">1250</span>
+<span class="normal">1251</span>
+<span class="normal">1252</span>
+<span class="normal">1253</span>
+<span class="normal">1254</span>
+<span class="normal">1255</span>
+<span class="normal">1256</span>
+<span class="normal">1257</span>
+<span class="normal">1258</span>
+<span class="normal">1259</span>
+<span class="normal">1260</span>
+<span class="normal">1261</span>
+<span class="normal">1262</span>
+<span class="normal">1263</span>
+<span class="normal">1264</span>
+<span class="normal">1265</span>
+<span class="normal">1266</span>
+<span class="normal">1267</span>
+<span class="normal">1268</span>
+<span class="normal">1269</span>
+<span class="normal">1270</span>
+<span class="normal">1271</span>
+<span class="normal">1272</span>
+<span class="normal">1273</span>
+<span class="normal">1274</span>
+<span class="normal">1275</span>
+<span class="normal">1276</span>
+<span class="normal">1277</span>
+<span class="normal">1278</span>
+<span class="normal">1279</span>
+<span class="normal">1280</span>
+<span class="normal">1281</span>
+<span class="normal">1282</span>
+<span class="normal">1283</span>
+<span class="normal">1284</span>
+<span class="normal">1285</span>
+<span class="normal">1286</span>
+<span class="normal">1287</span>
+<span class="normal">1288</span>
+<span class="normal">1289</span>
+<span class="normal">1290</span>
+<span class="normal">1291</span>
+<span class="normal">1292</span>
+<span class="normal">1293</span>
+<span class="normal">1294</span>
+<span class="normal">1295</span>
+<span class="normal">1296</span>
+<span class="normal">1297</span>
+<span class="normal">1298</span>
+<span class="normal">1299</span>
+<span class="normal">1300</span>
+<span class="normal">1301</span>
+<span class="normal">1302</span>
+<span class="normal">1303</span>
+<span class="normal">1304</span>
+<span class="normal">1305</span>
+<span class="normal">1306</span>
+<span class="normal">1307</span>
+<span class="normal">1308</span>
+<span class="normal">1309</span>
+<span class="normal">1310</span>
+<span class="normal">1311</span>
+<span class="normal">1312</span>
+<span class="normal">1313</span>
+<span class="normal">1314</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
     <span class="n">input_images_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">output_image_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">window_scales</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+    <span class="n">window_scales</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Cache</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2017,7 +2021,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        input_images_paths (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].</span>
 <span class="sd">        output_image_paths (str | List[str] | None): Defines output files as None to update input images or from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].</span>
-<span class="sd">        window_scales: Overview decimation factors (default: (2, 4, 8, 16, 32)).</span>
+<span class="sd">        window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple skips overview creation.</span>
 <span class="sd">        cache: GDAL cache size configuration.</span>
 <span class="sd">        image_threads: Number of parallel workers for image-level processing.</span>
 <span class="sd">        io_threads: GDAL IO worker configuration.</span>
@@ -2036,6 +2040,7 @@
 
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images_paths</span><span class="p">,</span>
+        <span class="n">window_scales</span><span class="o">=</span><span class="n">window_scales</span><span class="p">,</span>
         <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
         <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
         <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
@@ -2083,6 +2088,9 @@
             <span class="p">},</span>
         <span class="p">)</span>
         <span class="n">_copy_files_if_needed</span><span class="p">(</span><span class="n">input_paths</span><span class="p">,</span> <span class="n">target_paths</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">window_scales</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">target_paths</span>
 
     <span class="c1"># GDAL config</span>
     <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
@@ -2136,12 +2144,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">352</span>
-<span class="normal">353</span>
-<span class="normal">354</span>
-<span class="normal">355</span>
-<span class="normal">356</span>
-<span class="normal">357</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">357</span>
 <span class="normal">358</span>
 <span class="normal">359</span>
 <span class="normal">360</span>
@@ -2157,7 +2160,12 @@
 <span class="normal">370</span>
 <span class="normal">371</span>
 <span class="normal">372</span>
-<span class="normal">373</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_resolution</span><span class="p">(</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_resolution</span><span class="p">(</span>
     <span class="n">paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">strategy</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Resolution</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
@@ -2447,128 +2455,128 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">497</span>
-<span class="normal">498</span>
-<span class="normal">499</span>
-<span class="normal">500</span>
-<span class="normal">501</span>
-<span class="normal">502</span>
-<span class="normal">503</span>
-<span class="normal">504</span>
-<span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
-<span class="normal">514</span>
-<span class="normal">515</span>
-<span class="normal">516</span>
-<span class="normal">517</span>
-<span class="normal">518</span>
-<span class="normal">519</span>
-<span class="normal">520</span>
-<span class="normal">521</span>
-<span class="normal">522</span>
-<span class="normal">523</span>
-<span class="normal">524</span>
-<span class="normal">525</span>
-<span class="normal">526</span>
-<span class="normal">527</span>
-<span class="normal">528</span>
-<span class="normal">529</span>
-<span class="normal">530</span>
-<span class="normal">531</span>
-<span class="normal">532</span>
-<span class="normal">533</span>
-<span class="normal">534</span>
-<span class="normal">535</span>
-<span class="normal">536</span>
-<span class="normal">537</span>
-<span class="normal">538</span>
-<span class="normal">539</span>
-<span class="normal">540</span>
-<span class="normal">541</span>
-<span class="normal">542</span>
-<span class="normal">543</span>
-<span class="normal">544</span>
-<span class="normal">545</span>
-<span class="normal">546</span>
-<span class="normal">547</span>
-<span class="normal">548</span>
-<span class="normal">549</span>
-<span class="normal">550</span>
-<span class="normal">551</span>
-<span class="normal">552</span>
-<span class="normal">553</span>
-<span class="normal">554</span>
-<span class="normal">555</span>
-<span class="normal">556</span>
-<span class="normal">557</span>
-<span class="normal">558</span>
-<span class="normal">559</span>
-<span class="normal">560</span>
-<span class="normal">561</span>
-<span class="normal">562</span>
-<span class="normal">563</span>
-<span class="normal">564</span>
-<span class="normal">565</span>
-<span class="normal">566</span>
-<span class="normal">567</span>
-<span class="normal">568</span>
-<span class="normal">569</span>
-<span class="normal">570</span>
-<span class="normal">571</span>
-<span class="normal">572</span>
-<span class="normal">573</span>
-<span class="normal">574</span>
-<span class="normal">575</span>
-<span class="normal">576</span>
-<span class="normal">577</span>
-<span class="normal">578</span>
-<span class="normal">579</span>
-<span class="normal">580</span>
-<span class="normal">581</span>
-<span class="normal">582</span>
-<span class="normal">583</span>
-<span class="normal">584</span>
-<span class="normal">585</span>
-<span class="normal">586</span>
-<span class="normal">587</span>
-<span class="normal">588</span>
-<span class="normal">589</span>
-<span class="normal">590</span>
-<span class="normal">591</span>
-<span class="normal">592</span>
-<span class="normal">593</span>
-<span class="normal">594</span>
-<span class="normal">595</span>
-<span class="normal">596</span>
-<span class="normal">597</span>
-<span class="normal">598</span>
-<span class="normal">599</span>
-<span class="normal">600</span>
-<span class="normal">601</span>
-<span class="normal">602</span>
-<span class="normal">603</span>
-<span class="normal">604</span>
-<span class="normal">605</span>
-<span class="normal">606</span>
-<span class="normal">607</span>
-<span class="normal">608</span>
-<span class="normal">609</span>
-<span class="normal">610</span>
-<span class="normal">611</span>
-<span class="normal">612</span>
-<span class="normal">613</span>
-<span class="normal">614</span>
-<span class="normal">615</span>
-<span class="normal">616</span>
-<span class="normal">617</span>
-<span class="normal">618</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">764</span>
+<span class="normal">765</span>
+<span class="normal">766</span>
+<span class="normal">767</span>
+<span class="normal">768</span>
+<span class="normal">769</span>
+<span class="normal">770</span>
+<span class="normal">771</span>
+<span class="normal">772</span>
+<span class="normal">773</span>
+<span class="normal">774</span>
+<span class="normal">775</span>
+<span class="normal">776</span>
+<span class="normal">777</span>
+<span class="normal">778</span>
+<span class="normal">779</span>
+<span class="normal">780</span>
+<span class="normal">781</span>
+<span class="normal">782</span>
+<span class="normal">783</span>
+<span class="normal">784</span>
+<span class="normal">785</span>
+<span class="normal">786</span>
+<span class="normal">787</span>
+<span class="normal">788</span>
+<span class="normal">789</span>
+<span class="normal">790</span>
+<span class="normal">791</span>
+<span class="normal">792</span>
+<span class="normal">793</span>
+<span class="normal">794</span>
+<span class="normal">795</span>
+<span class="normal">796</span>
+<span class="normal">797</span>
+<span class="normal">798</span>
+<span class="normal">799</span>
+<span class="normal">800</span>
+<span class="normal">801</span>
+<span class="normal">802</span>
+<span class="normal">803</span>
+<span class="normal">804</span>
+<span class="normal">805</span>
+<span class="normal">806</span>
+<span class="normal">807</span>
+<span class="normal">808</span>
+<span class="normal">809</span>
+<span class="normal">810</span>
+<span class="normal">811</span>
+<span class="normal">812</span>
+<span class="normal">813</span>
+<span class="normal">814</span>
+<span class="normal">815</span>
+<span class="normal">816</span>
+<span class="normal">817</span>
+<span class="normal">818</span>
+<span class="normal">819</span>
+<span class="normal">820</span>
+<span class="normal">821</span>
+<span class="normal">822</span>
+<span class="normal">823</span>
+<span class="normal">824</span>
+<span class="normal">825</span>
+<span class="normal">826</span>
+<span class="normal">827</span>
+<span class="normal">828</span>
+<span class="normal">829</span>
+<span class="normal">830</span>
+<span class="normal">831</span>
+<span class="normal">832</span>
+<span class="normal">833</span>
+<span class="normal">834</span>
+<span class="normal">835</span>
+<span class="normal">836</span>
+<span class="normal">837</span>
+<span class="normal">838</span>
+<span class="normal">839</span>
+<span class="normal">840</span>
+<span class="normal">841</span>
+<span class="normal">842</span>
+<span class="normal">843</span>
+<span class="normal">844</span>
+<span class="normal">845</span>
+<span class="normal">846</span>
+<span class="normal">847</span>
+<span class="normal">848</span>
+<span class="normal">849</span>
+<span class="normal">850</span>
+<span class="normal">851</span>
+<span class="normal">852</span>
+<span class="normal">853</span>
+<span class="normal">854</span>
+<span class="normal">855</span>
+<span class="normal">856</span>
+<span class="normal">857</span>
+<span class="normal">858</span>
+<span class="normal">859</span>
+<span class="normal">860</span>
+<span class="normal">861</span>
+<span class="normal">862</span>
+<span class="normal">863</span>
+<span class="normal">864</span>
+<span class="normal">865</span>
+<span class="normal">866</span>
+<span class="normal">867</span>
+<span class="normal">868</span>
+<span class="normal">869</span>
+<span class="normal">870</span>
+<span class="normal">871</span>
+<span class="normal">872</span>
+<span class="normal">873</span>
+<span class="normal">874</span>
+<span class="normal">875</span>
+<span class="normal">876</span>
+<span class="normal">877</span>
+<span class="normal">878</span>
+<span class="normal">879</span>
+<span class="normal">880</span>
+<span class="normal">881</span>
+<span class="normal">882</span>
+<span class="normal">883</span>
+<span class="normal">884</span>
+<span class="normal">885</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2700,14 +2708,14 @@
 
 
 <h2 id="spectralmatch.utils.merge_rasters" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">merge_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="s1">'highest'</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resume_from_outputs</span><span class="o">=</span><span class="s1">'no'</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">merge_rasters</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="n">output_image_path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">output_tiles</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="s1">'highest'</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">build_overviews</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">window_scales</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="n">resampling_method</span><span class="o">=</span><span class="s1">'nearest'</span><span class="p">,</span> <span class="n">custom_tiles_csv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_vrts</span><span class="o">=</span><span class="s1">'MergedImage.vrt'</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dask_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resume_from_outputs</span><span class="o">=</span><span class="s1">'no'</span><span class="p">)</span></code>
 
 <a href="#spectralmatch.utils.merge_rasters" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Merges multiple rasters into a single output.</p>
+        <p>Merge rasters into one GeoTIFF or a folder of GeoTIFF tiles using gdal_retile.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2746,7 +2754,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to output mosaic.</p>
+                <p>Output file, or output folder when output_tiles=True.</p>
               </div>
             </td>
             <td>
@@ -2755,14 +2763,46 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>cache</code>
+                <code>output_tiles</code>
             </td>
             <td>
-                  <code><span title="int">int</span> | <span title="typing.Tuple">Tuple</span>[<span title="int">int</span>, <span title="str">str</span>] | None</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Controls GDAL cache size. Examples: 2048 (MB), (2, "GB"). Set None to use GDAL’s default. Applied via GDAL_CACHEMAX.        window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.</p>
+                <p>Create separate GeoTIFF files with gdal_retile. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cache</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.Cache">Cache</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>GDAL cache size in GB, or None for the GDAL default.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>image_threads</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.Threads">Threads</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Workers across output tiles (positive int, "cpu", or None). Requires output_tiles=True. Each pyramid level finishes before the next starts.</p>
               </div>
             </td>
             <td>
@@ -2870,15 +2910,31 @@
                 <code>window_size</code>
             </td>
             <td>
-                  <code><span title="int">int</span> | None</code>
+                  <code><span title="spectralmatch.types_and_validation.Universal.WindowSize">WindowSize</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tile size for processing tiles. Defaults to None.</p>
+                <p>In tile mode, output tile width/height in pixels (-ps), default 256. In single-file mode, internal TIFF block size, which must be a multiple of 16.</p>
               </div>
             </td>
             <td>
                   <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>overlap</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overlap in pixels between adjacent output tiles (-overlap). Requires tile mode; must be nonnegative and smaller than window_size.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2890,11 +2946,123 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, computes overviews. Defaults to False.</p>
+                <p>Build internal overviews for one file, or external pyramid tiles in numbered subfolders using -levels in tile mode.</p>
               </div>
             </td>
             <td>
                   <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>window_scales</code>
+            </td>
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overview factors, default (2, 4, 8, 16, 32). Tile mode requires consecutive powers of two starting at 2 and passes their count to -levels, capped to avoid zero-sized pyramid rasters. None or an empty tuple disables overviews.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(2, 4, 8, 16, 32)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>resampling_method</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;nearest&#39;, &#39;near&#39;, &#39;bilinear&#39;, &#39;cubic&#39;, &#39;cubicspline&#39;, &#39;lanczos&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>nearest (or near), bilinear, cubic, cubicspline, or lanczos. Used for VRT resolution changes and Translate, and passed to retile -r.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;nearest&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>custom_tiles_csv</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional .csv filename inside the output folder (-csv). GDAL writes a headerless, semicolon-delimited tile index with columns tilename;minx;maxx;miny;maxy in the output CRS. A separate index with the same filename is written in each pyramid subfolder. Tile mode only.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>create_vrts</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Filename of the full-resolution VRT in the output folder, default "MergedImage.vrt". Tile mode also creates a VRT with this name in each generated pyramid folder and links those VRTs as overviews; references are relative so the folder can be moved. Only tile mode accepts a custom name; single-file mode ignores the default.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;MergedImage.vrt&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>concurrent_processing_backend</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.ConcurrentProcessingBackend">ConcurrentProcessingBackend</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tile mode only: process_pool (default when omitted) or dask. Dask workers must share access to input/output paths.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dask_scheduler</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.DaskScheduler">DaskScheduler</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tile mode only: existing Dask scheduler as ("file", path) or ("address", address).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>resume_from_outputs</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;no&#39;, &#39;yes&#39;, &#39;validate&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>"no" overwrites outputs (omits -resume); "yes" skips existing files (-resume); "validate" checks existing tiles with the raster validation helper, removes invalid tiles, then uses -resume. Resume assumes the inputs, grid, and processing options are unchanged.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;no&#39;</code>
             </td>
           </tr>
       </tbody>
@@ -2916,7 +3084,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path of the merged raster.</p>
+                <p>Path of the merged raster or the output tile folder.</p>
               </div>
             </td>
           </tr>
@@ -2926,12 +3094,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">381</span>
 <span class="normal">382</span>
 <span class="normal">383</span>
 <span class="normal">384</span>
@@ -3044,11 +3207,115 @@
 <span class="normal">491</span>
 <span class="normal">492</span>
 <span class="normal">493</span>
-<span class="normal">494</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
+    <span class="n">output_tiles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Cache</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tile_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -3056,27 +3323,44 @@
     <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"highest"</span><span class="p">,</span> <span class="s2">"average"</span><span class="p">,</span> <span class="s2">"lowest"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"highest"</span><span class="p">,</span>
     <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">window_scales</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+    <span class="n">resampling_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"nearest"</span><span class="p">,</span> <span class="s2">"near"</span><span class="p">,</span> <span class="s2">"bilinear"</span><span class="p">,</span> <span class="s2">"cubic"</span><span class="p">,</span> <span class="s2">"cubicspline"</span><span class="p">,</span> <span class="s2">"lanczos"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"nearest"</span><span class="p">,</span>
+    <span class="n">custom_tiles_csv</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">create_vrts</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"MergedImage.vrt"</span><span class="p">,</span>
+    <span class="n">concurrent_processing_backend</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">ConcurrentProcessingBackend</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dask_scheduler</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DaskScheduler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">resume_from_outputs</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"no"</span><span class="p">,</span> <span class="s2">"yes"</span><span class="p">,</span> <span class="s2">"validate"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"no"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Merges multiple rasters into a single output.</span>
+<span class="sd">    Merge rasters into one GeoTIFF or a folder of GeoTIFF tiles using gdal_retile.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].</span>
-<span class="sd">        output_image_path (str): Path to output mosaic.</span>
-<span class="sd">        cache (int | Tuple[int, str] | None, optional): Controls GDAL cache size. Examples: 2048 (MB), (2, "GB"). Set None to use GDAL’s default. Applied via GDAL_CACHEMAX.        window_parallel_workers (Tuple[Literal["process"], Literal["cpu"] | int] | None = None): Parallelization strategy at the window level within each image. Same format as image_parallel_workers. Threads are not supported. Set to None to disable.</span>
+<span class="sd">        output_image_path (str): Output file, or output folder when output_tiles=True.</span>
+<span class="sd">        output_tiles: Create separate GeoTIFF files with gdal_retile. Defaults to False.</span>
+<span class="sd">        cache: GDAL cache size in GB, or None for the GDAL default.</span>
+<span class="sd">        image_threads: Workers across output tiles (positive int, "cpu", or None). Requires output_tiles=True. Each pyramid level finishes before the next starts.</span>
 <span class="sd">        io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.</span>
 <span class="sd">        tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.</span>
 <span class="sd">        debug_logs (bool, optional): If True, prints progress. Defaults to False.</span>
 <span class="sd">        output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.</span>
 <span class="sd">        custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.</span>
 <span class="sd">        resolution ("highest" | "average" | "lowest", optional): Strategy for computing merge resolution.</span>
-<span class="sd">        window_size (int | None): Tile size for processing tiles. Defaults to None.</span>
-<span class="sd">        build_overviews (bool, optional): If True, computes overviews. Defaults to False.</span>
+<span class="sd">        window_size: In tile mode, output tile width/height in pixels (-ps), default 256. In single-file mode, internal TIFF block size, which must be a multiple of 16.</span>
+<span class="sd">        overlap: Overlap in pixels between adjacent output tiles (-overlap). Requires tile mode; must be nonnegative and smaller than window_size.</span>
+<span class="sd">        build_overviews: Build internal overviews for one file, or external pyramid tiles in numbered subfolders using -levels in tile mode.</span>
+<span class="sd">        window_scales: Overview factors, default (2, 4, 8, 16, 32). Tile mode requires consecutive powers of two starting at 2 and passes their count to -levels, capped to avoid zero-sized pyramid rasters. None or an empty tuple disables overviews.</span>
+<span class="sd">        resampling_method: nearest (or near), bilinear, cubic, cubicspline, or lanczos. Used for VRT resolution changes and Translate, and passed to retile -r.</span>
+<span class="sd">        custom_tiles_csv: Optional .csv filename inside the output folder (-csv). GDAL writes a headerless, semicolon-delimited tile index with columns tilename;minx;maxx;miny;maxy in the output CRS. A separate index with the same filename is written in each pyramid subfolder. Tile mode only.</span>
+<span class="sd">        create_vrts: Filename of the full-resolution VRT in the output folder, default "MergedImage.vrt". Tile mode also creates a VRT with this name in each generated pyramid folder and links those VRTs as overviews; references are relative so the folder can be moved. Only tile mode accepts a custom name; single-file mode ignores the default.</span>
+<span class="sd">        concurrent_processing_backend: Tile mode only: process_pool (default when omitted) or dask. Dask workers must share access to input/output paths.</span>
+<span class="sd">        dask_scheduler: Tile mode only: existing Dask scheduler as ("file", path) or ("address", address).</span>
+<span class="sd">        resume_from_outputs: "no" overwrites outputs (omits -resume); "yes" skips existing files (-resume); "validate" checks existing tiles with the raster validation helper, removes invalid tiles, then uses -resume. Resume assumes the inputs, grid, and processing options are unchanged.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str: Path of the merged raster.</span>
+<span class="sd">        str: Path of the merged raster or the output tile folder.</span>
 
 <span class="sd">    """</span>
 
@@ -3084,16 +3368,32 @@
         <span class="n">input_images</span><span class="o">=</span><span class="n">input_images</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
         <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
+        <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
         <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
         <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
         <span class="n">output_dtype</span><span class="o">=</span><span class="n">output_dtype</span><span class="p">,</span>
         <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
         <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="s2">"process_pool"</span> <span class="k">if</span> <span class="n">concurrent_processing_backend</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_merge_rasters</span><span class="p">(</span>
         <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
+        <span class="n">output_tiles</span><span class="o">=</span><span class="n">output_tiles</span><span class="p">,</span>
+        <span class="n">output_image_path</span><span class="o">=</span><span class="n">output_image_path</span><span class="p">,</span>
+        <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
+        <span class="n">overlap</span><span class="o">=</span><span class="n">overlap</span><span class="p">,</span>
+        <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+        <span class="n">window_scales</span><span class="o">=</span><span class="n">window_scales</span><span class="p">,</span>
+        <span class="n">build_overviews</span><span class="o">=</span><span class="n">build_overviews</span><span class="p">,</span>
+        <span class="n">resampling_method</span><span class="o">=</span><span class="n">resampling_method</span><span class="p">,</span>
+        <span class="n">custom_tiles_csv</span><span class="o">=</span><span class="n">custom_tiles_csv</span><span class="p">,</span>
+        <span class="n">create_vrts</span><span class="o">=</span><span class="n">create_vrts</span><span class="p">,</span>
+        <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="n">_existing_outputs_are_reusable</span><span class="p">(</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">output_tiles</span> <span class="ow">and</span> <span class="n">_existing_outputs_are_reusable</span><span class="p">(</span>
         <span class="p">[</span><span class="n">output_image_path</span><span class="p">],</span>
         <span class="n">resume_mode</span><span class="o">=</span><span class="n">resume_from_outputs</span><span class="p">,</span>
         <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
@@ -3107,6 +3407,9 @@
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
         <span class="s2">"search"</span><span class="p">,</span> <span class="n">input_images</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"default_file_pattern"</span><span class="p">:</span> <span class="s2">"*.tif"</span><span class="p">}</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">input_image_paths</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No input rasters found to merge."</span><span class="p">)</span>
+    <span class="n">input_image_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">]</span>
 
     <span class="c1"># Dtype</span>
     <span class="n">output_dtype</span> <span class="o">=</span> <span class="n">_gdal_dtype_str_to_enum</span><span class="p">(</span><span class="n">_resolve_gdal_dtype</span><span class="p">(</span><span class="n">output_dtype</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
@@ -3121,9 +3424,12 @@
         <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
         <span class="n">srcNodata</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
         <span class="n">VRTNodata</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
+        <span class="n">resampleAlg</span><span class="o">=</span><span class="n">resampling_method</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">vrt_ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">BuildVRT</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">input_image_paths</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">vrt_opts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">vrt_ds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"GDAL could not build the merge mosaic VRT."</span><span class="p">)</span>
 
     <span class="n">creation_options</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">"TILED=YES"</span><span class="p">,</span>
@@ -3131,7 +3437,7 @@
         <span class="s2">"COMPRESS=ZSTD"</span><span class="p">,</span>
     <span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">window_size</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">window_size</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">output_tiles</span><span class="p">:</span>
         <span class="n">creation_options</span> <span class="o">+=</span> <span class="p">[</span>
             <span class="sa">f</span><span class="s2">"BLOCKXSIZE=</span><span class="si">{</span><span class="n">window_size</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
             <span class="sa">f</span><span class="s2">"BLOCKYSIZE=</span><span class="si">{</span><span class="n">window_size</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
@@ -3140,11 +3446,66 @@
     <span class="k">if</span> <span class="n">tile_thread_workers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">tile_thread_workers</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
         <span class="n">creation_options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"NUM_THREADS=</span><span class="si">{</span><span class="n">tile_thread_workers</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">output_tiles</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">resume_from_outputs</span> <span class="o">==</span> <span class="s2">"validate"</span><span class="p">:</span>
+            <span class="n">existing_tiles</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">folder</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span>
+                <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">".tif"</span><span class="p">,</span> <span class="s2">".tiff"</span><span class="p">))</span>
+            <span class="p">]</span>
+            <span class="n">reusable</span> <span class="o">=</span> <span class="n">_resolve_reusable_output_paths</span><span class="p">(</span>
+                <span class="n">existing_tiles</span><span class="p">,</span> <span class="n">resume_mode</span><span class="o">=</span><span class="s2">"validate"</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
+                <span class="n">step_name</span><span class="o">=</span><span class="s2">"merge_rasters"</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">existing_tiles</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reusable</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".aux.xml"</span><span class="p">,</span> <span class="s2">".ovr"</span><span class="p">,</span> <span class="s2">".msk"</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">):</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">)</span>
+
+        <span class="n">levels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">window_scales</span> <span class="ow">or</span> <span class="p">())</span> <span class="k">if</span> <span class="n">build_overviews</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">vrt_ds</span><span class="o">.</span><span class="n">RasterXSize</span><span class="p">,</span> <span class="n">vrt_ds</span><span class="o">.</span><span class="n">RasterYSize</span><span class="p">))))</span>
+        <span class="c1"># Store the VRT on the shared output filesystem so process/Dask workers</span>
+        <span class="c1"># can open it independently. Its stable basename preserves resume names.</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">".merge_rasters-"</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">))</span> <span class="k">as</span> <span class="n">temp_dir</span><span class="p">:</span>
+            <span class="n">vrt_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">"mosaic.vrt"</span><span class="p">)</span>
+            <span class="n">saved_vrt</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span><span class="n">vrt_path</span><span class="p">,</span> <span class="n">vrt_ds</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"VRT"</span><span class="p">)</span>
+            <span class="n">saved_vrt</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">argv</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">"gdal_retile"</span><span class="p">,</span> <span class="s2">"-of"</span><span class="p">,</span> <span class="s2">"GTiff"</span><span class="p">,</span> <span class="s2">"-ot"</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDataTypeName</span><span class="p">(</span><span class="n">output_dtype</span><span class="p">),</span>
+                <span class="s2">"-ps"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">window_size</span> <span class="ow">or</span> <span class="mi">256</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">window_size</span> <span class="ow">or</span> <span class="mi">256</span><span class="p">),</span>
+                <span class="s2">"-overlap"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">overlap</span><span class="p">),</span>
+                <span class="s2">"-r"</span><span class="p">,</span> <span class="s2">"near"</span> <span class="k">if</span> <span class="n">resampling_method</span> <span class="o">==</span> <span class="s2">"nearest"</span> <span class="k">else</span> <span class="n">resampling_method</span><span class="p">,</span>
+                <span class="s2">"-targetDir"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">),</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">creation_options</span><span class="p">:</span>
+                <span class="n">argv</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">"-co"</span><span class="p">,</span> <span class="n">option</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">levels</span><span class="p">:</span>
+                <span class="n">argv</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">"-levels"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">levels</span><span class="p">)])</span>
+            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
+                <span class="n">argv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"-v"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">custom_tiles_csv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">argv</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">"-csv"</span><span class="p">,</span> <span class="n">custom_tiles_csv</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">resume_from_outputs</span> <span class="o">!=</span> <span class="s2">"no"</span><span class="p">:</span>
+                <span class="n">argv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"-resume"</span><span class="p">)</span>
+            <span class="n">argv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vrt_path</span><span class="p">)</span>
+            <span class="n">_run_gdal_retile</span><span class="p">(</span>
+                <span class="n">argv</span><span class="p">,</span> <span class="n">image_threads</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span> <span class="ow">or</span> <span class="s2">"process_pool"</span><span class="p">,</span>
+                <span class="n">dask_scheduler</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">_create_tile_vrts</span><span class="p">(</span><span class="n">output_image_path</span><span class="p">,</span> <span class="n">create_vrts</span><span class="p">,</span> <span class="n">vrt_ds</span><span class="p">,</span> <span class="n">window_size</span> <span class="ow">or</span> <span class="mi">256</span><span class="p">,</span> <span class="n">overlap</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="n">resampling_method</span><span class="p">)</span>
+        <span class="n">vrt_ds</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">output_image_path</span>
+
     <span class="n">translate_opts</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">TranslateOptions</span><span class="p">(</span>
         <span class="nb">format</span><span class="o">=</span><span class="s2">"GTiff"</span><span class="p">,</span>
         <span class="n">outputType</span><span class="o">=</span><span class="n">output_dtype</span><span class="p">,</span>
         <span class="n">noData</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
         <span class="n">creationOptions</span><span class="o">=</span><span class="n">creation_options</span><span class="p">,</span>
+        <span class="n">resampleAlg</span><span class="o">=</span><span class="n">resampling_method</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">gdal</span><span class="o">.</span><span class="n">Translate</span><span class="p">(</span>
@@ -3155,8 +3516,9 @@
 
     <span class="n">vrt_ds</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">if</span> <span class="n">build_overviews</span><span class="p">:</span> <span class="n">compute_overviews</span><span class="p">(</span>
+    <span class="k">if</span> <span class="n">build_overviews</span> <span class="ow">and</span> <span class="n">window_scales</span><span class="p">:</span> <span class="n">compute_overviews</span><span class="p">(</span>
         <span class="n">input_images_paths</span><span class="o">=</span><span class="n">output_image_path</span><span class="p">,</span>
+        <span class="n">window_scales</span><span class="o">=</span><span class="n">window_scales</span><span class="p">,</span>
         <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
         <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
         <span class="n">tile_threads</span><span class="o">=</span><span class="n">tile_threads</span><span class="p">,</span>
@@ -3303,12 +3665,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">27</span>
 <span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
@@ -3375,7 +3732,12 @@
 <span class="normal">91</span>
 <span class="normal">92</span>
 <span class="normal">93</span>
-<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_vectors</span><span class="p">(</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span>
+<span class="normal">98</span>
+<span class="normal">99</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_vectors</span><span class="p">(</span>
     <span class="n">input_vectors</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">merged_vector_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"intersection"</span><span class="p">,</span> <span class="s2">"union"</span><span class="p">,</span> <span class="s2">"keep"</span><span class="p">],</span>

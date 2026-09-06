@@ -919,6 +919,37 @@ inside the pipeline temp directory. The final step writes to
 </ul>
 
 
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>shared_window_scales</code>
+            </td>
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(2, 4, 8, 16, 32)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/chain.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 68</span>
@@ -1421,7 +1452,16 @@ inside the pipeline temp directory. The final step writes to
 <span class="normal">565</span>
 <span class="normal">566</span>
 <span class="normal">567</span>
-<span class="normal">568</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1433,6 +1473,7 @@ inside the pipeline temp directory. The final step writes to
     <span class="n">shared_cache</span><span class="p">:</span> <span class="n">AutoCache</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">shared_custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">shared_window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="n">shared_window_scales</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
     <span class="n">shared_image_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">shared_io_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">shared_tile_threads</span><span class="p">:</span> <span class="n">AutoThreads</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
@@ -1521,7 +1562,11 @@ inside the pipeline temp directory. The final step writes to
 <span class="sd">      must be a folder, a template containing ``$``, or a list of paths.</span>
 <span class="sd">    - If the final step writes a single raster or vector, it must be a single</span>
 <span class="sd">      file path without ``$``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        shared_window_scales: Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.</span>
 <span class="sd">    """</span>
+    <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">)</span>
     <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">shared_temp_dir</span> <span class="ow">or</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"spectralmatch_pipeline_"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">delete_temp_dir</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">):</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1635,6 +1680,7 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
                     <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">joint_coregistration_build_overviews</span><span class="p">,</span>
+                    <span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">,</span>
                     <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
                     <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
@@ -1687,6 +1733,7 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">pif_load_tie_points</span><span class="o">=</span><span class="n">global_regression_pif_load_tie_points</span><span class="p">,</span>
                     <span class="n">pif_save_inz</span><span class="o">=</span><span class="n">global_regression_pif_save_inz</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">global_regression_build_overviews</span><span class="p">,</span>
+                    <span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">results</span><span class="p">[</span><span class="s2">"global_regression"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
@@ -1723,6 +1770,7 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">load_block_maps</span><span class="o">=</span><span class="n">local_block_adjustment_load_block_maps</span><span class="p">,</span>
                     <span class="n">override_bounds_canvas_coords</span><span class="o">=</span><span class="n">local_block_adjustment_override_bounds_canvas_coords</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">local_block_adjustment_build_overviews</span><span class="p">,</span>
+                    <span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">results</span><span class="p">[</span><span class="s2">"local_block_adjustment"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_images</span>
@@ -1871,6 +1919,7 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">resolution</span><span class="o">=</span><span class="n">merge_rasters_resolution</span><span class="p">,</span>
                     <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">merge_rasters_build_overviews</span><span class="p">,</span>
+                    <span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">current_images</span> <span class="o">=</span> <span class="n">merged_output</span>
