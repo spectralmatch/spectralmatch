@@ -6,7 +6,7 @@
 name=spectralmatch
 qgisMinimumVersion=4.0
 description=relative radiometric normalization toolkit for raster mosaics and time series
-version=1.5.0
+version=1.6.0
 author=Kanoa Lindiwe LLC
 email=cankanoa@gmail.com
 
