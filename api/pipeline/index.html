@@ -908,15 +908,13 @@
     <div class="doc doc-contents first">
 
         <p>Run the spectral matching workflow as an ordered pipeline.</p>
-<p><code>steps</code> defines the exact step order. Intermediate outputs are written
-inside the pipeline temp directory. The final step writes to
-<code>shared_output_image_path</code>:</p>
+<p><code>steps</code> defines the exact step order. Intermediate outputs are written inside the pipeline temp directory. The final step writes to <code>shared_output_image_path</code>:</p>
 <ul>
-<li>If the final step writes multiple rasters, <code>shared_output_image_path</code>
-  must be a folder, a template containing <code>$</code>, or a list of paths.</li>
-<li>If the final step writes a single raster or vector, it must be a single
-  file path without <code>$</code>.</li>
+<li>If the final step writes multiple rasters, <code>shared_output_image_path</code> must be a folder, a template containing <code>$</code>, or a list of paths.</li>
+<li>If the final step is merge with merge_rasters_output_tiles=True, <code>shared_output_image_path</code> must be a folder without <code>$</code>; the result's output is that folder.</li>
+<li>If the final step writes a single raster or vector, it must be a single file path without <code>$</code>.</li>
 </ul>
+<p>Step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -944,6 +942,310 @@ inside the pipeline temp directory. The final step writes to
             </td>
             <td>
                   <code>(2, 4, 8, 16, 32)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>shared_window_size</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.WindowSize">WindowSize</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Processing window size; for tiled merge, also the output tile width and height in pixels, default 1024.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1024</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>shared_image_threads</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.chain.AutoThreads">AutoThreads</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Workers across images in other steps and across output tiles in tiled merge; single-file merge does not use this setting.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;auto&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>shared_concurrent_processing_backend</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.ConcurrentProcessingBackend">ConcurrentProcessingBackend</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shared process_pool or dask backend; forwarded to merge only with merge_rasters_output_tiles=True.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;process_pool&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>shared_dask_scheduler</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.DaskScheduler">DaskScheduler</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shared Dask scheduler; forwarded to merge only with merge_rasters_output_tiles=True.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>shared_resume_from_steps</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;no&#39;, &#39;yes&#39;, &#39;validate&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shared resume mode: "no" overwrites, "yes" skips existing outputs, and "validate" checks existing outputs before reuse; tiled merge applies this to existing tiles in the output folder.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;no&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>global_regression_pif_method</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;entire&#39;, &#39;flood_from_match_points&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PIF selection method, default "flood_from_match_points", matching Match.global_regression.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;flood_from_match_points&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>global_regression_pif_max_samples</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum number of PIF samples, default 10000; None disables the cap.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>global_regression_pif_min_samples</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum number of PIF samples, default 10.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weighted_seamline_input_polygons</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Input polygon path, required when steps includes weighted_seamline.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weighted_seamline_rank_function</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Ranking expression, required when steps includes weighted_seamline.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>merge_rasters_output_tiles</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_resolution</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.Resolution">Resolution</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>align_rasters_resolution</code>
+            </td>
+            <td>
+                  <code><span title="spectralmatch.types_and_validation.Universal.Resolution">Resolution</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>merge_rasters_resolution</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;highest&#39;, &#39;average&#39;, &#39;lowest&#39;] | <span title="int">int</span> | <span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;highest&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>merge_rasters_overlap</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>merge_rasters_build_overviews</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Build overviews using shared_window_scales, default False; tiled merge creates pyramid tiles in numbered subfolders and requires consecutive powers of two starting at 2.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>merge_rasters_resampling_method</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;nearest&#39;, &#39;near&#39;, &#39;bilinear&#39;, &#39;cubic&#39;, &#39;cubicspline&#39;, &#39;lanczos&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Resampling for both merge modes: nearest (or near), bilinear, cubic, cubicspline, or lanczos, default nearest.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;nearest&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>merge_rasters_custom_tiles_csv</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional .csv filename within the tile folder; GDAL writes a headerless, semicolon-delimited index with columns tilename;minx;maxx;miny;maxy in the output CRS, also in each pyramid subfolder; requires tiled merge.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>merge_rasters_create_vrts</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>VRT filename within the tile folder, default "MergedImage.vrt"; also creates and links pyramid VRTs as overviews; a custom name requires tiled merge.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;MergedImage.vrt&#39;</code>
             </td>
           </tr>
       </tbody>
@@ -1461,7 +1763,54 @@ inside the pipeline temp directory. The final step writes to
 <span class="normal">574</span>
 <span class="normal">575</span>
 <span class="normal">576</span>
-<span class="normal">577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span>
+<span class="normal">597</span>
+<span class="normal">598</span>
+<span class="normal">599</span>
+<span class="normal">600</span>
+<span class="normal">601</span>
+<span class="normal">602</span>
+<span class="normal">603</span>
+<span class="normal">604</span>
+<span class="normal">605</span>
+<span class="normal">606</span>
+<span class="normal">607</span>
+<span class="normal">608</span>
+<span class="normal">609</span>
+<span class="normal">610</span>
+<span class="normal">611</span>
+<span class="normal">612</span>
+<span class="normal">613</span>
+<span class="normal">614</span>
+<span class="normal">615</span>
+<span class="normal">616</span>
+<span class="normal">617</span>
+<span class="normal">618</span>
+<span class="normal">619</span>
+<span class="normal">620</span>
+<span class="normal">621</span>
+<span class="normal">622</span>
+<span class="normal">623</span>
+<span class="normal">624</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1509,30 +1858,30 @@ inside the pipeline temp directory. The final step writes to
     <span class="n">align_rasters_resolution</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Resolution</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_estimate_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">global_regression_specify_model_images</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">"exclude"</span><span class="p">,</span> <span class="s2">"include"</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">global_regression_specify_model_images</span><span class="p">:</span> <span class="n">MatchValidation</span><span class="o">.</span><span class="n">SpecifyModelImages</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_custom_mean_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">global_regression_custom_std_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">global_regression_save_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_load_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">global_regression_pif_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"entire"</span><span class="p">,</span> <span class="s2">"flood_from_match_points"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"entire"</span><span class="p">,</span>
+    <span class="n">global_regression_pif_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"entire"</span><span class="p">,</span> <span class="s2">"flood_from_match_points"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"flood_from_match_points"</span><span class="p">,</span>
     <span class="n">global_regression_pif_red_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_pif_nir_band_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_pif_vegetation_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
     <span class="n">global_regression_pif_inz_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
     <span class="n">global_regression_pif_region_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-    <span class="n">global_regression_pif_max_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span>
-    <span class="n">global_regression_pif_min_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="n">global_regression_pif_max_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span>
+    <span class="n">global_regression_pif_min_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">global_regression_pif_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
     <span class="n">global_regression_pif_load_tie_points</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_pif_save_inz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">global_regression_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">local_block_adjustment_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">local_block_adjustment_number_of_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"coefficient_of_variation"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">local_block_adjustment_number_of_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"coefficient_of_variation"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">local_block_adjustment_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">local_block_adjustment_correction_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"gamma"</span><span class="p">,</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"offset"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"offset"</span><span class="p">,</span>
-    <span class="n">local_block_adjustment_save_block_maps</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">local_block_adjustment_load_block_maps</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">local_block_adjustment_override_bounds_canvas_coords</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">local_block_adjustment_save_block_maps</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">local_block_adjustment_load_block_maps</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">local_block_adjustment_override_bounds_canvas_coords</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_block_adjustment_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_aoi_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">voronoi_center_seamline_vector_mask</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1548,25 +1897,69 @@ inside the pipeline temp directory. The final step writes to
     <span class="n">weighted_seamline_rank_descending</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">mask_rasters_vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">mask_rasters_include_touched_pixels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">merge_rasters_resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"highest"</span><span class="p">,</span> <span class="s2">"average"</span><span class="p">,</span> <span class="s2">"lowest"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"highest"</span><span class="p">,</span>
-    <span class="n">merge_rasters_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">merge_rasters_output_tiles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">merge_rasters_resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"highest"</span><span class="p">,</span> <span class="s2">"average"</span><span class="p">,</span> <span class="s2">"lowest"</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="s2">"highest"</span><span class="p">,</span>
+    <span class="n">merge_rasters_overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">merge_rasters_build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">merge_rasters_resampling_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"nearest"</span><span class="p">,</span> <span class="s2">"near"</span><span class="p">,</span> <span class="s2">"bilinear"</span><span class="p">,</span> <span class="s2">"cubic"</span><span class="p">,</span> <span class="s2">"cubicspline"</span><span class="p">,</span> <span class="s2">"lanczos"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"nearest"</span><span class="p">,</span>
+    <span class="n">merge_rasters_custom_tiles_csv</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">merge_rasters_create_vrts</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"MergedImage.vrt"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Run the spectral matching workflow as an ordered pipeline.</span>
 
-<span class="sd">    ``steps`` defines the exact step order. Intermediate outputs are written</span>
-<span class="sd">    inside the pipeline temp directory. The final step writes to</span>
-<span class="sd">    ``shared_output_image_path``:</span>
+<span class="sd">    ``steps`` defines the exact step order. Intermediate outputs are written inside the pipeline temp directory. The final step writes to ``shared_output_image_path``:</span>
 
-<span class="sd">    - If the final step writes multiple rasters, ``shared_output_image_path``</span>
-<span class="sd">      must be a folder, a template containing ``$``, or a list of paths.</span>
-<span class="sd">    - If the final step writes a single raster or vector, it must be a single</span>
-<span class="sd">      file path without ``$``.</span>
+<span class="sd">    - If the final step writes multiple rasters, ``shared_output_image_path`` must be a folder, a template containing ``$``, or a list of paths.</span>
+<span class="sd">    - If the final step is merge with merge_rasters_output_tiles=True, ``shared_output_image_path`` must be a folder without ``$``; the result's output is that folder.</span>
+<span class="sd">    - If the final step writes a single raster or vector, it must be a single file path without ``$``.</span>
+
+<span class="sd">    Step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        shared_window_scales: Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.</span>
+<span class="sd">        shared_window_size: Processing window size; for tiled merge, also the output tile width and height in pixels, default 1024.</span>
+<span class="sd">        shared_image_threads: Workers across images in other steps and across output tiles in tiled merge; single-file merge does not use this setting.</span>
+<span class="sd">        shared_concurrent_processing_backend: Shared process_pool or dask backend; forwarded to merge only with merge_rasters_output_tiles=True.</span>
+<span class="sd">        shared_dask_scheduler: Shared Dask scheduler; forwarded to merge only with merge_rasters_output_tiles=True.</span>
+<span class="sd">        shared_resume_from_steps: Shared resume mode: "no" overwrites, "yes" skips existing outputs, and "validate" checks existing outputs before reuse; tiled merge applies this to existing tiles in the output folder.</span>
+<span class="sd">        global_regression_pif_method: PIF selection method, default "flood_from_match_points", matching Match.global_regression.</span>
+<span class="sd">        global_regression_pif_max_samples: Maximum number of PIF samples, default 10000; None disables the cap.</span>
+<span class="sd">        global_regression_pif_min_samples: Minimum number of PIF samples, default 10.</span>
+<span class="sd">        weighted_seamline_input_polygons: Input polygon path, required when steps includes weighted_seamline.</span>
+<span class="sd">        weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.</span>
+<span class="sd">        merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.</span>
+<span class="sd">        joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</span>
+<span class="sd">        align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</span>
+<span class="sd">        merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.</span>
+<span class="sd">        merge_rasters_overlap: Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.</span>
+<span class="sd">        merge_rasters_build_overviews: Build overviews using shared_window_scales, default False; tiled merge creates pyramid tiles in numbered subfolders and requires consecutive powers of two starting at 2.</span>
+<span class="sd">        merge_rasters_resampling_method: Resampling for both merge modes: nearest (or near), bilinear, cubic, cubicspline, or lanczos, default nearest.</span>
+<span class="sd">        merge_rasters_custom_tiles_csv: Optional .csv filename within the tile folder; GDAL writes a headerless, semicolon-delimited index with columns tilename;minx;maxx;miny;maxy in the output CRS, also in each pyramid subfolder; requires tiled merge.</span>
+<span class="sd">        merge_rasters_create_vrts: VRT filename within the tile folder, default "MergedImage.vrt"; also creates and links pyramid VRTs as overviews; a custom name requires tiled merge.</span>
 <span class="sd">    """</span>
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">)</span>
+    <span class="n">resolved_steps</span> <span class="o">=</span> <span class="n">_validate_pipeline_steps</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
+    <span class="n">last_step</span> <span class="o">=</span> <span class="n">resolved_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">resolved_steps</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">_validate_shared_output_for_last_step</span><span class="p">(</span>
+        <span class="n">shared_output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
+        <span class="n">last_step</span><span class="o">=</span><span class="n">last_step</span><span class="p">,</span>
+        <span class="n">merge_rasters_output_tiles</span><span class="o">=</span><span class="n">merge_rasters_output_tiles</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"merge"</span> <span class="ow">in</span> <span class="n">resolved_steps</span><span class="p">:</span>
+        <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_merge_rasters</span><span class="p">(</span>
+            <span class="n">output_tiles</span><span class="o">=</span><span class="n">merge_rasters_output_tiles</span><span class="p">,</span>
+            <span class="n">output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
+            <span class="n">resolution</span><span class="o">=</span><span class="n">merge_rasters_resolution</span><span class="p">,</span>
+            <span class="n">overlap</span><span class="o">=</span><span class="n">merge_rasters_overlap</span><span class="p">,</span>
+            <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
+            <span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">,</span>
+            <span class="n">build_overviews</span><span class="o">=</span><span class="n">merge_rasters_build_overviews</span><span class="p">,</span>
+            <span class="n">resampling_method</span><span class="o">=</span><span class="n">merge_rasters_resampling_method</span><span class="p">,</span>
+            <span class="n">custom_tiles_csv</span><span class="o">=</span><span class="n">merge_rasters_custom_tiles_csv</span><span class="p">,</span>
+            <span class="n">create_vrts</span><span class="o">=</span><span class="n">merge_rasters_create_vrts</span><span class="p">,</span>
+            <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">shared_temp_dir</span> <span class="ow">or</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"spectralmatch_pipeline_"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">delete_temp_dir</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">):</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1606,13 +1999,6 @@ inside the pipeline temp directory. The final step writes to
         <span class="n">save_as_cog</span><span class="o">=</span><span class="n">shared_save_as_cog</span><span class="p">,</span>
         <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
         <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">resolved_steps</span> <span class="o">=</span> <span class="n">_validate_pipeline_steps</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
-    <span class="n">last_step</span> <span class="o">=</span> <span class="n">resolved_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">resolved_steps</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="n">_validate_shared_output_for_last_step</span><span class="p">(</span>
-        <span class="n">shared_output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
-        <span class="n">last_step</span><span class="o">=</span><span class="n">last_step</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">start_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
@@ -1685,6 +2071,8 @@ inside the pipeline temp directory. The final step writes to
                     <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
+                    <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span><span class="p">,</span>
+                    <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span><span class="p">,</span>
                     <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
                     <span class="n">resume_from_outputs</span><span class="o">=</span><span class="n">shared_resume_from_steps</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -1905,18 +2293,26 @@ inside the pipeline temp directory. The final step writes to
             <span class="k">elif</span> <span class="n">step_name</span> <span class="o">==</span> <span class="s2">"merge"</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shared_output_image_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">"shared_output_image_path must be a single file path when the final step is merge."</span>
+                        <span class="s2">"shared_output_image_path must be a path string for merge (a folder when merge_rasters_output_tiles=True)."</span>
                     <span class="p">)</span>
                 <span class="n">merged_output</span> <span class="o">=</span> <span class="n">merge_rasters</span><span class="p">(</span>
                     <span class="n">input_images</span><span class="o">=</span><span class="n">current_images</span><span class="p">,</span>
                     <span class="n">output_image_path</span><span class="o">=</span><span class="n">shared_output_image_path</span><span class="p">,</span>
+                    <span class="n">output_tiles</span><span class="o">=</span><span class="n">merge_rasters_output_tiles</span><span class="p">,</span>
                     <span class="n">cache</span><span class="o">=</span><span class="n">shared_cache</span><span class="p">,</span>
+                    <span class="n">image_threads</span><span class="o">=</span><span class="n">shared_image_threads</span> <span class="k">if</span> <span class="n">merge_rasters_output_tiles</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">shared_concurrent_processing_backend</span> <span class="k">if</span> <span class="n">merge_rasters_output_tiles</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">shared_dask_scheduler</span> <span class="k">if</span> <span class="n">merge_rasters_output_tiles</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="o">=</span><span class="n">shared_io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="o">=</span><span class="n">shared_tile_threads</span><span class="p">,</span>
                     <span class="n">debug_logs</span><span class="o">=</span><span class="n">shared_debug_logs</span><span class="p">,</span>
                     <span class="n">output_dtype</span><span class="o">=</span><span class="n">shared_output_dtype</span><span class="p">,</span>
                     <span class="n">custom_nodata_value</span><span class="o">=</span><span class="n">shared_custom_nodata_value</span><span class="p">,</span>
                     <span class="n">resolution</span><span class="o">=</span><span class="n">merge_rasters_resolution</span><span class="p">,</span>
+                    <span class="n">overlap</span><span class="o">=</span><span class="n">merge_rasters_overlap</span><span class="p">,</span>
+                    <span class="n">resampling_method</span><span class="o">=</span><span class="n">merge_rasters_resampling_method</span><span class="p">,</span>
+                    <span class="n">custom_tiles_csv</span><span class="o">=</span><span class="n">merge_rasters_custom_tiles_csv</span><span class="p">,</span>
+                    <span class="n">create_vrts</span><span class="o">=</span><span class="n">merge_rasters_create_vrts</span><span class="p">,</span>
                     <span class="n">window_size</span><span class="o">=</span><span class="n">shared_window_size</span><span class="p">,</span>
                     <span class="n">build_overviews</span><span class="o">=</span><span class="n">merge_rasters_build_overviews</span><span class="p">,</span>
                     <span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">,</span>

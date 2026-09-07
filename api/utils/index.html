@@ -1205,7 +1205,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Shared pixel size strategy, positive CRS-unit pixel size, or None to preserve native resolution.</p>
+                <p>Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</p>
               </div>
             </td>
             <td>
@@ -1541,7 +1541,7 @@
 <span class="sd">        output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].</span>
 <span class="sd">        resampling_method: "nearest" | "bilinear" | "cubic".</span>
 <span class="sd">        tap: If True, snap output extent to target-aligned pixels (GDAL -tap behavior).</span>
-<span class="sd">        resolution: Shared pixel size strategy, positive CRS-unit pixel size, or None to preserve native resolution.</span>
+<span class="sd">        resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</span>
 <span class="sd">        window_size: Tile size for output blocks; used for GTiff creation options.</span>
 <span class="sd">        debug_logs: Verbose logging.</span>
 <span class="sd">        cache: Cache for processing.</span>
@@ -1883,10 +1883,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1195</span>
-<span class="normal">1196</span>
-<span class="normal">1197</span>
-<span class="normal">1198</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1198</span>
 <span class="normal">1199</span>
 <span class="normal">1200</span>
 <span class="normal">1201</span>
@@ -2002,7 +1999,10 @@
 <span class="normal">1311</span>
 <span class="normal">1312</span>
 <span class="normal">1313</span>
-<span class="normal">1314</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
+<span class="normal">1314</span>
+<span class="normal">1315</span>
+<span class="normal">1316</span>
+<span class="normal">1317</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_overviews</span><span class="p">(</span>
     <span class="n">input_images_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">output_image_paths</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2173,8 +2173,8 @@
     <span class="n">UtilsValidation</span><span class="o">.</span><span class="n">_validate_align_rasters</span><span class="p">(</span><span class="n">resolution</span><span class="o">=</span><span class="n">strategy</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">strategy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">strategy</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">strategy</span><span class="p">,</span> <span class="n">strategy</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">strategy</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">strategy</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">strategy</span><span class="p">)</span>
     <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
         <span class="n">ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GA_ReadOnly</span><span class="p">)</span>
@@ -2455,10 +2455,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">764</span>
-<span class="normal">765</span>
-<span class="normal">766</span>
-<span class="normal">767</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">767</span>
 <span class="normal">768</span>
 <span class="normal">769</span>
 <span class="normal">770</span>
@@ -2576,7 +2573,10 @@
 <span class="normal">882</span>
 <span class="normal">883</span>
 <span class="normal">884</span>
-<span class="normal">885</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
+<span class="normal">885</span>
+<span class="normal">886</span>
+<span class="normal">887</span>
+<span class="normal">888</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mask_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="n">vector_mask</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">VectorMask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2894,11 +2894,11 @@
                 <code>resolution</code>
             </td>
             <td>
-                  <code><span title="highest">highest</span> | <span title="average">average</span> | <span title="lowest">lowest</span></code>
+                  <code><span title="typing.Literal">Literal</span>[&#39;highest&#39;, &#39;average&#39;, &#39;lowest&#39;] | <span title="int">int</span> | <span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Strategy for computing merge resolution.</p>
+                <p>Strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.</p>
               </div>
             </td>
             <td>
@@ -3309,7 +3309,10 @@
 <span class="normal">593</span>
 <span class="normal">594</span>
 <span class="normal">595</span>
-<span class="normal">596</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
+<span class="normal">596</span>
+<span class="normal">597</span>
+<span class="normal">598</span>
+<span class="normal">599</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_rasters</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">output_image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -3321,7 +3324,7 @@
     <span class="n">debug_logs</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">DebugLogs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">output_dtype</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomOutputDtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">custom_nodata_value</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CustomNodataValue</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"highest"</span><span class="p">,</span> <span class="s2">"average"</span><span class="p">,</span> <span class="s2">"lowest"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"highest"</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"highest"</span><span class="p">,</span> <span class="s2">"average"</span><span class="p">,</span> <span class="s2">"lowest"</span><span class="p">]</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="s2">"highest"</span><span class="p">,</span>
     <span class="n">window_size</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">WindowSize</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">build_overviews</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -3347,7 +3350,7 @@
 <span class="sd">        debug_logs (bool, optional): If True, prints progress. Defaults to False.</span>
 <span class="sd">        output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.</span>
 <span class="sd">        custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.</span>
-<span class="sd">        resolution ("highest" | "average" | "lowest", optional): Strategy for computing merge resolution.</span>
+<span class="sd">        resolution: Strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.</span>
 <span class="sd">        window_size: In tile mode, output tile width/height in pixels (-ps), default 256. In single-file mode, internal TIFF block size, which must be a multiple of 16.</span>
 <span class="sd">        overlap: Overlap in pixels between adjacent output tiles (-overlap). Requires tile mode; must be nonnegative and smaller than window_size.</span>
 <span class="sd">        build_overviews: Build internal overviews for one file, or external pyramid tiles in numbered subfolders using -levels in tile mode.</span>
@@ -3420,8 +3423,11 @@
     <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Building VRT from </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> rasters"</span><span class="p">)</span>
 
+    <span class="n">numeric_resolution</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resolution</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
     <span class="n">vrt_opts</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">BuildVRTOptions</span><span class="p">(</span>
-        <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
+        <span class="n">resolution</span><span class="o">=</span><span class="s2">"user"</span> <span class="k">if</span> <span class="n">numeric_resolution</span> <span class="k">else</span> <span class="n">resolution</span><span class="p">,</span>
+        <span class="n">xRes</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="k">if</span> <span class="n">numeric_resolution</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">yRes</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="k">if</span> <span class="n">numeric_resolution</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">srcNodata</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
         <span class="n">VRTNodata</span><span class="o">=</span><span class="n">custom_nodata_value</span><span class="p">,</span>
         <span class="n">resampleAlg</span><span class="o">=</span><span class="n">resampling_method</span><span class="p">,</span>
