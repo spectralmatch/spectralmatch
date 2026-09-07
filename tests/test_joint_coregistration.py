@@ -84,7 +84,8 @@ def test_zero_global_strength_preserves_original_geotransforms(tmp_path):
     assert gdal.Open(outputs[1]).GetGeoTransform() == pytest.approx((2, 1, 0, 24, 0, -1))
 
 
-def test_joint_coregistration_applies_shared_resolution_and_tap(tmp_path):
+@pytest.mark.parametrize("resolution", [2, 2.0])
+def test_joint_coregistration_applies_shared_resolution_and_tap(tmp_path, resolution):
     inputs, ties = _translation_fixture(tmp_path)
     outputs = [str(tmp_path / "grid_a.tif"), str(tmp_path / "grid_b.tif")]
     joint_coregistration(
@@ -92,7 +93,7 @@ def test_joint_coregistration_applies_shared_resolution_and_tap(tmp_path):
         outputs,
         local_model="none",
         load_adjustments=ties,
-        resolution=2.0,
+        resolution=resolution,
         tap=True,
     )
     for path in outputs:
@@ -103,13 +104,14 @@ def test_joint_coregistration_applies_shared_resolution_and_tap(tmp_path):
         assert transform[3] / 2 == pytest.approx(round(transform[3] / 2))
 
 
-def test_joint_coregistration_rejects_integer_resolution(tmp_path):
+@pytest.mark.parametrize("resolution", [True, False, 0, -2, float("nan"), float("inf")])
+def test_joint_coregistration_rejects_invalid_numeric_resolution(tmp_path, resolution):
     inputs, _ = _translation_fixture(tmp_path)
-    with pytest.raises(ValueError, match="positive float"):
+    with pytest.raises(ValueError, match="positive int or float"):
         joint_coregistration(
             inputs,
             [str(tmp_path / "bad_a.tif"), str(tmp_path / "bad_b.tif")],
-            resolution=2,
+            resolution=resolution,
         )
 
 

@@ -239,19 +239,20 @@ def test_align_rasters_all_options(misaligned_raster_set):
         ds = None
 
 
-def test_align_rasters_accepts_numeric_resolution(misaligned_raster_set):
+@pytest.mark.parametrize("resolution", [2, 1.5])
+def test_align_rasters_accepts_numeric_resolution(misaligned_raster_set, resolution):
     input_paths, output_paths = misaligned_raster_set
 
     align_rasters(
         input_images=input_paths,
         output_images=output_paths,
-        resolution=1.5,
+        resolution=resolution,
         tap=True,
     )
 
     for out_path in output_paths:
         transform = gdal.Open(out_path).GetGeoTransform()
-        assert abs(transform[1]) == pytest.approx(1.5)
-        assert abs(transform[5]) == pytest.approx(1.5)
-        assert transform[0] / 1.5 == pytest.approx(round(transform[0] / 1.5))
-        assert transform[3] / 1.5 == pytest.approx(round(transform[3] / 1.5))
+        assert abs(transform[1]) == pytest.approx(resolution)
+        assert abs(transform[5]) == pytest.approx(resolution)
+        assert transform[0] / resolution == pytest.approx(round(transform[0] / resolution))
+        assert transform[3] / resolution == pytest.approx(round(transform[3] / resolution))

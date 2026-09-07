@@ -30,6 +30,27 @@ def merge_sources(tmp_path):
     return paths
 
 
+@pytest.mark.parametrize("resolution", [2, 0.5])
+@pytest.mark.parametrize("output_tiles", [False, True])
+def test_merge_numeric_resolution(tmp_path, resolution, output_tiles):
+    source = tmp_path / "source.tif"
+    create_dummy_raster(source, width=32, height=32, count=1, crs="EPSG:3857", fill_value=75)
+    output = tmp_path / ("tiles" if output_tiles else "merged.tif")
+    merge_rasters([str(source)], str(output), output_tiles=output_tiles, resolution=resolution, window_size=16)
+    mosaic = output / "MergedImage.vrt" if output_tiles else output
+    with gdal.Open(str(mosaic)) as dataset:
+        assert dataset.RasterXSize == dataset.RasterYSize == int(32 / resolution)
+        assert dataset.GetGeoTransform()[1] == resolution
+        assert dataset.GetGeoTransform()[5] == -resolution
+        np.testing.assert_array_equal(dataset.ReadAsArray(), 75)
+
+
+@pytest.mark.parametrize("resolution", [None, True, False, 0, -2, float("nan"), float("inf"), "user", [2, 2]])
+def test_merge_rejects_invalid_resolution(tmp_path, resolution):
+    with pytest.raises(ValueError, match="resolution"):
+        merge_rasters(["unused.tif"], str(tmp_path / "merged.tif"), resolution=resolution)
+
+
 @pytest.mark.parametrize("workers", [None, 2])
 def test_merge_tiles_matches_single_mosaic(merge_sources, tmp_path, workers):
     single = tmp_path / "merged.tif"

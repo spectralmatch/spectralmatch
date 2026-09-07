@@ -172,7 +172,7 @@ def joint_coregistration(
         load_adjustments: JSON path from which to partially reuse pixel tie points.
         resampling_method: Resampling used for the final composed warp.
         tap: Snap rewritten output extents to the target-resolution grid.
-        resolution: Shared pixel size strategy, positive CRS-unit pixel size, or None to preserve native resolution.
+        resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
         output_dtype: Output GDAL data type, or None to retain each input type.
         custom_nodata_value: Optional output NoData override.
         window_size: Output tile size.

@@ -6,13 +6,13 @@ import time
 
 from datetime import datetime
 
-from typing import Any, Literal
+from typing import Any, List, Literal, Tuple
 
 from .handlers import _resolve_paths
 from .joint_coregistration import joint_coregistration
 from .match.match import Match
 from .seamline.seamline import Seamline
-from .types_and_validation import Universal, Pipeline as PipelineValidation
+from .types_and_validation import Universal, Match as MatchValidation, Pipeline as PipelineValidation, Utils as UtilsValidation
 from .utils import align_rasters, mask_rasters, merge_rasters
 
 AutoCache = Universal.Cache | Literal["auto"]
@@ -113,30 +113,30 @@ def pipeline(
     align_rasters_resolution: Universal.Resolution = None,
     global_regression_vector_mask: Universal.VectorMask = None,
     global_regression_estimate_stats: bool = True,
-    global_regression_specify_model_images: tuple[Literal["exclude", "include"], list[str]] | None = None,
+    global_regression_specify_model_images: MatchValidation.SpecifyModelImages = None,
     global_regression_custom_mean_factor: float = 1.0,
     global_regression_custom_std_factor: float = 1.0,
     global_regression_save_adjustments: str | None = None,
     global_regression_load_adjustments: str | None = None,
-    global_regression_pif_method: Literal["entire", "flood_from_match_points"] = "entire",
+    global_regression_pif_method: Literal["entire", "flood_from_match_points"] = "flood_from_match_points",
     global_regression_pif_red_band_index: int | None = None,
     global_regression_pif_nir_band_index: int | None = None,
     global_regression_pif_vegetation_threshold: float = 0.2,
     global_regression_pif_inz_threshold: float = 0.25,
     global_regression_pif_region_radius: int = 5,
-    global_regression_pif_max_samples: int | None = 100000,
-    global_regression_pif_min_samples: int | None = 32,
+    global_regression_pif_max_samples: int | None = 10000,
+    global_regression_pif_min_samples: int | None = 10,
     global_regression_pif_feature_method: Literal["orb"] = "orb",
     global_regression_pif_load_tie_points: str | None = None,
     global_regression_pif_save_inz: str | None = None,
     global_regression_build_overviews: bool = False,
     local_block_adjustment_vector_mask: Universal.VectorMask = None,
-    local_block_adjustment_number_of_blocks: int | tuple[int, int] | Literal["coefficient_of_variation"] = 100,
+    local_block_adjustment_number_of_blocks: int | Tuple[int, int] | Literal["coefficient_of_variation"] = 100,
     local_block_adjustment_alpha: float = 1.0,
     local_block_adjustment_correction_method: Literal["gamma", "linear", "offset"] = "offset",
-    local_block_adjustment_save_block_maps: tuple[str, str] | None = None,
-    local_block_adjustment_load_block_maps: tuple[str | None, list[str] | None] | None = None,
-    local_block_adjustment_override_bounds_canvas_coords: tuple[float, float, float, float] | None = None,
+    local_block_adjustment_save_block_maps: Tuple[str, str] | None = None,
+    local_block_adjustment_load_block_maps: Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None = None,
+    local_block_adjustment_override_bounds_canvas_coords: Tuple[float, float, float, float] | None = None,
     local_block_adjustment_build_overviews: bool = False,
     voronoi_center_seamline_aoi_path: str | None = None,
     voronoi_center_seamline_vector_mask: tuple[str, str] | None = None,
@@ -152,25 +152,69 @@ def pipeline(
     weighted_seamline_rank_descending: bool = True,
     mask_rasters_vector_mask: Universal.VectorMask = None,
     mask_rasters_include_touched_pixels: bool = False,
-    merge_rasters_resolution: Literal["highest", "average", "lowest"] = "highest",
-    merge_rasters_build_overviews: bool = True,
+    merge_rasters_output_tiles: bool = False,
+    merge_rasters_resolution: Literal["highest", "average", "lowest"] | int | float = "highest",
+    merge_rasters_overlap: int = 0,
+    merge_rasters_build_overviews: bool = False,
+    merge_rasters_resampling_method: Literal["nearest", "near", "bilinear", "cubic", "cubicspline", "lanczos"] = "nearest",
+    merge_rasters_custom_tiles_csv: str | None = None,
+    merge_rasters_create_vrts: str = "MergedImage.vrt",
 ) -> dict[str, Any]:
     """
     Run the spectral matching workflow as an ordered pipeline.
 
-    ``steps`` defines the exact step order. Intermediate outputs are written
-    inside the pipeline temp directory. The final step writes to
-    ``shared_output_image_path``:
+    ``steps`` defines the exact step order. Intermediate outputs are written inside the pipeline temp directory. The final step writes to ``shared_output_image_path``:
 
-    - If the final step writes multiple rasters, ``shared_output_image_path``
-      must be a folder, a template containing ``$``, or a list of paths.
-    - If the final step writes a single raster or vector, it must be a single
-      file path without ``$``.
+    - If the final step writes multiple rasters, ``shared_output_image_path`` must be a folder, a template containing ``$``, or a list of paths.
+    - If the final step is merge with merge_rasters_output_tiles=True, ``shared_output_image_path`` must be a folder without ``$``; the result's output is that folder.
+    - If the final step writes a single raster or vector, it must be a single file path without ``$``.
+
+    Step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.
 
     Args:
         shared_window_scales: Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.
+        shared_window_size: Processing window size; for tiled merge, also the output tile width and height in pixels, default 1024.
+        shared_image_threads: Workers across images in other steps and across output tiles in tiled merge; single-file merge does not use this setting.
+        shared_concurrent_processing_backend: Shared process_pool or dask backend; forwarded to merge only with merge_rasters_output_tiles=True.
+        shared_dask_scheduler: Shared Dask scheduler; forwarded to merge only with merge_rasters_output_tiles=True.
+        shared_resume_from_steps: Shared resume mode: "no" overwrites, "yes" skips existing outputs, and "validate" checks existing outputs before reuse; tiled merge applies this to existing tiles in the output folder.
+        global_regression_pif_method: PIF selection method, default "flood_from_match_points", matching Match.global_regression.
+        global_regression_pif_max_samples: Maximum number of PIF samples, default 10000; None disables the cap.
+        global_regression_pif_min_samples: Minimum number of PIF samples, default 10.
+        weighted_seamline_input_polygons: Input polygon path, required when steps includes weighted_seamline.
+        weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
+        merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
+        joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
+        align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
+        merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.
+        merge_rasters_overlap: Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.
+        merge_rasters_build_overviews: Build overviews using shared_window_scales, default False; tiled merge creates pyramid tiles in numbered subfolders and requires consecutive powers of two starting at 2.
+        merge_rasters_resampling_method: Resampling for both merge modes: nearest (or near), bilinear, cubic, cubicspline, or lanczos, default nearest.
+        merge_rasters_custom_tiles_csv: Optional .csv filename within the tile folder; GDAL writes a headerless, semicolon-delimited index with columns tilename;minx;maxx;miny;maxy in the output CRS, also in each pyramid subfolder; requires tiled merge.
+        merge_rasters_create_vrts: VRT filename within the tile folder, default "MergedImage.vrt"; also creates and links pyramid VRTs as overviews; a custom name requires tiled merge.
     """
     Universal._validate(window_scales=shared_window_scales)
+    resolved_steps = _validate_pipeline_steps(steps)
+    last_step = resolved_steps[-1] if resolved_steps else None
+    _validate_shared_output_for_last_step(
+        shared_output_image_path=shared_output_image_path,
+        last_step=last_step,
+        merge_rasters_output_tiles=merge_rasters_output_tiles,
+    )
+    if "merge" in resolved_steps:
+        UtilsValidation._validate_merge_rasters(
+            output_tiles=merge_rasters_output_tiles,
+            output_image_path=shared_output_image_path,
+            resolution=merge_rasters_resolution,
+            overlap=merge_rasters_overlap,
+            window_size=shared_window_size,
+            window_scales=shared_window_scales,
+            build_overviews=merge_rasters_build_overviews,
+            resampling_method=merge_rasters_resampling_method,
+            custom_tiles_csv=merge_rasters_custom_tiles_csv,
+            create_vrts=merge_rasters_create_vrts,
+            resume_from_outputs=shared_resume_from_steps,
+        )
     temp_dir = shared_temp_dir or tempfile.mkdtemp(prefix="spectralmatch_pipeline_")
     if delete_temp_dir and os.path.isdir(temp_dir):
         shutil.rmtree(temp_dir, ignore_errors=True)
@@ -210,13 +254,6 @@ def pipeline(
         save_as_cog=shared_save_as_cog,
         concurrent_processing_backend=shared_concurrent_processing_backend,
         dask_scheduler=shared_dask_scheduler,
-    )
-
-    resolved_steps = _validate_pipeline_steps(steps)
-    last_step = resolved_steps[-1] if resolved_steps else None
-    _validate_shared_output_for_last_step(
-        shared_output_image_path=shared_output_image_path,
-        last_step=last_step,
     )
 
     start_dt = datetime.now()
@@ -289,6 +326,8 @@ def pipeline(
                     image_threads=shared_image_threads,
                     io_threads=shared_io_threads,
                     tile_threads=shared_tile_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
                     debug_logs=shared_debug_logs,
                     resume_from_outputs=shared_resume_from_steps,
                 )
@@ -509,18 +548,26 @@ def pipeline(
             elif step_name == "merge":
                 if not isinstance(shared_output_image_path, str):
                     raise ValueError(
-                        "shared_output_image_path must be a single file path when the final step is merge."
+                        "shared_output_image_path must be a path string for merge (a folder when merge_rasters_output_tiles=True)."
                     )
                 merged_output = merge_rasters(
                     input_images=current_images,
                     output_image_path=shared_output_image_path,
+                    output_tiles=merge_rasters_output_tiles,
                     cache=shared_cache,
+                    image_threads=shared_image_threads if merge_rasters_output_tiles else None,
+                    concurrent_processing_backend=shared_concurrent_processing_backend if merge_rasters_output_tiles else None,
+                    dask_scheduler=shared_dask_scheduler if merge_rasters_output_tiles else None,
                     io_threads=shared_io_threads,
                     tile_threads=shared_tile_threads,
                     debug_logs=shared_debug_logs,
                     output_dtype=shared_output_dtype,
                     custom_nodata_value=shared_custom_nodata_value,
                     resolution=merge_rasters_resolution,
+                    overlap=merge_rasters_overlap,
+                    resampling_method=merge_rasters_resampling_method,
+                    custom_tiles_csv=merge_rasters_custom_tiles_csv,
+                    create_vrts=merge_rasters_create_vrts,
                     window_size=shared_window_size,
                     build_overviews=merge_rasters_build_overviews,
                     window_scales=shared_window_scales,
@@ -601,8 +648,18 @@ def _validate_shared_output_for_last_step(
     *,
     shared_output_image_path: Universal.CreateInFolderOrListFiles,
     last_step: PipelineStep | None,
+    merge_rasters_output_tiles: bool = False,
 ) -> None:
     if last_step is None:
+        return
+
+    if last_step == "merge" and merge_rasters_output_tiles:
+        UtilsValidation._validate_merge_rasters(
+            output_tiles=merge_rasters_output_tiles,
+            output_image_path=shared_output_image_path,
+        )
+        if "$" in shared_output_image_path:
+            raise ValueError("shared_output_image_path must be a folder without '$' when merge_rasters_output_tiles=True.")
         return
 
     if last_step in MULTI_RASTER_STEPS:

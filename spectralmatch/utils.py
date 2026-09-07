@@ -124,7 +124,7 @@ def align_rasters(
         output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Local.tif), ["/input/one.tif", "/input/two.tif"].
         resampling_method: "nearest" | "bilinear" | "cubic".
         tap: If True, snap output extent to target-aligned pixels (GDAL -tap behavior).
-        resolution: Shared pixel size strategy, positive CRS-unit pixel size, or None to preserve native resolution.
+        resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
         window_size: Tile size for output blocks; used for GTiff creation options.
         debug_logs: Verbose logging.
         cache: Cache for processing.
@@ -362,8 +362,8 @@ def compute_resolution(
     UtilsValidation._validate_align_rasters(resolution=strategy)
     if strategy is None:
         return None
-    if isinstance(strategy, float):
-        return strategy, strategy
+    if isinstance(strategy, (int, float)):
+        return float(strategy), float(strategy)
     res = []
     for p in paths:
         ds = gdal.Open(p, gdal.GA_ReadOnly)
@@ -390,7 +390,7 @@ def merge_rasters(
     debug_logs: Universal.DebugLogs = False,
     output_dtype: Universal.CustomOutputDtype = None,
     custom_nodata_value: Universal.CustomNodataValue = None,
-    resolution: Literal["highest", "average", "lowest"] = "highest",
+    resolution: Literal["highest", "average", "lowest"] | int | float = "highest",
     window_size: Universal.WindowSize = None,
     overlap: int = 0,
     build_overviews: bool = False,
@@ -416,7 +416,7 @@ def merge_rasters(
         debug_logs (bool, optional): If True, prints progress. Defaults to False.
         output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
-        resolution ("highest" | "average" | "lowest", optional): Strategy for computing merge resolution.
+        resolution: Strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.
         window_size: In tile mode, output tile width/height in pixels (-ps), default 256. In single-file mode, internal TIFF block size, which must be a multiple of 16.
         overlap: Overlap in pixels between adjacent output tiles (-overlap). Requires tile mode; must be nonnegative and smaller than window_size.
         build_overviews: Build internal overviews for one file, or external pyramid tiles in numbered subfolders using -levels in tile mode.
@@ -489,8 +489,11 @@ def merge_rasters(
     if debug_logs:
         print(f"Building VRT from {len(input_image_paths)} rasters")
 
+    numeric_resolution = isinstance(resolution, (int, float))
     vrt_opts = gdal.BuildVRTOptions(
-        resolution=resolution,
+        resolution="user" if numeric_resolution else resolution,
+        xRes=float(resolution) if numeric_resolution else None,
+        yRes=float(resolution) if numeric_resolution else None,
         srcNodata=custom_nodata_value,
         VRTNodata=custom_nodata_value,
         resampleAlg=resampling_method,

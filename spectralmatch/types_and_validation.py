@@ -21,7 +21,7 @@ class Universal:
     CalculationDtype = str
     CustomOutputDtype = str | None
     CreateNameAttribute: Tuple[str, str] | None
-    Resolution = Literal["highest", "average", "lowest"] | float | None
+    Resolution = Literal["highest", "average", "lowest"] | int | float | None
 
     @staticmethod
     def _validate(
@@ -230,13 +230,14 @@ def _validate_output_grid(*, tap=_UNSET, resolution=_UNSET):
     if isinstance(resolution, str) and resolution in {"highest", "average", "lowest"}:
         return
     if (
-        isinstance(resolution, float)
+        isinstance(resolution, (int, float))
+        and not isinstance(resolution, bool)
         and math.isfinite(resolution)
         and resolution > 0
     ):
         return
     raise ValueError(
-        "resolution must be 'highest', 'average', 'lowest', a positive float, or None."
+        "resolution must be 'highest', 'average', 'lowest', a positive int or float, or None."
     )
 
 
@@ -580,10 +581,9 @@ class Utils:
         resume_from_outputs="no",
     ):
         if resolution is not _UNSET:
-            if resolution not in {"highest", "average", "lowest"}:
-                raise ValueError(
-                    "resolution must be one of 'highest', 'average', or 'lowest'."
-                )
+            if resolution is None:
+                raise ValueError("Merge resolution must be 'highest', 'average', 'lowest', or a positive int or float.")
+            _validate_output_grid(resolution=resolution)
         if not isinstance(output_tiles, bool):
             raise ValueError("output_tiles must be a boolean.")
         if not isinstance(build_overviews, bool):
