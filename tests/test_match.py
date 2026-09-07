@@ -6,9 +6,48 @@ import pytest
 from osgeo import gdal
 
 from spectralmatch import Match
+from spectralmatch.match import global_regression as global_regression_module
 from spectralmatch.types_and_validation import Match as MatchValidation
 from spectralmatch.pif import pif as pif_module
 from .utils_test import create_dummy_raster
+
+
+@pytest.mark.parametrize("width", [10, 12])
+def test_constraint_display_uses_fixed_width_comma_columns(monkeypatch, capsys, width):
+    monkeypatch.setattr(global_regression_module, "CONSTRAINT_COLUMN_WIDTH", width)
+    matrix = np.zeros((6, 4))
+    matrix[0] = [-278.011, 1, 0, -0.0]
+    previous_options = np.get_printoptions()
+    global_regression_module._print_constraint_system(
+        matrix, np.array([1.0, -278.011, 0.0, 1.0]), np.zeros(6),
+        (("a", "b"),), [(0, "a"), (1, "b")],
+    )
+    lines = capsys.readouterr().out.splitlines()
+    header = lines[1].split(",")
+    rows = [line.split(",") for line in lines[2:8]]
+    assert [label.strip() for label in header[1:]] == ["a0", "b0", "a1", "b1"]
+    assert rows[0][0].strip() == "Overlap(0-1)MeanDif"
+    assert rows[2][0].strip() == "Image(0)MeanCnsrnt"
+    assert len({len(row[0]) for row in [header, *rows]}) == 1
+    assert all(len(value) == width for row in [header, *rows] for value in row[1:])
+    assert rows[0][1:] == [f"{value:+0{width}.3f}" for value in matrix[0]]
+    assert all(value[0] in "+-" and " " not in value for row in rows for value in row[1:])
+    assert "\t" not in "\n".join(lines)
+    for title in ("adjustment_params:", "observed_values_vector:"):
+        value = lines[lines.index(title) + 1]
+        assert len(value) == width
+        assert value[0] in "+-"
+    assert np.get_printoptions() == previous_options
+
+
+def test_constraint_display_large_numbers_keep_column_width(capsys):
+    matrix = np.array([[1e100, -1e100], [99999.9999, -99999.9999]])
+    global_regression_module._print_constraint_system(matrix, matrix[0], matrix[:, 0], (), [(123, "scene")])
+    rows = capsys.readouterr().out.splitlines()[2:4]
+    for line, expected in zip(rows, matrix):
+        values = line.split(",")[1:]
+        assert all(len(value) == 10 for value in values)
+        np.testing.assert_allclose([float(value) for value in values], expected, rtol=0.001)
 
 
 def _make_two_test_rasters(tmp_path, names_and_values, input_dir_name="input", output_dir_name="output", suffix="_Out.tif"):

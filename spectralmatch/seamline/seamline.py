@@ -6,6 +6,8 @@ import fiona
 from osgeo import gdal
 from shapely.geometry import LineString, Polygon, mapping
 
+from ..utils_logging import _print_step_start, _print_image_start, _print_image_completed
+
 from ..handlers import _resolve_paths, _existing_outputs_are_reusable
 from ..types_and_validation import Universal, Seamline as SeamlineValidation
 from .voronoi_center_seamline import (
@@ -51,7 +53,7 @@ Args:
 Returns:
     str: Written output GeoPackage path.
 """
-        print("Start weighted seamline")
+        _print_step_start("weighted_seamline")
         SeamlineValidation._validate_weighted_seamline(
             input_polygons=input_polygons,
             output_mask=output_mask,
@@ -72,7 +74,8 @@ Returns:
             step_name="weighted_seamline",
         ):
             return output_mask
-        return weighted_seamline(
+        _print_image_start(input_polygons, output_mask)
+        result = weighted_seamline(
             input_polygons=input_polygons,
             output_mask=output_mask,
             rank_function=rank_function,
@@ -82,6 +85,8 @@ Returns:
             rank_descending=rank_descending,
             debug_logs=debug_logs,
         )
+        _print_image_completed(input_polygons, 1, 1)
+        return result
 
     @staticmethod
     def voronoi(
@@ -112,7 +117,7 @@ Args:
 
 Outputs:
     Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""
-        print("Start voronoi center seamline")
+        _print_step_start("voronoi_center_seamline")
         output_dir = os.path.dirname(output_mask)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
@@ -149,6 +154,7 @@ Outputs:
             emps = []
             crs = None
             for path in input_image_paths:
+                _print_image_start(path, [output_mask, debug_vectors_path] if debug_vectors_path else output_mask)
                 emp = _emp_polygon_from_image(path)
                 emps.append(emp)
                 if crs is None:
@@ -156,6 +162,8 @@ Outputs:
                     crs = ds.GetProjectionRef()
                     ds = None
         else:
+            for path in input_image_paths:
+                _print_image_start(path, [output_mask, debug_vectors_path] if debug_vectors_path else output_mask)
             emps, crs = _load_emp_polygons_from_vector(
                 input_image_paths=input_image_paths,
                 input_image_names=input_image_names,
@@ -163,9 +171,10 @@ Outputs:
                 debug_logs=debug_logs,
             )
 
-        for i, emp in enumerate(emps):
-            if debug_logs:
-                print(f"EMP{i}: area={emp.area:.2f}, bounds={emp.bounds}")
+        image_details = [
+            {"Footprint area": f"{emp.area:.2f}", "Bounds": str(emp.bounds)} if debug_logs else {}
+            for emp in emps
+        ]
 
         if debug_vectors_path:
             if os.path.exists(debug_vectors_path):
@@ -220,9 +229,7 @@ Outputs:
             relevant = [cut for cut in cuts if emp.intersects(cut)]
             seg = _segment_emp(emp, relevant, debug_logs)
             if debug_logs:
-                print(
-                    f"EMP{idx} has {len(relevant)} intersecting cuts and {seg.area:.2f} segmented area"
-                )
+                image_details[idx].update({"Cuts": len(relevant), "Segmented area": f"{seg.area:.2f}"})
             segmented.append(seg)
 
         if aoi_path is not None:
@@ -244,6 +251,10 @@ Outputs:
                         "properties": {image_field_name: image_name},
                     }
                 )
+
+
+        for completed, path in enumerate(input_image_paths, 1):
+            _print_image_completed(path, completed, len(input_image_paths), details=image_details[completed - 1])
 
 
 __all__ = ["Seamline"]

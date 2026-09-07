@@ -6,7 +6,6 @@ import json
 import math
 import os
 import tempfile
-from concurrent.futures import as_completed
 from dataclasses import dataclass
 from typing import Literal
 from scipy import sparse
@@ -17,6 +16,9 @@ from scipy.spatial import cKDTree
 
 import numpy as np
 from osgeo import gdal
+
+from ..utils_multiprocessing import _run_image_tasks
+from ..utils_logging import _print_step_start, _report_image_result
 
 from ..handlers import (
     _check_raster_requirements,
@@ -191,7 +193,7 @@ def joint_coregistration(
     Returns:
         Paths to coregistered output rasters, in input order.
     """
-    print("Start joint coregistration")
+    _print_step_start("joint_coregistration")
     Universal._validate(
         input_images=input_images,
         window_scales=window_scales,
@@ -362,21 +364,16 @@ def joint_coregistration(
         for name, output_path in zip(names, output_paths)
         if output_path not in reusable
     ]
-    if debug_logs:
-        print("Apply joint coregistration and saving results for:")
-    if image_threads_on:
-        with _get_executor(
-            "thread",
-            image_thread_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as executor:
-            futures = [executor.submit(_apply_alignment_process_image, *arg) for arg in args]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for arg in args:
-            _apply_alignment_process_image(*arg)
+    _print_step_start("joint_coregistration apply alignment")
+    _run_image_tasks(
+        _apply_alignment_process_image, args,
+        input_paths=[arg[0].path for arg in args],
+        output_paths=[arg[1] for arg in args],
+        parallel=image_threads_on,
+        backend='thread', workers=image_thread_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
 
     if build_overviews and window_scales:
         compute_overviews(
@@ -491,17 +488,14 @@ def _collect_tie_points(
     image_threads_on, image_thread_workers = _resolve_parallel_config(
         image_threads, concurrent_processing_backend, dask_scheduler
     )
-    if image_threads_on:
-        with _get_executor(
-            "thread",
-            image_thread_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as executor:
-            futures = [executor.submit(_extract_pair_tie_points, *arg) for arg in args]
-            results = [future.result() for future in as_completed(futures)]
-    else:
-        results = [_extract_pair_tie_points(*arg) for arg in args]
+    _print_step_start("joint_coregistration tie points")
+    results = _run_image_tasks(
+        _extract_pair_tie_points, args,
+        input_paths=[(arg[0].path, arg[1].path) for arg in args], output_paths=[None for arg in args],
+        parallel=image_threads_on, backend='thread', workers=image_thread_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
     for pair, raw_points, points, threshold in results:
         raw_tie_points[pair] = raw_points
         tie_points[pair] = points
@@ -524,8 +518,6 @@ def _extract_pair_tie_points(info_i, info_j, feature_method, maximum_displacemen
     if pair != (info_i.name, info_j.name):
         info_i, info_j = info_j, info_i
     threshold = _resolved_ransac_threshold(info_i, info_j, ransac_threshold)
-    if debug_logs:
-        print(f"    Tie points: {info_i.name} <-> {info_j.name}")
     try:
         with tempfile.TemporaryDirectory(prefix="spectralmatch_tie_points_") as tmpdir:
             ref_vrt, sensed_vrt = _build_pair_overlap_vrts(info_i, info_j, tmpdir)
@@ -539,11 +531,11 @@ def _extract_pair_tie_points(info_i, info_j, feature_method, maximum_displacemen
             points = _filter_map_tie_points(raw_points, info_i, info_j, maximum_displacement, threshold)
     except (ValueError, RuntimeError, cv2.error) as error:
         if debug_logs:
-            print(f"    No usable tie points for {info_i.name} <-> {info_j.name}: {error}")
+            _report_image_result("Tie point reason", error)
         raw_points = np.empty((0, 4), dtype=float)
         points = np.empty((0, 4), dtype=float)
     if debug_logs:
-        print(f"    Tie points kept: {len(points)}")
+        _report_image_result("Tie points kept", len(points))
     return pair, raw_points, points, threshold
 
 
@@ -1096,8 +1088,6 @@ def _apply_alignment_process_image(
     debug_logs,
     resume_from_outputs,
 ):
-    if debug_logs:
-        print(f"    {info.name}")
     if _existing_outputs_are_reusable(
         [output_path],
         resume_mode=resume_from_outputs,
@@ -1151,8 +1141,6 @@ def _apply_alignment_process_image(
             )
     if output is None:
         raise RuntimeError(f"Failed to write coregistered image: {output_path}")
-    if debug_logs:
-        print(f"Wrote: {output_path}")
 
 
 def _output_creation_options(save_as_cog, window_size, tile_thread_on, tile_thread_workers):
@@ -1572,7 +1560,7 @@ def _filter_point_pairs(point_pairs, debug_logs):
     point_pairs = _drop_duplicate_point_pairs(point_pairs)
     point_pairs = _keep_affine_inlier_pairs(point_pairs)
     if debug_logs:
-        print(f"Overlap coregistration conjugate points kept: {len(point_pairs)}")
+        _report_image_result("Tie points kept", len(point_pairs))
     return point_pairs
 
 

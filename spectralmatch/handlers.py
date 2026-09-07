@@ -10,6 +10,8 @@ from typing import List, Optional, Literal, Tuple
 from spectralmatch.types_and_validation import Universal
 
 
+from .utils_logging import _print_step_start
+
 def _resolve_paths(
     mode: Literal["search", "create", "match", "name"],
     input: Universal.SearchFolderOrListFiles | Universal.CreateInFolderOrListFiles,
@@ -172,6 +174,7 @@ def search_paths(
     Raises:
         ValueError: If `search_pattern` is a directory and `default_file_pattern` is not provided.
     """
+    _print_step_start("search_paths")
     if not os.path.basename(search_pattern).count("."):
         if not default_file_pattern:
             raise ValueError(
@@ -179,6 +182,7 @@ def search_paths(
             )
         search_pattern = os.path.join(search_pattern, default_file_pattern)
 
+    print(f"Searching for glob matches: {search_pattern}", flush=True)
     input_paths = sorted(glob.glob(search_pattern, recursive=recursive))
 
     if debug_logs:

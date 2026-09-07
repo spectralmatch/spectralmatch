@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import sys
 import json
 import tempfile
 import re
@@ -13,7 +12,11 @@ from numpy import ndarray
 from scipy.optimize import least_squares
 
 from ..handlers import _existing_outputs_are_reusable
-from ..utils import _create_masked_vrt, _resolve_window_size, _get_valid_count
+from ..utils_logging import _report_image_result
+from ..utils import _create_masked_vrt, _create_masked_vrts, _resolve_window_size, _get_valid_count
+
+
+CONSTRAINT_COLUMN_WIDTH = 10
 
 
 def _solve_global_model(
@@ -303,7 +306,6 @@ def _apply_adjustments_process_image(
     Returns:
         None
     """
-    if debug_logs: print(f"    {image_name}")
     if _existing_outputs_are_reusable(
         [output_image_path],
         resume_mode=resume_from_outputs,
@@ -398,7 +400,6 @@ def _apply_adjustments_process_image(
             raise RuntimeError("gdal.Translate failed to write adjusted image")
         out_ds = None
 
-        if debug_logs: print(f"Wrote: {output_image_path}")
 
 
 def _save_adjustments(
@@ -576,6 +577,8 @@ def _print_constraint_system(
     """
     Prints the constraint matrix system with labeled rows and columns for debugging regression inputs.
 
+    CONSTRAINT_COLUMN_WIDTH controls every numeric column (default 10). Values use signed, zero-padded decimals with three decimal places; values too large for that width use scientific notation. Row labels share the width of the longest label, and column headers are padded with spaces.
+
     Args:
         constraint_matrix (ndarray): Coefficient matrix used in the regression system.
         adjustment_params (ndarray): Solved adjustment parameters (regression output).
@@ -586,12 +589,26 @@ def _print_constraint_system(
     Returns:
         None
     """
-    np.set_printoptions(
-        suppress=True,
-        precision=3,
-        linewidth=300,
-        formatter={"float_kind": lambda x: f"{x: .3f}"},
-    )
+    column_width = CONSTRAINT_COLUMN_WIDTH
+    if type(column_width) is not int or column_width < 8:
+        raise ValueError("CONSTRAINT_COLUMN_WIDTH must be an integer of at least 8.")
+
+    def format_number(value):
+        """Print signed, zero-padded decimals, using scientific notation only when needed to fit the column."""
+        text = f"{value:+0{column_width}.3f}"
+        precision = 3
+        while len(text) > column_width:
+            text = f"{value:+0{column_width}.{precision}e}"
+            precision -= 1
+        return text
+
+    def print_values(values):
+        """Print a vector or matrix using the same numeric columns as the constraint matrix."""
+        values = np.asarray(values)
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+        for row in values:
+            print(",".join(format_number(value) for value in row))
 
     print("constraint_matrix with labels:")
 
@@ -600,12 +617,12 @@ def _print_constraint_system(
     # Build row labels
     row_labels = []
     for i, j in overlap_pairs:
-        row_labels.append(f"Overlap({name_to_id[i]}-{name_to_id[j]}) Mean Diff")
-        row_labels.append(f"Overlap({name_to_id[i]}-{name_to_id[j]}) Std Diff")
+        row_labels.append(f"Overlap({name_to_id[i]}-{name_to_id[j]})MeanDif")
+        row_labels.append(f"Overlap({name_to_id[i]}-{name_to_id[j]})StdDif")
 
     for i, name in image_names_with_id:
-        row_labels.append(f"[{i}] Mean Cnstr")
-        row_labels.append(f"[{i}] Std Cnstr")
+        row_labels.append(f"Image({i})MeanCnsrnt")
+        row_labels.append(f"Image({i})StdCnsrnt")
 
     # Build column labels
     col_labels = []
@@ -614,23 +631,18 @@ def _print_constraint_system(
         col_labels.append(f"b{i}")
 
     # Print column headers
-    header = f"{'':<30}"
-    for lbl in col_labels:
-        header += f"{lbl:>18}"
-    print(header)
+    label_width = max(map(len, row_labels), default=0)
+    print(",".join([" " * label_width, *(f"{label:>{column_width}}" for label in col_labels)]))
 
     # Print matrix rows
     for row_label, row in zip(row_labels, constraint_matrix):
-        line = f"{row_label:<30}"
-        for val in row:
-            line += f"{val:18.3f}"
-        print(line)
+        print(",".join([f"{row_label:<{label_width}}", *(format_number(value) for value in row)]))
 
     print("\nadjustment_params:")
-    np.savetxt(sys.stdout, adjustment_params, fmt="%18.3f")
+    print_values(adjustment_params)
 
     print("\nobserved_values_vector:")
-    np.savetxt(sys.stdout, observed_values_vector, fmt="%18.3f")
+    print_values(observed_values_vector)
 
 
 def _find_overlaps(
@@ -677,13 +689,11 @@ def _overlap_stats_process_image(
 ) -> Dict[str, Dict[str, Dict[int, Dict[str, float]]]]:
     """Create worker-local masked VRTs and calculate one overlap pair."""
     with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
-        masked_i = _create_masked_vrt(
-            name_i, input_image_path_i, vector_mask=vector_mask,
+        masked_i, masked_j = _create_masked_vrts(
+            [name_i, name_j], [input_image_path_i, input_image_path_j],
+            step_name="global_regression", vector_mask=vector_mask,
             nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
-        )
-        masked_j = _create_masked_vrt(
-            name_j, input_image_path_j, vector_mask=vector_mask,
-            nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
+            create_vrt=_create_masked_vrt,
         )
         return _overlap_stats_from_masked_images(
             tile_thread_on, tile_thread_workers, num_bands, masked_i, masked_j,
@@ -891,9 +901,11 @@ def _whole_stats_process_image(
 ) -> Dict[str, Dict[int, Dict[str, float]]]:
     """Create one worker-local masked VRT and calculate whole-image statistics."""
     with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
-        masked_path = _create_masked_vrt(
-            image_name, input_image_path, vector_mask=vector_mask,
+        masked_path, = _create_masked_vrts(
+            [image_name], [input_image_path],
+            step_name="global_regression", vector_mask=vector_mask,
             nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
+            create_vrt=_create_masked_vrt,
         )
         return _whole_stats_from_masked_image(
             tile_thread_on, tile_thread_worker, masked_path, num_bands,
@@ -936,7 +948,6 @@ def _whole_stats_from_masked_image(
             }
     """
     stats = {image_name: {}}
-    print(f"    {image_name}")
 
     ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
 
@@ -953,4 +964,6 @@ def _whole_stats_from_masked_image(
             "size": valid_count,
         }
     ds = None
+    if debug_logs:
+        _report_image_result("Valid pixels", valid_count)
     return stats

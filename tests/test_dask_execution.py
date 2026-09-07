@@ -127,7 +127,7 @@ def test_missing_dask_scheduler_file_is_rejected(tmp_path):
         _parse_dask_scheduler(("file", str(tmp_path / "missing.json")))
 
 
-def test_whole_statistics_builds_masked_vrt_inside_worker(monkeypatch):
+def test_whole_statistics_builds_masked_vrt_inside_worker(monkeypatch, capsys):
     module = importlib.import_module("spectralmatch.match.global_regression")
     observed = {}
 
@@ -150,9 +150,12 @@ def test_whole_statistics_builds_masked_vrt_inside_worker(monkeypatch):
     assert observed["vector_mask"] == cutline
     assert observed["path"] == "/shared/image.tif"
     assert not os.path.exists(os.path.dirname(observed["calculation_path"]))
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == "START GLOBAL_REGRESSION MASKING:"
+    assert lines[-1] == "[image.tif] Completed 1/1"
 
 
-def test_overlap_statistics_builds_one_masked_pair_inside_worker(monkeypatch):
+def test_overlap_statistics_builds_one_masked_pair_inside_worker(monkeypatch, capsys):
     module = importlib.import_module("spectralmatch.match.global_regression")
     created = []
 
@@ -178,9 +181,13 @@ def test_overlap_statistics_builds_one_masked_pair_inside_worker(monkeypatch):
     assert created[0][2]["out_dir"] == created[1][2]["out_dir"]
     assert all(entry[2]["vector_mask"] == cutline for entry in created)
     assert not os.path.exists(created[0][2]["out_dir"])
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == "START GLOBAL_REGRESSION MASKING:"
+    assert "[A.tif] Completed 1/2" in lines
+    assert lines[-1] == "[B.tif] Completed 2/2"
 
 
-def test_local_blocks_build_masked_vrt_inside_worker(monkeypatch):
+def test_local_blocks_build_masked_vrt_inside_worker(monkeypatch, capsys):
     module = importlib.import_module("spectralmatch.match.local_block_adjustment")
     observed = {}
 
@@ -202,3 +209,6 @@ def test_local_blocks_build_masked_vrt_inside_worker(monkeypatch):
     assert observed["vector_mask"] == cutline
     assert observed["path"] == "/shared/image.tif"
     assert not os.path.exists(os.path.dirname(observed["calculation_path"]))
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == "START LOCAL_BLOCK_ADJUSTMENT MASKING:"
+    assert lines[-1] == "[image.tif] Completed 1/1"

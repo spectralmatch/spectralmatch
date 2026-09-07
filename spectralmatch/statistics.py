@@ -8,6 +8,8 @@ import matplotlib.gridspec as gridspec
 from osgeo import gdal
 
 
+from .utils_logging import _print_step_start, _print_image_start, _print_image_completed
+
 def compare_image_spectral_profiles_pairs(
     image_groups_dict: dict,
     output_figure_path: str,
@@ -41,9 +43,11 @@ def compare_image_spectral_profiles_pairs(
         Saves a spectral comparison plot showing pre- and post-processing profiles.
     """
 
+    _print_step_start("compare_image_spectral_profiles_pairs")
     os.makedirs(os.path.dirname(output_figure_path), exist_ok=True)
     plt.figure(figsize=(10, 6))
     colors = itertools.cycle(plt.cm.tab10.colors)
+    processed_paths = []
 
     for label, group in image_groups_dict.items():
         if len(group) == 2:
@@ -51,9 +55,11 @@ def compare_image_spectral_profiles_pairs(
             color = next(colors)
 
             for i, image_path in enumerate([image_path1, image_path2]):
+                _print_image_start(image_path, output_figure_path)
                 ds = gdal.Open(image_path, gdal.GA_ReadOnly)
                 if ds is None:
                     continue
+                processed_paths.append(image_path)
 
                 num_bands = ds.RasterCount
                 mean_spectral = np.zeros(num_bands, dtype=float)
@@ -98,6 +104,8 @@ def compare_image_spectral_profiles_pairs(
     plt.savefig(output_figure_path, dpi=300)
     plt.close()
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
+    for completed, path in enumerate(processed_paths, 1):
+        _print_image_completed(path, completed, len(processed_paths))
 
 
 def compare_spatial_spectral_difference_band_average(
@@ -125,12 +133,14 @@ def compare_spatial_spectral_difference_band_average(
     Raises:
         ValueError: If the input count or resampling method is invalid, band counts differ, georeferencing is missing, or the images have no shared valid pixels.
     """
+    _print_step_start("compare_spatial_spectral_difference_band_average")
     if len(input_images) != 2:
         raise ValueError("input_images must be a list of exactly two image paths.")
     if resampling_method not in {"nearest", "bilinear", "cubic", "lanczos"}:
         raise ValueError("resampling_method must be nearest, bilinear, cubic, or lanczos.")
 
     path1, path2 = input_images
+    _print_image_start(input_images, output_figure_path)
 
     ds1 = gdal.Open(path1, gdal.GA_ReadOnly)
     ds2 = gdal.Open(path2, gdal.GA_ReadOnly)
@@ -163,6 +173,7 @@ def compare_spatial_spectral_difference_band_average(
     plt.close()
 
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
+    _print_image_completed(input_images, 1, 1)
 
 
 def _projected_mean_spectral_difference(before_ds, after_ds, resampling_method):
@@ -250,6 +261,7 @@ def compare_before_after_all_images(
     Output:
         Saves a PNG file with the comparison figure.
     """
+    _print_step_start("compare_before_after_all_images")
     def read_as_3band(ds):
         count = ds.RasterCount
         if count >= 3:
@@ -264,6 +276,7 @@ def compare_before_after_all_images(
     def compute_row_stretch(paths):
         all_valid = [[] for _ in range(3)]
         for path in paths:
+            _print_image_start(path, output_figure_path)
             ds = gdal.Open(path, gdal.GA_ReadOnly)
             if ds is None:
                 raise RuntimeError(f"Failed to open {path}")
@@ -348,3 +361,5 @@ def compare_before_after_all_images(
     plt.close()
 
     print(f"Saved: {os.path.splitext(os.path.basename(output_figure_path))[0]}")
+    for completed, path in enumerate([*input_images_1, *input_images_2], 1):
+        _print_image_completed(path, completed, len(input_images_1) + len(input_images_2))

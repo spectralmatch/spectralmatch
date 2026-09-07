@@ -6,9 +6,11 @@ import numpy as np
 
 from typing import List
 from omnicloudmask import predict_from_array
-from concurrent.futures import as_completed
 from osgeo import gdal
 gdal.UseExceptions()
+
+from ..utils_multiprocessing import _run_image_tasks
+from ..utils_logging import _print_step_start, _report_image_result
 
 from ..types_and_validation import Universal
 from ..handlers import _resolve_paths, _resolve_nodata_value, _check_raster_requirements
@@ -50,7 +52,7 @@ def create_cloud_mask_with_omnicloudmask(
         Exception: Propagates any error from processing individual images.
     """
 
-    print("Start omnicloudmask")
+    _print_step_start("create_cloud_mask_with_omnicloudmask")
     Universal._validate(
         input_images=input_images,
         output_images=output_images,
@@ -97,21 +99,15 @@ def create_cloud_mask_with_omnicloudmask(
         for input_path, output_path in zip(input_image_paths, output_image_paths)
     ]
 
-    if image_threads_on:
-        with _get_executor(
-            image_backend,
-            image_thread_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as executor:
-            futures = [
-                executor.submit(_process_cloud_mask_image, *args) for args in image_args
-            ]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for args in image_args:
-            _process_cloud_mask_image(*args)
+    _run_image_tasks(
+        _process_cloud_mask_image, image_args,
+        input_paths=[arg[0] for arg in image_args],
+        output_paths=[arg[1] for arg in image_args],
+        parallel=image_threads_on,
+        backend=image_backend, workers=image_thread_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
     return output_image_paths
 
 
@@ -187,8 +183,6 @@ def _process_cloud_mask_image(
     out_ds = None
     ds = None
 
-    if debug_logs:
-        print(f"Wrote mask: {output_mask_path}")
 
 
 def band_math(
@@ -231,6 +225,7 @@ def band_math(
         List[str]: Paths to the thresholded output images.
     """
 
+    _print_step_start("band_math")
     Universal._validate(
         input_images=input_images,
         output_images=output_images,
@@ -309,19 +304,15 @@ def band_math(
         for in_path, out_path, name in zip(input_image_paths, output_image_paths, image_names)
     ]
 
-    if image_threads_on:
-        with _get_executor(
-            image_backend,
-            image_thread_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as executor:
-            futures = [executor.submit(_band_math_process_image, *args) for args in image_args]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for args in image_args:
-            _band_math_process_image(*args)
+    _run_image_tasks(
+        _band_math_process_image, image_args,
+        input_paths=[arg[0] for arg in image_args],
+        output_paths=[arg[1] for arg in image_args],
+        parallel=image_threads_on,
+        backend=image_backend, workers=image_thread_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
 
     return output_image_paths
 
@@ -358,8 +349,6 @@ def _band_math_process_image(
     Returns:
         None
     """
-    if debug_logs:
-        print(f"    Processing: {input_image_path}")
 
     ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
 
@@ -471,8 +460,6 @@ def _band_math_process_image(
     ds = None
     shutil.rmtree(tmpdir, ignore_errors=True)
 
-    if debug_logs:
-        print(f"    Wrote: {output_image_path}")
 
 
 def _calculate_threshold_from_percent(
@@ -527,9 +514,7 @@ def _calculate_threshold_from_percent(
     value = float(bin_edges[bin_index])
 
     if debug_logs:
-        print(
-            f"Threshold: {threshold} → {value:.4f} using {bins} bins in range ({min_val:.4f}, {max_val:.4f})"
-        )
+        _report_image_result(f"Band {band_index} P{threshold:g}", f"{value:.4f}")
 
     ds = None
     return value

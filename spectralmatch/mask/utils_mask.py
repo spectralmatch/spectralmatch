@@ -4,8 +4,10 @@ import shutil
 import numpy as np
 import re
 
-from concurrent.futures import as_completed
 from osgeo import gdal, osr, ogr
+
+from ..utils_multiprocessing import _run_image_tasks
+from ..utils_logging import _print_step_start
 
 from .mask import _calculate_threshold_from_percent
 from ..utils_multiprocessing import _get_executor, _resolve_parallel_config
@@ -55,7 +57,7 @@ def process_raster_values_to_vector_polygons(
         estimate_statistics (bool, optional): Whether to estimate statistics for percentile thresholds. Defaults to True.
     """
 
-    print("Start raster value extraction to polygons")
+    _print_step_start("process_raster_values_to_vector_polygons")
 
     Universal._validate(
         input_images=input_images,
@@ -115,22 +117,15 @@ def process_raster_values_to_vector_polygons(
         for in_path, out_path in zip(input_image_paths, output_image_paths)
     ]
 
-    if image_threads_on:
-        with _get_executor(
-            image_backend,
-            image_thread_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as executor:
-            futures = [
-                executor.submit(_process_image_to_polygons, *args)
-                for args in image_args
-            ]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for args in image_args:
-            _process_image_to_polygons(*args)
+    _run_image_tasks(
+        _process_image_to_polygons, image_args,
+        input_paths=[arg[0] for arg in image_args],
+        output_paths=[arg[1] for arg in image_args],
+        parallel=image_threads_on,
+        backend=image_backend, workers=image_thread_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
 
 
 def _process_image_to_polygons(
@@ -164,8 +159,6 @@ def _process_image_to_polygons(
         tile_thread_workers (int): Number of worker threads to use for tiled processing.
     """
 
-    if debug_logs:
-        print(f"Processing {input_image_path}")
 
     # Open dataset
     ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
@@ -303,4 +296,3 @@ def _process_image_to_polygons(
 
     rds = None; vds = None; ds = None
     shutil.rmtree(tmpdir, ignore_errors=True)
-    if debug_logs: print(f"Wrote: {output_vector_path}")

@@ -10,8 +10,12 @@ import numpy as np
 from typing import Optional, Literal, Tuple, List
 from types import SimpleNamespace
 from concurrent.futures import as_completed
+from functools import partial
 from osgeo import gdal, ogr, osr
 from osgeo_utils import gdal_retile
+
+from .utils_multiprocessing import _run_image_tasks
+from .utils_logging import _print_step_start, _print_image_start, _print_image_completed, _report_image_result
 
 from .handlers import (
     _resolve_paths,
@@ -44,7 +48,7 @@ def merge_vectors(
     Returns:
         None
     """
-    print("Start vector merge")
+    _print_step_start("merge_vectors")
 
     os.makedirs(os.path.dirname(merged_vector_path), exist_ok=True)
     input_vector_paths = _resolve_paths(
@@ -55,6 +59,7 @@ def merge_vectors(
     input_names = []
 
     for path in input_vector_paths:
+        _print_image_start(path, merged_vector_path)
         gdf = gpd.read_file(path)
         if create_name_attribute:
             name = os.path.splitext(os.path.basename(path))[0]
@@ -97,6 +102,8 @@ def merge_vectors(
         raise ValueError(f"Unsupported merge method: {method}")
 
     merged.to_file(merged_vector_path)
+    for completed, path in enumerate(input_vector_paths, 1):
+        _print_image_completed(path, completed, len(input_vector_paths))
 
 
 def align_rasters(
@@ -137,8 +144,7 @@ def align_rasters(
     Returns:
         List[str]: Paths to the locally adjusted output raster images.
     """
-    if debug_logs:
-        print("Start align rasters")
+    _print_step_start("align_rasters")
 
     Universal._validate(
         input_images=input_images,
@@ -231,21 +237,15 @@ def align_rasters(
         if output_image_paths[i] not in reusable_output_paths
     ]
 
-    if image_threads_on:
-        with _get_executor(
-            image_backend,
-            image_thread_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as executor:
-            futures = [
-                executor.submit(_align_process_image, *arg) for arg in args
-            ]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for args in args:
-            _align_process_image(*args)
+    _run_image_tasks(
+        _align_process_image, args,
+        input_paths=[arg[1] for arg in args],
+        output_paths=[arg[2] for arg in args],
+        parallel=image_threads_on,
+        backend=image_backend, workers=image_thread_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
     return output_image_paths
 
 
@@ -278,8 +278,6 @@ def _align_process_image(
     Returns:
         None
     """
-    if debug_logs:
-        print(f"Aligning: {image_name}")
     if _existing_outputs_are_reusable(
         [out_path],
         resume_mode=resume_from_outputs,
@@ -433,6 +431,7 @@ def merge_rasters(
 
     """
 
+    _print_step_start("merge_rasters")
     Universal._validate(
         input_images=input_images,
         debug_logs=debug_logs,
@@ -479,6 +478,7 @@ def merge_rasters(
     if not input_image_paths:
         raise ValueError("No input rasters found to merge.")
     input_image_paths = [os.path.abspath(path) for path in input_image_paths]
+    _print_image_start(input_image_paths, output_image_path, image_id=os.path.basename(output_image_path.rstrip(os.sep)))
 
     # Dtype
     output_dtype = _gdal_dtype_str_to_enum(_resolve_gdal_dtype(output_dtype, input_image_paths[0]))
@@ -570,6 +570,7 @@ def merge_rasters(
             )
         _create_tile_vrts(output_image_path, create_vrts, vrt_ds, window_size or 256, overlap, levels, resampling_method)
         vrt_ds = None
+        _print_image_completed(input_image_paths, 1, 1, image_id=os.path.basename(output_image_path.rstrip(os.sep)))
         return output_image_path
 
     translate_opts = gdal.TranslateOptions(
@@ -580,11 +581,14 @@ def merge_rasters(
         resampleAlg=resampling_method,
     )
 
-    gdal.Translate(
+    merged_dataset = gdal.Translate(
         destName=output_image_path,
         srcDS=vrt_ds,
         options=translate_opts,
     )
+    if merged_dataset is None:
+        raise RuntimeError(f"GDAL could not write the merged raster: {output_image_path}")
+    merged_dataset = None
 
     vrt_ds = None
 
@@ -596,6 +600,7 @@ def merge_rasters(
         tile_threads=tile_threads,
         debug_logs=debug_logs,
         )
+    _print_image_completed(input_image_paths, 1, 1, image_id=os.path.basename(output_image_path))
     return output_image_path
 
 
@@ -660,14 +665,11 @@ def _run_gdal_retile(
     parallel, workers = _resolve_parallel_config(
         image_threads, concurrent_processing_backend, dask_scheduler,
     )
+    retile = _load_gdal_retile()
     if not parallel:
-        result = gdal_retile.main(argv)
+        _install_serial_writers(retile)
+        result = retile.main(argv)
     else:
-        spec = importlib.util.spec_from_file_location(
-            "_spectralmatch_gdal_retile", gdal_retile.__file__,
-        )
-        retile = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(retile)
         with _get_executor(
             "process", workers,
             concurrent_processing_backend=concurrent_processing_backend,
@@ -677,6 +679,46 @@ def _run_gdal_retile(
             result = retile.main(argv)
     if result != 0:
         raise RuntimeError(f"gdal_retile failed with status {result}.")
+
+
+def _load_gdal_retile():
+    """Load isolated GDAL callbacks so concurrent merge calls cannot change each other's logging."""
+    spec = importlib.util.spec_from_file_location("_spectralmatch_gdal_retile", gdal_retile.__file__)
+    retile = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(retile)
+    # The standard progress bar would interleave with the per-tile messages.
+    retile.progress = lambda *args: None
+    return retile
+
+
+def _install_serial_writers(retile):
+    """Log native serial tile writers, counting completed tiles separately for each pyramid level."""
+    state = {"completed": 0, "total": 0}
+
+    def level(original):
+        def run(g, minfo, tile_info, *args):
+            state.update(completed=0, total=tile_info.countTilesX * tile_info.countTilesY)
+            _print_step_start(f"merge_rasters tiles level {args[0] if args else 0}")
+            return original(g, minfo, tile_info, *args)
+        return run
+
+    def writer(original):
+        def run(g, minfo, x, y, width, height, path, index, feature_only):
+            identifier = os.path.basename(path)
+            _print_image_start(minfo.filename, path, image_id=identifier)
+            result = original(g, minfo, x, y, width, height, path, index, feature_only)
+            if result not in (None, 0):
+                raise RuntimeError(f"gdal_retile failed to write {path}.")
+            if os.path.isfile(path):
+                state["completed"] += 1
+                _print_image_completed(path, state["completed"], state["total"])
+            return result
+        return run
+
+    retile.createTile = writer(retile.createTile)
+    retile.createPyramidTile = writer(retile.createPyramidTile)
+    retile.tileImage = level(retile.tileImage)
+    retile.buildPyramidLevel = level(retile.buildPyramidLevel)
 
 
 def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs):
@@ -718,12 +760,14 @@ def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs):
 
     def level(original):
         def run(*level_args):
+            _print_step_start(f"merge_rasters tiles level {level_args[3] if len(level_args) > 3 else 0}")
             index = original(*level_args)
             # Complete this level before GDAL opens its tiles for the next one.
-            futures = [executor.submit(_retile_process_tile, *arg) for arg in args]
+            futures = {executor.submit(_retile_process_tile, *arg): arg[7] for arg in args}
             args.clear()
-            for future in as_completed(futures):
+            for completed, future in enumerate(as_completed(futures), 1):
                 future.result()
+                _print_image_completed(futures[future], completed, len(futures))
             return index
         return run
 
@@ -738,7 +782,7 @@ def _retile_process_tile(
     settings, cache, io_threads, debug_logs,
 ):
     """Reopen tile inputs in a worker and invoke GDAL's native tile writer."""
-
+    _print_image_start(sources, path, image_id=os.path.basename(path))
     _set_gdal_cache(cache, debug_logs)
     _set_gdal_workers(io_threads, debug_logs)
     g = gdal_retile.RetileGlobals()
@@ -802,8 +846,7 @@ def mask_rasters(
         list: Output image paths after masking.
     """
 
-    if debug_logs:
-        print("Start mask rasters")
+    _print_step_start("mask_rasters")
 
     Universal._validate(
         input_images=input_images,
@@ -871,19 +914,15 @@ def mask_rasters(
         if output_image_paths[i] not in reusable_output_paths
     ]
 
-    if image_threads_on:
-        with _get_executor(
-            image_backend,
-            image_thread_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as executor:
-            futures = [executor.submit(_mask_raster_process_image, *arg) for arg in args]
-            for future in as_completed(futures):
-                future.result()
-    else:
-        for arg in args:
-            _mask_raster_process_image(*arg)
+    _run_image_tasks(
+        _mask_raster_process_image, args,
+        input_paths=[arg[0] for arg in args],
+        output_paths=[arg[1] for arg in args],
+        parallel=image_threads_on,
+        backend=image_backend, workers=image_thread_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
 
     return output_image_paths
 
@@ -918,8 +957,6 @@ def _mask_raster_process_image(
         None
     """
 
-    if debug_logs:
-        print(f"Masking image: {image_name}")
     if _existing_outputs_are_reusable(
         [output_image_path],
         resume_mode=resume_from_outputs,
@@ -969,13 +1006,9 @@ def _create_masked_vrt(
 ) -> str:
 
     workdir = out_dir
-    if debug_logs: print(f"Creating VRTs: {workdir}")
 
     # Pre-parse mask configuration once
     mask_mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
-
-    if debug_logs:
-        print(f"    {image_name}")
 
     src = gdal.Open(image_path, gdal.GA_ReadOnly)
     if src is None:
@@ -1011,6 +1044,17 @@ def _create_masked_vrt(
     return vrt_path
 
 
+def _create_masked_vrts(image_names, image_paths, *, step_name, vector_mask=None, nodata_value=None, out_dir, debug_logs=False, create_vrt=None):
+    """Create temporary masked VRTs as a named image-processing substep inside the current worker."""
+    _print_step_start(f"{step_name} masking")
+    output_paths = [os.path.join(out_dir, f"vrt_{name}.vrt") for name in image_names]
+    create = partial(create_vrt or _create_masked_vrt, vector_mask=vector_mask, nodata_value=nodata_value, out_dir=out_dir, debug_logs=debug_logs)
+    return _run_image_tasks(
+        create, list(zip(image_names, image_paths)),
+        input_paths=image_paths, output_paths=output_paths,
+    )
+
+
 def _resolve_cutline_options(vector_mask, image_name):
     """Return GDAL cutline options for one image without creating temporary data."""
     if not vector_mask:
@@ -1040,7 +1084,6 @@ def _set_gdal_cache(
     ):
     if cache is not None:
         gdal.SetCacheMax(int(cache * 1024 ** 3))
-    if debug_logs: print(f"Cache: {gdal.GetCacheMax() / (1024 ** 3):.2f} GB")
 
 def _set_gdal_workers(
     io_threads: int | str | None,
@@ -1050,7 +1093,6 @@ def _set_gdal_workers(
         if io_threads == "cpu": io_threads = "ALL_CPUS"
         else: io_threads = str(io_threads)
         gdal.SetConfigOption("GDAL_NUM_THREADS", io_threads)
-    if debug_logs: print(f'GDAL num threads: {gdal.GetConfigOption("GDAL_NUM_THREADS", "Not set")}')
 
 
 def _resolve_gdal_dtype(
@@ -1079,8 +1121,6 @@ def _resolve_gdal_dtype(
 
     ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
     dtype_str = gdal.GetDataTypeName(ds.GetRasterBand(1).DataType)
-    if debug_logs:
-        print(f"Image-derived output data type: {dtype_str}")
     ds = None
     return dtype_str
 
@@ -1105,7 +1145,6 @@ def _resolve_window_size(
     if window_size is not None:
         if window_size <= 0:
             raise ValueError("window_size must be a positive integer or None.")
-        if debug_logs: print("User-specified window size: ", window_size)
         return int(window_size)
 
     ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
@@ -1226,7 +1265,7 @@ def compute_overviews(
     Returns:
         List[str]: Paths of images that received overviews.
     """
-    print("Start overviews computation")
+    _print_step_start("compute_overviews")
     if debug_logs: print(f"Input images: {input_images_paths}")
     if debug_logs and output_image_paths: print(f"Output images: {output_image_paths}")
     if debug_logs: print(f"Window scales: {window_scales}")
@@ -1241,26 +1280,6 @@ def compute_overviews(
         concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler,
     )
-
-    def _copy_files_if_needed(
-            src_paths: List[str],
-            dst_paths: List[str],
-        ) -> List[str]:
-        """
-        Copy src to dst.
-        """
-        out: List[str] = []
-
-        for src, dst in zip(src_paths, dst_paths):
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            ds = gdal.Translate(dst, src)
-            if ds is None:
-                raise RuntimeError(f"Failed copying {src} to {dst}")
-            ds = None
-            out.append(dst)
-
-        return out
-
 
     # Paths
     input_paths = _resolve_paths(
@@ -1280,9 +1299,7 @@ def compute_overviews(
                 "default_file_pattern": "$.tif",
             },
         )
-        _copy_files_if_needed(input_paths, target_paths)
-
-    if not window_scales:
+    if not window_scales and output_image_paths is None:
         return target_paths
 
     # GDAL config
@@ -1296,25 +1313,28 @@ def compute_overviews(
     tile_thread_on, tile_workers = _resolve_parallel_config(tile_threads)
 
 
-    # Execute
-    if image_threads_on:
-        with _get_executor(
-            image_backend,
-            image_workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-        ) as ex:
-            futures = [
-                ex.submit(_process_image_overview, p, window_scales, tile_thread_on, tile_workers, debug_logs)
-                for p in target_paths
-            ]
-            for f in as_completed(futures):
-                f.result()
-    else:
-        for p in target_paths:
-            _process_image_overview(p, window_scales, tile_thread_on, tile_workers, debug_logs)
+    args = [(source, target, window_scales, tile_thread_on, tile_workers, debug_logs) for source, target in zip(input_paths, target_paths)]
+    _run_image_tasks(
+        _copy_and_compute_overviews, args,
+        input_paths=input_paths, output_paths=target_paths,
+        parallel=image_threads_on, backend=image_backend, workers=image_workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+    )
 
     return target_paths
+
+
+def _copy_and_compute_overviews(source, target, window_scales, tile_threads_on, tile_workers, debug_logs):
+    """Copy an image if needed and build its overviews within one logged image task."""
+    if os.path.abspath(source) != os.path.abspath(target):
+        os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
+        dataset = gdal.Translate(target, source)
+        if dataset is None:
+            raise RuntimeError(f"Failed copying {source} to {target}")
+        dataset = None
+    if window_scales:
+        _process_image_overview(target, window_scales, tile_threads_on, tile_workers, debug_logs)
 
 
 def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, debug_logs):
@@ -1326,4 +1346,4 @@ def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, 
     dataset.BuildOverviews("AVERAGE", window_scales, options=options)
     dataset = None
     if debug_logs:
-        print(f"Overviews built for: {path}")
+        _report_image_result("Overview levels", len(window_scales))

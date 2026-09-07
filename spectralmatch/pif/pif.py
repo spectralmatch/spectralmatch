@@ -1,18 +1,19 @@
 import os
 import tempfile
-from concurrent.futures import as_completed
 from typing import Literal
 from html import escape
 
 import numpy as np
 from osgeo import gdal
 
+from ..utils_logging import _print_step_start, _report_image_result
+
 from ..joint_coregistration.joint_coregistration import _coregister_overlap, _load_tie_points
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths
 from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal
 from ..utils import _get_gdal_bounds, _set_gdal_cache, _set_gdal_workers
-from ..utils_multiprocessing import _get_executor, _resolve_parallel_config
+from ..utils_multiprocessing import _run_image_tasks, _get_executor, _resolve_parallel_config
 
 
 class Pif:
@@ -65,6 +66,7 @@ class Pif:
             and band, entries are ``scale`` then ``offset`` such that
             ``corrected = scale * image + offset``.
         """
+        _print_step_start("flood_from_match_points")
         input_image_paths = _resolve_paths(
             "search",
             input_images,
@@ -167,25 +169,17 @@ class Pif:
                 )
             )
 
-        if image_threads_on:
-            with _get_executor(
-                image_backend,
-                image_thread_workers,
-                concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-            ) as executor:
-                futures = [executor.submit(_calculate_pair_pif_stats, *args) for args in parallel_args]
-                for future in as_completed(futures):
-                    pair_stats, whole_updates = future.result()
-                    for outer, inner in pair_stats.items():
-                        all_overlap_stats.setdefault(outer, {}).update(inner)
-                    _merge_whole_stat_updates(all_whole_stats, whole_updates)
-        else:
-            for args in parallel_args:
-                pair_stats, whole_updates = _calculate_pair_pif_stats(*args)
-                for outer, inner in pair_stats.items():
-                    all_overlap_stats.setdefault(outer, {}).update(inner)
-                _merge_whole_stat_updates(all_whole_stats, whole_updates)
+        pair_results = _run_image_tasks(
+            _calculate_pair_pif_stats, parallel_args,
+            input_paths=[(arg[0], arg[1]) for arg in parallel_args], output_paths=[arg[-2] for arg in parallel_args],
+            parallel=image_threads_on, backend=image_backend, workers=image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+        )
+        for pair_stats, whole_updates in pair_results:
+            for outer, inner in pair_stats.items():
+                all_overlap_stats.setdefault(outer, {}).update(inner)
+            _merge_whole_stat_updates(all_whole_stats, whole_updates)
 
         return _solve_pif_global_model(
             num_bands=num_bands,
@@ -346,8 +340,6 @@ def _calculate_pair_pif_stats(
     save_inz_path: str | None,
     debug_logs: bool,
 ) -> tuple[dict, dict[str, dict[int, dict[str, float | int]]]]:
-    if debug_logs:
-        print(f"Generating flood_from_match_points PIF stats: {reference_name} <-> {sensed_name}")
     with tempfile.TemporaryDirectory(prefix="spectralmatch_pif_") as tmpdir:
         overlap = _build_overlap_vrts(
             reference_path,
@@ -381,7 +373,7 @@ def _calculate_pair_pif_stats(
                 "3 usable points after overlap validation."
             )
         if debug_logs and source_tie_points is not None:
-            print(f"    Reusing loaded tie points: {len(loaded_point_pairs)}")
+            _report_image_result("Tie points reused", len(loaded_point_pairs))
         corrected_sensed_path = os.path.join(tmpdir, "sensed_overlap_corrected.tif")
         corrected_sensed_path, point_pairs = _coregister_overlap(
             ref_vrt,
@@ -453,7 +445,7 @@ def _calculate_pair_pif_stats(
             )
             pif_count = _count_mask_pixels(pif_mask_path)
         if debug_logs:
-            print(f"Conjugate PIF pixels found: {pif_count} for {reference_name} <-> {sensed_name}")
+            _report_image_result("PIF pixels", pif_count)
         if min_samples is not None and pif_count < min_samples:
             raise ValueError(
                 f"Not enough flood_from_match_points PIF samples between {reference_path} and "

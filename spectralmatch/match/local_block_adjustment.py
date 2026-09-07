@@ -9,7 +9,7 @@ from typing import Tuple, Optional, List, Literal
 from osgeo import gdal, osr
 
 from ..handlers import _existing_outputs_are_reusable
-from ..utils import _create_masked_vrt, _resolve_window_size, _gdal_dtype_str_to_enum, _get_valid_count
+from ..utils import _create_masked_vrt, _create_masked_vrts, _resolve_window_size, _gdal_dtype_str_to_enum, _get_valid_count
 
 
 def _get_pre_computed_block_maps(
@@ -218,8 +218,6 @@ def _apply_adjustment_process_image(
     Returns:
         None
     """
-    if debug_logs:
-        print(f"    {name}")
     if _existing_outputs_are_reusable(
         [out_path],
         resume_mode=resume_from_outputs,
@@ -566,9 +564,11 @@ def _calculate_block_process_image(
     ):
     """Create one worker-local masked VRT and calculate its block statistics."""
     with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
-        masked_path = _create_masked_vrt(
-            name, image_path, vector_mask=vector_mask, nodata_value=nodata_value,
+        masked_path, = _create_masked_vrts(
+            [name], [image_path], step_name="local_block_adjustment",
+            vector_mask=vector_mask, nodata_value=nodata_value,
             out_dir=tmpdir, debug_logs=debug_logs,
+            create_vrt=_create_masked_vrt,
         )
         return _calculate_blocks_from_masked_image(
             name, masked_path, bounds_canvas_coords, num_row, num_col, num_bands,
@@ -609,9 +609,6 @@ def _calculate_blocks_from_masked_image(
     Returns:
       Tuple[str, np.ndarray]: `(name, block_mean)` where `block_mean` has shape `(num_row, num_col, num_bands)` and dtype `calculation_dtype`. Cells with no valid input samples are NaN.
     """
-    if debug_logs:
-        print(f"    {name}")
-
     src_ds = gdal.Open(image_path, gdal.GA_ReadOnly)
     if src_ds is None:
         raise RuntimeError(f"Could not open {image_path}")

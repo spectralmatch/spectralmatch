@@ -1,9 +1,11 @@
 import json
 
 import numpy as np
-from concurrent.futures import as_completed
 from osgeo import gdal
 from typing import Literal, Tuple, List
+
+from ..utils_multiprocessing import _run_image_tasks
+from ..utils_logging import _print_step_start
 
 from ..handlers import (
     _resolve_paths,
@@ -224,8 +226,8 @@ Args:
 
 Returns:
     List[str]: Paths to the globally adjusted output raster images."""
+        _print_step_start("global_regression")
         Universal._validate(window_scales=window_scales)
-        print("Start global regression")
 
         MatchValidation._validate_match(
             specify_model_images=specify_model_images,
@@ -368,23 +370,17 @@ Returns:
             if name_i not in loaded_model
             or name_j not in loaded_model.get(name_i, {}).get("overlap_stats", {})
         ]
-        if image_threads_on:
-            with _get_executor(
-                image_backend,
-                image_thread_workers,
-                concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-            ) as executor:
-                futures = [executor.submit(_overlap_stats_process_image, *args) for args in parallel_args]
-                for future in as_completed(futures):
-                    stats = future.result()
-                    for outer, inner in stats.items():
-                        all_overlap_stats.setdefault(outer, {}).update(inner)
-        else:
-            for args in parallel_args:
-                stats = _overlap_stats_process_image(*args)
-                for outer, inner in stats.items():
-                    all_overlap_stats.setdefault(outer, {}).update(inner)
+        _print_step_start("global_regression overlap statistics")
+        overlap_statistics = _run_image_tasks(
+            _overlap_stats_process_image, parallel_args,
+            input_paths=[(arg[3], arg[4]) for arg in parallel_args], output_paths=[None for arg in parallel_args],
+            parallel=image_threads_on, backend=image_backend, workers=image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+        )
+        for stats in overlap_statistics:
+            for outer, inner in stats.items():
+                all_overlap_stats.setdefault(outer, {}).update(inner)
 
         all_whole_stats = {
             name: {
@@ -414,19 +410,16 @@ Returns:
             for image_name, image_path in input_image_path_pairs.items()
             if image_name not in loaded_model
         ]
-        if image_threads_on:
-            with _get_executor(
-                image_backend,
-                image_thread_workers,
-                concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-            ) as executor:
-                futures = [executor.submit(_whole_stats_process_image, *args) for args in parallel_args]
-                for future in as_completed(futures):
-                    all_whole_stats.update(future.result())
-        else:
-            for args in parallel_args:
-                all_whole_stats.update(_whole_stats_process_image(*args))
+        _print_step_start("global_regression image statistics")
+        whole_statistics = _run_image_tasks(
+            _whole_stats_process_image, parallel_args,
+            input_paths=[arg[2] for arg in parallel_args], output_paths=[None for arg in parallel_args],
+            parallel=image_threads_on, backend=image_backend, workers=image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+        )
+        for stats in whole_statistics:
+            all_whole_stats.update(stats)
 
         all_image_names = list(dict.fromkeys(input_image_names + list(loaded_model.keys())))
         num_total = len(all_image_names)
@@ -496,8 +489,7 @@ Returns:
                 calculation_dtype=calculation_dtype,
             )
 
-        if debug_logs:
-            print("Apply adjustments and saving results for:")
+        _print_step_start("global_regression apply adjustments")
         parallel_args = [
             (
                 tile_thread_on,
@@ -518,19 +510,15 @@ Returns:
             )
             for idx, (name, img_path) in enumerate(input_image_path_pairs.items())
         ]
-        if image_threads_on:
-            with _get_executor(
-                image_backend,
-                image_thread_workers,
-                concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-            ) as executor:
-                futures = [executor.submit(_apply_adjustments_process_image, *args) for args in parallel_args]
-                for future in as_completed(futures):
-                    future.result()
-        else:
-            for args in parallel_args:
-                _apply_adjustments_process_image(*args)
+        _run_image_tasks(
+            _apply_adjustments_process_image, parallel_args,
+            input_paths=[arg[3] for arg in parallel_args],
+            output_paths=[arg[4] for arg in parallel_args],
+            parallel=image_threads_on,
+            backend=image_backend, workers=image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+        )
 
         if build_overviews and window_scales:
             compute_overviews(
@@ -618,8 +606,8 @@ Args:
 
 Returns:
     List[str]: Paths to the locally adjusted output raster images."""
+        _print_step_start("local_block_adjustment")
         Universal._validate(window_scales=window_scales)
-        print("Start local block adjustment")
 
         MatchValidation._validate_local_block_adjustment(
             number_of_blocks=number_of_blocks,
@@ -746,8 +734,7 @@ Returns:
         else:
             num_row, num_col = loaded_num_row, loaded_num_col
 
-        if debug_logs:
-            print("Computing local block maps:")
+        _print_step_start("local_block_adjustment block maps")
         local_blocks_to_calculate = {
             k: v for k, v in input_image_path_pairs.items() if k in only_input
         }
@@ -773,19 +760,15 @@ Returns:
                 )
                 for name, path in local_blocks_to_calculate.items()
             ]
-            if image_threads_on:
-                with _get_executor(
-                    image_backend,
-                    image_thread_workers,
-                    concurrent_processing_backend=concurrent_processing_backend,
-                    dask_scheduler=dask_scheduler,
-                ) as executor:
-                    results = [
-                        f.result()
-                        for f in [executor.submit(_calculate_block_process_image, *arg) for arg in args]
-                    ]
-            else:
-                results = [_calculate_block_process_image(*arg) for arg in args]
+            results = _run_image_tasks(
+                _calculate_block_process_image, args,
+                input_paths=[arg[1] for arg in args],
+                output_paths=[None for arg in args],
+                parallel=image_threads_on,
+                backend=image_backend, workers=image_thread_workers,
+                concurrent_processing_backend=concurrent_processing_backend,
+                dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+            )
             block_local_means = {name: mean for name, mean in results}
             overlap = set(block_local_means) & set(local_blocks_to_load)
             if overlap:
@@ -830,8 +813,7 @@ Returns:
                     num_row,
                 )
 
-        if debug_logs:
-            print("Computing local correction, applying, and saving:")
+        _print_step_start("local_block_adjustment apply adjustments")
         args = [
             (
                 name,
@@ -857,19 +839,15 @@ Returns:
             )
             for name in input_image_path_pairs
         ]
-        if image_threads_on:
-            with _get_executor(
-                image_backend,
-                image_thread_workers,
-                concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-            ) as executor:
-                futures = [executor.submit(_apply_local_adjustment_process_image, *arg) for arg in args]
-                for future in as_completed(futures):
-                    future.result()
-        else:
-            for arg in args:
-                _apply_local_adjustment_process_image(*arg)
+        _run_image_tasks(
+            _apply_local_adjustment_process_image, args,
+            input_paths=[arg[1] for arg in args],
+            output_paths=[arg[2] for arg in args],
+            parallel=image_threads_on,
+            backend=image_backend, workers=image_thread_workers,
+            concurrent_processing_backend=concurrent_processing_backend,
+            dask_scheduler=dask_scheduler, executor_factory=_get_executor,
+        )
 
         if build_overviews and window_scales:
             compute_overviews(

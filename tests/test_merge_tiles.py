@@ -176,7 +176,9 @@ def test_merge_output_path_validation(tmp_path):
 def test_retile_flags_and_overview_defaults(merge_sources, tmp_path, monkeypatch):
     monkeypatch.setattr(utils, "_create_tile_vrts", lambda *args: None)
     calls = []
-    monkeypatch.setattr(gdal_retile, "main", lambda argv: calls.append(argv) or 0)
+    retile = utils._load_gdal_retile()
+    monkeypatch.setattr(retile, "main", lambda argv: calls.append(argv) or 0)
+    monkeypatch.setattr(utils, "_load_gdal_retile", lambda: retile)
     merge_rasters(
         merge_sources, str(tmp_path / "tiles"), output_tiles=True,
         window_size=32, overlap=5, build_overviews=True, debug_logs=True,
@@ -195,7 +197,9 @@ def test_retile_flags_and_overview_defaults(merge_sources, tmp_path, monkeypatch
 
 
 def test_retile_failure_propagates(merge_sources, tmp_path, monkeypatch):
-    monkeypatch.setattr(gdal_retile, "main", lambda argv: 1)
+    retile = utils._load_gdal_retile()
+    monkeypatch.setattr(retile, "main", lambda argv: 1)
+    monkeypatch.setattr(utils, "_load_gdal_retile", lambda: retile)
     with pytest.raises(RuntimeError, match="gdal_retile failed"):
         merge_rasters(merge_sources, str(tmp_path / "tiles"), output_tiles=True)
     assert not list((tmp_path / "tiles").glob(".merge_rasters-*"))

@@ -8,6 +8,8 @@ from datetime import datetime
 
 from typing import Any, List, Literal, Tuple
 
+from .utils_logging import _print_step_start
+
 from .handlers import _resolve_paths
 from .joint_coregistration import joint_coregistration
 from .match.match import Match
@@ -193,6 +195,7 @@ def pipeline(
         merge_rasters_custom_tiles_csv: Optional .csv filename within the tile folder; GDAL writes a headerless, semicolon-delimited index with columns tilename;minx;maxx;miny;maxy in the output CRS, also in each pyramid subfolder; requires tiled merge.
         merge_rasters_create_vrts: VRT filename within the tile folder, default "MergedImage.vrt"; also creates and links pyramid VRTs as overviews; a custom name requires tiled merge.
     """
+    _print_step_start("pipeline")
     Universal._validate(window_scales=shared_window_scales)
     resolved_steps = _validate_pipeline_steps(steps)
     last_step = resolved_steps[-1] if resolved_steps else None
