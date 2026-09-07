@@ -101,7 +101,8 @@ global_regression(
 # %% Local matching
 reference_map_path = os.path.join(local_folder, "ReferenceBlockMap", "ReferenceBlockMap.tif")
 local_maps_path = os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.tif")
-searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap", "*.tif"))
+# Only search for saved maps when enabling load_block_maps below.
+# searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap", "*.tif"))
 
 local_block_adjustment(
     input_images=global_folder,

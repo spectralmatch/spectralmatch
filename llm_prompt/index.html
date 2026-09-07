@@ -1118,6 +1118,12 @@ def _create_tile_vrts(output_folder, filename, mosaic, tile_size, overlap, level
 def _run_gdal_retile(argv, image_threads, concurrent_processing_backend, dask_scheduler, cache, io_threads, debug_logs):
     """Run GDAL retile, optionally distributing its tile writers. GDAL owns grid construction, naming, CSV generation, and pyramid ordering. An isolated module instance keeps tile callbacks local to this call; workers receive no GDAL/OGR objects."""
 
+def _load_gdal_retile():
+    """Load isolated GDAL callbacks so concurrent merge calls cannot change each other's logging."""
+
+def _install_serial_writers(retile):
+    """Log native serial tile writers, counting completed tiles separately for each pyramid level."""
+
 def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs):
 
 def _retile_process_tile(sources, origin, projection, x, y, width, height, path, pyramid, settings, cache, io_threads, debug_logs):
@@ -1162,6 +1168,9 @@ Returns:
     None"""
 
 def _create_masked_vrt(image_name, image_path):
+
+def _create_masked_vrts(image_names, image_paths):
+    """Create temporary masked VRTs as a named image-processing substep inside the current worker."""
 
 def _resolve_cutline_options(vector_mask, image_name):
     """Return GDAL cutline options for one image without creating temporary data."""
@@ -1234,21 +1243,32 @@ Args:
 Returns:
     List[str]: Paths of images that received overviews."""
 
+def _copy_and_compute_overviews(source, target, window_scales, tile_threads_on, tile_workers, debug_logs):
+    """Copy an image if needed and build its overviews within one logged image task."""
+
 def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, debug_logs):
     """Build overviews for one image; kept top-level for distributed serialization."""
+
+def level(original):
+
+def writer(original):
 
 def writer(original, pyramid):
 
 def level(original):
 
-def _copy_files_if_needed(src_paths, dst_paths):
-    """Copy src to dst."""
+def run(g, minfo, tile_info):
+
+def run(g, minfo, x, y, width, height, path, index, feature_only):
 
 def enqueue(g, minfo, x, y, width, height, path, index, feature_only):
 
 def run():
 
 ### File: utils_multiprocessing.py
+
+def _run_image_tasks(function, args):
+    """Run image tasks with worker start messages and parent completion counts, returning results in input order."""
 
 def _parse_dask_scheduler(value):
     """Validate and normalize a Dask scheduler connection tuple."""
@@ -1304,6 +1324,32 @@ def __enter__(self):
 def __exit__(self, exc_type, exc_value, traceback):
 
 def complete(future):
+
+### File: utils_logging.py
+
+def _print_line(message):
+    """Write each progress line and its newline together so parallel messages cannot split between them."""
+
+def _print_step_start(step):
+    """Print a step announcement immediately, including when debug logging is disabled."""
+
+def _format_paths(paths):
+    """Format one or more file paths for a progress message."""
+
+def _image_id(paths):
+    """Use input filenames as image identifiers, joining filenames for pair or mosaic tasks."""
+
+def _print_image_start(input_paths, output_paths):
+    """Announce an image before its processing begins, with every input and output path."""
+
+def _print_image_completed(input_paths, completed, total):
+    """Report a successfully completed image using the parent's completion count."""
+
+def _report_image_result(key, value):
+    """Collect a concise key-value result for a loop task, or print it separately outside a task."""
+
+def _run_logged_image(function, input_paths, output_paths, args):
+    """Run an image in an isolated reporting context and return its original result with completion details."""
 
 ### File: handlers.py
 
@@ -2342,6 +2388,8 @@ Raises:
 def _print_constraint_system(constraint_matrix, adjustment_params, observed_values_vector, overlap_pairs, image_names_with_id):
     """Prints the constraint matrix system with labeled rows and columns for debugging regression inputs.
 
+CONSTRAINT_COLUMN_WIDTH controls every numeric column (default 10). Values use signed, zero-padded decimals with three decimal places; values too large for that width use scientific notation. Row labels share the width of the longest label, and column headers are padded with spaces.
+
 Args:
     constraint_matrix (ndarray): Coefficient matrix used in the regression system.
     adjustment_params (ndarray): Solved adjustment parameters (regression output).
@@ -2421,6 +2469,12 @@ Returns:
             ...
           }
         }"""
+
+def format_number(value):
+    """Print signed, zero-padded decimals, using scientific notation only when needed to fit the column."""
+
+def print_values(values):
+    """Print a vector or matrix using the same numeric columns as the constraint matrix."""
 
 def _make_stats_vrt(base_vrt, out_vrt):
 

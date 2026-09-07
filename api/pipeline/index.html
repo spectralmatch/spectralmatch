@@ -1254,9 +1254,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/chain.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 68</span>
-<span class="normal"> 69</span>
-<span class="normal"> 70</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 70</span>
 <span class="normal"> 71</span>
 <span class="normal"> 72</span>
 <span class="normal"> 73</span>
@@ -1810,7 +1808,10 @@
 <span class="normal">621</span>
 <span class="normal">622</span>
 <span class="normal">623</span>
-<span class="normal">624</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">624</span>
+<span class="normal">625</span>
+<span class="normal">626</span>
+<span class="normal">627</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1938,6 +1939,7 @@
 <span class="sd">        merge_rasters_custom_tiles_csv: Optional .csv filename within the tile folder; GDAL writes a headerless, semicolon-delimited index with columns tilename;minx;maxx;miny;maxy in the output CRS, also in each pyramid subfolder; requires tiled merge.</span>
 <span class="sd">        merge_rasters_create_vrts: VRT filename within the tile folder, default "MergedImage.vrt"; also creates and links pyramid VRTs as overviews; a custom name requires tiled merge.</span>
 <span class="sd">    """</span>
+    <span class="n">_print_step_start</span><span class="p">(</span><span class="s2">"pipeline"</span><span class="p">)</span>
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">window_scales</span><span class="o">=</span><span class="n">shared_window_scales</span><span class="p">)</span>
     <span class="n">resolved_steps</span> <span class="o">=</span> <span class="n">_validate_pipeline_steps</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
     <span class="n">last_step</span> <span class="o">=</span> <span class="n">resolved_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">resolved_steps</span> <span class="k">else</span> <span class="kc">None</span>

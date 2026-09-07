@@ -1010,9 +1010,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>spectralmatch/seamline/seamline.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 25</span>
-<span class="normal"> 26</span>
-<span class="normal"> 27</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 27</span>
 <span class="normal"> 28</span>
 <span class="normal"> 29</span>
 <span class="normal"> 30</span>
@@ -1231,7 +1229,18 @@
 <span class="normal">243</span>
 <span class="normal">244</span>
 <span class="normal">245</span>
-<span class="normal">246</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Seamline</span><span class="p">:</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Seamline</span><span class="p">:</span>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">weighted</span><span class="p">(</span>
         <span class="n">input_polygons</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1260,7 +1269,7 @@
 <span class="sd">Returns:</span>
 <span class="sd">    str: Written output GeoPackage path.</span>
 <span class="sd">"""</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"Start weighted seamline"</span><span class="p">)</span>
+        <span class="n">_print_step_start</span><span class="p">(</span><span class="s2">"weighted_seamline"</span><span class="p">)</span>
         <span class="n">SeamlineValidation</span><span class="o">.</span><span class="n">_validate_weighted_seamline</span><span class="p">(</span>
             <span class="n">input_polygons</span><span class="o">=</span><span class="n">input_polygons</span><span class="p">,</span>
             <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
@@ -1281,7 +1290,8 @@
             <span class="n">step_name</span><span class="o">=</span><span class="s2">"weighted_seamline"</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="k">return</span> <span class="n">output_mask</span>
-        <span class="k">return</span> <span class="n">weighted_seamline</span><span class="p">(</span>
+        <span class="n">_print_image_start</span><span class="p">(</span><span class="n">input_polygons</span><span class="p">,</span> <span class="n">output_mask</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">weighted_seamline</span><span class="p">(</span>
             <span class="n">input_polygons</span><span class="o">=</span><span class="n">input_polygons</span><span class="p">,</span>
             <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
             <span class="n">rank_function</span><span class="o">=</span><span class="n">rank_function</span><span class="p">,</span>
@@ -1291,6 +1301,8 @@
             <span class="n">rank_descending</span><span class="o">=</span><span class="n">rank_descending</span><span class="p">,</span>
             <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">_print_image_completed</span><span class="p">(</span><span class="n">input_polygons</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">voronoi</span><span class="p">(</span>
@@ -1321,7 +1333,7 @@
 
 <span class="sd">Outputs:</span>
 <span class="sd">    Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"Start voronoi center seamline"</span><span class="p">)</span>
+        <span class="n">_print_step_start</span><span class="p">(</span><span class="s2">"voronoi_center_seamline"</span><span class="p">)</span>
         <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">output_dir</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1358,6 +1370,7 @@
             <span class="n">emps</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">crs</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
+                <span class="n">_print_image_start</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">[</span><span class="n">output_mask</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="p">]</span> <span class="k">if</span> <span class="n">debug_vectors_path</span> <span class="k">else</span> <span class="n">output_mask</span><span class="p">)</span>
                 <span class="n">emp</span> <span class="o">=</span> <span class="n">_emp_polygon_from_image</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
                 <span class="n">emps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1365,6 +1378,8 @@
                     <span class="n">crs</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetProjectionRef</span><span class="p">()</span>
                     <span class="n">ds</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
+                <span class="n">_print_image_start</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">[</span><span class="n">output_mask</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="p">]</span> <span class="k">if</span> <span class="n">debug_vectors_path</span> <span class="k">else</span> <span class="n">output_mask</span><span class="p">)</span>
             <span class="n">emps</span><span class="p">,</span> <span class="n">crs</span> <span class="o">=</span> <span class="n">_load_emp_polygons_from_vector</span><span class="p">(</span>
                 <span class="n">input_image_paths</span><span class="o">=</span><span class="n">input_image_paths</span><span class="p">,</span>
                 <span class="n">input_image_names</span><span class="o">=</span><span class="n">input_image_names</span><span class="p">,</span>
@@ -1372,9 +1387,10 @@
                 <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"EMP</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: area=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, bounds=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">bounds</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">image_details</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s2">"Footprint area"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"Bounds"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">emp</span><span class="o">.</span><span class="n">bounds</span><span class="p">)}</span> <span class="k">if</span> <span class="n">debug_logs</span> <span class="k">else</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">emp</span> <span class="ow">in</span> <span class="n">emps</span>
+        <span class="p">]</span>
 
         <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">):</span>
@@ -1429,9 +1445,7 @@
             <span class="n">relevant</span> <span class="o">=</span> <span class="p">[</span><span class="n">cut</span> <span class="k">for</span> <span class="n">cut</span> <span class="ow">in</span> <span class="n">cuts</span> <span class="k">if</span> <span class="n">emp</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">cut</span><span class="p">)]</span>
             <span class="n">seg</span> <span class="o">=</span> <span class="n">_segment_emp</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="n">relevant</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"EMP</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">relevant</span><span class="p">)</span><span class="si">}</span><span class="s2"> intersecting cuts and </span><span class="si">{</span><span class="n">seg</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> segmented area"</span>
-                <span class="p">)</span>
+                <span class="n">image_details</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"Cuts"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">relevant</span><span class="p">),</span> <span class="s2">"Segmented area"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">seg</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>
             <span class="n">segmented</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">aoi_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1453,6 +1467,10 @@
                         <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span><span class="n">image_field_name</span><span class="p">:</span> <span class="n">image_name</span><span class="p">},</span>
                     <span class="p">}</span>
                 <span class="p">)</span>
+
+
+        <span class="k">for</span> <span class="n">completed</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">_print_image_completed</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">completed</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span> <span class="n">details</span><span class="o">=</span><span class="n">image_details</span><span class="p">[</span><span class="n">completed</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -1653,12 +1671,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/seamline/seamline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 86</span>
-<span class="normal"> 87</span>
-<span class="normal"> 88</span>
-<span class="normal"> 89</span>
-<span class="normal"> 90</span>
-<span class="normal"> 91</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 91</span>
 <span class="normal"> 92</span>
 <span class="normal"> 93</span>
 <span class="normal"> 94</span>
@@ -1813,7 +1826,18 @@
 <span class="normal">243</span>
 <span class="normal">244</span>
 <span class="normal">245</span>
-<span class="normal">246</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">voronoi</span><span class="p">(</span>
         <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
         <span class="n">output_mask</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1842,7 +1866,7 @@
 
 <span class="sd">Outputs:</span>
 <span class="sd">    Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"Start voronoi center seamline"</span><span class="p">)</span>
+        <span class="n">_print_step_start</span><span class="p">(</span><span class="s2">"voronoi_center_seamline"</span><span class="p">)</span>
         <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_mask</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">output_dir</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1879,6 +1903,7 @@
             <span class="n">emps</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">crs</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
+                <span class="n">_print_image_start</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">[</span><span class="n">output_mask</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="p">]</span> <span class="k">if</span> <span class="n">debug_vectors_path</span> <span class="k">else</span> <span class="n">output_mask</span><span class="p">)</span>
                 <span class="n">emp</span> <span class="o">=</span> <span class="n">_emp_polygon_from_image</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
                 <span class="n">emps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">crs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1886,6 +1911,8 @@
                     <span class="n">crs</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">GetProjectionRef</span><span class="p">()</span>
                     <span class="n">ds</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">input_image_paths</span><span class="p">:</span>
+                <span class="n">_print_image_start</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">[</span><span class="n">output_mask</span><span class="p">,</span> <span class="n">debug_vectors_path</span><span class="p">]</span> <span class="k">if</span> <span class="n">debug_vectors_path</span> <span class="k">else</span> <span class="n">output_mask</span><span class="p">)</span>
             <span class="n">emps</span><span class="p">,</span> <span class="n">crs</span> <span class="o">=</span> <span class="n">_load_emp_polygons_from_vector</span><span class="p">(</span>
                 <span class="n">input_image_paths</span><span class="o">=</span><span class="n">input_image_paths</span><span class="p">,</span>
                 <span class="n">input_image_names</span><span class="o">=</span><span class="n">input_image_names</span><span class="p">,</span>
@@ -1893,9 +1920,10 @@
                 <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">emps</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"EMP</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: area=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, bounds=</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">bounds</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">image_details</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s2">"Footprint area"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"Bounds"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">emp</span><span class="o">.</span><span class="n">bounds</span><span class="p">)}</span> <span class="k">if</span> <span class="n">debug_logs</span> <span class="k">else</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">emp</span> <span class="ow">in</span> <span class="n">emps</span>
+        <span class="p">]</span>
 
         <span class="k">if</span> <span class="n">debug_vectors_path</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">debug_vectors_path</span><span class="p">):</span>
@@ -1950,9 +1978,7 @@
             <span class="n">relevant</span> <span class="o">=</span> <span class="p">[</span><span class="n">cut</span> <span class="k">for</span> <span class="n">cut</span> <span class="ow">in</span> <span class="n">cuts</span> <span class="k">if</span> <span class="n">emp</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">cut</span><span class="p">)]</span>
             <span class="n">seg</span> <span class="o">=</span> <span class="n">_segment_emp</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="n">relevant</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">debug_logs</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"EMP</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">relevant</span><span class="p">)</span><span class="si">}</span><span class="s2"> intersecting cuts and </span><span class="si">{</span><span class="n">seg</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> segmented area"</span>
-                <span class="p">)</span>
+                <span class="n">image_details</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"Cuts"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">relevant</span><span class="p">),</span> <span class="s2">"Segmented area"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">seg</span><span class="o">.</span><span class="n">area</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>
             <span class="n">segmented</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">aoi_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1974,6 +2000,10 @@
                         <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span><span class="n">image_field_name</span><span class="p">:</span> <span class="n">image_name</span><span class="p">},</span>
                     <span class="p">}</span>
                 <span class="p">)</span>
+
+
+        <span class="k">for</span> <span class="n">completed</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">_print_image_completed</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">completed</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_image_paths</span><span class="p">),</span> <span class="n">details</span><span class="o">=</span><span class="n">image_details</span><span class="p">[</span><span class="n">completed</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2166,9 +2196,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/seamline/seamline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
 <span class="normal">31</span>
@@ -2224,7 +2252,12 @@
 <span class="normal">81</span>
 <span class="normal">82</span>
 <span class="normal">83</span>
-<span class="normal">84</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">weighted</span><span class="p">(</span>
         <span class="n">input_polygons</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_mask</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -2252,7 +2285,7 @@
 <span class="sd">Returns:</span>
 <span class="sd">    str: Written output GeoPackage path.</span>
 <span class="sd">"""</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"Start weighted seamline"</span><span class="p">)</span>
+        <span class="n">_print_step_start</span><span class="p">(</span><span class="s2">"weighted_seamline"</span><span class="p">)</span>
         <span class="n">SeamlineValidation</span><span class="o">.</span><span class="n">_validate_weighted_seamline</span><span class="p">(</span>
             <span class="n">input_polygons</span><span class="o">=</span><span class="n">input_polygons</span><span class="p">,</span>
             <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
@@ -2273,7 +2306,8 @@
             <span class="n">step_name</span><span class="o">=</span><span class="s2">"weighted_seamline"</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="k">return</span> <span class="n">output_mask</span>
-        <span class="k">return</span> <span class="n">weighted_seamline</span><span class="p">(</span>
+        <span class="n">_print_image_start</span><span class="p">(</span><span class="n">input_polygons</span><span class="p">,</span> <span class="n">output_mask</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">weighted_seamline</span><span class="p">(</span>
             <span class="n">input_polygons</span><span class="o">=</span><span class="n">input_polygons</span><span class="p">,</span>
             <span class="n">output_mask</span><span class="o">=</span><span class="n">output_mask</span><span class="p">,</span>
             <span class="n">rank_function</span><span class="o">=</span><span class="n">rank_function</span><span class="p">,</span>
@@ -2283,6 +2317,8 @@
             <span class="n">rank_descending</span><span class="o">=</span><span class="n">rank_descending</span><span class="p">,</span>
             <span class="n">debug_logs</span><span class="o">=</span><span class="n">debug_logs</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">_print_image_completed</span><span class="p">(</span><span class="n">input_polygons</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

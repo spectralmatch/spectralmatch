@@ -930,8 +930,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>spectralmatch/pif/pif.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 18</span>
-<span class="normal"> 19</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 19</span>
 <span class="normal"> 20</span>
 <span class="normal"> 21</span>
 <span class="normal"> 22</span>
@@ -1106,13 +1105,7 @@
 <span class="normal">191</span>
 <span class="normal">192</span>
 <span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Pif</span><span class="p">:</span>
+<span class="normal">194</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Pif</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Utilities for deriving radiometric adjustment parameters from PIF statistics."""</span>
 
     <span class="nd">@staticmethod</span>
@@ -1162,6 +1155,7 @@
 <span class="sd">            and band, entries are ``scale`` then ``offset`` such that</span>
 <span class="sd">            ``corrected = scale * image + offset``.</span>
 <span class="sd">        """</span>
+        <span class="n">_print_step_start</span><span class="p">(</span><span class="s2">"flood_from_match_points"</span><span class="p">)</span>
         <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
             <span class="s2">"search"</span><span class="p">,</span>
             <span class="n">input_images</span><span class="p">,</span>
@@ -1264,25 +1258,17 @@
                 <span class="p">)</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
-                <span class="n">image_backend</span><span class="p">,</span>
-                <span class="n">image_thread_workers</span><span class="p">,</span>
-                <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
-                <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
-            <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-                <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_calculate_pair_pif_stats</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
-                    <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-                    <span class="k">for</span> <span class="n">outer</span><span class="p">,</span> <span class="n">inner</span> <span class="ow">in</span> <span class="n">pair_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                        <span class="n">all_overlap_stats</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">outer</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
-                    <span class="n">_merge_whole_stat_updates</span><span class="p">(</span><span class="n">all_whole_stats</span><span class="p">,</span> <span class="n">whole_updates</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">:</span>
-                <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="o">=</span> <span class="n">_calculate_pair_pif_stats</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">outer</span><span class="p">,</span> <span class="n">inner</span> <span class="ow">in</span> <span class="n">pair_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="n">all_overlap_stats</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">outer</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
-                <span class="n">_merge_whole_stat_updates</span><span class="p">(</span><span class="n">all_whole_stats</span><span class="p">,</span> <span class="n">whole_updates</span><span class="p">)</span>
+        <span class="n">pair_results</span> <span class="o">=</span> <span class="n">_run_image_tasks</span><span class="p">(</span>
+            <span class="n">_calculate_pair_pif_stats</span><span class="p">,</span> <span class="n">parallel_args</span><span class="p">,</span>
+            <span class="n">input_paths</span><span class="o">=</span><span class="p">[(</span><span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">],</span> <span class="n">output_paths</span><span class="o">=</span><span class="p">[</span><span class="n">arg</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">],</span>
+            <span class="n">parallel</span><span class="o">=</span><span class="n">image_threads_on</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="n">image_thread_workers</span><span class="p">,</span>
+            <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+            <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span> <span class="n">executor_factory</span><span class="o">=</span><span class="n">_get_executor</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="ow">in</span> <span class="n">pair_results</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">outer</span><span class="p">,</span> <span class="n">inner</span> <span class="ow">in</span> <span class="n">pair_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">all_overlap_stats</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">outer</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
+            <span class="n">_merge_whole_stat_updates</span><span class="p">(</span><span class="n">all_whole_stats</span><span class="p">,</span> <span class="n">whole_updates</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">_solve_pif_global_model</span><span class="p">(</span>
             <span class="n">num_bands</span><span class="o">=</span><span class="n">num_bands</span><span class="p">,</span>
@@ -1382,8 +1368,7 @@ scheduler using <code>("file", path)</code> or <code>("address", address)</code>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/pif/pif.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 21</span>
-<span class="normal"> 22</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 22</span>
 <span class="normal"> 23</span>
 <span class="normal"> 24</span>
 <span class="normal"> 25</span>
@@ -1555,13 +1540,7 @@ scheduler using <code>("file", path)</code> or <code>("address", address)</code>
 <span class="normal">191</span>
 <span class="normal">192</span>
 <span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">194</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">flood_from_match_points</span><span class="p">(</span>
     <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1608,6 +1587,7 @@ scheduler using <code>("file", path)</code> or <code>("address", address)</code>
 <span class="sd">        and band, entries are ``scale`` then ``offset`` such that</span>
 <span class="sd">        ``corrected = scale * image + offset``.</span>
 <span class="sd">    """</span>
+    <span class="n">_print_step_start</span><span class="p">(</span><span class="s2">"flood_from_match_points"</span><span class="p">)</span>
     <span class="n">input_image_paths</span> <span class="o">=</span> <span class="n">_resolve_paths</span><span class="p">(</span>
         <span class="s2">"search"</span><span class="p">,</span>
         <span class="n">input_images</span><span class="p">,</span>
@@ -1710,25 +1690,17 @@ scheduler using <code>("file", path)</code> or <code>("address", address)</code>
             <span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">image_threads_on</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">_get_executor</span><span class="p">(</span>
-            <span class="n">image_backend</span><span class="p">,</span>
-            <span class="n">image_thread_workers</span><span class="p">,</span>
-            <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
-            <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span>
-        <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">_calculate_pair_pif_stats</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
-                <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-                <span class="k">for</span> <span class="n">outer</span><span class="p">,</span> <span class="n">inner</span> <span class="ow">in</span> <span class="n">pair_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="n">all_overlap_stats</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">outer</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
-                <span class="n">_merge_whole_stat_updates</span><span class="p">(</span><span class="n">all_whole_stats</span><span class="p">,</span> <span class="n">whole_updates</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">:</span>
-            <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="o">=</span> <span class="n">_calculate_pair_pif_stats</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">outer</span><span class="p">,</span> <span class="n">inner</span> <span class="ow">in</span> <span class="n">pair_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">all_overlap_stats</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">outer</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
-            <span class="n">_merge_whole_stat_updates</span><span class="p">(</span><span class="n">all_whole_stats</span><span class="p">,</span> <span class="n">whole_updates</span><span class="p">)</span>
+    <span class="n">pair_results</span> <span class="o">=</span> <span class="n">_run_image_tasks</span><span class="p">(</span>
+        <span class="n">_calculate_pair_pif_stats</span><span class="p">,</span> <span class="n">parallel_args</span><span class="p">,</span>
+        <span class="n">input_paths</span><span class="o">=</span><span class="p">[(</span><span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">],</span> <span class="n">output_paths</span><span class="o">=</span><span class="p">[</span><span class="n">arg</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">parallel_args</span><span class="p">],</span>
+        <span class="n">parallel</span><span class="o">=</span><span class="n">image_threads_on</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">image_backend</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="n">image_thread_workers</span><span class="p">,</span>
+        <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="n">concurrent_processing_backend</span><span class="p">,</span>
+        <span class="n">dask_scheduler</span><span class="o">=</span><span class="n">dask_scheduler</span><span class="p">,</span> <span class="n">executor_factory</span><span class="o">=</span><span class="n">_get_executor</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">pair_stats</span><span class="p">,</span> <span class="n">whole_updates</span> <span class="ow">in</span> <span class="n">pair_results</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">outer</span><span class="p">,</span> <span class="n">inner</span> <span class="ow">in</span> <span class="n">pair_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">all_overlap_stats</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">outer</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
+        <span class="n">_merge_whole_stat_updates</span><span class="p">(</span><span class="n">all_whole_stats</span><span class="p">,</span> <span class="n">whole_updates</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">_solve_pif_global_model</span><span class="p">(</span>
         <span class="n">num_bands</span><span class="o">=</span><span class="n">num_bands</span><span class="p">,</span>
