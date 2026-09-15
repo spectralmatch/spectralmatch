@@ -1138,6 +1138,22 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>joint_coregistration_tie_point_search_radius</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Half-width of square ORB read windows in CRS units. None (default) uses 128 pixels at the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>align_rasters_resolution</code>
             </td>
             <td>
@@ -1811,7 +1827,10 @@
 <span class="normal">624</span>
 <span class="normal">625</span>
 <span class="normal">626</span>
-<span class="normal">627</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">627</span>
+<span class="normal">628</span>
+<span class="normal">629</span>
+<span class="normal">630</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1844,6 +1863,7 @@
     <span class="n">joint_coregistration_local_bending_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">joint_coregistration_local_anchor_falloff_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span><span class="p">,</span>
     <span class="n">joint_coregistration_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_search_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">joint_coregistration_maximum_tie_point_displacement</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">joint_coregistration_ransac_reprojection_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">joint_coregistration_robust_loss</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"none"</span><span class="p">,</span> <span class="s2">"huber"</span><span class="p">,</span> <span class="s2">"soft_l1"</span><span class="p">,</span> <span class="s2">"cauchy"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"huber"</span><span class="p">,</span>
@@ -1931,6 +1951,7 @@
 <span class="sd">        weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.</span>
 <span class="sd">        merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.</span>
 <span class="sd">        joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</span>
+<span class="sd">        joint_coregistration_tie_point_search_radius: Half-width of square ORB read windows in CRS units. None (default) uses 128 pixels at the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.</span>
 <span class="sd">        align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</span>
 <span class="sd">        merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.</span>
 <span class="sd">        merge_rasters_overlap: Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.</span>
@@ -2054,6 +2075,7 @@
                     <span class="n">local_bending_weight</span><span class="o">=</span><span class="n">joint_coregistration_local_bending_weight</span><span class="p">,</span>
                     <span class="n">local_anchor_falloff_distance</span><span class="o">=</span><span class="n">joint_coregistration_local_anchor_falloff_distance</span><span class="p">,</span>
                     <span class="n">feature_method</span><span class="o">=</span><span class="n">joint_coregistration_feature_method</span><span class="p">,</span>
+                    <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_search_radius</span><span class="p">,</span>
                     <span class="n">maximum_tie_point_displacement</span><span class="o">=</span><span class="n">joint_coregistration_maximum_tie_point_displacement</span><span class="p">,</span>
                     <span class="n">ransac_reprojection_threshold</span><span class="o">=</span><span class="n">joint_coregistration_ransac_reprojection_threshold</span><span class="p">,</span>
                     <span class="n">robust_loss</span><span class="o">=</span><span class="n">joint_coregistration_robust_loss</span><span class="p">,</span>

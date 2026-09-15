@@ -1130,6 +1130,7 @@ This format represents the following: For each image_name there are adjustment, 
 <span class="p">}</span>
 </code></pre></div></td></tr></table></div>
 <p>Each item in <code>points</code> is <code>[[image_1_column, image_1_row], [image_2_column, image_2_row]]</code>. Partial files are supported. In <code>joint_coregistration</code>, loaded pairs that belong to the current overlap network are reused, and missing pairs are calculated. Tie-point thresholds, local-grid spacing, and local falloff distance use the shared input CRS units.</p>
+<p>ORB candidates are collected from windows around a grid spaced by <code>local_grid_spacing</code>; <code>tie_point_search_radius</code> specifies each square window's half-width in CRS units. The default, <code>None</code>, uses 128 pixels at the coarser input resolution, giving approximately 256 × 256 matching pixels before overlap clipping. Saved candidates are kept before filtering and grid thinning. Both loaded and newly detected candidates are filtered and reduced to at most one match per grid cell. A saved pair is recalculated if no usable points remain. See <a href="../api/joint_coregistration/#grid-distributed-orb-matching">grid-distributed ORB matching</a> for read-window and reuse details.</p>
 <p><code>global_regression</code> accepts the same file through <code>pif_load_tie_points</code> when <code>pif_method='flood_from_match_points'</code>. When supplied, every processed overlap pair must exist in the file and retain at least three usable points after validation; malformed, missing, or unusable data raises an error and ORB is not used. The JSON coordinates must describe the exact source pixel grids passed to <code>global_regression</code>, with matching case-sensitive basenames. Do not reuse raw points directly with geometrically warped, cropped, resampled, or renamed outputs unless their pixel grids and basenames remain exactly the same.</p>
 <p>The equivalent pipeline options are <code>global_regression_pif_load_tie_points</code> and <code>global_regression_pif_method='flood_from_match_points'</code>.</p>
 <h2 id="block-maps-file">Block Maps File<a class="headerlink" href="#block-maps-file" title="Permanent link">&para;</a></h2>
@@ -1160,7 +1161,7 @@ This format represents the following: For each image_name there are adjustment, 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 28, 2026 07:35:06 UTC">August 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 15, 2026 00:22:29 UTC">September 15, 2026</span>
   </span>
 
     

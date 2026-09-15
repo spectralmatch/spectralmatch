@@ -999,6 +999,7 @@ Args:
     weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
     merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
     joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
+    joint_coregistration_tie_point_search_radius: Half-width of square ORB read windows in CRS units. None (default) uses 128 pixels at the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.
     align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
     merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.
     merge_rasters_overlap: Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.
@@ -1701,7 +1702,9 @@ def joint_coregistration(input_images, output_images):
 Tie points are detected pairwise, while both correction stages are solved jointly
 across the complete overlap network. Image-position weights are keyed by
 extension-free basenames; larger values preserve an image's existing position
-more strongly. Spatial distances use the common input CRS units.
+more strongly. ORB reads windows centered on a regular overlap grid. Filtered
+matches are limited to one per cell. Spatial distances use the common input
+CRS units.
 
 Args:
     input_images: Input folder, glob, or list of raster paths.
@@ -1712,11 +1715,12 @@ Args:
     local_model: Residual deformation interpolation model.
     local_image_position_preservation_weights: Per-basename resistance to local movement.
     local_tie_point_alignment_strength: Local tie-point strength from 0 to 1.
-    local_grid_spacing: Local mesh spacing in input CRS units.
+    local_grid_spacing: Local mesh and ORB search-grid spacing in input CRS units, including when local_model='none'.
     local_smoothness_weight: Neighboring-node displacement penalty.
     local_bending_weight: Local displacement curvature penalty.
     local_anchor_falloff_distance: Tie-point influence falloff in input CRS units.
     feature_method: Feature matching method.
+    tie_point_search_radius: Half-width of square ORB read windows in input CRS units. None (default) uses 128 pixels at the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.
     maximum_tie_point_displacement: Optional match-displacement limit in input CRS units.
     ransac_reprojection_threshold: Optional RANSAC threshold in input CRS units.
     robust_loss: Loss used to downweight residual match errors.
@@ -1752,17 +1756,31 @@ def _read_image_info(name, path):
 
 def _use_common_coordinate_frame(infos):
 
-def _collect_tie_points(overlaps, infos, loaded, feature_method, maximum_displacement, ransac_threshold, image_threads, debug_logs, concurrent_processing_backend, dask_scheduler):
+def _collect_tie_points(overlaps, infos, loaded, feature_method, maximum_displacement, ransac_threshold, image_threads, debug_logs, concurrent_processing_backend, dask_scheduler, grid_spacing, search_radius):
 
 def _canonical_pair(name_i, name_j):
 
 def _resolved_ransac_threshold(info_i, info_j, threshold):
 
-def _extract_pair_tie_points(info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs):
+def _resolved_search_radius(info_i, info_j, radius):
+    """Allow room for ORB's border and texture while keeping default reads bounded."""
+
+def _extract_pair_tie_points(info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs, grid_spacing, search_radius):
 
 def _build_pair_overlap_vrts(info_i, info_j, tmpdir):
 
 def _extract_overlap_pixel_matches(ref_vrt, sensed_vrt, valid_mask, feature_method):
+
+def _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher):
+
+def _tie_point_grid(info_i, info_j, spacing):
+    """Center a regular grid in the overlap, including overlaps smaller than one cell."""
+
+def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, search_radius, feature_method):
+    """Read and match one grid neighborhood at a time on lazy overlap VRTs."""
+
+def _select_grid_tie_points(points, info_i, info_j, spacing, search_radius):
+    """Choose the inlier nearest each grid center."""
 
 def _overlap_to_original_pixels(points, overlap_transform, info_i, info_j):
 
@@ -1849,9 +1867,9 @@ def _keep_affine_inlier_pairs(point_pairs):
 
 def _read_mask(mask_path):
 
-def _build_overlap_valid_mask(reference, sensed):
+def _build_overlap_valid_mask(reference, sensed, window):
 
-def _read_uint8_gray(raster_path, valid_mask):
+def _read_uint8_gray(raster_path, valid_mask, window):
 
 def _pixel_to_map_coords(transform, row, column):
 
@@ -3191,6 +3209,8 @@ This structure is validated by `_validate_adjustment_model_structure()` before u
 
 Each item in `points` is `[[image_1_column, image_1_row], [image_2_column, image_2_row]]`. Partial files are supported. In `joint_coregistration`, loaded pairs that belong to the current overlap network are reused, and missing pairs are calculated. Tie-point thresholds, local-grid spacing, and local falloff distance use the shared input CRS units.
 
+ORB candidates are collected from windows around a grid spaced by `local_grid_spacing`; `tie_point_search_radius` specifies each square window's half-width in CRS units. The default, `None`, uses 128 pixels at the coarser input resolution, giving approximately 256 × 256 matching pixels before overlap clipping. Saved candidates are kept before filtering and grid thinning. Both loaded and newly detected candidates are filtered and reduced to at most one match per grid cell. A saved pair is recalculated if no usable points remain. See [grid-distributed ORB matching](api/joint_coregistration.md#grid-distributed-orb-matching) for read-window and reuse details.
+
 `global_regression` accepts the same file through `pif_load_tie_points` when `pif_method='flood_from_match_points'`. When supplied, every processed overlap pair must exist in the file and retain at least three usable points after validation; malformed, missing, or unusable data raises an error and ORB is not used. The JSON coordinates must describe the exact source pixel grids passed to `global_regression`, with matching case-sensitive basenames. Do not reuse raw points directly with geometrically warped, cropped, resampled, or renamed outputs unless their pixel grids and basenames remain exactly the same.
 
 The equivalent pipeline options are `global_regression_pif_load_tie_points` and `global_regression_pif_method='flood_from_match_points'`.
@@ -3467,6 +3487,62 @@ This library was developed at the [Spatial Data Analysis and Visualization Lab (
 
 
 ### File: api/joint_coregistration.md
+# Joint coregistration
+
+## Grid-distributed ORB matching
+
+ORB searches square windows centered on a regular grid inside each pair's overlap.
+`local_grid_spacing` sets the distance between search centers in the shared input
+CRS units, even when `local_model="none"`. An overlap smaller than one grid cell
+gets a search at its center.
+
+`tie_point_search_radius` controls the window half-width in the same units. The
+default, `None`, automatically uses **128 pixels at the coarser input resolution**,
+giving approximately **256 × 256 pixels** per search window before overlap clipping.
+This leaves room for ORB's border and useful image texture while keeping reads local.
+For example, at 1 CRS unit per pixel the radius is 128 CRS units; at 2 CRS units
+per pixel it is 256 CRS units. An explicit numeric radius is always in CRS units.
+Smaller radii reduce I/O; larger radii provide more texture and room for displacement.
+Windows are clipped to the overlap. Include enough pixels for ORB's descriptor
+border (31 pixels per side) plus the expected displacement; windows smaller than
+63 pixels on either axis, empty masks, and textureless areas are skipped.
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
+
+<span class="n">joint_coregistration</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="s2">"input/*.tif"</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="s2">"coregistered"</span><span class="p">,</span>
+    <span class="n">local_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Default: approximately 256 x 256 matching pixels.</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+Only these windows and their validity masks are read for feature detection;
+overlap VRTs remain lazy and are opened once per pair. Each window uses at most
+500 ORB features per image; this limit is fixed, and texture determines how many
+features are found. Descriptor matching retains mutually best pairs, then keeps
+the best half by descriptor distance. After displacement and RANSAC filtering,
+the inlier nearest each grid center is selected, keeping at most one match per
+cell per image pair. Locations depend
+on available texture, so some cells can remain empty. GDAL may fetch surrounding
+storage blocks while serving a window; output warping still processes the output
+rasters as usual.
+
+Saved JSON retains the raw window candidates. Loaded candidates are filtered and
+thinned again using the current grid spacing and radius, without rereading matched
+pairs when usable points remain. Increasing the radius or using a finer grid may
+require recalculating candidates to find features outside the saved windows.
+
+In `pipeline`, the corresponding option is
+`joint_coregistration_tie_point_search_radius`.
+
 ::: spectralmatch.joint_coregistration
 
 

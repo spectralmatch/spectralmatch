@@ -77,6 +77,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#joint-coregistration" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -637,6 +642,26 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Joint Coregistration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -654,6 +679,36 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#grid-distributed-orb-matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grid-distributed ORB matching
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -879,6 +934,27 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#grid-distributed-orb-matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grid-distributed ORB matching
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -898,7 +974,55 @@
   
 
 
-  <h1>Joint Coregistration</h1>
+<h1 id="joint-coregistration">Joint coregistration<a class="headerlink" href="#joint-coregistration" title="Permanent link">&para;</a></h1>
+<h2 id="grid-distributed-orb-matching">Grid-distributed ORB matching<a class="headerlink" href="#grid-distributed-orb-matching" title="Permanent link">&para;</a></h2>
+<p>ORB searches square windows centered on a regular grid inside each pair's overlap.
+<code>local_grid_spacing</code> sets the distance between search centers in the shared input
+CRS units, even when <code>local_model="none"</code>. An overlap smaller than one grid cell
+gets a search at its center.</p>
+<p><code>tie_point_search_radius</code> controls the window half-width in the same units. The
+default, <code>None</code>, automatically uses <strong>128 pixels at the coarser input resolution</strong>,
+giving approximately <strong>256 × 256 pixels</strong> per search window before overlap clipping.
+This leaves room for ORB's border and useful image texture while keeping reads local.
+For example, at 1 CRS unit per pixel the radius is 128 CRS units; at 2 CRS units
+per pixel it is 256 CRS units. An explicit numeric radius is always in CRS units.
+Smaller radii reduce I/O; larger radii provide more texture and room for displacement.
+Windows are clipped to the overlap. Include enough pixels for ORB's descriptor
+border (31 pixels per side) plus the expected displacement; windows smaller than
+63 pixels on either axis, empty masks, and textureless areas are skipped.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
+
+<span class="n">joint_coregistration</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="s2">"input/*.tif"</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="s2">"coregistered"</span><span class="p">,</span>
+    <span class="n">local_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Default: approximately 256 x 256 matching pixels.</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<p>Only these windows and their validity masks are read for feature detection;
+overlap VRTs remain lazy and are opened once per pair. Each window uses at most
+500 ORB features per image; this limit is fixed, and texture determines how many
+features are found. Descriptor matching retains mutually best pairs, then keeps
+the best half by descriptor distance. After displacement and RANSAC filtering,
+the inlier nearest each grid center is selected, keeping at most one match per
+cell per image pair. Locations depend
+on available texture, so some cells can remain empty. GDAL may fetch surrounding
+storage blocks while serving a window; output warping still processes the output
+rasters as usual.</p>
+<p>Saved JSON retains the raw window candidates. Loaded candidates are filtered and
+thinned again using the current grid spacing and radius, without rereading matched
+pairs when usable points remain. Increasing the radius or using a finer grid may
+require recalculating candidates to find features outside the saved windows.</p>
+<p>In <code>pipeline</code>, the corresponding option is
+<code>joint_coregistration_tie_point_search_radius</code>.</p>
+
 
 <div class="doc doc-object doc-module">
 
@@ -954,7 +1078,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 28, 2026 07:35:06 UTC">August 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 15, 2026 00:22:29 UTC">September 15, 2026</span>
   </span>
 
     
