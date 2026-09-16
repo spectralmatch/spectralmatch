@@ -1138,14 +1138,190 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>joint_coregistration_tie_point_feature_method</code>
+            </td>
+            <td>
+                  <code><span title="typing.Literal">Literal</span>[&#39;orb&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>'orb', currently the only supported tie-point detector.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;orb&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_tie_point_grid_spacing</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.</p>
+              </div>
+            </td>
+            <td>
+                  <code>500.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>joint_coregistration_tie_point_search_radius</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;128px&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_tie_point_orb_max_features</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Positive int ORB detection cap per image per window; default 100.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_tie_point_max_matches_per_window</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Positive int selected-match cap per search window per image pair; default 1; None keeps all surviving matches.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_tie_point_maximum_displacement</code>
             </td>
             <td>
                   <code><span title="float">float</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Half-width of square ORB read windows in CRS units. None (default) uses 128 pixels at the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.</p>
+                <p>Positive CRS-unit distance limiting detected match displacement; None disables the limit.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_tie_point_ransac_reprojection_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Positive CRS-unit inlier threshold; None uses three pixels at the coarser input resolution.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_tie_point_save_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>str output path for selected tie-point JSON in original zero-based pixel coordinates; None disables saving.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>joint_coregistration_tie_point_load_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>str selected tie-point JSON path or None; reuses saved pairs directly; a missing file warns and loads nothing.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>global_regression_load_adjustments</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>str statistics JSON path or None; a missing file warns and computes fresh statistics.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>global_regression_pif_load_tie_points</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>str selected tie-point JSON path or None; a missing file warns and detects PIF seed matches normally.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>local_block_adjustment_load_block_maps</code>
+            </td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="typing.List">List</span>[<span title="str">str</span>]] | <span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, None] | <span title="typing.Tuple">Tuple</span>[None, <span title="typing.List">List</span>[<span title="str">str</span>]] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(reference_tif_or_None, list_of_local_tifs_or_None) or None; missing files warn and their maps are computed.</p>
               </div>
             </td>
             <td>
@@ -1830,7 +2006,24 @@
 <span class="normal">627</span>
 <span class="normal">628</span>
 <span class="normal">629</span>
-<span class="normal">630</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
+<span class="normal">630</span>
+<span class="normal">631</span>
+<span class="normal">632</span>
+<span class="normal">633</span>
+<span class="normal">634</span>
+<span class="normal">635</span>
+<span class="normal">636</span>
+<span class="normal">637</span>
+<span class="normal">638</span>
+<span class="normal">639</span>
+<span class="normal">640</span>
+<span class="normal">641</span>
+<span class="normal">642</span>
+<span class="normal">643</span>
+<span class="normal">644</span>
+<span class="normal">645</span>
+<span class="normal">646</span>
+<span class="normal">647</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pipeline</span><span class="p">(</span>
     <span class="n">shared_input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
     <span class="n">shared_output_image_path</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1862,14 +2055,17 @@
     <span class="n">joint_coregistration_local_smoothness_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">joint_coregistration_local_bending_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">joint_coregistration_local_anchor_falloff_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span><span class="p">,</span>
-    <span class="n">joint_coregistration_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
-    <span class="n">joint_coregistration_tie_point_search_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">joint_coregistration_maximum_tie_point_displacement</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">joint_coregistration_ransac_reprojection_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_grid_spacing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_search_radius</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"128px"</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_orb_max_features</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_max_matches_per_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_maximum_displacement</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_ransac_reprojection_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">joint_coregistration_robust_loss</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"none"</span><span class="p">,</span> <span class="s2">"huber"</span><span class="p">,</span> <span class="s2">"soft_l1"</span><span class="p">,</span> <span class="s2">"cauchy"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"huber"</span><span class="p">,</span>
     <span class="n">joint_coregistration_robust_loss_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">joint_coregistration_save_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">joint_coregistration_load_adjustments</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">joint_coregistration_tie_point_load_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">joint_coregistration_resampling_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"nearest"</span><span class="p">,</span> <span class="s2">"bilinear"</span><span class="p">,</span> <span class="s2">"cubic"</span><span class="p">,</span> <span class="s2">"lanczos"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"bilinear"</span><span class="p">,</span>
     <span class="n">joint_coregistration_tap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">joint_coregistration_resolution</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Resolution</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1951,7 +2147,18 @@
 <span class="sd">        weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.</span>
 <span class="sd">        merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.</span>
 <span class="sd">        joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</span>
-<span class="sd">        joint_coregistration_tie_point_search_radius: Half-width of square ORB read windows in CRS units. None (default) uses 128 pixels at the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.</span>
+<span class="sd">        joint_coregistration_tie_point_feature_method: 'orb', currently the only supported tie-point detector.</span>
+<span class="sd">        joint_coregistration_tie_point_grid_spacing: Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.</span>
+<span class="sd">        joint_coregistration_tie_point_search_radius: Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.</span>
+<span class="sd">        joint_coregistration_tie_point_orb_max_features: Positive int ORB detection cap per image per window; default 100.</span>
+<span class="sd">        joint_coregistration_tie_point_max_matches_per_window: Positive int selected-match cap per search window per image pair; default 1; None keeps all surviving matches.</span>
+<span class="sd">        joint_coregistration_tie_point_maximum_displacement: Positive CRS-unit distance limiting detected match displacement; None disables the limit.</span>
+<span class="sd">        joint_coregistration_tie_point_ransac_reprojection_threshold: Positive CRS-unit inlier threshold; None uses three pixels at the coarser input resolution.</span>
+<span class="sd">        joint_coregistration_tie_point_save_path: str output path for selected tie-point JSON in original zero-based pixel coordinates; None disables saving.</span>
+<span class="sd">        joint_coregistration_tie_point_load_path: str selected tie-point JSON path or None; reuses saved pairs directly; a missing file warns and loads nothing.</span>
+<span class="sd">        global_regression_load_adjustments: str statistics JSON path or None; a missing file warns and computes fresh statistics.</span>
+<span class="sd">        global_regression_pif_load_tie_points: str selected tie-point JSON path or None; a missing file warns and detects PIF seed matches normally.</span>
+<span class="sd">        local_block_adjustment_load_block_maps: (reference_tif_or_None, list_of_local_tifs_or_None) or None; missing files warn and their maps are computed.</span>
 <span class="sd">        align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.</span>
 <span class="sd">        merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.</span>
 <span class="sd">        merge_rasters_overlap: Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.</span>
@@ -2074,14 +2281,17 @@
                     <span class="n">local_smoothness_weight</span><span class="o">=</span><span class="n">joint_coregistration_local_smoothness_weight</span><span class="p">,</span>
                     <span class="n">local_bending_weight</span><span class="o">=</span><span class="n">joint_coregistration_local_bending_weight</span><span class="p">,</span>
                     <span class="n">local_anchor_falloff_distance</span><span class="o">=</span><span class="n">joint_coregistration_local_anchor_falloff_distance</span><span class="p">,</span>
-                    <span class="n">feature_method</span><span class="o">=</span><span class="n">joint_coregistration_feature_method</span><span class="p">,</span>
+                    <span class="n">tie_point_feature_method</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_feature_method</span><span class="p">,</span>
+                    <span class="n">tie_point_grid_spacing</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_grid_spacing</span><span class="p">,</span>
                     <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_search_radius</span><span class="p">,</span>
-                    <span class="n">maximum_tie_point_displacement</span><span class="o">=</span><span class="n">joint_coregistration_maximum_tie_point_displacement</span><span class="p">,</span>
-                    <span class="n">ransac_reprojection_threshold</span><span class="o">=</span><span class="n">joint_coregistration_ransac_reprojection_threshold</span><span class="p">,</span>
+                    <span class="n">tie_point_orb_max_features</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_orb_max_features</span><span class="p">,</span>
+                    <span class="n">tie_point_max_matches_per_window</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_max_matches_per_window</span><span class="p">,</span>
+                    <span class="n">tie_point_maximum_displacement</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_maximum_displacement</span><span class="p">,</span>
+                    <span class="n">tie_point_ransac_reprojection_threshold</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_ransac_reprojection_threshold</span><span class="p">,</span>
                     <span class="n">robust_loss</span><span class="o">=</span><span class="n">joint_coregistration_robust_loss</span><span class="p">,</span>
                     <span class="n">robust_loss_scale</span><span class="o">=</span><span class="n">joint_coregistration_robust_loss_scale</span><span class="p">,</span>
-                    <span class="n">save_adjustments</span><span class="o">=</span><span class="n">joint_coregistration_save_adjustments</span><span class="p">,</span>
-                    <span class="n">load_adjustments</span><span class="o">=</span><span class="n">joint_coregistration_load_adjustments</span><span class="p">,</span>
+                    <span class="n">tie_point_save_path</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_save_path</span><span class="p">,</span>
+                    <span class="n">tie_point_load_path</span><span class="o">=</span><span class="n">joint_coregistration_tie_point_load_path</span><span class="p">,</span>
                     <span class="n">resampling_method</span><span class="o">=</span><span class="n">joint_coregistration_resampling_method</span><span class="p">,</span>
                     <span class="n">tap</span><span class="o">=</span><span class="n">joint_coregistration_tap</span><span class="p">,</span>
                     <span class="n">resolution</span><span class="o">=</span><span class="n">joint_coregistration_resolution</span><span class="p">,</span>

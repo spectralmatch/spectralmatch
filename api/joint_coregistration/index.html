@@ -706,6 +706,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#selected-point-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selected-point cache
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameter-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter names
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-and-local-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global and local controls
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -954,6 +987,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#selected-point-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selected-point cache
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameter-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter names
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-and-local-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global and local controls
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -976,52 +1042,86 @@
 
 <h1 id="joint-coregistration">Joint coregistration<a class="headerlink" href="#joint-coregistration" title="Permanent link">&para;</a></h1>
 <h2 id="grid-distributed-orb-matching">Grid-distributed ORB matching<a class="headerlink" href="#grid-distributed-orb-matching" title="Permanent link">&para;</a></h2>
-<p>ORB searches square windows centered on a regular grid inside each pair's overlap.
-<code>local_grid_spacing</code> sets the distance between search centers in the shared input
-CRS units, even when <code>local_model="none"</code>. An overlap smaller than one grid cell
-gets a search at its center.</p>
-<p><code>tie_point_search_radius</code> controls the window half-width in the same units. The
-default, <code>None</code>, automatically uses <strong>128 pixels at the coarser input resolution</strong>,
-giving approximately <strong>256 × 256 pixels</strong> per search window before overlap clipping.
-This leaves room for ORB's border and useful image texture while keeping reads local.
-For example, at 1 CRS unit per pixel the radius is 128 CRS units; at 2 CRS units
-per pixel it is 256 CRS units. An explicit numeric radius is always in CRS units.
-Smaller radii reduce I/O; larger radii provide more texture and room for displacement.
-Windows are clipped to the overlap. Include enough pixels for ORB's descriptor
-border (31 pixels per side) plus the expected displacement; windows smaller than
-63 pixels on either axis, empty masks, and textureless areas are skipped.</p>
-<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
-<span class="normal">2</span>
-<span class="normal">3</span>
-<span class="normal">4</span>
-<span class="normal">5</span>
-<span class="normal">6</span>
-<span class="normal">7</span>
-<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
+<p>ORB searches square windows centered on a regular grid inside each pair's overlap. <code>tie_point_grid_spacing</code> sets the distance between search centers in the shared input CRS units, even when <code>local_model="none"</code>. An overlap smaller than one grid cell gets a search at its center. <code>local_grid_spacing</code> independently controls the local deformation mesh.</p>
+<p><code>tie_point_search_radius</code> is a positive finite number with one unit suffix:</p>
+<ul>
+<li><code>"128px"</code> (default): a radius of 128 pixels at the coarser input resolution, giving approximately 256 × 256 matching pixels before overlap clipping.</li>
+<li><code>"100crs"</code>: a radius of <strong>100 input CRS units</strong>, giving a 200 × 200 CRS-unit window.</li>
+</ul>
+<p>Decimal values such as <code>"12.5crs"</code> are supported. Bare numbers, <code>None</code>, missing or unknown suffixes, and combined units are rejected. Windows and their validity masks are read locally from lazy overlap VRTs; GDAL may fetch surrounding storage blocks. Empty masks, textureless windows, and windows smaller than 63 matching pixels on either axis are skipped.</p>
+<p><code>tie_point_orb_max_features</code> is a positive integer detection cap per image per window, default 100. Descriptor matching keeps mutually best pairs and then the best half by descriptor distance. Displacement and RANSAC filtering remove outliers before final selection.</p>
+<p><code>tie_point_max_matches_per_window</code> is a positive integer cap on selected matches per search window per image pair, default 1. Each match stays with the window that detected it, including when another grid center is closer. Matches nearest their own window center in the reference image are kept first. Set it to <code>None</code> to keep all surviving matches. A request larger than the available match count keeps the available matches; there is no minimum-separation rejection between retained points. Identical selected pairs from overlapping windows are stored once.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
 
 <span class="n">joint_coregistration</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="s2">"input/*.tif"</span><span class="p">,</span>
     <span class="n">output_images</span><span class="o">=</span><span class="s2">"coregistered"</span><span class="p">,</span>
-    <span class="n">local_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
-    <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Default: approximately 256 x 256 matching pixels.</span>
+    <span class="n">tie_point_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="s2">"128px"</span><span class="p">,</span>
+    <span class="n">tie_point_orb_max_features</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tie_point_max_matches_per_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">tie_point_load_path</span><span class="o">=</span><span class="s2">"cache/tie_points.json"</span><span class="p">,</span>
+    <span class="n">tie_point_save_path</span><span class="o">=</span><span class="s2">"cache/tie_points.json"</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-<p>Only these windows and their validity masks are read for feature detection;
-overlap VRTs remain lazy and are opened once per pair. Each window uses at most
-500 ORB features per image; this limit is fixed, and texture determines how many
-features are found. Descriptor matching retains mutually best pairs, then keeps
-the best half by descriptor distance. After displacement and RANSAC filtering,
-the inlier nearest each grid center is selected, keeping at most one match per
-cell per image pair. Locations depend
-on available texture, so some cells can remain empty. GDAL may fetch surrounding
-storage blocks while serving a window; output warping still processes the output
-rasters as usual.</p>
-<p>Saved JSON retains the raw window candidates. Loaded candidates are filtered and
-thinned again using the current grid spacing and radius, without rereading matched
-pairs when usable points remain. Increasing the radius or using a finer grid may
-require recalculating candidates to find features outside the saved windows.</p>
-<p>In <code>pipeline</code>, the corresponding option is
-<code>joint_coregistration_tie_point_search_radius</code>.</p>
+<h2 id="selected-point-cache">Selected-point cache<a class="headerlink" href="#selected-point-cache" title="Permanent link">&para;</a></h2>
+<p>JSON saves only selected matches in original zero-based <code>[column, row]</code> coordinates, using extension-free image basenames. Matching cached pairs are validated and reused directly, including empty pairs; only absent pairs are calculated. Reloading bypasses ORB, displacement/RANSAC filtering, and per-window selection. The global and local alignment solvers still run with the current settings.</p>
+<p>A missing <code>tie_point_load_path</code> file emits a warning and loads nothing, so the example can run before its cache exists. Existing malformed files or out-of-bounds coordinates still raise errors. Changing detection or selection settings does not alter already cached points; omit loading or remove the cache to calculate new points. Regenerate older JSON files containing raw candidates once to obtain selected-point caches.</p>
+<p>In <code>pipeline</code>, use the same options with the <code>joint_coregistration_</code> prefix, including <code>joint_coregistration_tie_point_orb_max_features</code> and <code>joint_coregistration_tie_point_max_matches_per_window</code>.</p>
+<h2 id="parameter-names">Parameter names<a class="headerlink" href="#parameter-names" title="Permanent link">&para;</a></h2>
+<p>Tie-point options use the <code>tie_point_</code> prefix. Update existing calls using these renamed keywords; the previous names are no longer accepted by <code>joint_coregistration</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Previous name</th>
+<th>Current name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feature_method</code></td>
+<td><code>tie_point_feature_method</code></td>
+</tr>
+<tr>
+<td><code>orb_max_features</code></td>
+<td><code>tie_point_orb_max_features</code></td>
+</tr>
+<tr>
+<td><code>tie_points_per_window</code></td>
+<td><code>tie_point_max_matches_per_window</code></td>
+</tr>
+<tr>
+<td><code>maximum_tie_point_displacement</code></td>
+<td><code>tie_point_maximum_displacement</code></td>
+</tr>
+<tr>
+<td><code>ransac_reprojection_threshold</code></td>
+<td><code>tie_point_ransac_reprojection_threshold</code></td>
+</tr>
+<tr>
+<td><code>save_adjustments</code></td>
+<td><code>tie_point_save_path</code></td>
+</tr>
+<tr>
+<td><code>load_adjustments</code></td>
+<td><code>tie_point_load_path</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>tie_point_search_radius</code> retains its name. Search-center spacing now uses <code>tie_point_grid_spacing</code>, while <code>local_grid_spacing</code> controls only the deformation mesh; both default to 500 CRS units. The same renames apply after the <code>joint_coregistration_</code> prefix in <code>pipeline</code>.</p>
+<h2 id="global-and-local-controls">Global and local controls<a class="headerlink" href="#global-and-local-controls" title="Permanent link">&para;</a></h2>
+<p>The <code>global_image_position_preservation_weights</code> and <code>global_tie_point_alignment_strength</code> options control only the image-wide correction stage. Their <code>local_</code> counterparts control the additional local deformation. Both stages use the same selected tie points, and the local stage works on the residual mismatch after global correction. <code>robust_loss</code> and <code>robust_loss_scale</code> apply to both alignment stages.</p>
 
 
 <div class="doc doc-object doc-module">
@@ -1078,7 +1178,7 @@ require recalculating candidates to find features outside the saved windows.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 15, 2026 00:22:29 UTC">September 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 22:49:02 UTC">September 16, 2026</span>
   </span>
 
     

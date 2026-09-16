@@ -1010,8 +1010,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>spectralmatch/match/match.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 49</span>
-<span class="normal"> 50</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 50</span>
 <span class="normal"> 51</span>
 <span class="normal"> 52</span>
 <span class="normal"> 53</span>
@@ -1818,14 +1817,7 @@
 <span class="normal">854</span>
 <span class="normal">855</span>
 <span class="normal">856</span>
-<span class="normal">857</span>
-<span class="normal">858</span>
-<span class="normal">859</span>
-<span class="normal">860</span>
-<span class="normal">861</span>
-<span class="normal">862</span>
-<span class="normal">863</span>
-<span class="normal">864</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Match</span><span class="p">:</span>
+<span class="normal">857</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Match</span><span class="p">:</span>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_setup_images</span><span class="p">(</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1987,8 +1979,8 @@
 <span class="sd">    specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.</span>
 <span class="sd">    custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.</span>
 <span class="sd">    custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.</span>
-<span class="sd">    save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.</span>
-<span class="sd">    load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.</span>
+<span class="sd">    save_adjustments (str | None): JSON output path for per-basename whole-image and overlap statistics, with per-band mean, std, and size; None disables saving.</span>
+<span class="sd">    load_adjustments (str | None): Path to that statistics JSON; reuses matching records and computes missing statistics; a missing file warns and loads nothing; None disables loading.</span>
 <span class="sd">    pif_method (Literal["entire", "flood_from_match_points"], optional): Method used to select overlap pixels for the matching solution. Defaults to "flood_from_match_points".</span>
 <span class="sd">    pif_red_band_index (int | None, optional): Index of the red band used for NDVI-based vegetation filtering. Defaults to None.</span>
 <span class="sd">    pif_nir_band_index (int | None, optional): Index of the NIR band used for NDVI-based vegetation filtering. Defaults to None.</span>
@@ -1998,7 +1990,7 @@
 <span class="sd">    pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 10000.</span>
 <span class="sd">    pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 10.</span>
 <span class="sd">    pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".</span>
-<span class="sd">    pif_load_tie_points (str | None, optional): Compact joint-coregistration tie-point JSON to reuse for matching image pairs on the same named source pixel grids. Requires pif_method="flood_from_match_points" and at least three usable points for every processed overlap pair; invalid or missing pair data raises an error. Defaults to None.</span>
+<span class="sd">    pif_load_tie_points (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.</span>
 <span class="sd">    pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.</span>
 <span class="sd">    build_overviews (bool, optional): If True, computes overviews. Defaults to False.</span>
 <span class="sd">    window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.</span>
@@ -2065,6 +2057,7 @@
             <span class="k">return</span> <span class="n">output_image_paths</span>
 
         <span class="n">loaded_model</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">load_adjustments</span> <span class="o">=</span> <span class="n">_resolve_optional_load_path</span><span class="p">(</span><span class="n">load_adjustments</span><span class="p">,</span> <span class="s2">"load_adjustments"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">load_adjustments</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">load_adjustments</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">loaded_model</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -2365,20 +2358,8 @@
 <span class="sd">    number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.</span>
 <span class="sd">    alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.</span>
 <span class="sd">    correction_method (Literal["gamma", "linear", "offset"], optional): Local correction method. Defaults to "gamma". Offset is commended for images with negative values.</span>
-<span class="sd">    save_block_maps (tuple(str, str) | None): If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.</span>
-<span class="sd">        - First str is the path to save the global block map.</span>
-<span class="sd">        - Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).</span>
-<span class="sd">    load_block_maps (Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None, optional):</span>
-<span class="sd">        Controls loading of precomputed block maps. Can be one of:</span>
-<span class="sd">            - Tuple[str, List[str]]: Load both reference and local block maps.</span>
-<span class="sd">            - Tuple[str, None]: Load only the reference block map.</span>
-<span class="sd">            - Tuple[None, List[str]]: Load only the local block maps.</span>
-<span class="sd">            - None: Do not load any block maps.</span>
-<span class="sd">        This supports partial or full reuse of precomputed block maps:</span>
-<span class="sd">            - Local block maps will still be computed for each input image that is not linked to a local block map by the images name being *included* in the local block maps name (file name).</span>
-<span class="sd">            - The reference block map will only be calculated (mean of all local blocks) if not set.</span>
-<span class="sd">            - The reference map defines the reference block statistics and the local maps define per-image local block statistics.</span>
-<span class="sd">            - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.</span>
+<span class="sd">    save_block_maps (tuple[str, str] | None): (reference_tif, local_tif_template), e.g. ('reference.tif', 'blocks/$.tif'); '$' becomes the image basename; None disables saving.</span>
+<span class="sd">    load_block_maps (tuple[str | None, list[str] | None] | None): (reference_tif, local_tifs), e.g. ('reference.tif', ['blocks/a.tif', 'blocks/b.tif']); either part can be None; missing files warn and missing maps are computed; existing maps must share dimensions and extent; local filenames must contain their input basename.</span>
 <span class="sd">    override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.</span>
 <span class="sd">    build_overviews (bool, optional): If True, computes overviews. Defaults to False.</span>
 <span class="sd">    window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.</span>
@@ -2455,6 +2436,9 @@
                 <span class="n">calculation_dtype</span><span class="p">,</span>
                 <span class="n">debug_logs</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="k">if</span> <span class="n">loaded_num_row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">load_block_maps</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">load_block_maps</span><span class="p">:</span>
             <span class="n">loaded_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">loaded_block_local_means</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
             <span class="n">block_reference_mean</span> <span class="o">=</span> <span class="n">loaded_block_reference_mean</span>
             <span class="n">matched</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
@@ -2999,7 +2983,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The output path of a .json file to save adjustments parameters. Defaults to not saving.</p>
+                <p>JSON output path for per-basename whole-image and overlap statistics, with per-band mean, std, and size; None disables saving.</p>
               </div>
             </td>
             <td>
@@ -3015,7 +2999,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.</p>
+                <p>Path to that statistics JSON; reuses matching records and computes missing statistics; a missing file warns and loads nothing; None disables loading.</p>
               </div>
             </td>
             <td>
@@ -3175,7 +3159,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Compact joint-coregistration tie-point JSON to reuse for matching image pairs on the same named source pixel grids. Requires pif_method="flood_from_match_points" and at least three usable points for every processed overlap pair; invalid or missing pair data raises an error. Defaults to None.</p>
+                <p>Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.</p>
               </div>
             </td>
             <td>
@@ -3259,8 +3243,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/match/match.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">150</span>
-<span class="normal">151</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">151</span>
 <span class="normal">152</span>
 <span class="normal">153</span>
 <span class="normal">154</span>
@@ -3644,7 +3627,9 @@
 <span class="normal">532</span>
 <span class="normal">533</span>
 <span class="normal">534</span>
-<span class="normal">535</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">global_regression</span><span class="p">(</span>
         <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
         <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
@@ -3705,8 +3690,8 @@
 <span class="sd">    specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.</span>
 <span class="sd">    custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.</span>
 <span class="sd">    custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.</span>
-<span class="sd">    save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.</span>
-<span class="sd">    load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.</span>
+<span class="sd">    save_adjustments (str | None): JSON output path for per-basename whole-image and overlap statistics, with per-band mean, std, and size; None disables saving.</span>
+<span class="sd">    load_adjustments (str | None): Path to that statistics JSON; reuses matching records and computes missing statistics; a missing file warns and loads nothing; None disables loading.</span>
 <span class="sd">    pif_method (Literal["entire", "flood_from_match_points"], optional): Method used to select overlap pixels for the matching solution. Defaults to "flood_from_match_points".</span>
 <span class="sd">    pif_red_band_index (int | None, optional): Index of the red band used for NDVI-based vegetation filtering. Defaults to None.</span>
 <span class="sd">    pif_nir_band_index (int | None, optional): Index of the NIR band used for NDVI-based vegetation filtering. Defaults to None.</span>
@@ -3716,7 +3701,7 @@
 <span class="sd">    pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 10000.</span>
 <span class="sd">    pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 10.</span>
 <span class="sd">    pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".</span>
-<span class="sd">    pif_load_tie_points (str | None, optional): Compact joint-coregistration tie-point JSON to reuse for matching image pairs on the same named source pixel grids. Requires pif_method="flood_from_match_points" and at least three usable points for every processed overlap pair; invalid or missing pair data raises an error. Defaults to None.</span>
+<span class="sd">    pif_load_tie_points (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.</span>
 <span class="sd">    pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.</span>
 <span class="sd">    build_overviews (bool, optional): If True, computes overviews. Defaults to False.</span>
 <span class="sd">    window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.</span>
@@ -3783,6 +3768,7 @@
             <span class="k">return</span> <span class="n">output_image_paths</span>
 
         <span class="n">loaded_model</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">load_adjustments</span> <span class="o">=</span> <span class="n">_resolve_optional_load_path</span><span class="p">(</span><span class="n">load_adjustments</span><span class="p">,</span> <span class="s2">"load_adjustments"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">load_adjustments</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">load_adjustments</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">loaded_model</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -4358,13 +4344,11 @@
                 <code>save_block_maps</code>
             </td>
             <td>
-                  <code><span title="tuple">tuple</span>(<span title="str">str</span>, <span title="str">str</span>) | None</code>
+                  <code><span title="tuple">tuple</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.
-- First str is the path to save the global block map.
-- Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).</p>
+                <p>(reference_tif, local_tif_template), e.g. ('reference.tif', 'blocks/<span class="arithmatex">\(.tif'); '\)</span>' becomes the image basename; None disables saving.</p>
               </div>
             </td>
             <td>
@@ -4376,20 +4360,11 @@
                 <code>load_block_maps</code>
             </td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="typing.List">List</span>[<span title="str">str</span>]] | <span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, None] | <span title="typing.Tuple">Tuple</span>[None, <span title="typing.List">List</span>[<span title="str">str</span>]] | None</code>
+                  <code><span title="tuple">tuple</span>[<span title="str">str</span> | None, <span title="list">list</span>[<span title="str">str</span>] | None] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Controls loading of precomputed block maps. Can be one of:
-    - Tuple[str, List[str]]: Load both reference and local block maps.
-    - Tuple[str, None]: Load only the reference block map.
-    - Tuple[None, List[str]]: Load only the local block maps.
-    - None: Do not load any block maps.
-This supports partial or full reuse of precomputed block maps:
-    - Local block maps will still be computed for each input image that is not linked to a local block map by the images name being <em>included</em> in the local block maps name (file name).
-    - The reference block map will only be calculated (mean of all local blocks) if not set.
-    - The reference map defines the reference block statistics and the local maps define per-image local block statistics.
-    - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.</p>
+                <p>(reference_tif, local_tifs), e.g. ('reference.tif', ['blocks/a.tif', 'blocks/b.tif']); either part can be None; missing files warn and missing maps are computed; existing maps must share dimensions and extent; local filenames must contain their input basename.</p>
               </div>
             </td>
             <td>
@@ -4473,9 +4448,7 @@ This supports partial or full reuse of precomputed block maps:
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>spectralmatch/match/match.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">538</span>
-<span class="normal">539</span>
-<span class="normal">540</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">540</span>
 <span class="normal">541</span>
 <span class="normal">542</span>
 <span class="normal">543</span>
@@ -4792,14 +4765,7 @@ This supports partial or full reuse of precomputed block maps:
 <span class="normal">854</span>
 <span class="normal">855</span>
 <span class="normal">856</span>
-<span class="normal">857</span>
-<span class="normal">858</span>
-<span class="normal">859</span>
-<span class="normal">860</span>
-<span class="normal">861</span>
-<span class="normal">862</span>
-<span class="normal">863</span>
-<span class="normal">864</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
+<span class="normal">857</span></pre></div></td><td class="code"><div><pre><span></span><code>    <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">local_block_adjustment</span><span class="p">(</span>
         <span class="n">input_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">SearchFolderOrListFiles</span><span class="p">,</span>
         <span class="n">output_images</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">CreateInFolderOrListFiles</span><span class="p">,</span>
@@ -4850,20 +4816,8 @@ This supports partial or full reuse of precomputed block maps:
 <span class="sd">    number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.</span>
 <span class="sd">    alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.</span>
 <span class="sd">    correction_method (Literal["gamma", "linear", "offset"], optional): Local correction method. Defaults to "gamma". Offset is commended for images with negative values.</span>
-<span class="sd">    save_block_maps (tuple(str, str) | None): If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.</span>
-<span class="sd">        - First str is the path to save the global block map.</span>
-<span class="sd">        - Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).</span>
-<span class="sd">    load_block_maps (Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None, optional):</span>
-<span class="sd">        Controls loading of precomputed block maps. Can be one of:</span>
-<span class="sd">            - Tuple[str, List[str]]: Load both reference and local block maps.</span>
-<span class="sd">            - Tuple[str, None]: Load only the reference block map.</span>
-<span class="sd">            - Tuple[None, List[str]]: Load only the local block maps.</span>
-<span class="sd">            - None: Do not load any block maps.</span>
-<span class="sd">        This supports partial or full reuse of precomputed block maps:</span>
-<span class="sd">            - Local block maps will still be computed for each input image that is not linked to a local block map by the images name being *included* in the local block maps name (file name).</span>
-<span class="sd">            - The reference block map will only be calculated (mean of all local blocks) if not set.</span>
-<span class="sd">            - The reference map defines the reference block statistics and the local maps define per-image local block statistics.</span>
-<span class="sd">            - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.</span>
+<span class="sd">    save_block_maps (tuple[str, str] | None): (reference_tif, local_tif_template), e.g. ('reference.tif', 'blocks/$.tif'); '$' becomes the image basename; None disables saving.</span>
+<span class="sd">    load_block_maps (tuple[str | None, list[str] | None] | None): (reference_tif, local_tifs), e.g. ('reference.tif', ['blocks/a.tif', 'blocks/b.tif']); either part can be None; missing files warn and missing maps are computed; existing maps must share dimensions and extent; local filenames must contain their input basename.</span>
 <span class="sd">    override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.</span>
 <span class="sd">    build_overviews (bool, optional): If True, computes overviews. Defaults to False.</span>
 <span class="sd">    window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.</span>
@@ -4940,6 +4894,9 @@ This supports partial or full reuse of precomputed block maps:
                 <span class="n">calculation_dtype</span><span class="p">,</span>
                 <span class="n">debug_logs</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="k">if</span> <span class="n">loaded_num_row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">load_block_maps</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">load_block_maps</span><span class="p">:</span>
             <span class="n">loaded_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">loaded_block_local_means</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
             <span class="n">block_reference_mean</span> <span class="o">=</span> <span class="n">loaded_block_reference_mean</span>
             <span class="n">matched</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
