@@ -718,6 +718,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gis-point-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GIS point export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#parameter-names" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -999,6 +1010,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gis-point-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GIS point export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#parameter-names" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1042,15 +1064,15 @@
 
 <h1 id="joint-coregistration">Joint coregistration<a class="headerlink" href="#joint-coregistration" title="Permanent link">&para;</a></h1>
 <h2 id="grid-distributed-orb-matching">Grid-distributed ORB matching<a class="headerlink" href="#grid-distributed-orb-matching" title="Permanent link">&para;</a></h2>
-<p>ORB searches square windows centered on a regular grid inside each pair's overlap. <code>tie_point_grid_spacing</code> sets the distance between search centers in the shared input CRS units, even when <code>local_model="none"</code>. An overlap smaller than one grid cell gets a search at its center. <code>local_grid_spacing</code> independently controls the local deformation mesh.</p>
-<p><code>tie_point_search_radius</code> is a positive finite number with one unit suffix:</p>
+<p>ORB searches square windows centered on a regular grid inside each pair's overlap. <code>tie_grid_spacing</code> sets the distance between search centers in the shared input CRS units, even when <code>local_model="none"</code>. An overlap smaller than one grid cell gets a search at its center. <code>local_grid_spacing</code> independently controls the local deformation mesh.</p>
+<p><code>tie_search_radius</code> is a positive finite number with one unit suffix:</p>
 <ul>
 <li><code>"128px"</code> (default): a radius of 128 pixels at the coarser input resolution, giving approximately 256 × 256 matching pixels before overlap clipping.</li>
 <li><code>"100crs"</code>: a radius of <strong>100 input CRS units</strong>, giving a 200 × 200 CRS-unit window.</li>
 </ul>
 <p>Decimal values such as <code>"12.5crs"</code> are supported. Bare numbers, <code>None</code>, missing or unknown suffixes, and combined units are rejected. Windows and their validity masks are read locally from lazy overlap VRTs; GDAL may fetch surrounding storage blocks. Empty masks, textureless windows, and windows smaller than 63 matching pixels on either axis are skipped.</p>
-<p><code>tie_point_orb_max_features</code> is a positive integer detection cap per image per window, default 100. Descriptor matching keeps mutually best pairs and then the best half by descriptor distance. Displacement and RANSAC filtering remove outliers before final selection.</p>
-<p><code>tie_point_max_matches_per_window</code> is a positive integer cap on selected matches per search window per image pair, default 1. Each match stays with the window that detected it, including when another grid center is closer. Matches nearest their own window center in the reference image are kept first. Set it to <code>None</code> to keep all surviving matches. A request larger than the available match count keeps the available matches; there is no minimum-separation rejection between retained points. Identical selected pairs from overlapping windows are stored once.</p>
+<p><code>tie_orb_max_features</code> is a positive integer detection cap per image per window, default 100. Descriptor matching keeps mutually best pairs and then the best half by descriptor distance. Displacement and RANSAC filtering remove outliers before final selection.</p>
+<p><code>tie_max_matches_per_window</code> is a positive integer cap on selected matches per search window per image pair, default 1. Each match stays with the window that detected it, including when another grid center is closer. Matches nearest their own window center in the reference image are kept first. Set it to <code>None</code> to keep all surviving matches. A request larger than the available match count keeps the available matches; there is no minimum-separation rejection between retained points. Identical selected pairs from overlapping windows are stored once.</p>
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
 <span class="normal"> 2</span>
 <span class="normal"> 3</span>
@@ -1062,25 +1084,61 @@
 <span class="normal"> 9</span>
 <span class="normal">10</span>
 <span class="normal">11</span>
-<span class="normal">12</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
+<span class="normal">12</span>
+<span class="normal">13</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
 
 <span class="n">joint_coregistration</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="s2">"input/*.tif"</span><span class="p">,</span>
     <span class="n">output_images</span><span class="o">=</span><span class="s2">"coregistered"</span><span class="p">,</span>
-    <span class="n">tie_point_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
-    <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="s2">"128px"</span><span class="p">,</span>
-    <span class="n">tie_point_orb_max_features</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">tie_point_max_matches_per_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">tie_point_load_path</span><span class="o">=</span><span class="s2">"cache/tie_points.json"</span><span class="p">,</span>
-    <span class="n">tie_point_save_path</span><span class="o">=</span><span class="s2">"cache/tie_points.json"</span><span class="p">,</span>
+    <span class="n">tie_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">tie_search_radius</span><span class="o">=</span><span class="s2">"128px"</span><span class="p">,</span>
+    <span class="n">tie_orb_max_features</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tie_max_matches_per_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">tie_load_path</span><span class="o">=</span><span class="s2">"cache/ties.json"</span><span class="p">,</span>
+    <span class="n">tie_save_path</span><span class="o">=</span><span class="s2">"cache/ties.json"</span><span class="p">,</span>
+    <span class="n">tie_save_crs_path</span><span class="o">=</span><span class="s2">"gis/ties.gpkg"</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 <h2 id="selected-point-cache">Selected-point cache<a class="headerlink" href="#selected-point-cache" title="Permanent link">&para;</a></h2>
 <p>JSON saves only selected matches in original zero-based <code>[column, row]</code> coordinates, using extension-free image basenames. Matching cached pairs are validated and reused directly, including empty pairs; only absent pairs are calculated. Reloading bypasses ORB, displacement/RANSAC filtering, and per-window selection. The global and local alignment solvers still run with the current settings.</p>
-<p>A missing <code>tie_point_load_path</code> file emits a warning and loads nothing, so the example can run before its cache exists. Existing malformed files or out-of-bounds coordinates still raise errors. Changing detection or selection settings does not alter already cached points; omit loading or remove the cache to calculate new points. Regenerate older JSON files containing raw candidates once to obtain selected-point caches.</p>
-<p>In <code>pipeline</code>, use the same options with the <code>joint_coregistration_</code> prefix, including <code>joint_coregistration_tie_point_orb_max_features</code> and <code>joint_coregistration_tie_point_max_matches_per_window</code>.</p>
+<p>A missing <code>tie_load_path</code> file emits a warning and loads nothing, so the example can run before its cache exists. Existing malformed files or out-of-bounds coordinates still raise errors. Changing detection or selection settings does not alter already cached points; omit loading or remove the cache to calculate new points. Regenerate older JSON files containing raw candidates once to obtain selected-point caches.</p>
+<p>In <code>pipeline</code>, use the same options with the <code>joint_coregistration_</code> prefix, including <code>joint_coregistration_tie_orb_max_features</code> and <code>joint_coregistration_tie_max_matches_per_window</code>.</p>
+<h2 id="gis-point-export">GIS point export<a class="headerlink" href="#gis-point-export" title="Permanent link">&para;</a></h2>
+<p>Set <code>tie_save_crs_path</code> to a vector filename such as <code>"gis/ties.gpkg"</code>, <code>"gis/ties.geojson"</code>, <code>"gis/ties.shp"</code>, or <code>"gis/ties.fgb"</code>. The extension selects the vector driver. Export uses only selected ties, including directly reused JSON ties, and writes two point features for each match: one from each image. GeoPackage output uses the <code>ties</code> layer, replacing that layer on subsequent exports while preserving other layers.</p>
+<p>Each point uses its own original image geotransform and the common input CRS. Conversion includes the pixel-center offset and any rotation or skew. These are the original matched locations before global or local correction. The export streams features without reading raster pixels.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tie_id</code></td>
+<td>Shared, one-based match identifier for the two point features; unique across image pairs in the export.</td>
+</tr>
+<tr>
+<td><code>image</code></td>
+<td>Extension-free basename of the image containing this point.</td>
+</tr>
+<tr>
+<td><code>match_img</code></td>
+<td>Extension-free basename of the paired image.</td>
+</tr>
+<tr>
+<td><code>pixel_col</code></td>
+<td>Original zero-based fractional pixel column.</td>
+</tr>
+<tr>
+<td><code>pixel_row</code></td>
+<td>Original zero-based fractional pixel row.</td>
+</tr>
+</tbody>
+</table>
+<p>The vector export can be used independently of JSON saving, even with both alignment stages disabled or when raster outputs are reused. No selected ties produces an empty vector layer with the input CRS. Use a path separate from input/output rasters and tie JSON caches. In <code>pipeline</code>, the option is <code>joint_coregistration_tie_save_crs_path</code>.</p>
 <h2 id="parameter-names">Parameter names<a class="headerlink" href="#parameter-names" title="Permanent link">&para;</a></h2>
-<p>Tie-point options use the <code>tie_point_</code> prefix. Update existing calls using these renamed keywords; the previous names are no longer accepted by <code>joint_coregistration</code>.</p>
+<p>Tie-point options use the <code>tie_</code> prefix and appear before the global and local options in the function signature. Update existing calls using these renamed keywords; the previous names are no longer accepted by <code>joint_coregistration</code>.</p>
 <table>
 <thead>
 <tr>
@@ -1090,38 +1148,91 @@
 </thead>
 <tbody>
 <tr>
-<td><code>feature_method</code></td>
 <td><code>tie_point_feature_method</code></td>
+<td><code>tie_feature_method</code></td>
 </tr>
 <tr>
-<td><code>orb_max_features</code></td>
+<td><code>tie_point_grid_spacing</code></td>
+<td><code>tie_grid_spacing</code></td>
+</tr>
+<tr>
+<td><code>tie_point_search_radius</code></td>
+<td><code>tie_search_radius</code></td>
+</tr>
+<tr>
 <td><code>tie_point_orb_max_features</code></td>
+<td><code>tie_orb_max_features</code></td>
 </tr>
 <tr>
-<td><code>tie_points_per_window</code></td>
 <td><code>tie_point_max_matches_per_window</code></td>
+<td><code>tie_max_matches_per_window</code></td>
 </tr>
 <tr>
-<td><code>maximum_tie_point_displacement</code></td>
 <td><code>tie_point_maximum_displacement</code></td>
+<td><code>tie_maximum_displacement</code></td>
 </tr>
 <tr>
-<td><code>ransac_reprojection_threshold</code></td>
 <td><code>tie_point_ransac_reprojection_threshold</code></td>
+<td><code>tie_ransac_reprojection_threshold</code></td>
 </tr>
 <tr>
-<td><code>save_adjustments</code></td>
+<td><code>robust_loss</code></td>
+<td><code>tie_robust_loss</code></td>
+</tr>
+<tr>
+<td><code>robust_loss_scale</code></td>
+<td><code>tie_robust_loss_scale</code></td>
+</tr>
+<tr>
 <td><code>tie_point_save_path</code></td>
+<td><code>tie_save_path</code></td>
 </tr>
 <tr>
-<td><code>load_adjustments</code></td>
 <td><code>tie_point_load_path</code></td>
+<td><code>tie_load_path</code></td>
+</tr>
+<tr>
+<td><code>global_tie_point_alignment_strength</code></td>
+<td><code>global_tie_alignment_strength</code></td>
+</tr>
+<tr>
+<td><code>local_tie_point_alignment_strength</code></td>
+<td><code>local_tie_alignment_strength</code></td>
+</tr>
+<tr>
+<td><code>global_image_position_preservation_weights</code></td>
+<td><code>global_image_movement_penalty_weights</code></td>
+</tr>
+<tr>
+<td><code>local_image_position_preservation_weights</code></td>
+<td><code>local_image_movement_penalty_weights</code></td>
 </tr>
 </tbody>
 </table>
-<p><code>tie_point_search_radius</code> retains its name. Search-center spacing now uses <code>tie_point_grid_spacing</code>, while <code>local_grid_spacing</code> controls only the deformation mesh; both default to 500 CRS units. The same renames apply after the <code>joint_coregistration_</code> prefix in <code>pipeline</code>.</p>
+<p>Search-center spacing uses <code>tie_grid_spacing</code>, while <code>local_grid_spacing</code> controls only the deformation mesh; both default to 500 CRS units. The same renames apply after the <code>joint_coregistration_</code> prefix in <code>pipeline</code>. PIF cache inputs are now <code>load_ties</code> and <code>pif_load_ties</code>, including <code>global_regression_pif_load_ties</code> in the pipeline. The JSON field remains <code>"tie_points"</code>, so existing selected-point caches remain compatible.</p>
 <h2 id="global-and-local-controls">Global and local controls<a class="headerlink" href="#global-and-local-controls" title="Permanent link">&para;</a></h2>
-<p>The <code>global_image_position_preservation_weights</code> and <code>global_tie_point_alignment_strength</code> options control only the image-wide correction stage. Their <code>local_</code> counterparts control the additional local deformation. Both stages use the same selected tie points, and the local stage works on the residual mismatch after global correction. <code>robust_loss</code> and <code>robust_loss_scale</code> apply to both alignment stages.</p>
+<p>The <code>global_image_movement_penalty_weights</code> and <code>global_tie_alignment_strength</code> options control only the image-wide correction stage. Their <code>local_</code> counterparts control the additional local deformation. Both stages use the same selected tie points, and the local stage works on the residual mismatch after global correction. <code>tie_robust_loss</code> and <code>tie_robust_loss_scale</code> apply to both alignment stages.</p>
+<p>The movement-penalty options accept dictionaries mapping patterns to positive numbers, or <code>None</code> for equal weights. Larger weights resist movement more strongly during the solve. Weights are normalized to mean 1, preserving their ratios. The strength options accept a number from 0 to 1 for all images, or a JSON object string mapping patterns to numbers from 0 to 1. Strengths multiply each image's solved correction: <code>0.5</code> applies half, <code>1</code> applies all, and <code>0</code> applies none. Zero is an ordinary multiplier; it does not lock an image during the joint solve. Different strengths can leave a residual mismatch, and the local stage uses the already scaled global corrections.</p>
+<p>Both kinds of mapping use <a href="../handlers/#glob-patterns">wcmatch glob patterns</a> against case-sensitive, extension-free basenames, with the same enabled syntax as file searches. Rules are processed in insertion order, only against images that remain unmatched. The first matching rule wins, and processing stops when no images remain. Mappings can contain any number of entries. Unmatched images default to 1; patterns matching nothing are ignored. Patterns include <code>scene_{a,b}</code>, <code>@(base|reference)</code>, <code>scene_&lt;1-20&gt;</code>, and <code>base|reference</code>. <code>*</code> includes leading dots. <code>*|!base</code> and <code>!base</code> match every name except <code>base</code>; excluded names remain available to later rules.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span>
+<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="n">joint_coregistration</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="s2">"input/*.tif"</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="s2">"coregistered"</span><span class="p">,</span>
+    <span class="n">global_tie_alignment_strength</span><span class="o">=</span><span class="s1">'{"base": 0, "scene_a*": 0.5, "*": 1}'</span><span class="p">,</span>
+    <span class="n">local_tie_alignment_strength</span><span class="o">=</span><span class="s1">'{"base": 0, "*": 1}'</span><span class="p">,</span>
+    <span class="n">global_image_movement_penalty_weights</span><span class="o">=</span><span class="p">{</span><span class="s2">"base"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"scene_a*"</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">"*"</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+    <span class="n">local_image_movement_penalty_weights</span><span class="o">=</span><span class="p">{</span><span class="s2">"base"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"*"</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<p>Debug logging prints the resolved global/local strength and movement-penalty weight for every image, including normalized weights used by the solvers. An unmatched strength of 1 preserves the default full-correction behavior; use 0 to apply no correction in that stage. Empty strength mappings (<code>'{}'</code>) also use 1 for every image.</p>
 
 
 <div class="doc doc-object doc-module">
@@ -1178,7 +1289,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 22:49:02 UTC">September 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 00:34:48 UTC">September 17, 2026</span>
   </span>
 
     

@@ -1608,7 +1608,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c5a9f9d3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=1d3588c3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1627,23 +1627,25 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">fnmatch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">wcmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">glob</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ast</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">html</span><span class="w"> </span><span class="kn">import</span> <span class="n">escape</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mkdocs_gen_files</span><span class="w"> </span><span class="kn">import</span> <span class="nb">open</span> <span class="k">as</span> <span class="n">gen_open</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch.utils_glob</span><span class="w"> </span><span class="kn">import</span> <span class="n">GLOB_FLAGS</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import os
-import fnmatch
+from wcmatch import glob
 import ast
 from html import escape
-from mkdocs_gen_files import open as gen_open</div>
+from mkdocs_gen_files import open as gen_open
+from spectralmatch.utils_glob import GLOB_FLAGS</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=cff66fcc">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4b5a7475">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1678,7 +1680,7 @@ from mkdocs_gen_files import open as gen_open</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=84b872c8">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=aba7f1c1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1702,8 +1704,9 @@ from mkdocs_gen_files import open as gen_open</div>
     <span class="n">only_include_function_headers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">prompt_lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">matcher</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">include_filter</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">GLOB_FLAGS</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_directory</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">include_filter</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">matcher</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
             <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
             <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">input_directory</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
@@ -1740,8 +1743,9 @@ from mkdocs_gen_files import open as gen_open</div>
     only_include_function_headers=True,
 ) -&gt; str:
     prompt_lines = []
+    matcher = glob.compile(include_filter, flags=GLOB_FLAGS, limit=0)
     for root, _, files in os.walk(input_directory):
-        for filename in fnmatch.filter(files, include_filter):
+        for filename in matcher.filter(files):
             file_path = os.path.join(root, filename)
             rel_path = os.path.relpath(file_path, input_directory)
             try:
@@ -1777,7 +1781,7 @@ from mkdocs_gen_files import open as gen_open</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=fd1b317c">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=c7299262">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1799,10 +1803,12 @@ from mkdocs_gen_files import open as gen_open</div>
     <span class="n">input_directory</span><span class="o">=</span><span class="s2">"docs"</span><span class="p">,</span> <span class="n">include_filter</span><span class="o">=</span><span class="s2">"*.md"</span><span class="p">,</span> <span class="n">exclude_filter</span><span class="o">=</span><span class="s2">"*prompt*"</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">prompt_lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">include_matcher</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">include_filter</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">GLOB_FLAGS</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">exclude_matcher</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">exclude_filter</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">GLOB_FLAGS</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">exclude_filter</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_directory</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">include_filter</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">exclude_filter</span> <span class="ow">and</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">exclude_filter</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">include_matcher</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">exclude_matcher</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">exclude_matcher</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
                     <span class="k">continue</span>
                 <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
                 <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">input_directory</span><span class="p">)</span>
@@ -1817,10 +1823,12 @@ from mkdocs_gen_files import open as gen_open</div>
     input_directory="docs", include_filter="*.md", exclude_filter="*prompt*"
 ) -&gt; str:
     prompt_lines = []
+    include_matcher = glob.compile(include_filter, flags=GLOB_FLAGS, limit=0)
+    exclude_matcher = glob.compile(exclude_filter, flags=GLOB_FLAGS, limit=0) if exclude_filter else None
     for root, _, files in os.walk(input_directory):
         for filename in files:
-            if fnmatch.fnmatch(filename, include_filter):
-                if exclude_filter and fnmatch.fnmatch(filename, exclude_filter):
+            if include_matcher.match(filename):
+                if exclude_matcher is not None and exclude_matcher.match(filename):
                     continue
                 file_path = os.path.join(root, filename)
                 rel_path = os.path.relpath(file_path, input_directory)
@@ -1836,7 +1844,7 @@ from mkdocs_gen_files import open as gen_open</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=39941cec">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0d371fd8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1891,7 +1899,7 @@ from mkdocs_gen_files import open as gen_open</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0d3863c9">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=22f893ab">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1945,7 +1953,7 @@ with gen_open("llm_prompt.md", "w") as f:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 14, 2025 01:22:34 UTC">June 14, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 00:34:48 UTC">September 17, 2026</span>
   </span>
 
     

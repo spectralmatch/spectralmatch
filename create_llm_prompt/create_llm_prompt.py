@@ -1,8 +1,9 @@
 import os
-import fnmatch
+from wcmatch import glob
 import ast
 from html import escape
 from mkdocs_gen_files import open as gen_open
+from spectralmatch.utils_glob import GLOB_FLAGS
 
 
 def create_initial_prompt_text() -> str:
@@ -18,8 +19,9 @@ def parse_python_files_to_prompt_text(
     only_include_function_headers=True,
 ) -> str:
     prompt_lines = []
+    matcher = glob.compile(include_filter, flags=GLOB_FLAGS, limit=0)
     for root, _, files in os.walk(input_directory):
-        for filename in fnmatch.filter(files, include_filter):
+        for filename in matcher.filter(files):
             file_path = os.path.join(root, filename)
             rel_path = os.path.relpath(file_path, input_directory)
             try:
@@ -55,10 +57,12 @@ def parse_markdown_files_to_prompt_text(
     input_directory="docs", include_filter="*.md", exclude_filter="*prompt*"
 ) -> str:
     prompt_lines = []
+    include_matcher = glob.compile(include_filter, flags=GLOB_FLAGS, limit=0)
+    exclude_matcher = glob.compile(exclude_filter, flags=GLOB_FLAGS, limit=0) if exclude_filter else None
     for root, _, files in os.walk(input_directory):
         for filename in files:
-            if fnmatch.fnmatch(filename, include_filter):
-                if exclude_filter and fnmatch.fnmatch(filename, exclude_filter):
+            if include_matcher.match(filename):
+                if exclude_matcher is not None and exclude_matcher.match(filename):
                     continue
                 file_path = os.path.join(root, filename)
                 rel_path = os.path.relpath(file_path, input_directory)

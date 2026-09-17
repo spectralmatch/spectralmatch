@@ -999,17 +999,24 @@ Args:
     weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
     merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
     joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
-    joint_coregistration_tie_point_feature_method: 'orb', currently the only supported tie-point detector.
-    joint_coregistration_tie_point_grid_spacing: Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.
-    joint_coregistration_tie_point_search_radius: Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.
-    joint_coregistration_tie_point_orb_max_features: Positive int ORB detection cap per image per window; default 100.
-    joint_coregistration_tie_point_max_matches_per_window: Positive int selected-match cap per search window per image pair; default 1; None keeps all surviving matches.
-    joint_coregistration_tie_point_maximum_displacement: Positive CRS-unit distance limiting detected match displacement; None disables the limit.
-    joint_coregistration_tie_point_ransac_reprojection_threshold: Positive CRS-unit inlier threshold; None uses three pixels at the coarser input resolution.
-    joint_coregistration_tie_point_save_path: str output path for selected tie-point JSON in original zero-based pixel coordinates; None disables saving.
-    joint_coregistration_tie_point_load_path: str selected tie-point JSON path or None; reuses saved pairs directly; a missing file warns and loads nothing.
+    joint_coregistration_tie_feature_method: 'orb', currently the only supported tie-point detector.
+    joint_coregistration_tie_grid_spacing: Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.
+    joint_coregistration_tie_search_radius: Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.
+    joint_coregistration_tie_orb_max_features: Positive int ORB detection cap per image per window; default 100.
+    joint_coregistration_tie_max_matches_per_window: Positive int selected-match cap per search window per image pair; default 1; None keeps all surviving matches.
+    joint_coregistration_tie_maximum_displacement: Positive CRS-unit distance limiting detected match displacement; None disables the limit.
+    joint_coregistration_tie_ransac_reprojection_threshold: Positive CRS-unit inlier threshold; None uses three pixels at the coarser input resolution.
+    joint_coregistration_tie_robust_loss: 'none', 'huber' (default), 'soft_l1', or 'cauchy'; downweights inconsistent ties in both alignment stages.
+    joint_coregistration_tie_robust_loss_scale: Positive CRS-unit distance for both alignment stages; None uses the median pair RANSAC threshold, or 1.0 without pairs.
+    joint_coregistration_tie_save_path: str output path for selected tie-point JSON in original zero-based pixel coordinates; None disables saving.
+    joint_coregistration_tie_save_crs_path: str vector output path such as 'ties.gpkg' or 'ties.geojson', or None; saves both selected points per tie in the original input CRS, linked by tie_id.
+    joint_coregistration_tie_load_path: str selected tie-point JSON path or None; reuses saved pairs directly; a missing file warns and loads nothing.
+    joint_coregistration_global_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns; first match wins; unmatched images and None use 1; larger weights resist global movement.
+    joint_coregistration_global_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first matching basename rule wins; unmatched images use 1; scales solved global corrections.
+    joint_coregistration_local_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns; first match wins; unmatched images and None use 1; larger weights resist local deformation.
+    joint_coregistration_local_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first matching basename rule wins; unmatched images use 1; scales solved local displacements.
     global_regression_load_adjustments: str statistics JSON path or None; a missing file warns and computes fresh statistics.
-    global_regression_pif_load_tie_points: str selected tie-point JSON path or None; a missing file warns and detects PIF seed matches normally.
+    global_regression_pif_load_ties: str selected tie-point JSON path or None; a missing file warns and detects PIF seed matches normally.
     local_block_adjustment_load_block_maps: (reference_tif_or_None, list_of_local_tifs_or_None) or None; missing files warn and their maps are computed.
     align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
     merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.
@@ -1388,12 +1395,14 @@ def _is_gdal_raster_path(path):
 def _gdal_raster_is_valid(path):
 
 def search_paths(search_pattern):
-    """Search for files using a glob pattern, or a folder with a default file pattern.
+    """Search for files using wcmatch glob syntax, or a folder with a default file pattern.
+
+Patterns support braces, extglobs, POSIX classes, numeric ranges, pipe-separated alternatives, ! exclusions, tilde expansion, character escapes, hidden names, ** recursion, and *** recursion through symlinks. Matching is case-sensitive and results are unique.
 
 Args:
-    search_pattern (str, required): Defines input files from a glob path or folder. Specify like: "/input/files/*.tif" or "/input/folder" (while passing default_file_pattern like: '*.tif')
-    default_file_pattern (str, optional): Used when `pattern` is a directory. If not set and `pattern` is a folder, raises an error.
-    recursive (bool, optional): Whether to search recursively.
+    search_pattern (str, required): File path, wcmatch glob such as 'input/**/*.{tif,tiff}|!input/**/bad*', or folder searched with default_file_pattern; '/' works as a separator on all platforms.
+    default_file_pattern (str, optional): Wcmatch pattern relative to search_pattern when it is a folder, e.g. '*.tif|*.vrt'; required for folder inputs.
+    recursive (bool, optional): Interpret ** and *** as recursive wildcards (default True); False treats them as ordinary *, and patterns without them stay nonrecursive.
     match_to_paths (Tuple[List[str], str], optional): Matches input files to a reference list using a regex.
     debug_logs (bool, optional): Whether to print matched paths.
 
@@ -1475,6 +1484,9 @@ def _validate_concurrent_processing_config(backend, scheduler, image_threads):
 def _validate_output_grid():
 
 def _validate():
+
+def _parse_alignment_strength(value, name):
+    """Validate a shared strength or an ordered JSON object of pattern-to-strength rules."""
 
 def _parse_search_radius(value):
 
@@ -1658,7 +1670,7 @@ def _loaded_points_for_pair(loaded, name_i, name_j):
 
 def _merge_whole_stat_updates(all_whole_stats, updates):
 
-def _source_tie_points_to_overlap_pairs(source_tie_points, reference_path, sensed_path, reference_overlap_path, sensed_overlap_path, valid_mask_path):
+def _source_ties_to_overlap_pairs(source_ties, reference_path, sensed_path, reference_overlap_path, sensed_overlap_path, valid_mask_path):
 
 def _raster_grid(path):
 
@@ -1666,7 +1678,7 @@ def _pixel_between_grids(source_transform, destination_inverse, column, row):
 
 def _pixel_is_inside(column, row, size):
 
-def _calculate_pair_pif_stats(reference_path, sensed_path, reference_name, sensed_name, num_bands, nodata_value, calculation_dtype, red_band_index, nir_band_index, vegetation_threshold, inz_threshold, region_radius, max_samples, min_samples, feature_method, source_tie_points, cache, io_threads, tile_threads, save_inz_path, debug_logs):
+def _calculate_pair_pif_stats(reference_path, sensed_path, reference_name, sensed_name, num_bands, nodata_value, calculation_dtype, red_band_index, nir_band_index, vegetation_threshold, inz_threshold, region_radius, max_samples, min_samples, feature_method, source_ties, cache, io_threads, tile_threads, save_inz_path, debug_logs):
 
 def _build_overlap_vrts(reference_path, sensed_path, tmpdir):
 
@@ -1714,7 +1726,7 @@ Args:
     custom_mean_factor: Numeric mean-constraint weight; default 1.0.
     custom_std_factor: Numeric standard-deviation-constraint weight; default 1.0.
     feature_method: 'orb', currently the only feature matcher.
-    load_tie_points: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.
+    load_ties: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.
     cache: GDAL cache size in GB or None to retain the current setting.
     image_threads: Positive int pair-worker count, 'cpu', or None for serial execution.
     io_threads: Positive int GDAL I/O worker count, 'cpu', or None for its default.
@@ -1735,29 +1747,30 @@ def joint_coregistration(input_images, output_images):
 ORB detects and matches features in small windows centered on a regular grid within each image overlap. Candidate matches are filtered for geometric consistency, then selected within their originating windows, nearest each window's center first. The tie points drive a joint image-wide alignment followed by a joint local deformation solve, and the combined corrections are applied to the output rasters.
 
 Args:
-    input_images: Folder (searches '*.tif'), glob such as 'input/*.tif', or list[str] of paths; at least two rasters with unique basenames and a shared CRS.
+    input_images: Folder (searches '*.tif'), wcmatch.glob pattern such as 'input/**/*.{tif,tiff}', or list[str] of literal paths; at least two rasters with unique basenames and a shared CRS.
     output_images: Folder (writes '$_Coregistered.tif'), '$' basename template, or list[str] matching input order and length; output paths must be unique and differ from inputs.
+    tie_feature_method: 'orb', currently the only supported detector.
+    tie_grid_spacing: Positive CRS-unit distance between search-window centers in each pair's overlap; default 500.0; independent of local_model and local_grid_spacing.
+    tie_search_radius: Positive number with a unit suffix, e.g. '100crs' or '128px' (default); square window half-width; 'px' uses the coarser input resolution.
+    tie_orb_max_features: Positive int limiting detected ORB features per image per search window; default 100; fewer may be found.
+    tie_max_matches_per_window: Positive int limiting selected matches per search window per image pair, nearest that window's center first; default 1; None keeps all surviving matches.
+    tie_maximum_displacement: Positive CRS-unit distance limiting newly detected match displacement; None disables this limit.
+    tie_ransac_reprojection_threshold: Positive CRS-unit inlier threshold for newly detected matches; None uses three pixels at the coarser input resolution.
+    tie_robust_loss: 'none', 'huber' (default), 'soft_l1', or 'cauchy' for downweighting residual errors in both global and local alignment.
+    tie_robust_loss_scale: Positive CRS-unit distance for both alignment stages; None uses the median pair RANSAC threshold, or 1.0 without pairs.
+    tie_save_path: str JSON output path or None; saves only selected matches as {'tie_points': [{'image_1': basename, 'image_2': basename, 'points': [[[col, row], [col, row]], ...]}]} in original zero-based pixel coordinates.
+    tie_save_crs_path: str vector output path such as 'ties.gpkg', 'ties.geojson', or 'ties.shp', or None; writes both points of each selected tie in the input CRS using original pixel-center geotransforms, linked by tie_id; GeoPackage layer is 'ties'.
+    tie_load_path: str path to the same JSON format or None; matching pairs are validated and reused without detection, RANSAC, or reselection; missing pairs are computed; a missing file warns and loads nothing.
     global_model: 'none', 'translation' (default), 'similarity', or 'affine' for image-wide corrections.
-    global_image_position_preservation_weights: dict[str, positive float], e.g. {'reference': 100, 'scene': 1}; extension-free basenames; larger values resist global movement; None gives equal weights.
-    global_tie_point_alignment_strength: Number in [0, 1]; 0 disables global alignment and 1 applies the full solved correction.
+    global_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns, e.g. {'base*': 100, '*': 1}; first match wins; unmatched names and None use 1; larger weights resist global movement.
+    global_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first wcmatch.glob basename match wins; unmatched names use 1; scales each image's solved global correction.
     local_model: 'none', 'bilinear', or 'piecewise_affine' (default) for residual deformation.
-    local_image_position_preservation_weights: dict[str, positive float] keyed by extension-free basenames; larger values resist additional local deformation; None gives equal weights.
-    local_tie_point_alignment_strength: Number in [0, 1]; 0 disables local alignment and 1 applies the full solved deformation.
+    local_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns; first match wins; unmatched names and None use 1; larger weights resist local deformation during the solve.
+    local_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first wcmatch.glob basename match wins; unmatched names use 1; scales each image's solved local displacement.
     local_grid_spacing: Positive target local deformation mesh spacing in CRS units; default 500.0; independent of tie-point search spacing.
     local_smoothness_weight: Non-negative number penalizing differences between neighboring node displacements; default 1.0.
     local_bending_weight: Non-negative number penalizing displacement curvature; default 1.0.
     local_anchor_falloff_distance: Positive CRS-unit distance controlling tie-point influence on mesh anchoring; default 500.0.
-    tie_point_feature_method: 'orb', currently the only supported detector.
-    tie_point_grid_spacing: Positive CRS-unit distance between search-window centers in each pair's overlap; default 500.0; independent of local_model and local_grid_spacing.
-    tie_point_search_radius: Positive number with a unit suffix, e.g. '100crs' or '128px' (default); square window half-width; 'px' uses the coarser input resolution.
-    tie_point_orb_max_features: Positive int limiting detected ORB features per image per search window; default 100; fewer may be found.
-    tie_point_max_matches_per_window: Positive int limiting selected matches per search window per image pair, nearest that window's center first; default 1; None keeps all surviving matches.
-    tie_point_maximum_displacement: Positive CRS-unit distance limiting newly detected match displacement; None disables this limit.
-    tie_point_ransac_reprojection_threshold: Positive CRS-unit inlier threshold for newly detected matches; None uses three pixels at the coarser input resolution.
-    robust_loss: 'none', 'huber' (default), 'soft_l1', or 'cauchy' for downweighting residual errors in both global and local alignment.
-    robust_loss_scale: Positive CRS-unit distance for both alignment stages; None uses the median pair RANSAC threshold, or 1.0 without pairs.
-    tie_point_save_path: str JSON output path or None; saves only selected matches as {'tie_points': [{'image_1': basename, 'image_2': basename, 'points': [[[col, row], [col, row]], ...]}]} in original zero-based pixel coordinates.
-    tie_point_load_path: str path to the same JSON format or None; matching pairs are validated and reused without detection, RANSAC, or reselection; missing pairs are computed; a missing file warns and loads nothing.
     resampling_method: 'nearest', 'bilinear' (default), 'cubic', or 'lanczos' for the final composed warp.
     tap: bool, default False; snap output extents to the target pixel grid.
     resolution: 'highest', 'average', 'lowest', a positive CRS-unit pixel size, or None (default) to preserve native resolution.
@@ -1779,15 +1792,17 @@ Args:
 Returns:
     Paths to coregistered output rasters, in input order."""
 
-def _validate_weight_names(weights, names):
+def _resolve_image_values(values, names):
+    """Apply ordered wcmatch.glob rules only to remaining basenames; unmatched names default to 1."""
 
-def _resolve_image_weights(weights, names):
+def _normalize_image_weights(weights):
+    """Normalize positive movement penalties to mean 1 without overflowing the sum."""
 
 def _read_image_info(name, path):
 
 def _use_common_coordinate_frame(infos):
 
-def _collect_tie_points(overlaps, infos, loaded, feature_method, maximum_displacement, ransac_threshold, image_threads, debug_logs, concurrent_processing_backend, dask_scheduler, grid_spacing, search_radius, tie_point_orb_max_features, tie_point_max_matches_per_window):
+def _collect_ties(overlaps, infos, loaded, feature_method, maximum_displacement, ransac_threshold, image_threads, debug_logs, concurrent_processing_backend, dask_scheduler, grid_spacing, search_radius, tie_orb_max_features, tie_max_matches_per_window):
 
 def _canonical_pair(name_i, name_j):
 
@@ -1796,7 +1811,7 @@ def _resolved_ransac_threshold(info_i, info_j, threshold):
 def _resolved_search_radius(info_i, info_j, radius):
     """Resolve a radius with an explicit unit into the pair's common CRS units."""
 
-def _extract_pair_tie_points(info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs, grid_spacing, search_radius, tie_point_orb_max_features, tie_point_max_matches_per_window):
+def _extract_pair_ties(info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs, grid_spacing, search_radius, tie_orb_max_features, tie_max_matches_per_window):
 
 def _build_pair_overlap_vrts(info_i, info_j, tmpdir):
 
@@ -1804,40 +1819,43 @@ def _extract_overlap_pixel_matches(ref_vrt, sensed_vrt, valid_mask, feature_meth
 
 def _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher):
 
-def _tie_point_grid(info_i, info_j, spacing):
+def _tie_grid(info_i, info_j, spacing):
     """Center a regular grid in the overlap, including overlaps smaller than one cell."""
 
-def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, search_radius, feature_method, tie_point_orb_max_features):
+def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, search_radius, feature_method, tie_orb_max_features):
     """Return overlap-pixel matches and their originating window centers in CRS coordinates, reading one window at a time."""
 
-def _select_window_tie_points(points, window_centers, info_i, tie_point_max_matches_per_window):
+def _select_window_ties(points, window_centers, info_i, tie_max_matches_per_window):
     """Select inliers nearest their originating window center, then merge identical selected pairs."""
 
 def _overlap_to_original_pixels(points, overlap_transform, info_i, info_j):
 
-def _filter_map_tie_points(points, info_i, info_j, maximum_displacement, ransac_threshold):
+def _filter_map_ties(points, info_i, info_j, maximum_displacement, ransac_threshold):
     """Return an inlier mask preserving window membership; repeated matches share one RANSAC vote."""
 
-def _drop_duplicate_tie_points(points):
+def _drop_duplicate_ties(points):
 
 def _pixels_to_map(transform, pixels):
 
-def _load_tie_points(path):
+def _load_ties(path):
     """Load selected pixel pairs from JSON; a missing file warns and returns an empty mapping."""
 
 def _valid_pixel_coordinate(value):
 
-def _save_tie_points(path, tie_points):
+def _save_ties(path, ties):
+
+def _save_ties_crs(path, ties, infos):
+    """Stream two GIS point features per selected tie using the original image geotransforms and CRS."""
 
 def _global_parameter_count(model):
 
 def _global_basis(info, x, y, model):
 
-def _solve_global_alignment(infos, tie_points, model, image_weights, strength, robust_loss, robust_scale, debug_logs):
+def _solve_global_alignment(infos, ties, model, image_weights, strength, tie_robust_loss, robust_scale, debug_logs):
 
 def _difference_coefficients(basis_i, offset_i, basis_j, offset_j, scale_i, scale_j):
 
-def _solve_sparse_equations(equations, robust_loss, robust_scale):
+def _solve_sparse_equations(equations, tie_robust_loss, robust_scale):
 
 def _robust_weights(residual, loss, scale):
 
@@ -1845,7 +1863,7 @@ def _evaluate_global(info, parameters, model, coordinates):
 
 def _build_mesh(info, spacing):
 
-def _solve_local_alignment(infos, tie_points, global_model, global_parameters, local_model, image_weights, strength, grid_spacing, smoothness_weight, bending_weight, falloff_distance, robust_loss, robust_scale, debug_logs):
+def _solve_local_alignment(infos, ties, global_model, global_parameters, local_model, image_weights, strength, grid_spacing, smoothness_weight, bending_weight, falloff_distance, tie_robust_loss, robust_scale, debug_logs):
 
 def _mesh_basis(mesh, x, y, model):
 
@@ -1919,6 +1937,8 @@ def __init__(self, columns):
 def add(self, coefficients, target, weight, robust):
 
 def arrays(self):
+
+def records():
 
 def triangle_crosses(grid):
 
@@ -2268,7 +2288,7 @@ Args:
     pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 10000.
     pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 10.
     pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".
-    pif_load_tie_points (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.
+    pif_load_ties (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.
     pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.
     build_overviews (bool, optional): If True, computes overviews. Defaults to False.
     window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
@@ -3121,6 +3141,10 @@ make<span class="w"> </span>python-build<span class="w"> </span><span class="c1"
 ### File: formats_and_requirements.md
 # File Formats and Input Requirements
 
+## Input path patterns
+
+String inputs accept folders or [wcmatch glob patterns](api/handlers.md#glob-patterns), including braces, extglobs, alternatives, exclusions, numeric ranges, hidden names, and recursive `**` / `***`. For example, `input/**/*.{tif,tiff}|!input/**/bad*` searches nested folders for either extension while excluding filenames beginning with `bad`. Lists contain literal paths. Image-weight rules use the same glob syntax against extension-free basenames.
+
 ## Input Raster Requirements
 Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():
 
@@ -3219,19 +3243,23 @@ This structure is validated by `_validate_adjustment_model_structure()` before u
 
 Each item in `points` is `[[image_1_column, image_1_row], [image_2_column, image_2_row]]`. Partial files are supported. In `joint_coregistration`, loaded pairs that belong to the current overlap network are reused, and missing pairs are calculated. Tie-point thresholds, local-grid spacing, and local falloff distance use the shared input CRS units.
 
-ORB candidates are collected from windows around a grid spaced by `tie_point_grid_spacing`. `tie_point_search_radius` is a positive finite number with a unit suffix: `"100crs"` means a 100-CRS-unit half-width; `"128px"` (default) uses 128 pixels at the coarser input resolution. `tie_point_orb_max_features=100` caps detection per image per window. `tie_point_max_matches_per_window=1` caps final matches per search window per pair; any positive integer is accepted, and `None` keeps all surviving matches. Each match stays with its originating window. Only selected points are saved; identical selected pairs from overlapping windows are stored once. Cached empty pairs are reused; only absent pairs are calculated. Regenerate older raw-candidate JSON files once to obtain selected-point caches. See [grid-distributed ORB matching](api/joint_coregistration.md#grid-distributed-orb-matching) for details.
+ORB candidates are collected from windows around a grid spaced by `tie_grid_spacing`. `tie_search_radius` is a positive finite number with a unit suffix: `"100crs"` means a 100-CRS-unit half-width; `"128px"` (default) uses 128 pixels at the coarser input resolution. `tie_orb_max_features=100` caps detection per image per window. `tie_max_matches_per_window=1` caps final matches per search window per pair; any positive integer is accepted, and `None` keeps all surviving matches. Each match stays with its originating window. Only selected points are saved; identical selected pairs from overlapping windows are stored once. Cached empty pairs are reused; only absent pairs are calculated. Regenerate older raw-candidate JSON files once to obtain selected-point caches. See [grid-distributed ORB matching](api/joint_coregistration.md#grid-distributed-orb-matching) for details.
 
-`global_regression` accepts the same file through `pif_load_tie_points` when `pif_method='flood_from_match_points'`. A missing file warns and uses normal feature detection. An existing file must contain every processed overlap pair with at least three usable points; malformed or insufficient pair data still raises an error. Loaded points bypass ORB and RANSAC, while conversion to overlap coordinates and validity checks still apply. The JSON coordinates must describe the exact source pixel grids and case-sensitive basenames passed to `global_regression`.
+`global_regression` accepts the same file through `pif_load_ties` when `pif_method='flood_from_match_points'`. A missing file warns and uses normal feature detection. An existing file must contain every processed overlap pair with at least three usable points; malformed or insufficient pair data still raises an error. Loaded points bypass ORB and RANSAC, while conversion to overlap coordinates and validity checks still apply. The JSON coordinates must describe the exact source pixel grids and case-sensitive basenames passed to `global_regression`.
 
-The equivalent pipeline options are `global_regression_pif_load_tie_points` and `global_regression_pif_method='flood_from_match_points'`.
+The equivalent pipeline options are `global_regression_pif_load_ties` and `global_regression_pif_method='flood_from_match_points'`.
+
+## Tie-point GIS export
+
+`joint_coregistration(tie_save_crs_path="ties.gpkg")` exports selected ties as GIS point features in the common input CRS. Each matched pair produces two points sharing a `tie_id`, with `image`, `match_img`, `pixel_col`, and `pixel_row` fields. Coordinates come from each original image's geotransform, including pixel-center offsets and rotation, before alignment corrections. The filename extension selects the vector format; GeoPackage uses the `ties` layer. GeoJSON, Shapefile, and FlatGeobuf are also supported. This export is separate from the JSON cache. The pipeline option is `joint_coregistration_tie_save_crs_path`.
 
 ## Missing cache files
 
 Optional cache loads can be enabled before the first run. A missing file emits a `RuntimeWarning`, loads nothing from that path, and lets the normal calculation proceed. Existing malformed files, incompatible block maps, and other read errors still raise errors.
 
-- `joint_coregistration(tie_point_load_path=...)`: selected tie-point JSON; use the same path with `tie_point_save_path` to create it on the first run.
+- `joint_coregistration(tie_load_path=...)`: selected tie-point JSON; use the same path with `tie_save_path` to create it on the first run.
 - `Match.global_regression(load_adjustments=...)`: statistics JSON; use the same path with `save_adjustments`.
-- `Pif.flood_from_match_points(load_tie_points=...)` and `Match.global_regression(pif_load_tie_points=...)`: selected tie-point JSON; a missing file enables normal feature detection.
+- `Pif.flood_from_match_points(load_ties=...)` and `Match.global_regression(pif_load_ties=...)`: selected tie-point JSON; a missing file enables normal feature detection.
 - `Match.local_block_adjustment(load_block_maps=(reference_path, local_paths))`: reference and local GeoTIFF block maps; missing entries warn individually, existing maps are reused, and missing maps are computed. `save_block_maps` writes the cache files.
 
 The corresponding `pipeline` options use the same behavior.
@@ -3504,6 +3532,22 @@ This library was developed at the [Spatial Data Analysis and Visualization Lab (
 
 
 ### File: api/handlers.md
+## Glob patterns
+
+File searches and image-name rules use [wcmatch.glob](https://facelessuser.github.io/wcmatch/glob/) with all compatible syntax features enabled: `*`, `?`, character classes (including POSIX classes), braces, extglobs, numeric ranges, `|` alternatives, `!` exclusions, tilde expansion, character escapes, hidden names, and recursive wildcards. Matching is case-sensitive, duplicate results are removed, and pattern expansion has no count limit.
+
+| Pattern | Meaning |
+| --- | --- |
+| `input/*.{tif,tiff}` | Both raster extensions |
+| `input/@(base\|scene_*).tif` | Extended alternatives within a filename |
+| `input/scene_<1-20>.tif` | Numeric range |
+| `input/*.tif\|!input/bad*` | TIFF files excluding names starting with `bad` |
+| `input/**/*.tif` | All depths, including hidden folders |
+| `input/***/*.tif` | All depths, also traversing directory symlinks |
+| `~/imagery/*.tif` | Files under the user's home directory |
+
+`search_paths` enables recursive wildcards by default; `recursive=False` treats `**` and `***` as ordinary `*`. A pattern without recursive wildcards searches only its specified levels. Folder inputs require `default_file_pattern`, which is evaluated relative to that folder, including alternatives and exclusions. Lists of input paths remain literal paths. Escape literal pattern characters with a backslash. Use `/` as a path separator on all platforms.
+
 ::: spectralmatch.handlers
 
 
@@ -3512,18 +3556,18 @@ This library was developed at the [Spatial Data Analysis and Visualization Lab (
 
 ## Grid-distributed ORB matching
 
-ORB searches square windows centered on a regular grid inside each pair's overlap. `tie_point_grid_spacing` sets the distance between search centers in the shared input CRS units, even when `local_model="none"`. An overlap smaller than one grid cell gets a search at its center. `local_grid_spacing` independently controls the local deformation mesh.
+ORB searches square windows centered on a regular grid inside each pair's overlap. `tie_grid_spacing` sets the distance between search centers in the shared input CRS units, even when `local_model="none"`. An overlap smaller than one grid cell gets a search at its center. `local_grid_spacing` independently controls the local deformation mesh.
 
-`tie_point_search_radius` is a positive finite number with one unit suffix:
+`tie_search_radius` is a positive finite number with one unit suffix:
 
 - `"128px"` (default): a radius of 128 pixels at the coarser input resolution, giving approximately 256 × 256 matching pixels before overlap clipping.
 - `"100crs"`: a radius of **100 input CRS units**, giving a 200 × 200 CRS-unit window.
 
 Decimal values such as `"12.5crs"` are supported. Bare numbers, `None`, missing or unknown suffixes, and combined units are rejected. Windows and their validity masks are read locally from lazy overlap VRTs; GDAL may fetch surrounding storage blocks. Empty masks, textureless windows, and windows smaller than 63 matching pixels on either axis are skipped.
 
-`tie_point_orb_max_features` is a positive integer detection cap per image per window, default 100. Descriptor matching keeps mutually best pairs and then the best half by descriptor distance. Displacement and RANSAC filtering remove outliers before final selection.
+`tie_orb_max_features` is a positive integer detection cap per image per window, default 100. Descriptor matching keeps mutually best pairs and then the best half by descriptor distance. Displacement and RANSAC filtering remove outliers before final selection.
 
-`tie_point_max_matches_per_window` is a positive integer cap on selected matches per search window per image pair, default 1. Each match stays with the window that detected it, including when another grid center is closer. Matches nearest their own window center in the reference image are kept first. Set it to `None` to keep all surviving matches. A request larger than the available match count keeps the available matches; there is no minimum-separation rejection between retained points. Identical selected pairs from overlapping windows are stored once.
+`tie_max_matches_per_window` is a positive integer cap on selected matches per search window per image pair, default 1. Each match stays with the window that detected it, including when another grid center is closer. Matches nearest their own window center in the reference image are kept first. Set it to `None` to keep all surviving matches. A request larger than the available match count keeps the available matches; there is no minimum-separation rejection between retained points. Identical selected pairs from overlapping windows are stored once.
 
 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
 <span class="normal"> 2</span>
@@ -3536,17 +3580,19 @@ Decimal values such as `"12.5crs"` are supported. Bare numbers, `None`, missing 
 <span class="normal"> 9</span>
 <span class="normal">10</span>
 <span class="normal">11</span>
-<span class="normal">12</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
+<span class="normal">12</span>
+<span class="normal">13</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">joint_coregistration</span>
 
 <span class="n">joint_coregistration</span><span class="p">(</span>
     <span class="n">input_images</span><span class="o">=</span><span class="s2">"input/*.tif"</span><span class="p">,</span>
     <span class="n">output_images</span><span class="o">=</span><span class="s2">"coregistered"</span><span class="p">,</span>
-    <span class="n">tie_point_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
-    <span class="n">tie_point_search_radius</span><span class="o">=</span><span class="s2">"128px"</span><span class="p">,</span>
-    <span class="n">tie_point_orb_max_features</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">tie_point_max_matches_per_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">tie_point_load_path</span><span class="o">=</span><span class="s2">"cache/tie_points.json"</span><span class="p">,</span>
-    <span class="n">tie_point_save_path</span><span class="o">=</span><span class="s2">"cache/tie_points.json"</span><span class="p">,</span>
+    <span class="n">tie_grid_spacing</span><span class="o">=</span><span class="mf">500.0</span><span class="p">,</span>
+    <span class="n">tie_search_radius</span><span class="o">=</span><span class="s2">"128px"</span><span class="p">,</span>
+    <span class="n">tie_orb_max_features</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">tie_max_matches_per_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">tie_load_path</span><span class="o">=</span><span class="s2">"cache/ties.json"</span><span class="p">,</span>
+    <span class="n">tie_save_path</span><span class="o">=</span><span class="s2">"cache/ties.json"</span><span class="p">,</span>
+    <span class="n">tie_save_crs_path</span><span class="o">=</span><span class="s2">"gis/ties.gpkg"</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
 
@@ -3554,29 +3600,78 @@ Decimal values such as `"12.5crs"` are supported. Bare numbers, `None`, missing 
 
 JSON saves only selected matches in original zero-based `[column, row]` coordinates, using extension-free image basenames. Matching cached pairs are validated and reused directly, including empty pairs; only absent pairs are calculated. Reloading bypasses ORB, displacement/RANSAC filtering, and per-window selection. The global and local alignment solvers still run with the current settings.
 
-A missing `tie_point_load_path` file emits a warning and loads nothing, so the example can run before its cache exists. Existing malformed files or out-of-bounds coordinates still raise errors. Changing detection or selection settings does not alter already cached points; omit loading or remove the cache to calculate new points. Regenerate older JSON files containing raw candidates once to obtain selected-point caches.
+A missing `tie_load_path` file emits a warning and loads nothing, so the example can run before its cache exists. Existing malformed files or out-of-bounds coordinates still raise errors. Changing detection or selection settings does not alter already cached points; omit loading or remove the cache to calculate new points. Regenerate older JSON files containing raw candidates once to obtain selected-point caches.
 
-In `pipeline`, use the same options with the `joint_coregistration_` prefix, including `joint_coregistration_tie_point_orb_max_features` and `joint_coregistration_tie_point_max_matches_per_window`.
+In `pipeline`, use the same options with the `joint_coregistration_` prefix, including `joint_coregistration_tie_orb_max_features` and `joint_coregistration_tie_max_matches_per_window`.
+
+## GIS point export
+
+Set `tie_save_crs_path` to a vector filename such as `"gis/ties.gpkg"`, `"gis/ties.geojson"`, `"gis/ties.shp"`, or `"gis/ties.fgb"`. The extension selects the vector driver. Export uses only selected ties, including directly reused JSON ties, and writes two point features for each match: one from each image. GeoPackage output uses the `ties` layer, replacing that layer on subsequent exports while preserving other layers.
+
+Each point uses its own original image geotransform and the common input CRS. Conversion includes the pixel-center offset and any rotation or skew. These are the original matched locations before global or local correction. The export streams features without reading raster pixels.
+
+| Field | Meaning |
+| --- | --- |
+| `tie_id` | Shared, one-based match identifier for the two point features; unique across image pairs in the export. |
+| `image` | Extension-free basename of the image containing this point. |
+| `match_img` | Extension-free basename of the paired image. |
+| `pixel_col` | Original zero-based fractional pixel column. |
+| `pixel_row` | Original zero-based fractional pixel row. |
+
+The vector export can be used independently of JSON saving, even with both alignment stages disabled or when raster outputs are reused. No selected ties produces an empty vector layer with the input CRS. Use a path separate from input/output rasters and tie JSON caches. In `pipeline`, the option is `joint_coregistration_tie_save_crs_path`.
 
 ## Parameter names
 
-Tie-point options use the `tie_point_` prefix. Update existing calls using these renamed keywords; the previous names are no longer accepted by `joint_coregistration`.
+Tie-point options use the `tie_` prefix and appear before the global and local options in the function signature. Update existing calls using these renamed keywords; the previous names are no longer accepted by `joint_coregistration`.
 
 | Previous name | Current name |
 | --- | --- |
-| `feature_method` | `tie_point_feature_method` |
-| `orb_max_features` | `tie_point_orb_max_features` |
-| `tie_points_per_window` | `tie_point_max_matches_per_window` |
-| `maximum_tie_point_displacement` | `tie_point_maximum_displacement` |
-| `ransac_reprojection_threshold` | `tie_point_ransac_reprojection_threshold` |
-| `save_adjustments` | `tie_point_save_path` |
-| `load_adjustments` | `tie_point_load_path` |
+| `tie_point_feature_method` | `tie_feature_method` |
+| `tie_point_grid_spacing` | `tie_grid_spacing` |
+| `tie_point_search_radius` | `tie_search_radius` |
+| `tie_point_orb_max_features` | `tie_orb_max_features` |
+| `tie_point_max_matches_per_window` | `tie_max_matches_per_window` |
+| `tie_point_maximum_displacement` | `tie_maximum_displacement` |
+| `tie_point_ransac_reprojection_threshold` | `tie_ransac_reprojection_threshold` |
+| `robust_loss` | `tie_robust_loss` |
+| `robust_loss_scale` | `tie_robust_loss_scale` |
+| `tie_point_save_path` | `tie_save_path` |
+| `tie_point_load_path` | `tie_load_path` |
+| `global_tie_point_alignment_strength` | `global_tie_alignment_strength` |
+| `local_tie_point_alignment_strength` | `local_tie_alignment_strength` |
+| `global_image_position_preservation_weights` | `global_image_movement_penalty_weights` |
+| `local_image_position_preservation_weights` | `local_image_movement_penalty_weights` |
 
-`tie_point_search_radius` retains its name. Search-center spacing now uses `tie_point_grid_spacing`, while `local_grid_spacing` controls only the deformation mesh; both default to 500 CRS units. The same renames apply after the `joint_coregistration_` prefix in `pipeline`.
+Search-center spacing uses `tie_grid_spacing`, while `local_grid_spacing` controls only the deformation mesh; both default to 500 CRS units. The same renames apply after the `joint_coregistration_` prefix in `pipeline`. PIF cache inputs are now `load_ties` and `pif_load_ties`, including `global_regression_pif_load_ties` in the pipeline. The JSON field remains `"tie_points"`, so existing selected-point caches remain compatible.
 
 ## Global and local controls
 
-The `global_image_position_preservation_weights` and `global_tie_point_alignment_strength` options control only the image-wide correction stage. Their `local_` counterparts control the additional local deformation. Both stages use the same selected tie points, and the local stage works on the residual mismatch after global correction. `robust_loss` and `robust_loss_scale` apply to both alignment stages.
+The `global_image_movement_penalty_weights` and `global_tie_alignment_strength` options control only the image-wide correction stage. Their `local_` counterparts control the additional local deformation. Both stages use the same selected tie points, and the local stage works on the residual mismatch after global correction. `tie_robust_loss` and `tie_robust_loss_scale` apply to both alignment stages.
+
+The movement-penalty options accept dictionaries mapping patterns to positive numbers, or `None` for equal weights. Larger weights resist movement more strongly during the solve. Weights are normalized to mean 1, preserving their ratios. The strength options accept a number from 0 to 1 for all images, or a JSON object string mapping patterns to numbers from 0 to 1. Strengths multiply each image's solved correction: `0.5` applies half, `1` applies all, and `0` applies none. Zero is an ordinary multiplier; it does not lock an image during the joint solve. Different strengths can leave a residual mismatch, and the local stage uses the already scaled global corrections.
+
+Both kinds of mapping use [wcmatch glob patterns](handlers.md#glob-patterns) against case-sensitive, extension-free basenames, with the same enabled syntax as file searches. Rules are processed in insertion order, only against images that remain unmatched. The first matching rule wins, and processing stops when no images remain. Mappings can contain any number of entries. Unmatched images default to 1; patterns matching nothing are ignored. Patterns include `scene_{a,b}`, `@(base|reference)`, `scene_<1-20>`, and `base|reference`. `*` includes leading dots. `*|!base` and `!base` match every name except `base`; excluded names remain available to later rules.
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span>
+<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="n">joint_coregistration</span><span class="p">(</span>
+    <span class="n">input_images</span><span class="o">=</span><span class="s2">"input/*.tif"</span><span class="p">,</span>
+    <span class="n">output_images</span><span class="o">=</span><span class="s2">"coregistered"</span><span class="p">,</span>
+    <span class="n">global_tie_alignment_strength</span><span class="o">=</span><span class="s1">'{"base": 0, "scene_a*": 0.5, "*": 1}'</span><span class="p">,</span>
+    <span class="n">local_tie_alignment_strength</span><span class="o">=</span><span class="s1">'{"base": 0, "*": 1}'</span><span class="p">,</span>
+    <span class="n">global_image_movement_penalty_weights</span><span class="o">=</span><span class="p">{</span><span class="s2">"base"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"scene_a*"</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">"*"</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+    <span class="n">local_image_movement_penalty_weights</span><span class="o">=</span><span class="p">{</span><span class="s2">"base"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"*"</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+    <span class="n">debug_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+Debug logging prints the resolved global/local strength and movement-penalty weight for every image, including normalized weights used by the solvers. An unmatched strength of 1 preserves the default full-correction behavior; use 0 to apply no correction in that stage. Empty strength mappings (`'{}'`) also use 1 for every image.
 
 ::: spectralmatch.joint_coregistration
 

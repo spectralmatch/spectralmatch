@@ -1145,7 +1145,7 @@
         <span class="n">custom_mean_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">custom_std_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
-        <span class="n">load_tie_points</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">load_ties</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cache</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Cache</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1177,7 +1177,7 @@
 <span class="sd">            custom_mean_factor: Numeric mean-constraint weight; default 1.0.</span>
 <span class="sd">            custom_std_factor: Numeric standard-deviation-constraint weight; default 1.0.</span>
 <span class="sd">            feature_method: 'orb', currently the only feature matcher.</span>
-<span class="sd">            load_tie_points: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.</span>
+<span class="sd">            load_ties: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.</span>
 <span class="sd">            cache: GDAL cache size in GB or None to retain the current setting.</span>
 <span class="sd">            image_threads: Positive int pair-worker count, 'cpu', or None for serial execution.</span>
 <span class="sd">            io_threads: Positive int GDAL I/O worker count, 'cpu', or None for its default.</span>
@@ -1198,8 +1198,8 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">input_image_paths</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No input images found for flood_from_match_points."</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_tie_points must be a string or None."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">load_ties</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_ties</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_ties must be a string or None."</span><span class="p">)</span>
         <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
             <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
             <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
@@ -1222,8 +1222,8 @@
         <span class="k">if</span> <span class="n">included_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">included_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_image_names</span><span class="p">)</span>
 
-        <span class="n">load_tie_points</span> <span class="o">=</span> <span class="n">_resolve_optional_load_path</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="s2">"load_tie_points"</span><span class="p">)</span>
-        <span class="n">loaded_tie_points</span> <span class="o">=</span> <span class="n">_load_tie_points</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">)</span> <span class="k">if</span> <span class="n">load_tie_points</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="n">load_ties</span> <span class="o">=</span> <span class="n">_resolve_optional_load_path</span><span class="p">(</span><span class="n">load_ties</span><span class="p">,</span> <span class="s2">"load_ties"</span><span class="p">)</span>
+        <span class="n">loaded_ties</span> <span class="o">=</span> <span class="n">_load_ties</span><span class="p">(</span><span class="n">load_ties</span><span class="p">)</span> <span class="k">if</span> <span class="n">load_ties</span> <span class="k">else</span> <span class="p">{}</span>
 
         <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
         <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
@@ -1244,11 +1244,11 @@
                 <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">image_path_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">}</span>
             <span class="n">overlapping_pairs</span> <span class="o">=</span> <span class="n">_find_overlaps</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">debug_logs</span> <span class="ow">and</span> <span class="n">load_tie_points</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">debug_logs</span> <span class="ow">and</span> <span class="n">load_ties</span><span class="p">:</span>
             <span class="n">current_pairs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">pair</span><span class="p">))</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">overlapping_pairs</span><span class="p">}</span>
             <span class="nb">print</span><span class="p">(</span>
                 <span class="s2">"Loaded tie-point pairs matching PIF overlaps: "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">loaded_ties</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
 
         <span class="n">all_overlap_stats</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1259,12 +1259,12 @@
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">name_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span> <span class="ow">and</span> <span class="n">name_j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">source_tie_points</span> <span class="o">=</span> <span class="n">_loaded_points_for_pair</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">name_j</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="n">source_tie_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">source_ties</span> <span class="o">=</span> <span class="n">_loaded_points_for_pair</span><span class="p">(</span><span class="n">loaded_ties</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">name_j</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">load_ties</span> <span class="ow">and</span> <span class="n">source_ties</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Loaded tie-point JSON is missing overlap pair: </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2">."</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_tie_points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">load_ties</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_ties</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Loaded tie-point pair </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2"> must contain at least 3 points."</span>
                 <span class="p">)</span>
@@ -1285,7 +1285,7 @@
                     <span class="n">max_samples</span><span class="p">,</span>
                     <span class="n">min_samples</span><span class="p">,</span>
                     <span class="n">feature_method</span><span class="p">,</span>
-                    <span class="n">source_tie_points</span><span class="p">,</span>
+                    <span class="n">source_ties</span><span class="p">,</span>
                     <span class="n">cache</span><span class="p">,</span>
                     <span class="n">io_threads</span><span class="p">,</span>
                     <span class="n">tile_threads</span><span class="p">,</span>
@@ -1337,7 +1337,7 @@
 
 
 <h2 id="spectralmatch.pif.Pif.flood_from_match_points" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">flood_from_match_points</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_image_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">included_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overlapping_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">feature_method</span><span class="o">=</span><span class="s1">'orb'</span><span class="p">,</span> <span class="n">load_tie_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="s1">'process_pool'</span><span class="p">,</span> <span class="n">dask_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">flood_from_match_points</span><span class="p">(</span><span class="n">input_images</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_image_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">included_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overlapping_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">calculation_dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">,</span> <span class="n">custom_nodata_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">red_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nir_band_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vegetation_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inz_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">region_radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_mean_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">custom_std_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">feature_method</span><span class="o">=</span><span class="s1">'orb'</span><span class="p">,</span> <span class="n">load_ties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">io_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tile_threads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">concurrent_processing_backend</span><span class="o">=</span><span class="s1">'process_pool'</span><span class="p">,</span> <span class="n">dask_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_inz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug_logs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
@@ -1621,7 +1621,7 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>load_tie_points</code>
+                <code>load_ties</code>
             </td>
             <td>
                   <code><span title="str">str</span> | None</code>
@@ -2001,7 +2001,7 @@
     <span class="n">custom_mean_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">custom_std_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">feature_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"orb"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"orb"</span><span class="p">,</span>
-    <span class="n">load_tie_points</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">load_ties</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Cache</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">image_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">io_threads</span><span class="p">:</span> <span class="n">Universal</span><span class="o">.</span><span class="n">Threads</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2033,7 +2033,7 @@
 <span class="sd">        custom_mean_factor: Numeric mean-constraint weight; default 1.0.</span>
 <span class="sd">        custom_std_factor: Numeric standard-deviation-constraint weight; default 1.0.</span>
 <span class="sd">        feature_method: 'orb', currently the only feature matcher.</span>
-<span class="sd">        load_tie_points: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.</span>
+<span class="sd">        load_ties: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.</span>
 <span class="sd">        cache: GDAL cache size in GB or None to retain the current setting.</span>
 <span class="sd">        image_threads: Positive int pair-worker count, 'cpu', or None for serial execution.</span>
 <span class="sd">        io_threads: Positive int GDAL I/O worker count, 'cpu', or None for its default.</span>
@@ -2054,8 +2054,8 @@
     <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">input_image_paths</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No input images found for flood_from_match_points."</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_tie_points must be a string or None."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">load_ties</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">load_ties</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"load_ties must be a string or None."</span><span class="p">)</span>
     <span class="n">Universal</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span>
         <span class="n">image_threads</span><span class="o">=</span><span class="n">image_threads</span><span class="p">,</span>
         <span class="n">io_threads</span><span class="o">=</span><span class="n">io_threads</span><span class="p">,</span>
@@ -2078,8 +2078,8 @@
     <span class="k">if</span> <span class="n">included_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">included_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_image_names</span><span class="p">)</span>
 
-    <span class="n">load_tie_points</span> <span class="o">=</span> <span class="n">_resolve_optional_load_path</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">,</span> <span class="s2">"load_tie_points"</span><span class="p">)</span>
-    <span class="n">loaded_tie_points</span> <span class="o">=</span> <span class="n">_load_tie_points</span><span class="p">(</span><span class="n">load_tie_points</span><span class="p">)</span> <span class="k">if</span> <span class="n">load_tie_points</span> <span class="k">else</span> <span class="p">{}</span>
+    <span class="n">load_ties</span> <span class="o">=</span> <span class="n">_resolve_optional_load_path</span><span class="p">(</span><span class="n">load_ties</span><span class="p">,</span> <span class="s2">"load_ties"</span><span class="p">)</span>
+    <span class="n">loaded_ties</span> <span class="o">=</span> <span class="n">_load_ties</span><span class="p">(</span><span class="n">load_ties</span><span class="p">)</span> <span class="k">if</span> <span class="n">load_ties</span> <span class="k">else</span> <span class="p">{}</span>
 
     <span class="n">_set_gdal_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
     <span class="n">_set_gdal_workers</span><span class="p">(</span><span class="n">io_threads</span><span class="p">,</span> <span class="n">debug_logs</span><span class="p">)</span>
@@ -2100,11 +2100,11 @@
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">image_path_pairs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
         <span class="n">overlapping_pairs</span> <span class="o">=</span> <span class="n">_find_overlaps</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">debug_logs</span> <span class="ow">and</span> <span class="n">load_tie_points</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">debug_logs</span> <span class="ow">and</span> <span class="n">load_ties</span><span class="p">:</span>
         <span class="n">current_pairs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">pair</span><span class="p">))</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">overlapping_pairs</span><span class="p">}</span>
         <span class="nb">print</span><span class="p">(</span>
             <span class="s2">"Loaded tie-point pairs matching PIF overlaps: "</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">loaded_ties</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
 
     <span class="n">all_overlap_stats</span> <span class="o">=</span> <span class="p">{}</span>
@@ -2115,12 +2115,12 @@
             <span class="k">continue</span>
         <span class="k">if</span> <span class="n">name_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span> <span class="ow">and</span> <span class="n">name_j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included_names</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="n">source_tie_points</span> <span class="o">=</span> <span class="n">_loaded_points_for_pair</span><span class="p">(</span><span class="n">loaded_tie_points</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">name_j</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="n">source_tie_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">source_ties</span> <span class="o">=</span> <span class="n">_loaded_points_for_pair</span><span class="p">(</span><span class="n">loaded_ties</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">name_j</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">load_ties</span> <span class="ow">and</span> <span class="n">source_ties</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Loaded tie-point JSON is missing overlap pair: </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2">."</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">load_tie_points</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_tie_points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">load_ties</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_ties</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Loaded tie-point pair </span><span class="si">{</span><span class="n">name_i</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">name_j</span><span class="si">}</span><span class="s2"> must contain at least 3 points."</span>
             <span class="p">)</span>
@@ -2141,7 +2141,7 @@
                 <span class="n">max_samples</span><span class="p">,</span>
                 <span class="n">min_samples</span><span class="p">,</span>
                 <span class="n">feature_method</span><span class="p">,</span>
-                <span class="n">source_tie_points</span><span class="p">,</span>
+                <span class="n">source_ties</span><span class="p">,</span>
                 <span class="n">cache</span><span class="p">,</span>
                 <span class="n">io_threads</span><span class="p">,</span>
                 <span class="n">tile_threads</span><span class="p">,</span>

@@ -454,6 +454,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#input-path-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input path patterns
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#input-raster-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -480,6 +491,17 @@
     <span class="md-ellipsis">
       
         Tie-point Adjustments File
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tie-point-gis-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tie-point GIS export
       
     </span>
   </a>
@@ -986,6 +1008,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#input-path-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input path patterns
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#input-raster-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1012,6 +1045,17 @@
     <span class="md-ellipsis">
       
         Tie-point Adjustments File
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tie-point-gis-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tie-point GIS export
       
     </span>
   </a>
@@ -1061,6 +1105,8 @@
 
 
 <h1 id="file-formats-and-input-requirements">File Formats and Input Requirements<a class="headerlink" href="#file-formats-and-input-requirements" title="Permanent link">&para;</a></h1>
+<h2 id="input-path-patterns">Input path patterns<a class="headerlink" href="#input-path-patterns" title="Permanent link">&para;</a></h2>
+<p>String inputs accept folders or <a href="../api/handlers/#glob-patterns">wcmatch glob patterns</a>, including braces, extglobs, alternatives, exclusions, numeric ranges, hidden names, and recursive <code>**</code> / <code>***</code>. For example, <code>input/**/*.{tif,tiff}|!input/**/bad*</code> searches nested folders for either extension while excluding filenames beginning with <code>bad</code>. Lists contain literal paths. Image-weight rules use the same glob syntax against extension-free basenames.</p>
 <h2 id="input-raster-requirements">Input Raster Requirements<a class="headerlink" href="#input-raster-requirements" title="Permanent link">&para;</a></h2>
 <p>Input rasters must meet specific criteria to ensure compatibility during processing. These are checked by _check_raster_requirements():</p>
 <ul>
@@ -1152,15 +1198,17 @@ This format represents the following: For each image_name there are adjustment, 
 <span class="p">}</span>
 </code></pre></div></td></tr></table></div>
 <p>Each item in <code>points</code> is <code>[[image_1_column, image_1_row], [image_2_column, image_2_row]]</code>. Partial files are supported. In <code>joint_coregistration</code>, loaded pairs that belong to the current overlap network are reused, and missing pairs are calculated. Tie-point thresholds, local-grid spacing, and local falloff distance use the shared input CRS units.</p>
-<p>ORB candidates are collected from windows around a grid spaced by <code>tie_point_grid_spacing</code>. <code>tie_point_search_radius</code> is a positive finite number with a unit suffix: <code>"100crs"</code> means a 100-CRS-unit half-width; <code>"128px"</code> (default) uses 128 pixels at the coarser input resolution. <code>tie_point_orb_max_features=100</code> caps detection per image per window. <code>tie_point_max_matches_per_window=1</code> caps final matches per search window per pair; any positive integer is accepted, and <code>None</code> keeps all surviving matches. Each match stays with its originating window. Only selected points are saved; identical selected pairs from overlapping windows are stored once. Cached empty pairs are reused; only absent pairs are calculated. Regenerate older raw-candidate JSON files once to obtain selected-point caches. See <a href="../api/joint_coregistration/#grid-distributed-orb-matching">grid-distributed ORB matching</a> for details.</p>
-<p><code>global_regression</code> accepts the same file through <code>pif_load_tie_points</code> when <code>pif_method='flood_from_match_points'</code>. A missing file warns and uses normal feature detection. An existing file must contain every processed overlap pair with at least three usable points; malformed or insufficient pair data still raises an error. Loaded points bypass ORB and RANSAC, while conversion to overlap coordinates and validity checks still apply. The JSON coordinates must describe the exact source pixel grids and case-sensitive basenames passed to <code>global_regression</code>.</p>
-<p>The equivalent pipeline options are <code>global_regression_pif_load_tie_points</code> and <code>global_regression_pif_method='flood_from_match_points'</code>.</p>
+<p>ORB candidates are collected from windows around a grid spaced by <code>tie_grid_spacing</code>. <code>tie_search_radius</code> is a positive finite number with a unit suffix: <code>"100crs"</code> means a 100-CRS-unit half-width; <code>"128px"</code> (default) uses 128 pixels at the coarser input resolution. <code>tie_orb_max_features=100</code> caps detection per image per window. <code>tie_max_matches_per_window=1</code> caps final matches per search window per pair; any positive integer is accepted, and <code>None</code> keeps all surviving matches. Each match stays with its originating window. Only selected points are saved; identical selected pairs from overlapping windows are stored once. Cached empty pairs are reused; only absent pairs are calculated. Regenerate older raw-candidate JSON files once to obtain selected-point caches. See <a href="../api/joint_coregistration/#grid-distributed-orb-matching">grid-distributed ORB matching</a> for details.</p>
+<p><code>global_regression</code> accepts the same file through <code>pif_load_ties</code> when <code>pif_method='flood_from_match_points'</code>. A missing file warns and uses normal feature detection. An existing file must contain every processed overlap pair with at least three usable points; malformed or insufficient pair data still raises an error. Loaded points bypass ORB and RANSAC, while conversion to overlap coordinates and validity checks still apply. The JSON coordinates must describe the exact source pixel grids and case-sensitive basenames passed to <code>global_regression</code>.</p>
+<p>The equivalent pipeline options are <code>global_regression_pif_load_ties</code> and <code>global_regression_pif_method='flood_from_match_points'</code>.</p>
+<h2 id="tie-point-gis-export">Tie-point GIS export<a class="headerlink" href="#tie-point-gis-export" title="Permanent link">&para;</a></h2>
+<p><code>joint_coregistration(tie_save_crs_path="ties.gpkg")</code> exports selected ties as GIS point features in the common input CRS. Each matched pair produces two points sharing a <code>tie_id</code>, with <code>image</code>, <code>match_img</code>, <code>pixel_col</code>, and <code>pixel_row</code> fields. Coordinates come from each original image's geotransform, including pixel-center offsets and rotation, before alignment corrections. The filename extension selects the vector format; GeoPackage uses the <code>ties</code> layer. GeoJSON, Shapefile, and FlatGeobuf are also supported. This export is separate from the JSON cache. The pipeline option is <code>joint_coregistration_tie_save_crs_path</code>.</p>
 <h2 id="missing-cache-files">Missing cache files<a class="headerlink" href="#missing-cache-files" title="Permanent link">&para;</a></h2>
 <p>Optional cache loads can be enabled before the first run. A missing file emits a <code>RuntimeWarning</code>, loads nothing from that path, and lets the normal calculation proceed. Existing malformed files, incompatible block maps, and other read errors still raise errors.</p>
 <ul>
-<li><code>joint_coregistration(tie_point_load_path=...)</code>: selected tie-point JSON; use the same path with <code>tie_point_save_path</code> to create it on the first run.</li>
+<li><code>joint_coregistration(tie_load_path=...)</code>: selected tie-point JSON; use the same path with <code>tie_save_path</code> to create it on the first run.</li>
 <li><code>Match.global_regression(load_adjustments=...)</code>: statistics JSON; use the same path with <code>save_adjustments</code>.</li>
-<li><code>Pif.flood_from_match_points(load_tie_points=...)</code> and <code>Match.global_regression(pif_load_tie_points=...)</code>: selected tie-point JSON; a missing file enables normal feature detection.</li>
+<li><code>Pif.flood_from_match_points(load_ties=...)</code> and <code>Match.global_regression(pif_load_ties=...)</code>: selected tie-point JSON; a missing file enables normal feature detection.</li>
 <li><code>Match.local_block_adjustment(load_block_maps=(reference_path, local_paths))</code>: reference and local GeoTIFF block maps; missing entries warn individually, existing maps are reused, and missing maps are computed. <code>save_block_maps</code> writes the cache files.</li>
 </ul>
 <p>The corresponding <code>pipeline</code> options use the same behavior.</p>
@@ -1192,7 +1240,7 @@ This format represents the following: For each image_name there are adjustment, 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 22:49:02 UTC">September 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 00:34:48 UTC">September 17, 2026</span>
   </span>
 
     
