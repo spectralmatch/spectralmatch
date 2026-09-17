@@ -8,7 +8,7 @@ from scipy.ndimage import gaussian_filter
 from typing import Tuple, Optional, List, Literal
 from osgeo import gdal, osr
 
-from ..handlers import _existing_outputs_are_reusable
+from ..handlers import _existing_outputs_are_reusable, _resolve_optional_load_path
 from ..utils import _create_masked_vrt, _create_masked_vrts, _resolve_window_size, _gdal_dtype_str_to_enum, _get_valid_count
 
 
@@ -27,23 +27,15 @@ def _get_pre_computed_block_maps(
     Load pre-computed block mean maps from files.
 
     Args:
-        load_block_maps (Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]]):
-            - Tuple[str, List[str]]: Load both reference and local block maps.
-            - Tuple[str, None]: Load only the reference block map.
-            - Tuple[None, List[str]]: Load only the local block maps.
+        load_block_maps: (reference_tif_or_None, list_of_local_tifs_or_None); missing files warn and are skipped; existing maps must share their shape and extent.
         calculation_dtype (str): Numpy dtype to use for reading.
         debug_logs (bool): To print debug statements or not.
 
     Returns:
-        Tuple[
-            dict[str, np.ndarray],             # block_local_means
-            Optional[np.ndarray],              # block_reference_mean
-            Optional[int],                     # num_row
-            Optional[int],                     # num_col
-            Optional[Tuple[float, float, float, float]]  # bounds_canvas_coords
-        ]
+        (local_means, reference_mean, rows, columns, bounds); when nothing is loaded, returns ({}, None, None, None, None).
     """
     ref_path, local_paths = load_block_maps
+    ref_path = _resolve_optional_load_path(ref_path, "load_block_maps reference")
 
     shapes = set()
     extents = set()
@@ -70,6 +62,9 @@ def _get_pre_computed_block_maps(
     block_local_means = {}
     if local_paths is not None:
         for p in local_paths:
+            p = _resolve_optional_load_path(p, "load_block_maps local")
+            if p is None:
+                continue
             name = os.path.splitext(os.path.basename(p))[0]
             ds = gdal.Open(p, gdal.GA_ReadOnly)
             arr = ds.ReadAsArray().astype(calculation_dtype)
@@ -86,7 +81,7 @@ def _get_pre_computed_block_maps(
             ds = None
 
     if not shapes:
-        raise ValueError("No block maps provided.")
+        return {}, None, None, None, None
 
     if len(shapes) != 1:
         raise ValueError(f"Inconsistent block map shapes: {shapes}")

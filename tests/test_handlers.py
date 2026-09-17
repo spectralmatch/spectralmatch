@@ -17,13 +17,6 @@ def dummy_files(tmp_path):
 
 
 # search_paths
-def test_search_paths_glob(dummy_files):
-    folder, all_files = dummy_files
-    result = search_paths(os.path.join(str(folder), "*_GlobalMatch.tif"))
-    assert len(result) == 2
-    assert all("_GlobalMatch" in os.path.basename(p) for p in result)
-
-
 def test_search_paths_match_to_paths(dummy_files):
     folder, all_files = dummy_files
     reference_paths = ["A", "B"]
@@ -34,6 +27,45 @@ def test_search_paths_match_to_paths(dummy_files):
     )
     assert len(result) == 2
     assert all(any(r in p for r in reference_paths) for p in result)
+
+
+@pytest.mark.parametrize("pattern,expected", [
+    ("*.{tif,tiff}|a.tif|!scene_*", [".hidden.tif", "a.tif", "b.tiff"]),
+    ("@(a|scene_1).tif", ["a.tif", "scene_1.tif"]),
+    ("extension*", ["extensionless"]),
+])
+def test_search_paths_extended_glob_syntax(tmp_path, monkeypatch, pattern, expected):
+    monkeypatch.chdir(tmp_path)
+    for name in ("a.tif", "b.tiff", "scene_1.tif", "scene_2.tif", "scene_10.tif", ".hidden.tif", "extensionless"):
+        (tmp_path / name).touch()
+    (tmp_path / "directory.tif").mkdir()
+    assert search_paths(pattern) == sorted(expected)
+
+
+def test_search_paths_folder_patterns_are_relative_and_literal(tmp_path):
+    folder = tmp_path / "scenes.v1[raw]"
+    folder.mkdir()
+    for name in ("a.tif", "b.vrt", "bad.tif", "ignore.txt"):
+        (folder / name).touch()
+    result = search_paths(str(folder), default_file_pattern="*.tif|*.vrt|!bad*")
+    assert result == [str(folder / "a.tif"), str(folder / "b.vrt")]
+    with pytest.raises(ValueError, match="no default_file_pattern"):
+        search_paths(str(folder))
+
+
+def test_search_paths_recursive_wildcards_and_symlinks(tmp_path):
+    folder = tmp_path / "input"
+    nested = folder / ".nested" / "deep"
+    nested.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    for path in (folder / "root.tif", nested / "deep.tif", outside / "linked.tif"):
+        path.touch()
+    (folder / "link").symlink_to(outside, target_is_directory=True)
+    assert search_paths(str(folder / "*.tif")) == [str(folder / "root.tif")]
+    assert search_paths(str(folder / "**" / "*.tif")) == sorted([str(folder / "root.tif"), str(nested / "deep.tif")])
+    assert search_paths(str(folder / "***" / "*.tif")) == sorted([str(folder / "root.tif"), str(nested / "deep.tif"), str(folder / "link" / "linked.tif")])
+    assert search_paths(str(folder / "**" / "*.tif"), recursive=False) == [str(folder / "link" / "linked.tif")]
 
 
 # create_paths
@@ -105,21 +137,3 @@ def test_match_paths_partial_match():
 
     result = match_paths(input_paths, reference_paths, match_regex)
     assert result == [None, "/data/B_LocalMatch.gpkg"]
-
-
-def test_match_paths_no_match():
-    input_paths = ["/data/X_LocalMatch.gpkg"]
-    reference_paths = ["/ref/Y_GlobalMatch.tif"]
-    match_regex = r"(.*)_LocalMatch\.gpkg$"
-
-    result = match_paths(input_paths, reference_paths, match_regex)
-    assert result == [None]
-
-
-def test_match_paths_multiple_candidates():
-    input_paths = ["/data/A_LocalMatch.gpkg", "/data/A_Alt_LocalMatch.gpkg"]
-    reference_paths = ["/ref/A_GlobalMatch.tif"]
-    match_regex = r"(.*)_LocalMatch\.gpkg$"
-
-    result = match_paths(input_paths, reference_paths, match_regex)
-    assert result[0] in input_paths

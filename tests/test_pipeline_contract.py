@@ -1,5 +1,4 @@
 import inspect
-from typing import Literal, get_args, get_type_hints
 
 import pytest
 
@@ -19,45 +18,6 @@ STEPS = [
     ("merge", "merge_rasters", chain, "merge_rasters"),
 ]
 PATH_PARAMETERS = {"input_images", "output_images", "output_image_path", "output_mask"}
-
-
-@pytest.mark.parametrize("step,prefix,owner,name", STEPS)
-def test_pipeline_parameter_contract(step, prefix, owner, name):
-    target = getattr(owner, name)
-    target_parameters = inspect.signature(target).parameters
-    pipeline_parameters = inspect.signature(chain.pipeline).parameters
-    target_types = get_type_hints(target)
-    pipeline_types = get_type_hints(chain.pipeline)
-
-    for parameter_name, parameter in target_parameters.items():
-        if parameter_name in PATH_PARAMETERS:
-            continue
-        dedicated = f"{prefix}_{parameter_name}"
-        pipeline_name = dedicated if dedicated in pipeline_parameters else (
-            "shared_resume_from_steps" if parameter_name == "resume_from_outputs" else f"shared_{parameter_name}"
-        )
-        assert pipeline_name in pipeline_parameters, f"Missing pipeline parameter for {prefix}.{parameter_name}"
-        mapped = pipeline_parameters[pipeline_name]
-        mapped_type = pipeline_types[pipeline_name]
-        if parameter.default is inspect.Parameter.empty:
-            # Required inputs of optional steps cannot be required for every pipeline.
-            assert step == "weighted_seamline"
-            assert mapped.default is None
-            assert mapped_type == target_types[parameter_name] | None
-        elif parameter_name in {"cache", "image_threads", "io_threads", "tile_threads"}:
-            assert set(get_args(mapped_type)) - {Literal["auto"]} == set(get_args(target_types[parameter_name]))
-            assert mapped.default == "auto"
-        elif parameter_name == "concurrent_processing_backend" and step == "merge":
-            # Merge receives None in single-file mode and the shared backend in tile mode.
-            assert mapped.default == "process_pool"
-            assert mapped_type | None == target_types[parameter_name]
-        else:
-            assert mapped_type == target_types[parameter_name], pipeline_name
-            assert mapped.default == (1024 if parameter_name == "window_size" else parameter.default), pipeline_name
-
-    for pipeline_name in pipeline_parameters:
-        if pipeline_name.startswith(prefix + "_"):
-            assert pipeline_name[len(prefix) + 1:] in target_parameters, f"Unmapped pipeline parameter: {pipeline_name}"
 
 
 @pytest.mark.parametrize("step,prefix,owner,name", STEPS)

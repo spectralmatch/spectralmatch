@@ -1,7 +1,7 @@
 import os
 import warnings
 import re
-import glob
+from wcmatch import glob
 
 from osgeo import gdal
 gdal.UseExceptions()
@@ -11,6 +11,25 @@ from spectralmatch.types_and_validation import Universal
 
 
 from .utils_logging import _print_step_start
+from .utils_glob import GLOB_FLAGS
+
+def _resolve_optional_load_path(path: str | None, option_name: str) -> str | None:
+    """Return an existing cache path; warn and return None when the file is missing."""
+    if path is None:
+        return None
+    if path.startswith("/vsi"):
+        exists = gdal.VSIStatL(path) is not None
+    else:
+        try:
+            os.stat(path)
+            exists = True
+        except FileNotFoundError:
+            exists = False
+    if exists:
+        return path
+    warnings.warn(f"{option_name} file not found: {path}. Continuing without this cached file.", RuntimeWarning, stacklevel=2)
+    return None
+
 
 def _resolve_paths(
     mode: Literal["search", "create", "match", "name"],
@@ -154,17 +173,19 @@ def search_paths(
     search_pattern: str,
     *,
     default_file_pattern: str | None = None,
-    recursive: bool = False,
+    recursive: bool = True,
     match_to_paths: Tuple[List[str], str] | None = None,
     debug_logs: bool = False,
 ) -> List[str]:
     """
-    Search for files using a glob pattern, or a folder with a default file pattern.
+    Search for files using wcmatch glob syntax, or a folder with a default file pattern.
+
+    Patterns support braces, extglobs, POSIX classes, numeric ranges, pipe-separated alternatives, ! exclusions, tilde expansion, character escapes, hidden names, ** recursion, and *** recursion through symlinks. Matching is case-sensitive and results are unique.
 
     Args:
-        search_pattern (str, required): Defines input files from a glob path or folder. Specify like: "/input/files/*.tif" or "/input/folder" (while passing default_file_pattern like: '*.tif')
-        default_file_pattern (str, optional): Used when `pattern` is a directory. If not set and `pattern` is a folder, raises an error.
-        recursive (bool, optional): Whether to search recursively.
+        search_pattern (str, required): File path, wcmatch glob such as 'input/**/*.{tif,tiff}|!input/**/bad*', or folder searched with default_file_pattern; '/' works as a separator on all platforms.
+        default_file_pattern (str, optional): Wcmatch pattern relative to search_pattern when it is a folder, e.g. '*.tif|*.vrt'; required for folder inputs.
+        recursive (bool, optional): Interpret ** and *** as recursive wildcards (default True); False treats them as ordinary *, and patterns without them stay nonrecursive.
         match_to_paths (Tuple[List[str], str], optional): Matches input files to a reference list using a regex.
         debug_logs (bool, optional): Whether to print matched paths.
 
@@ -175,18 +196,28 @@ def search_paths(
         ValueError: If `search_pattern` is a directory and `default_file_pattern` is not provided.
     """
     _print_step_start("search_paths")
-    if not os.path.basename(search_pattern).count("."):
+    root_dir = None
+    folder = os.path.expanduser(search_pattern)
+    if os.path.isdir(folder) or folder.endswith(os.sep):
         if not default_file_pattern:
             raise ValueError(
                 "Pattern is a directory, but no default_file_pattern was provided."
             )
-        search_pattern = os.path.join(search_pattern, default_file_pattern)
+        root_dir = folder
+        search_pattern = default_file_pattern
 
-    print(f"Searching for glob matches: {search_pattern}", flush=True)
-    input_paths = sorted(glob.glob(search_pattern, recursive=recursive))
+    display_pattern = os.path.join(root_dir, search_pattern) if root_dir is not None else search_pattern
+    print(f"Searching for glob matches: {display_pattern}", flush=True)
+    flags = GLOB_FLAGS | glob.NODIR
+    if not recursive:
+        flags &= ~(glob.GLOBSTAR | glob.GLOBSTARLONG)
+    input_paths = glob.glob(search_pattern, flags=flags, root_dir=root_dir, limit=0)
+    if root_dir is not None:
+        input_paths = [os.path.join(root_dir, path) for path in input_paths]
+    input_paths.sort()
 
     if debug_logs:
-        print(f"Found {len(input_paths)} file(s) matching: {search_pattern}")
+        print(f"Found {len(input_paths)} file(s) matching: {display_pattern}")
 
     if match_to_paths:
         input_paths = match_paths(input_paths, *match_to_paths)

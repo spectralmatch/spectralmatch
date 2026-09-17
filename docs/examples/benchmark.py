@@ -1,8 +1,10 @@
-import os, time, tempfile, glob
+import os, time, tempfile
+from wcmatch import glob
 import numpy as np
 import matplotlib.pyplot as plt
 from osgeo import gdal, osr
 from spectralmatch import Match
+from spectralmatch.utils_glob import GLOB_FLAGS
 
 
 def make_two_rasters(size, out_dir):
@@ -81,8 +83,8 @@ def main():
             for d in ["Input", "GlobalMatch", "LocalMatch"]:
                 p = os.path.join(tmp, d)
                 if os.path.isdir(p):
-                    for f in glob.glob(os.path.join(p, "**", "*"), recursive=True):
-                        try: os.remove(f)
+                    for f in glob.iglob("**/*", root_dir=p, flags=GLOB_FLAGS | glob.NODIR, limit=0):
+                        try: os.remove(os.path.join(p, f))
                         except: pass
                 os.makedirs(p, exist_ok=True)
             tg, tl = run_one(sz, tmp)

@@ -8,8 +8,8 @@ from osgeo import gdal
 
 from ..utils_logging import _print_step_start, _report_image_result
 
-from ..joint_coregistration.joint_coregistration import _coregister_overlap, _load_tie_points
-from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths
+from ..joint_coregistration.joint_coregistration import _coregister_overlap, _load_ties
+from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths, _resolve_optional_load_path
 from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal
 from ..utils import _get_gdal_bounds, _set_gdal_cache, _set_gdal_workers
@@ -38,7 +38,7 @@ class Pif:
         custom_mean_factor: float = 1.0,
         custom_std_factor: float = 1.0,
         feature_method: Literal["orb"] = "orb",
-        load_tie_points: str | None = None,
+        load_ties: str | None = None,
         cache: Universal.Cache = None,
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
@@ -51,20 +51,37 @@ class Pif:
         """
         Generate correction parameters using PIFs flooded from matched points.
 
-        This follows the main PIF ideas from Kim and Han (2021): use matched points as seeds, remove vegetation-sensitive areas, identify stable pixelswith an integrated normalized Z-score image, grow PIFs around seed points, and fit per-band linear radiometric corrections.
+        Use matched points as seeds, remove vegetation-sensitive areas, identify stable pixels with an integrated normalized Z-score, grow PIF regions, and fit per-band linear radiometric corrections.
 
-        ``load_tie_points`` accepts the compact JSON written by
-        ``joint_coregistration``. Every processed overlap pair must contain at
-        least three usable loaded points; otherwise an error is raised.
-        Basenames and source pixel grids must match the current inputs.
-        ``concurrent_processing_backend="dask"`` and ``dask_scheduler`` connect
-        image-pair tasks through an existing Dask
-        scheduler using ``("file", path)`` or ``("address", address)``.
+        Args:
+            input_images: Folder, raster glob, or list[str] of raster paths sharing a CRS, band count, and NoData value.
+            input_image_names: list[str] matching input order; None uses extension-free basenames.
+            included_names: list[str] of names contributing to the model; None includes all images.
+            overlapping_pairs: tuple of (name_i, name_j) tuples; None calculates overlapping pairs.
+            calculation_dtype: NumPy dtype name for statistics; default 'float32'.
+            custom_nodata_value: Numeric NoData override or None to use the input value.
+            red_band_index: One-based red-band index or None to disable NDVI filtering.
+            nir_band_index: One-based NIR-band index or None to disable NDVI filtering.
+            vegetation_threshold: Numeric NDVI cutoff for vegetation removal; default 0.2.
+            inz_threshold: Numeric integrated normalized Z-score cutoff; default 0.25.
+            region_radius: Integer PIF seed-growth radius in pixels; default 5.
+            max_samples: Positive int maximum sampled PIF pixels or None for all; default 1000.
+            min_samples: Positive int required PIF pixels or None to disable the minimum; default 10.
+            custom_mean_factor: Numeric mean-constraint weight; default 1.0.
+            custom_std_factor: Numeric standard-deviation-constraint weight; default 1.0.
+            feature_method: 'orb', currently the only feature matcher.
+            load_ties: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.
+            cache: GDAL cache size in GB or None to retain the current setting.
+            image_threads: Positive int pair-worker count, 'cpu', or None for serial execution.
+            io_threads: Positive int GDAL I/O worker count, 'cpu', or None for its default.
+            tile_threads: Positive int tile-worker count, 'cpu', or None for serial execution.
+            concurrent_processing_backend: 'process_pool' or 'dask' for an existing cluster.
+            dask_scheduler: ('file', scheduler_json_path), ('address', 'tcp://host:port'), or None.
+            save_inz: Output raster path or None; for multiple pairs, use two '$' placeholders for sensed and reference basenames.
+            debug_logs: bool, default False; print processing details.
 
         Returns:
-            np.ndarray: Shape ``(num_bands, 2 * num_images, 1)``. For each image
-            and band, entries are ``scale`` then ``offset`` such that
-            ``corrected = scale * image + offset``.
+            np.ndarray: Shape (num_bands, 2 * num_images, 1); each image has scale then offset, with corrected = scale * image + offset.
         """
         _print_step_start("flood_from_match_points")
         input_image_paths = _resolve_paths(
@@ -74,8 +91,8 @@ class Pif:
         )
         if not input_image_paths:
             raise ValueError("No input images found for flood_from_match_points.")
-        if load_tie_points is not None and not isinstance(load_tie_points, str):
-            raise ValueError("load_tie_points must be a string or None.")
+        if load_ties is not None and not isinstance(load_ties, str):
+            raise ValueError("load_ties must be a string or None.")
         Universal._validate(
             image_threads=image_threads,
             io_threads=io_threads,
@@ -98,7 +115,8 @@ class Pif:
         if included_names is None:
             included_names = list(input_image_names)
 
-        loaded_tie_points = _load_tie_points(load_tie_points) if load_tie_points else {}
+        load_ties = _resolve_optional_load_path(load_ties, "load_ties")
+        loaded_ties = _load_ties(load_ties) if load_ties else {}
 
         _set_gdal_cache(cache, debug_logs)
         _set_gdal_workers(io_threads, debug_logs)
@@ -119,11 +137,11 @@ class Pif:
                 for name, path in image_path_pairs.items()
             }
             overlapping_pairs = _find_overlaps(bounds)
-        if debug_logs and load_tie_points:
+        if debug_logs and load_ties:
             current_pairs = {tuple(sorted(pair)) for pair in overlapping_pairs}
             print(
                 "Loaded tie-point pairs matching PIF overlaps: "
-                f"{len(current_pairs & set(loaded_tie_points))}/{len(current_pairs)}"
+                f"{len(current_pairs & set(loaded_ties))}/{len(current_pairs)}"
             )
 
         all_overlap_stats = {}
@@ -134,12 +152,12 @@ class Pif:
                 continue
             if name_i not in included_names and name_j not in included_names:
                 continue
-            source_tie_points = _loaded_points_for_pair(loaded_tie_points, name_i, name_j)
-            if load_tie_points and source_tie_points is None:
+            source_ties = _loaded_points_for_pair(loaded_ties, name_i, name_j)
+            if load_ties and source_ties is None:
                 raise ValueError(
                     f"Loaded tie-point JSON is missing overlap pair: {name_i} <-> {name_j}."
                 )
-            if load_tie_points and len(source_tie_points) < 3:
+            if load_ties and len(source_ties) < 3:
                 raise ValueError(
                     f"Loaded tie-point pair {name_i} <-> {name_j} must contain at least 3 points."
                 )
@@ -160,7 +178,7 @@ class Pif:
                     max_samples,
                     min_samples,
                     feature_method,
-                    source_tie_points,
+                    source_ties,
                     cache,
                     io_threads,
                     tile_threads,
@@ -255,17 +273,17 @@ def _merge_whole_stat_updates(
             all_whole_stats[name][band_index].append(stats)
 
 
-def _source_tie_points_to_overlap_pairs(
-    source_tie_points,
+def _source_ties_to_overlap_pairs(
+    source_ties,
     reference_path,
     sensed_path,
     reference_overlap_path,
     sensed_overlap_path,
     valid_mask_path,
 ):
-    if source_tie_points is None:
+    if source_ties is None:
         return []
-    points = np.asarray(source_tie_points, dtype=float)
+    points = np.asarray(source_ties, dtype=float)
     if points.ndim != 2 or points.shape[1] != 4 or not np.isfinite(points).all():
         raise ValueError("Loaded tie points must contain finite pixel-coordinate quadruples.")
     reference_grid = _raster_grid(reference_path)
@@ -333,7 +351,7 @@ def _calculate_pair_pif_stats(
     max_samples: int | None,
     min_samples: int | None,
     feature_method: str,
-    source_tie_points: np.ndarray | None,
+    source_ties: np.ndarray | None,
     cache,
     io_threads,
     tile_threads,
@@ -359,20 +377,20 @@ def _calculate_pair_pif_stats(
             projection,
             tmpdir,
         )
-        loaded_point_pairs = _source_tie_points_to_overlap_pairs(
-            source_tie_points,
+        loaded_point_pairs = _source_ties_to_overlap_pairs(
+            source_ties,
             reference_path,
             sensed_path,
             ref_vrt,
             sensed_vrt,
             valid_mask_path,
         )
-        if source_tie_points is not None and len(loaded_point_pairs) < 3:
+        if source_ties is not None and len(loaded_point_pairs) < 3:
             raise ValueError(
                 f"Loaded tie-point pair {reference_name} <-> {sensed_name} has fewer than "
                 "3 usable points after overlap validation."
             )
-        if debug_logs and source_tie_points is not None:
+        if debug_logs and source_ties is not None:
             _report_image_result("Tie points reused", len(loaded_point_pairs))
         corrected_sensed_path = os.path.join(tmpdir, "sensed_overlap_corrected.tif")
         corrected_sensed_path, point_pairs = _coregister_overlap(
@@ -380,7 +398,7 @@ def _calculate_pair_pif_stats(
             sensed_vrt,
             corrected_sensed_path,
             valid_mask_path=valid_mask_path,
-            tie_point_pairs=loaded_point_pairs if source_tie_points is not None else None,
+            tie_pairs=loaded_point_pairs if source_ties is not None else None,
             feature_method=feature_method,
             cache=cache,
             io_threads=io_threads,

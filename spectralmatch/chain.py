@@ -89,23 +89,28 @@ def pipeline(
     shared_output_dtype: Universal.CustomOutputDtype = None,
     shared_save_as_cog: Universal.SaveAsCog = False,
     steps: list[PipelineStep] | tuple[PipelineStep, ...] = DEFAULT_PIPELINE_STEPS,
+    joint_coregistration_tie_feature_method: Literal["orb"] = "orb",
+    joint_coregistration_tie_grid_spacing: float = 500.0,
+    joint_coregistration_tie_search_radius: str = "128px",
+    joint_coregistration_tie_orb_max_features: int = 100,
+    joint_coregistration_tie_max_matches_per_window: int | None = 1,
+    joint_coregistration_tie_maximum_displacement: float | None = None,
+    joint_coregistration_tie_ransac_reprojection_threshold: float | None = None,
+    joint_coregistration_tie_robust_loss: Literal["none", "huber", "soft_l1", "cauchy"] = "huber",
+    joint_coregistration_tie_robust_loss_scale: float | None = None,
+    joint_coregistration_tie_save_path: str | None = None,
+    joint_coregistration_tie_save_crs_path: str | None = None,
+    joint_coregistration_tie_load_path: str | None = None,
     joint_coregistration_global_model: Literal["none", "translation", "similarity", "affine"] = "translation",
-    joint_coregistration_global_image_position_preservation_weights: dict[str, float] | None = None,
-    joint_coregistration_global_tie_point_alignment_strength: float = 1.0,
+    joint_coregistration_global_image_movement_penalty_weights: dict[str, float] | None = None,
+    joint_coregistration_global_tie_alignment_strength: float | str = 1.0,
     joint_coregistration_local_model: Literal["none", "bilinear", "piecewise_affine"] = "piecewise_affine",
-    joint_coregistration_local_image_position_preservation_weights: dict[str, float] | None = None,
-    joint_coregistration_local_tie_point_alignment_strength: float = 1.0,
+    joint_coregistration_local_image_movement_penalty_weights: dict[str, float] | None = None,
+    joint_coregistration_local_tie_alignment_strength: float | str = 1.0,
     joint_coregistration_local_grid_spacing: float = 500.0,
     joint_coregistration_local_smoothness_weight: float = 1.0,
     joint_coregistration_local_bending_weight: float = 1.0,
     joint_coregistration_local_anchor_falloff_distance: float = 500.0,
-    joint_coregistration_feature_method: Literal["orb"] = "orb",
-    joint_coregistration_maximum_tie_point_displacement: float | None = None,
-    joint_coregistration_ransac_reprojection_threshold: float | None = None,
-    joint_coregistration_robust_loss: Literal["none", "huber", "soft_l1", "cauchy"] = "huber",
-    joint_coregistration_robust_loss_scale: float | None = None,
-    joint_coregistration_save_adjustments: str | None = None,
-    joint_coregistration_load_adjustments: str | None = None,
     joint_coregistration_resampling_method: Literal["nearest", "bilinear", "cubic", "lanczos"] = "bilinear",
     joint_coregistration_tap: bool = False,
     joint_coregistration_resolution: Universal.Resolution = None,
@@ -129,7 +134,7 @@ def pipeline(
     global_regression_pif_max_samples: int | None = 10000,
     global_regression_pif_min_samples: int | None = 10,
     global_regression_pif_feature_method: Literal["orb"] = "orb",
-    global_regression_pif_load_tie_points: str | None = None,
+    global_regression_pif_load_ties: str | None = None,
     global_regression_pif_save_inz: str | None = None,
     global_regression_build_overviews: bool = False,
     local_block_adjustment_vector_mask: Universal.VectorMask = None,
@@ -187,6 +192,25 @@ def pipeline(
         weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
         merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
         joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
+        joint_coregistration_tie_feature_method: 'orb', currently the only supported tie-point detector.
+        joint_coregistration_tie_grid_spacing: Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.
+        joint_coregistration_tie_search_radius: Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.
+        joint_coregistration_tie_orb_max_features: Positive int ORB detection cap per image per window; default 100.
+        joint_coregistration_tie_max_matches_per_window: Positive int selected-match cap per search window per image pair; default 1; None keeps all surviving matches.
+        joint_coregistration_tie_maximum_displacement: Positive CRS-unit distance limiting detected match displacement; None disables the limit.
+        joint_coregistration_tie_ransac_reprojection_threshold: Positive CRS-unit inlier threshold; None uses three pixels at the coarser input resolution.
+        joint_coregistration_tie_robust_loss: 'none', 'huber' (default), 'soft_l1', or 'cauchy'; downweights inconsistent ties in both alignment stages.
+        joint_coregistration_tie_robust_loss_scale: Positive CRS-unit distance for both alignment stages; None uses the median pair RANSAC threshold, or 1.0 without pairs.
+        joint_coregistration_tie_save_path: str output path for selected tie-point JSON in original zero-based pixel coordinates; None disables saving.
+        joint_coregistration_tie_save_crs_path: str vector output path such as 'ties.gpkg' or 'ties.geojson', or None; saves both selected points per tie in the original input CRS, linked by tie_id.
+        joint_coregistration_tie_load_path: str selected tie-point JSON path or None; reuses saved pairs directly; a missing file warns and loads nothing.
+        joint_coregistration_global_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns; first match wins; unmatched images and None use 1; larger weights resist global movement.
+        joint_coregistration_global_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first matching basename rule wins; unmatched images use 1; scales solved global corrections.
+        joint_coregistration_local_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns; first match wins; unmatched images and None use 1; larger weights resist local deformation.
+        joint_coregistration_local_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first matching basename rule wins; unmatched images use 1; scales solved local displacements.
+        global_regression_load_adjustments: str statistics JSON path or None; a missing file warns and computes fresh statistics.
+        global_regression_pif_load_ties: str selected tie-point JSON path or None; a missing file warns and detects PIF seed matches normally.
+        local_block_adjustment_load_block_maps: (reference_tif_or_None, list_of_local_tifs_or_None) or None; missing files warn and their maps are computed.
         align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
         merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.
         merge_rasters_overlap: Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.
@@ -299,23 +323,28 @@ def pipeline(
                 current_images = joint_coregistration(
                     input_images=current_images,
                     output_images=output_images,
+                    tie_feature_method=joint_coregistration_tie_feature_method,
+                    tie_grid_spacing=joint_coregistration_tie_grid_spacing,
+                    tie_search_radius=joint_coregistration_tie_search_radius,
+                    tie_orb_max_features=joint_coregistration_tie_orb_max_features,
+                    tie_max_matches_per_window=joint_coregistration_tie_max_matches_per_window,
+                    tie_maximum_displacement=joint_coregistration_tie_maximum_displacement,
+                    tie_ransac_reprojection_threshold=joint_coregistration_tie_ransac_reprojection_threshold,
+                    tie_robust_loss=joint_coregistration_tie_robust_loss,
+                    tie_robust_loss_scale=joint_coregistration_tie_robust_loss_scale,
+                    tie_save_path=joint_coregistration_tie_save_path,
+                    tie_save_crs_path=joint_coregistration_tie_save_crs_path,
+                    tie_load_path=joint_coregistration_tie_load_path,
                     global_model=joint_coregistration_global_model,
-                    global_image_position_preservation_weights=joint_coregistration_global_image_position_preservation_weights,
-                    global_tie_point_alignment_strength=joint_coregistration_global_tie_point_alignment_strength,
+                    global_image_movement_penalty_weights=joint_coregistration_global_image_movement_penalty_weights,
+                    global_tie_alignment_strength=joint_coregistration_global_tie_alignment_strength,
                     local_model=joint_coregistration_local_model,
-                    local_image_position_preservation_weights=joint_coregistration_local_image_position_preservation_weights,
-                    local_tie_point_alignment_strength=joint_coregistration_local_tie_point_alignment_strength,
+                    local_image_movement_penalty_weights=joint_coregistration_local_image_movement_penalty_weights,
+                    local_tie_alignment_strength=joint_coregistration_local_tie_alignment_strength,
                     local_grid_spacing=joint_coregistration_local_grid_spacing,
                     local_smoothness_weight=joint_coregistration_local_smoothness_weight,
                     local_bending_weight=joint_coregistration_local_bending_weight,
                     local_anchor_falloff_distance=joint_coregistration_local_anchor_falloff_distance,
-                    feature_method=joint_coregistration_feature_method,
-                    maximum_tie_point_displacement=joint_coregistration_maximum_tie_point_displacement,
-                    ransac_reprojection_threshold=joint_coregistration_ransac_reprojection_threshold,
-                    robust_loss=joint_coregistration_robust_loss,
-                    robust_loss_scale=joint_coregistration_robust_loss_scale,
-                    save_adjustments=joint_coregistration_save_adjustments,
-                    load_adjustments=joint_coregistration_load_adjustments,
                     resampling_method=joint_coregistration_resampling_method,
                     tap=joint_coregistration_tap,
                     resolution=joint_coregistration_resolution,
@@ -376,7 +405,7 @@ def pipeline(
                     pif_max_samples=global_regression_pif_max_samples,
                     pif_min_samples=global_regression_pif_min_samples,
                     pif_feature_method=global_regression_pif_feature_method,
-                    pif_load_tie_points=global_regression_pif_load_tie_points,
+                    pif_load_ties=global_regression_pif_load_ties,
                     pif_save_inz=global_regression_pif_save_inz,
                     build_overviews=global_regression_build_overviews,
                     window_scales=shared_window_scales,

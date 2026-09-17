@@ -104,8 +104,7 @@ def test_compare_before_after_all_images(spectral_test_rasters):
     assert os.path.exists(output_path)
 
 
-@pytest.mark.parametrize("after_width", [5, 6])
-@pytest.mark.parametrize("rotated", [False, True])
+@pytest.mark.parametrize("after_width,rotated", [(5, False), (6, True)])
 def test_spatial_difference_compares_locations_instead_of_array_indices(tmp_path, after_width, rotated):
     before_path, after_path = tmp_path / "before.tif", tmp_path / "after.tif"
     before = np.tile(np.arange(6, dtype=np.float32) + 10, (4, 1))

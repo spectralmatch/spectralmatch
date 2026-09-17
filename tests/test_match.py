@@ -1,4 +1,5 @@
 import json
+import importlib
 import os
 
 import numpy as np
@@ -6,48 +7,79 @@ import pytest
 from osgeo import gdal
 
 from spectralmatch import Match
-from spectralmatch.match import global_regression as global_regression_module
 from spectralmatch.types_and_validation import Match as MatchValidation
 from spectralmatch.pif import pif as pif_module
 from .utils_test import create_dummy_raster
 
 
-@pytest.mark.parametrize("width", [10, 12])
-def test_constraint_display_uses_fixed_width_comma_columns(monkeypatch, capsys, width):
-    monkeypatch.setattr(global_regression_module, "CONSTRAINT_COLUMN_WIDTH", width)
-    matrix = np.zeros((6, 4))
-    matrix[0] = [-278.011, 1, 0, -0.0]
-    previous_options = np.get_printoptions()
-    global_regression_module._print_constraint_system(
-        matrix, np.array([1.0, -278.011, 0.0, 1.0]), np.zeros(6),
-        (("a", "b"),), [(0, "a"), (1, "b")],
-    )
-    lines = capsys.readouterr().out.splitlines()
-    header = lines[1].split(",")
-    rows = [line.split(",") for line in lines[2:8]]
-    assert [label.strip() for label in header[1:]] == ["a0", "b0", "a1", "b1"]
-    assert rows[0][0].strip() == "Overlap(0-1)MeanDif"
-    assert rows[2][0].strip() == "Image(0)MeanCnsrnt"
-    assert len({len(row[0]) for row in [header, *rows]}) == 1
-    assert all(len(value) == width for row in [header, *rows] for value in row[1:])
-    assert rows[0][1:] == [f"{value:+0{width}.3f}" for value in matrix[0]]
-    assert all(value[0] in "+-" and " " not in value for row in rows for value in row[1:])
-    assert "\t" not in "\n".join(lines)
-    for title in ("adjustment_params:", "observed_values_vector:"):
-        value = lines[lines.index(title) + 1]
-        assert len(value) == width
-        assert value[0] in "+-"
-    assert np.get_printoptions() == previous_options
+match_module = importlib.import_module("spectralmatch.match.match")
 
 
-def test_constraint_display_large_numbers_keep_column_width(capsys):
-    matrix = np.array([[1e100, -1e100], [99999.9999, -99999.9999]])
-    global_regression_module._print_constraint_system(matrix, matrix[0], matrix[:, 0], (), [(123, "scene")])
-    rows = capsys.readouterr().out.splitlines()[2:4]
-    for line, expected in zip(rows, matrix):
-        values = line.split(",")[1:]
-        assert all(len(value) == 10 for value in values)
-        np.testing.assert_allclose([float(value) for value in values], expected, rtol=0.001)
+def test_missing_statistics_cache_is_created_and_reused(tmp_path, monkeypatch):
+    paths, outputs, _, _ = _make_two_test_rasters(tmp_path, [("A", 100), ("B", 120)])
+    cache = tmp_path / "statistics.json"
+    options = dict(input_images=paths, output_images=outputs, pif_method="entire", load_adjustments=str(cache), save_adjustments=str(cache))
+    with pytest.warns(RuntimeWarning, match="load_adjustments file not found"):
+        Match.global_regression(**options)
+    assert cache.is_file()
+    assert all(os.path.exists(path) for path in outputs)
+
+    def fail_calculation(*args):
+        raise AssertionError("Existing statistics must be reused")
+
+    monkeypatch.setattr(match_module, "_whole_stats_process_image", fail_calculation)
+    monkeypatch.setattr(match_module, "_overlap_stats_process_image", fail_calculation)
+    Match.global_regression(**options)
+
+
+def test_malformed_statistics_cache_still_raises(tmp_path):
+    paths, outputs, _, _ = _make_two_test_rasters(tmp_path, [("A", 100), ("B", 120)])
+    cache = tmp_path / "malformed.json"
+    cache.write_text("{not json", encoding="utf-8")
+    with pytest.raises(json.JSONDecodeError):
+        Match.global_regression(paths, outputs, pif_method="entire", load_adjustments=str(cache))
+
+
+def test_missing_pif_tie_cache_falls_back_to_detection(tmp_path, monkeypatch):
+    paths, _, _, _ = _make_two_test_rasters(tmp_path, [("A", 100), ("B", 120)])
+    received = []
+
+    def pair_stats(*args):
+        received.append(args[15])
+        return {}, {}
+
+    monkeypatch.setattr(pif_module, "_calculate_pair_pif_stats", pair_stats)
+    monkeypatch.setattr(pif_module, "_solve_pif_global_model", lambda **kwargs: np.zeros((1, 4, 1)))
+    with pytest.warns(RuntimeWarning, match="load_ties file not found"):
+        pif_module.Pif.flood_from_match_points(paths, load_ties=str(tmp_path / "missing.json"))
+    assert received == [None]
+
+
+@pytest.mark.parametrize("missing", ["all", "reference", "local"])
+def test_missing_block_maps_are_computed_and_then_reused(tmp_path, monkeypatch, missing):
+    paths, outputs, _, _ = _make_two_test_rasters(tmp_path, [("A", 60), ("B", 90)])
+    directory = tmp_path / "blocks"
+    directory.mkdir()
+    reference = directory / "reference.tif"
+    local = [directory / "A.tif", directory / "B.tif"]
+    common = dict(input_images=paths, output_images=outputs, number_of_blocks=(2, 2), save_block_maps=(str(reference), str(directory / "$.tif")))
+    if missing != "all":
+        Match.local_block_adjustment(**common)
+        if missing == "reference":
+            reference.unlink()
+        else:
+            local[0].unlink()
+    with pytest.warns(RuntimeWarning, match="load_block_maps.*file not found") as warnings:
+        Match.local_block_adjustment(**common, load_block_maps=(str(reference), list(map(str, local))))
+    assert len(warnings) == (3 if missing == "all" else 1)
+    assert all(path.is_file() for path in [reference, *local])
+    assert all(os.path.exists(path) for path in outputs)
+
+    def fail_calculation(*args):
+        raise AssertionError("Existing block maps must be reused")
+
+    monkeypatch.setattr(match_module, "_calculate_block_process_image", fail_calculation)
+    Match.local_block_adjustment(**common, load_block_maps=(str(reference), list(map(str, local))))
 
 
 def _make_two_test_rasters(tmp_path, names_and_values, input_dir_name="input", output_dir_name="output", suffix="_Out.tif"):
@@ -168,13 +200,13 @@ def test_global_regression_method_level_shared_params(tmp_path):
     assert all(os.path.exists(p) for p in result)
 
 
-def test_global_regression_forwards_pif_load_tie_points(tmp_path, monkeypatch):
+def test_global_regression_forwards_pif_load_ties(tmp_path, monkeypatch):
     paths, output_paths, _, _ = _make_two_test_rasters(
         tmp_path,
         [("A", 100), ("B", 120)],
         suffix="_TiePointGlobal.tif",
     )
-    tie_path = str(tmp_path / "tie_points.json")
+    tie_path = str(tmp_path / "ties.json")
     captured = {}
 
     def fake_flood_from_match_points(**kwargs):
@@ -191,11 +223,11 @@ def test_global_regression_forwards_pif_load_tie_points(tmp_path, monkeypatch):
         input_images=paths,
         output_images=output_paths,
         pif_method="flood_from_match_points",
-        pif_load_tie_points=tie_path,
+        pif_load_ties=tie_path,
     )
 
     assert result == output_paths
-    assert captured["load_tie_points"] == tie_path
+    assert captured["load_ties"] == tie_path
 
 
 # local_block_adjustment
@@ -367,7 +399,7 @@ def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
         max_samples=None,
         min_samples=None,
         feature_method="orb",
-        source_tie_points=None,
+        source_ties=None,
         cache=None,
         io_threads=None,
         tile_threads=None,
@@ -412,29 +444,29 @@ def test_pif_save_inz_validation_rejects_single_placeholder():
         MatchValidation._validate_global_regression(pif_save_inz="/tmp/$_INZ.tif")
 
 
-def test_pif_load_tie_points_validation_requires_flood_method():
+def test_pif_load_ties_validation_requires_flood_method():
     with pytest.raises(
         ValueError,
-        match="pif_load_tie_points requires pif_method='flood_from_match_points'",
+        match="pif_load_ties requires pif_method='flood_from_match_points'",
     ):
         MatchValidation._validate_global_regression(
             pif_method="entire",
-            pif_load_tie_points="tie_points.json",
+            pif_load_ties="ties.json",
         )
 
     with pytest.raises(ValueError, match="must be a string or None"):
         MatchValidation._validate_global_regression(
             pif_method="flood_from_match_points",
-            pif_load_tie_points=[],
+            pif_load_ties=[],
         )
 
 
-def test_pif_loads_compact_tie_point_json_for_current_pair(tmp_path, monkeypatch):
+def test_pif_loads_compact_tie_json_for_current_pair(tmp_path, monkeypatch):
     paths, _, _, _ = _make_two_test_rasters(
         tmp_path,
         [("A", 100), ("B", 120)],
     )
-    tie_path = tmp_path / "tie_points.json"
+    tie_path = tmp_path / "ties.json"
     tie_path.write_text(
         json.dumps(
             {
@@ -473,7 +505,7 @@ def test_pif_loads_compact_tie_point_json_for_current_pair(tmp_path, monkeypatch
     pif_module.Pif.flood_from_match_points(
         input_images=paths,
         overlapping_pairs=(("A", "B"),),
-        load_tie_points=str(tie_path),
+        load_ties=str(tie_path),
     )
 
     assert captured["points"] == pytest.approx(
@@ -493,7 +525,7 @@ def test_pif_loaded_json_requires_every_processed_overlap_pair(tmp_path):
         pif_module.Pif.flood_from_match_points(
             input_images=paths,
             overlapping_pairs=(("A", "B"),),
-            load_tie_points=str(tie_path),
+            load_ties=str(tie_path),
         )
 
 
@@ -522,7 +554,7 @@ def test_pif_loaded_json_rejects_insufficient_pair_points(tmp_path):
         pif_module.Pif.flood_from_match_points(
             input_images=paths,
             overlapping_pairs=(("A", "B"),),
-            load_tie_points=str(tie_path),
+            load_ties=str(tie_path),
         )
 
 
@@ -535,7 +567,7 @@ def test_pif_unusable_loaded_points_raise_before_feature_matching(monkeypatch):
     monkeypatch.setattr(pif_module, "_build_valid_mask_raster", lambda *args: "valid.tif")
     monkeypatch.setattr(
         pif_module,
-        "_source_tie_points_to_overlap_pairs",
+        "_source_ties_to_overlap_pairs",
         lambda *args: [],
     )
 
@@ -561,7 +593,7 @@ def test_pif_unusable_loaded_points_raise_before_feature_matching(monkeypatch):
             max_samples=None,
             min_samples=None,
             feature_method="orb",
-            source_tie_points=np.ones((3, 4)),
+            source_ties=np.ones((3, 4)),
             cache=None,
             io_threads=None,
             tile_threads=None,
@@ -614,7 +646,7 @@ def test_loaded_source_pixels_convert_to_overlap_row_column_pairs(tmp_path):
         dtype=float,
     )
 
-    converted = pif_module._source_tie_points_to_overlap_pairs(
+    converted = pif_module._source_ties_to_overlap_pairs(
         source_points,
         str(reference),
         str(sensed),
@@ -626,7 +658,7 @@ def test_loaded_source_pixels_convert_to_overlap_row_column_pairs(tmp_path):
     assert converted == [(4, 1, 4, 1), (6, 3, 6, 3), (8, 5, 8, 5)]
 
 
-def test_loaded_tie_points_follow_reversed_pair_orientation():
+def test_loaded_ties_follow_reversed_pair_orientation():
     loaded = {("A", "B"): np.asarray([[1.0, 2.0, 3.0, 4.0]])}
 
     reversed_points = pif_module._loaded_points_for_pair(loaded, "B", "A")

@@ -47,7 +47,7 @@ def test_cli_command_help():
     assert result.returncode == 0
     output = result.stdout + result.stderr
     assert "global_regression" in output
-    assert "pif_load_tie_points" in output
+    assert "pif_load_ties" in output
 
     result = _run_cli("joint_coregistration", "--help")
     assert result.returncode == 0

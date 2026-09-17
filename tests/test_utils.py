@@ -4,30 +4,7 @@ import geopandas as gpd
 from osgeo import gdal
 
 from .utils_test import create_dummy_raster, create_dummy_vector
-from spectralmatch import merge_rasters, merge_vectors, align_rasters, mask_rasters
-
-
-@pytest.fixture
-def basic_raster_set(tmp_path):
-    """
-    Creates 3 dummy rasters in an input folder and returns their paths + output folder.
-    Used for merging, masking, aligning, etc.
-
-    Returns:
-        Tuple[List[str], str]: List of input raster paths, and output folder path.
-    """
-    input_dir = os.path.join(tmp_path, "input")
-    output_dir = os.path.join(tmp_path, "output")
-    os.makedirs(input_dir, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
-
-    raster_paths = []
-    for i, value in enumerate([50, 100, 150]):
-        raster_path = os.path.join(input_dir, f"raster_{i}.tif")
-        create_dummy_raster(raster_path, width=32, height=32, count=1, fill_value=value)
-        raster_paths.append(raster_path)
-
-    return raster_paths, output_dir
+from spectralmatch import merge_vectors, align_rasters, mask_rasters
 
 
 @pytest.fixture
@@ -104,35 +81,6 @@ def misaligned_raster_set(tmp_path):
     output_paths.append(os.path.join(output_dir, "aligned2.tif"))
 
     return input_paths, output_paths
-
-
-# merge_rasters
-def test_merge_rasters_minimal(basic_raster_set):
-    @pytest.mark.parametrize(
-        "kwargs",
-        [
-            {},
-            {
-                "io_threads": 2,
-                "tile_threads": 2,
-                "debug_logs": True,
-                "output_dtype": "uint16",
-                "custom_nodata_value": 9999,
-            },
-        ],
-    )
-    def test_merge_rasters_parametrized(basic_raster_set, kwargs):
-        input_rasters, output_dir = basic_raster_set
-        name = "minimal" if not kwargs else "all"
-        output_path = os.path.join(output_dir, f"merged_{name}.tif")
-
-        merge_rasters(
-            input_images=input_rasters,
-            output_image_path=output_path,
-            **kwargs,
-        )
-
-        assert os.path.exists(output_path)
 
 
 # mask_rasters

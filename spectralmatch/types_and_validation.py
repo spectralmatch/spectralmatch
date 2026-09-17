@@ -1,5 +1,7 @@
+import json
 import math
 import os
+import re
 from typing import Tuple, List, Literal, Optional
 
 _UNSET = object()
@@ -243,29 +245,70 @@ def _validate_output_grid(*, tap=_UNSET, resolution=_UNSET):
 
 class JointCoregistration:
     @staticmethod
+    def _parse_alignment_strength(value: float | str, name: str) -> float | dict[str, float]:
+        """Validate a shared strength or an ordered JSON object of pattern-to-strength rules."""
+        message = f"{name} must be a number from 0 to 1 or a JSON object string mapping glob patterns to numbers from 0 to 1."
+        if isinstance(value, str):
+            try:
+                rules = json.loads(value)
+            except ValueError as error:
+                raise ValueError(message) from error
+            if not isinstance(rules, dict) or not all(isinstance(pattern, str) for pattern in rules):
+                raise ValueError(message)
+            values = rules.values()
+        else:
+            rules = None
+            values = (value,)
+        if not all(isinstance(item, (int, float)) and not isinstance(item, bool) and math.isfinite(item) and 0 <= item <= 1 for item in values):
+            raise ValueError(message)
+        return {pattern: float(item) for pattern, item in rules.items()} if rules is not None else float(value)
+
+    @staticmethod
+    def _parse_search_radius(value: str) -> tuple[float, str]:
+        message = (
+            "tie_search_radius must be a positive finite number followed by "
+            "'crs' or 'px', for example '100crs' or '128px'."
+        )
+        match = re.fullmatch(
+            r"((?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)(crs|px)",
+            value.strip(),
+        ) if isinstance(value, str) else None
+        if match is None:
+            raise ValueError(message)
+        magnitude = float(match.group(1))
+        if not math.isfinite(magnitude) or magnitude <= 0:
+            raise ValueError(message)
+        return magnitude, match.group(2)
+
+    @staticmethod
     def _validate(
         *,
+        tie_feature_method,
+        tie_grid_spacing,
+        tie_search_radius,
+        tie_orb_max_features,
+        tie_max_matches_per_window,
+        tie_maximum_displacement,
+        tie_ransac_reprojection_threshold,
+        tie_robust_loss,
+        tie_robust_loss_scale,
+        tie_save_path,
+        tie_save_crs_path,
+        tie_load_path,
         global_model,
-        global_image_position_preservation_weights,
-        global_tie_point_alignment_strength,
+        global_image_movement_penalty_weights,
+        global_tie_alignment_strength,
         local_model,
-        local_image_position_preservation_weights,
-        local_tie_point_alignment_strength,
+        local_image_movement_penalty_weights,
+        local_tie_alignment_strength,
         local_grid_spacing,
         local_smoothness_weight,
         local_bending_weight,
         local_anchor_falloff_distance,
-        feature_method,
-        maximum_tie_point_displacement,
-        ransac_reprojection_threshold,
-        robust_loss,
-        robust_loss_scale,
         resampling_method,
         tap,
         resolution,
         build_overviews,
-        save_adjustments,
-        load_adjustments,
         resume_from_outputs,
     ):
         if global_model not in {"none", "translation", "similarity", "affine"}:
@@ -273,14 +316,13 @@ class JointCoregistration:
         if local_model not in {"none", "bilinear", "piecewise_affine"}:
             raise ValueError("local_model must be 'none', 'bilinear', or 'piecewise_affine'.")
         for name, value in (
-            ("global_tie_point_alignment_strength", global_tie_point_alignment_strength),
-            ("local_tie_point_alignment_strength", local_tie_point_alignment_strength),
+            ("global_tie_alignment_strength", global_tie_alignment_strength),
+            ("local_tie_alignment_strength", local_tie_alignment_strength),
         ):
-            if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or not 0 <= value <= 1:
-                raise ValueError(f"{name} must be a number from 0 to 1.")
+            JointCoregistration._parse_alignment_strength(value, name)
         for name, weights in (
-            ("global_image_position_preservation_weights", global_image_position_preservation_weights),
-            ("local_image_position_preservation_weights", local_image_position_preservation_weights),
+            ("global_image_movement_penalty_weights", global_image_movement_penalty_weights),
+            ("local_image_movement_penalty_weights", local_image_movement_penalty_weights),
         ):
             if weights is not None and (
                 not isinstance(weights, dict)
@@ -293,9 +335,10 @@ class JointCoregistration:
                     for value in weights.values()
                 )
             ):
-                raise ValueError(f"{name} must be a dictionary of basename: positive-number values or None.")
+                raise ValueError(f"{name} must be a dictionary of glob-pattern: positive-number values or None.")
         for name, value, allow_zero in (
             ("local_grid_spacing", local_grid_spacing, False),
+            ("tie_grid_spacing", tie_grid_spacing, False),
             ("local_smoothness_weight", local_smoothness_weight, True),
             ("local_bending_weight", local_bending_weight, True),
             ("local_anchor_falloff_distance", local_anchor_falloff_distance, False),
@@ -306,9 +349,9 @@ class JointCoregistration:
                 qualifier = "non-negative" if allow_zero else "positive"
                 raise ValueError(f"{name} must be a {qualifier} number.")
         for name, value in (
-            ("maximum_tie_point_displacement", maximum_tie_point_displacement),
-            ("ransac_reprojection_threshold", ransac_reprojection_threshold),
-            ("robust_loss_scale", robust_loss_scale),
+            ("tie_maximum_displacement", tie_maximum_displacement),
+            ("tie_ransac_reprojection_threshold", tie_ransac_reprojection_threshold),
+            ("tie_robust_loss_scale", tie_robust_loss_scale),
         ):
             if value is not None and (
                 not isinstance(value, (int, float))
@@ -317,18 +360,26 @@ class JointCoregistration:
                 or value <= 0
             ):
                 raise ValueError(f"{name} must be a positive number or None.")
-        if feature_method != "orb":
-            raise ValueError("Only feature_method='orb' is currently supported.")
-        if robust_loss not in {"none", "huber", "soft_l1", "cauchy"}:
-            raise ValueError("robust_loss must be 'none', 'huber', 'soft_l1', or 'cauchy'.")
+        JointCoregistration._parse_search_radius(tie_search_radius)
+        for name, value in (("tie_orb_max_features", tie_orb_max_features), ("tie_max_matches_per_window", tie_max_matches_per_window)):
+            if name == "tie_max_matches_per_window" and value is None:
+                continue
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer" + (" or None." if name == "tie_max_matches_per_window" else "."))
+        if tie_feature_method != "orb":
+            raise ValueError("Only tie_feature_method='orb' is currently supported.")
+        if tie_robust_loss not in {"none", "huber", "soft_l1", "cauchy"}:
+            raise ValueError("tie_robust_loss must be 'none', 'huber', 'soft_l1', or 'cauchy'.")
         if resampling_method not in {"nearest", "bilinear", "cubic", "lanczos"}:
             raise ValueError("resampling_method must be 'nearest', 'bilinear', 'cubic', or 'lanczos'.")
         _validate_output_grid(tap=tap, resolution=resolution)
         if not isinstance(build_overviews, bool):
             raise ValueError("build_overviews must be a boolean.")
-        for name, value in (("save_adjustments", save_adjustments), ("load_adjustments", load_adjustments)):
+        for name, value in (("tie_save_path", tie_save_path), ("tie_save_crs_path", tie_save_crs_path), ("tie_load_path", tie_load_path)):
             if value is not None and not isinstance(value, str):
                 raise ValueError(f"{name} must be a string or None.")
+        if tie_save_crs_path is not None and not tie_save_crs_path.strip():
+            raise ValueError("tie_save_crs_path must be a non-empty vector output path or None.")
         if resume_from_outputs not in {"no", "yes", "validate"}:
             raise ValueError("resume_from_outputs must be 'no', 'yes', or 'validate'.")
 
@@ -363,7 +414,7 @@ class Match:
         load_adjustments=_UNSET,
         pif_method=_UNSET,
         pif_feature_method=_UNSET,
-        pif_load_tie_points=_UNSET,
+        pif_load_ties=_UNSET,
         pif_save_inz=_UNSET,
     ):
         if pif_method is not _UNSET:
@@ -389,12 +440,12 @@ class Match:
             if not isinstance(load_adjustments, str):
                 raise ValueError("load_adjustments must be a string or None.")
 
-        if pif_load_tie_points is not _UNSET and pif_load_tie_points is not None:
-            if not isinstance(pif_load_tie_points, str):
-                raise ValueError("pif_load_tie_points must be a string or None.")
+        if pif_load_ties is not _UNSET and pif_load_ties is not None:
+            if not isinstance(pif_load_ties, str):
+                raise ValueError("pif_load_ties must be a string or None.")
             if pif_method is _UNSET or pif_method != "flood_from_match_points":
                 raise ValueError(
-                    "pif_load_tie_points requires pif_method='flood_from_match_points'."
+                    "pif_load_ties requires pif_method='flood_from_match_points'."
                 )
 
         if pif_save_inz is not _UNSET and pif_save_inz is not None:

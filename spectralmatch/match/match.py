@@ -13,6 +13,7 @@ from ..handlers import (
     _check_raster_requirements,
     _existing_outputs_are_reusable,
     _resolve_reusable_output_paths,
+    _resolve_optional_load_path,
 )
 from ..pif.pif import Pif
 from ..types_and_validation import Universal, Match as MatchValidation
@@ -180,7 +181,7 @@ class Match:
         pif_max_samples: int | None = 10000,
         pif_min_samples: int | None = 10,
         pif_feature_method: Literal["orb"] = "orb",
-        pif_load_tie_points: str | None = None,
+        pif_load_ties: str | None = None,
         pif_save_inz: str | None = None,
         build_overviews: bool = False,
         window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
@@ -208,8 +209,8 @@ Args:
     specify_model_images (Tuple[Literal["exclude", "include"], List[str]] | None ): First item in tuples sets weather to 'include' or 'exclude' the listed images from model building statistics. Second item is the list of image names (without their extension) to apply criteria to. For example, if this param is only set to 'include' one image, all other images will be matched to that one image. Defaults to no exclusion.
     custom_mean_factor (float, optional): Weight for mean constraints in regression. Defaults to 1.0.
     custom_std_factor (float, optional): Weight for standard deviation constraints in regression. Defaults to 1.0.
-    save_adjustments (str | None, optional): The output path of a .json file to save adjustments parameters. Defaults to not saving.
-    load_adjustments (str | None, optional): If set, loads saved whole and overlapping statistics only for images that exist in the .json file. Other images will still have their statistics calculated. Defaults to None.
+    save_adjustments (str | None): JSON output path for per-basename whole-image and overlap statistics, with per-band mean, std, and size; None disables saving.
+    load_adjustments (str | None): Path to that statistics JSON; reuses matching records and computes missing statistics; a missing file warns and loads nothing; None disables loading.
     pif_method (Literal["entire", "flood_from_match_points"], optional): Method used to select overlap pixels for the matching solution. Defaults to "flood_from_match_points".
     pif_red_band_index (int | None, optional): Index of the red band used for NDVI-based vegetation filtering. Defaults to None.
     pif_nir_band_index (int | None, optional): Index of the NIR band used for NDVI-based vegetation filtering. Defaults to None.
@@ -219,7 +220,7 @@ Args:
     pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 10000.
     pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 10.
     pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".
-    pif_load_tie_points (str | None, optional): Compact joint-coregistration tie-point JSON to reuse for matching image pairs on the same named source pixel grids. Requires pif_method="flood_from_match_points" and at least three usable points for every processed overlap pair; invalid or missing pair data raises an error. Defaults to None.
+    pif_load_ties (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.
     pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.
     build_overviews (bool, optional): If True, computes overviews. Defaults to False.
     window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
@@ -239,7 +240,7 @@ Returns:
             load_adjustments=load_adjustments,
             pif_method=pif_method,
             pif_feature_method=pif_feature_method,
-            pif_load_tie_points=pif_load_tie_points,
+            pif_load_ties=pif_load_ties,
             pif_save_inz=pif_save_inz,
         )
 
@@ -286,6 +287,7 @@ Returns:
             return output_image_paths
 
         loaded_model = {}
+        load_adjustments = _resolve_optional_load_path(load_adjustments, "load_adjustments")
         if load_adjustments:
             with open(load_adjustments, "r") as f:
                 loaded_model = json.load(f)
@@ -451,7 +453,7 @@ Returns:
                 max_samples=pif_max_samples,
                 min_samples=pif_min_samples,
                 feature_method=pif_feature_method,
-                load_tie_points=pif_load_tie_points,
+                load_ties=pif_load_ties,
                 custom_mean_factor=custom_mean_factor,
                 custom_std_factor=custom_std_factor,
                 debug_logs=debug_logs,
@@ -586,20 +588,8 @@ Args:
     number_of_blocks (int | tuple | Literal["coefficient_of_variation"]): int as a target of blocks per image, tuple to set manually set total blocks width and height, coefficient_of_variation to find the number of blocks based on this metric.
     alpha (float, optional): Blending factor between reference and local means. Defaults to 1.0.
     correction_method (Literal["gamma", "linear", "offset"], optional): Local correction method. Defaults to "gamma". Offset is commended for images with negative values.
-    save_block_maps (tuple(str, str) | None): If enabled, saves block maps for review, to resume processing later, or to add additional images to the reference map.
-        - First str is the path to save the global block map.
-        - Second str is the path to save the local block maps, which must include "$" which will be replaced my the image name (because there are multiple local maps).
-    load_block_maps (Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None, optional):
-        Controls loading of precomputed block maps. Can be one of:
-            - Tuple[str, List[str]]: Load both reference and local block maps.
-            - Tuple[str, None]: Load only the reference block map.
-            - Tuple[None, List[str]]: Load only the local block maps.
-            - None: Do not load any block maps.
-        This supports partial or full reuse of precomputed block maps:
-            - Local block maps will still be computed for each input image that is not linked to a local block map by the images name being *included* in the local block maps name (file name).
-            - The reference block map will only be calculated (mean of all local blocks) if not set.
-            - The reference map defines the reference block statistics and the local maps define per-image local block statistics.
-            - Both reference and local maps must have the same canvas extent and dimensions which will be used to set those values.
+    save_block_maps (tuple[str, str] | None): (reference_tif, local_tif_template), e.g. ('reference.tif', 'blocks/$.tif'); '$' becomes the image basename; None disables saving.
+    load_block_maps (tuple[str | None, list[str] | None] | None): (reference_tif, local_tifs), e.g. ('reference.tif', ['blocks/a.tif', 'blocks/b.tif']); either part can be None; missing files warn and missing maps are computed; existing maps must share dimensions and extent; local filenames must contain their input basename.
     override_bounds_canvas_coords (Tuple[float, float, float, float] | None): Manually set (min_x, min_y, max_x, max_y) bounds to override the computed/loaded canvas extent. If you wish to have a larger extent than the current images, you can manually set this, along with setting a fixed number of blocks, to anticipate images will expand beyond the current extent.
     build_overviews (bool, optional): If True, computes overviews. Defaults to False.
     window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
@@ -676,6 +666,9 @@ Returns:
                 calculation_dtype,
                 debug_logs,
             )
+            if loaded_num_row is None:
+                load_block_maps = None
+        if load_block_maps:
             loaded_names = list(loaded_block_local_means.keys())
             block_reference_mean = loaded_block_reference_mean
             matched = list(

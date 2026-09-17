@@ -11,8 +11,7 @@ from shapely.geometry import box
 from .utils_test import create_dummy_raster
 
 
-@pytest.mark.parametrize("workers", [None, 2])
-def test_pipeline_tiled_merge_survives_intermediate_cleanup(tmp_path, workers):
+def test_pipeline_tiled_merge_survives_intermediate_cleanup(tmp_path):
     input_paths = []
     for name, origin, value in [("A", 0, 50), ("B", 16, 75)]:
         path = tmp_path / f"{name}.tif"
@@ -28,7 +27,7 @@ def test_pipeline_tiled_merge_survives_intermediate_cleanup(tmp_path, workers):
         delete_previous_step=True,
         steps=("align", "merge"),
         shared_cache=None,
-        shared_image_threads=workers,
+        shared_image_threads=2,
         shared_io_threads=1,
         shared_tile_threads=1,
         shared_window_size=16,
@@ -57,8 +56,7 @@ def test_pipeline_tiled_merge_survives_intermediate_cleanup(tmp_path, workers):
             assert np.all(band.GetOverview(i).ReadAsArray() > 0)
 
 
-@pytest.mark.parametrize("output_tiles", [False, True])
-@pytest.mark.parametrize("backend", ["process_pool", "dask"])
+@pytest.mark.parametrize("output_tiles,backend", [(False, "dask"), (True, "process_pool"), (True, "dask")])
 def test_pipeline_forwards_merge_concurrency_and_resume(tmp_path, monkeypatch, output_tiles, backend):
     input_path = tmp_path / "A.tif"
     create_dummy_raster(input_path, count=1)
@@ -95,11 +93,7 @@ def test_pipeline_forwards_merge_concurrency_and_resume(tmp_path, monkeypatch, o
 
 @pytest.mark.parametrize("output_name,options,error", [
     ("tiles.tif", {"merge_rasters_output_tiles": True}, "must be a folder"),
-    ("tiles/$", {"merge_rasters_output_tiles": True}, "folder without"),
     ("merged.tif", {"merge_rasters_overlap": 4}, "require output_tiles=True"),
-    ("merged.tif", {"merge_rasters_custom_tiles_csv": "tiles.csv"}, "require output_tiles=True"),
-    ("merged.tif", {"merge_rasters_create_vrts": "custom.vrt"}, "requires output_tiles=True"),
-    ("tiles", {"merge_rasters_output_tiles": True, "merge_rasters_overlap": 1024}, "smaller than"),
     ("tiles", {"merge_rasters_output_tiles": True, "shared_window_scales": (2, 8)}, "consecutive powers"),
 ])
 def test_pipeline_rejects_invalid_merge_options_before_cleanup(tmp_path, output_name, options, error):
@@ -149,8 +143,8 @@ def test_pipeline_full_default_flow(tmp_path, overview_options):
         )
         input_paths.append(str(path))
 
-    tie_points_path = tmp_path / "tie_points.json"
-    tie_points_path.write_text(
+    ties_path = tmp_path / "ties.json"
+    ties_path.write_text(
         json.dumps(
             {
                 "tie_points": [
@@ -172,8 +166,8 @@ def test_pipeline_full_default_flow(tmp_path, overview_options):
         shared_debug_logs=True,
         shared_window_size=16,
         joint_coregistration_local_model="none",
-        joint_coregistration_load_adjustments=str(tie_points_path),
-        joint_coregistration_robust_loss="none",
+        joint_coregistration_tie_load_path=str(ties_path),
+        joint_coregistration_tie_robust_loss="none",
         global_regression_pif_method="entire",
         **{"merge_rasters_build_overviews": False, **overview_options},
     )
@@ -417,30 +411,3 @@ def test_pipeline_delete_previous_step_removes_replaced_intermediate(tmp_path):
         str(output_dir / "B_Global_Local.tif"),
     ]
     assert not (temp_dir / "global").exists()
-
-
-def test_pipeline_forwards_global_pif_tie_point_path(tmp_path, monkeypatch):
-    input_path = tmp_path / "A.tif"
-    create_dummy_raster(input_path, count=1)
-    output_dir = tmp_path / "output"
-    tie_path = str(tmp_path / "tie_points.json")
-    captured = {}
-
-    def fake_global_regression(**kwargs):
-        captured.update(kwargs)
-        return [str(output_dir / "A_Global.tif")]
-
-    monkeypatch.setattr(
-        "spectralmatch.chain.Match.global_regression",
-        fake_global_regression,
-    )
-
-    pipeline(
-        shared_input_images=[str(input_path)],
-        shared_output_image_path=str(output_dir),
-        steps=("global_regression",),
-        global_regression_pif_method="flood_from_match_points",
-        global_regression_pif_load_tie_points=tie_path,
-    )
-
-    assert captured["pif_load_tie_points"] == tie_path

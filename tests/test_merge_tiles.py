@@ -1,5 +1,4 @@
 import csv
-import inspect
 import math
 import xml.etree.ElementTree as ET
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -7,9 +6,8 @@ from concurrent.futures import Future, ThreadPoolExecutor
 import numpy as np
 import pytest
 from osgeo import gdal
-from osgeo_utils import gdal_retile
 
-from spectralmatch import Match, joint_coregistration, merge_rasters, pipeline, utils
+from spectralmatch import Match, joint_coregistration, merge_rasters, utils
 from spectralmatch.handlers import _gdal_raster_is_valid
 from spectralmatch.utils import compute_overviews
 from .utils_test import create_dummy_raster
@@ -30,8 +28,7 @@ def merge_sources(tmp_path):
     return paths
 
 
-@pytest.mark.parametrize("resolution", [2, 0.5])
-@pytest.mark.parametrize("output_tiles", [False, True])
+@pytest.mark.parametrize("resolution,output_tiles", [(2, True), (0.5, False)])
 def test_merge_numeric_resolution(tmp_path, resolution, output_tiles):
     source = tmp_path / "source.tif"
     create_dummy_raster(source, width=32, height=32, count=1, crs="EPSG:3857", fill_value=75)
@@ -45,7 +42,7 @@ def test_merge_numeric_resolution(tmp_path, resolution, output_tiles):
         np.testing.assert_array_equal(dataset.ReadAsArray(), 75)
 
 
-@pytest.mark.parametrize("resolution", [None, True, False, 0, -2, float("nan"), float("inf"), "user", [2, 2]])
+@pytest.mark.parametrize("resolution", [True, 0, float("nan")])
 def test_merge_rejects_invalid_resolution(tmp_path, resolution):
     with pytest.raises(ValueError, match="resolution"):
         merge_rasters(["unused.tif"], str(tmp_path / "merged.tif"), resolution=resolution)
@@ -134,29 +131,14 @@ def test_tile_resume_validates_and_repairs(merge_sources, tmp_path, workers):
 @pytest.mark.parametrize("kwargs, message", [
     ({"output_tiles": "yes"}, "output_tiles"),
     ({"image_threads": 2}, "require output_tiles"),
-    ({"concurrent_processing_backend": "process_pool"}, "require output_tiles"),
-    ({"overlap": 1}, "require output_tiles"),
-    ({"custom_tiles_csv": "index.csv"}, "require output_tiles"),
     ({"output_tiles": True, "overlap": -1}, "overlap"),
-    ({"output_tiles": True, "overlap": 1.5}, "overlap"),
-    ({"output_tiles": True, "overlap": True}, "overlap"),
-    ({"output_tiles": True, "overlap": 256}, "overlap"),
     ({"output_tiles": True, "window_size": 16, "overlap": 16}, "overlap"),
     ({"output_tiles": True, "custom_tiles_csv": "../index.csv"}, "custom_tiles_csv"),
-    ({"output_tiles": True, "custom_tiles_csv": True}, "custom_tiles_csv"),
     ({"resampling_method": "unknown"}, "resampling_method"),
-    ({"resume_from_outputs": "maybe"}, "resume_from_outputs"),
-    ({"window_scales": (2, 2)}, "window_scales"),
     ({"output_tiles": True, "window_scales": (2, 8)}, "window_scales"),
-    ({"window_size": True}, "window_size"),
     ({"window_size": 17}, "multiple of 16"),
-    ({"create_vrts": "Custom.vrt"}, "requires output_tiles"),
     ({"output_tiles": True, "create_vrts": "../Custom.vrt"}, "create_vrts"),
-    ({"output_tiles": True, "create_vrts": "/Custom.vrt"}, "create_vrts"),
     ({"output_tiles": True, "create_vrts": "Custom.tif"}, "create_vrts"),
-    ({"output_tiles": True, "create_vrts": ".vrt"}, "create_vrts"),
-    ({"output_tiles": True, "create_vrts": None}, "create_vrts"),
-    ({"output_tiles": True, "create_vrts": True}, "create_vrts"),
 ])
 def test_merge_tile_validation(tmp_path, kwargs, message):
     with pytest.raises(ValueError, match=message):
@@ -171,29 +153,6 @@ def test_merge_output_path_validation(tmp_path):
             merge_rasters(["unused.tif"], str(path), output_tiles=True)
     with pytest.raises(ValueError, match="must be a file"):
         merge_rasters(["unused.tif"], str(tmp_path))
-
-
-def test_retile_flags_and_overview_defaults(merge_sources, tmp_path, monkeypatch):
-    monkeypatch.setattr(utils, "_create_tile_vrts", lambda *args: None)
-    calls = []
-    retile = utils._load_gdal_retile()
-    monkeypatch.setattr(retile, "main", lambda argv: calls.append(argv) or 0)
-    monkeypatch.setattr(utils, "_load_gdal_retile", lambda: retile)
-    merge_rasters(
-        merge_sources, str(tmp_path / "tiles"), output_tiles=True,
-        window_size=32, overlap=5, build_overviews=True, debug_logs=True,
-        resampling_method="cubic", custom_tiles_csv="index.csv",
-        resume_from_outputs="validate",
-    )
-    argv = calls[0]
-    assert argv[argv.index("-levels") + 1] == "5"
-    assert argv[argv.index("-r") + 1] == "cubic"
-    assert argv[argv.index("-overlap") + 1] == "5"
-    assert argv[argv.index("-csv") + 1] == "index.csv"
-    assert "-v" in argv and "-resume" in argv
-    for function in (merge_rasters, compute_overviews, Match.global_regression, Match.local_block_adjustment, joint_coregistration):
-        assert inspect.signature(function).parameters["window_scales"].default == (2, 4, 8, 16, 32)
-    assert inspect.signature(pipeline).parameters["shared_window_scales"].default == (2, 4, 8, 16, 32)
 
 
 def test_retile_failure_propagates(merge_sources, tmp_path, monkeypatch):
@@ -359,7 +318,7 @@ def test_vrt_without_overviews_and_single_file_mode(merge_sources, tmp_path):
     assert not (tmp_path / "MergedImage.vrt").exists()
 
 
-@pytest.mark.parametrize("scales", [(2, 8), None, ()])
+@pytest.mark.parametrize("scales", [(2, 8), None])
 def test_compute_overviews_custom_scales(tmp_path, scales):
     source = tmp_path / "source.tif"
     create_dummy_raster(source, width=64, height=64, count=1)

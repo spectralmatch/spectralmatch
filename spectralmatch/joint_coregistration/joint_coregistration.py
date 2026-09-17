@@ -11,6 +11,7 @@ from typing import Literal
 from scipy import sparse
 from scipy.sparse.linalg import lsmr
 from scipy.spatial import cKDTree
+from wcmatch import glob
 
 
 
@@ -19,12 +20,14 @@ from osgeo import gdal
 
 from ..utils_multiprocessing import _run_image_tasks
 from ..utils_logging import _print_step_start, _report_image_result
+from ..utils_glob import GLOB_FLAGS
 
 from ..handlers import (
     _check_raster_requirements,
     _existing_outputs_are_reusable,
     _resolve_paths,
     _resolve_reusable_output_paths,
+    _resolve_optional_load_path,
 )
 from ..match.global_regression import _find_overlaps
 from ..types_and_validation import JointCoregistration, Universal
@@ -110,23 +113,28 @@ def joint_coregistration(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
     *,
+    tie_feature_method: Literal["orb"] = "orb",
+    tie_grid_spacing: float = 500.0,
+    tie_search_radius: str = "128px",
+    tie_orb_max_features: int = 100,
+    tie_max_matches_per_window: int | None = 1,
+    tie_maximum_displacement: float | None = None,
+    tie_ransac_reprojection_threshold: float | None = None,
+    tie_robust_loss: Literal["none", "huber", "soft_l1", "cauchy"] = "huber",
+    tie_robust_loss_scale: float | None = None,
+    tie_save_path: str | None = None,
+    tie_save_crs_path: str | None = None,
+    tie_load_path: str | None = None,
     global_model: Literal["none", "translation", "similarity", "affine"] = "translation",
-    global_image_position_preservation_weights: dict[str, float] | None = None,
-    global_tie_point_alignment_strength: float = 1.0,
+    global_image_movement_penalty_weights: dict[str, float] | None = None,
+    global_tie_alignment_strength: float | str = 1.0,
     local_model: Literal["none", "bilinear", "piecewise_affine"] = "piecewise_affine",
-    local_image_position_preservation_weights: dict[str, float] | None = None,
-    local_tie_point_alignment_strength: float = 1.0,
+    local_image_movement_penalty_weights: dict[str, float] | None = None,
+    local_tie_alignment_strength: float | str = 1.0,
     local_grid_spacing: float = 500.0,
     local_smoothness_weight: float = 1.0,
     local_bending_weight: float = 1.0,
     local_anchor_falloff_distance: float = 500.0,
-    feature_method: Literal["orb"] = "orb",
-    maximum_tie_point_displacement: float | None = None,
-    ransac_reprojection_threshold: float | None = None,
-    robust_loss: Literal["none", "huber", "soft_l1", "cauchy"] = "huber",
-    robust_loss_scale: float | None = None,
-    save_adjustments: str | None = None,
-    load_adjustments: str | None = None,
     resampling_method: Literal["nearest", "bilinear", "cubic", "lanczos"] = "bilinear",
     tap: bool = False,
     resolution: Universal.Resolution = None,
@@ -147,48 +155,50 @@ def joint_coregistration(
 ) -> list[str]:
     """Coregister overlapping rasters with a joint global transform and local deformation mesh.
 
-    Tie points are detected pairwise, while both correction stages are solved jointly
-    across the complete overlap network. Image-position weights are keyed by
-    extension-free basenames; larger values preserve an image's existing position
-    more strongly. Spatial distances use the common input CRS units.
+    ORB detects and matches features in small windows centered on a regular grid within each image overlap. Candidate matches are filtered for geometric consistency, then selected within their originating windows, nearest each window's center first. The tie points drive a joint image-wide alignment followed by a joint local deformation solve, and the combined corrections are applied to the output rasters.
 
     Args:
-        input_images: Input folder, glob, or list of raster paths.
-        output_images: Output folder, template, or list of raster paths.
-        global_model: Image-wide correction model.
-        global_image_position_preservation_weights: Per-basename resistance to global movement.
-        global_tie_point_alignment_strength: Global tie-point strength from 0 to 1.
-        local_model: Residual deformation interpolation model.
-        local_image_position_preservation_weights: Per-basename resistance to local movement.
-        local_tie_point_alignment_strength: Local tie-point strength from 0 to 1.
-        local_grid_spacing: Local mesh spacing in input CRS units.
-        local_smoothness_weight: Neighboring-node displacement penalty.
-        local_bending_weight: Local displacement curvature penalty.
-        local_anchor_falloff_distance: Tie-point influence falloff in input CRS units.
-        feature_method: Feature matching method.
-        maximum_tie_point_displacement: Optional match-displacement limit in input CRS units.
-        ransac_reprojection_threshold: Optional RANSAC threshold in input CRS units.
-        robust_loss: Loss used to downweight residual match errors.
-        robust_loss_scale: Robust-loss scale in input CRS units; defaults to the RANSAC threshold.
-        save_adjustments: JSON path at which to save raw per-pair pixel tie points.
-        load_adjustments: JSON path from which to partially reuse pixel tie points.
-        resampling_method: Resampling used for the final composed warp.
-        tap: Snap rewritten output extents to the target-resolution grid.
-        resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
-        output_dtype: Output GDAL data type, or None to retain each input type.
-        custom_nodata_value: Optional output NoData override.
-        window_size: Output tile size.
-        save_as_cog: Save Cloud-Optimized GeoTIFF outputs.
-        build_overviews: Build output overviews.
-        window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
-        cache: GDAL cache size in gigabytes.
-        image_threads: Parallel workers for overlap matching and output images.
-        io_threads: GDAL I/O workers.
-        tile_threads: GDAL warp/tile workers.
-        concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
-        dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
-        debug_logs: Print processing details.
-        resume_from_outputs: Reuse no, existing, or validated existing outputs.
+        input_images: Folder (searches '*.tif'), wcmatch.glob pattern such as 'input/**/*.{tif,tiff}', or list[str] of literal paths; at least two rasters with unique basenames and a shared CRS.
+        output_images: Folder (writes '$_Coregistered.tif'), '$' basename template, or list[str] matching input order and length; output paths must be unique and differ from inputs.
+        tie_feature_method: 'orb', currently the only supported detector.
+        tie_grid_spacing: Positive CRS-unit distance between search-window centers in each pair's overlap; default 500.0; independent of local_model and local_grid_spacing.
+        tie_search_radius: Positive number with a unit suffix, e.g. '100crs' or '128px' (default); square window half-width; 'px' uses the coarser input resolution.
+        tie_orb_max_features: Positive int limiting detected ORB features per image per search window; default 100; fewer may be found.
+        tie_max_matches_per_window: Positive int limiting selected matches per search window per image pair, nearest that window's center first; default 1; None keeps all surviving matches.
+        tie_maximum_displacement: Positive CRS-unit distance limiting newly detected match displacement; None disables this limit.
+        tie_ransac_reprojection_threshold: Positive CRS-unit inlier threshold for newly detected matches; None uses three pixels at the coarser input resolution.
+        tie_robust_loss: 'none', 'huber' (default), 'soft_l1', or 'cauchy' for downweighting residual errors in both global and local alignment.
+        tie_robust_loss_scale: Positive CRS-unit distance for both alignment stages; None uses the median pair RANSAC threshold, or 1.0 without pairs.
+        tie_save_path: str JSON output path or None; saves only selected matches as {'tie_points': [{'image_1': basename, 'image_2': basename, 'points': [[[col, row], [col, row]], ...]}]} in original zero-based pixel coordinates.
+        tie_save_crs_path: str vector output path such as 'ties.gpkg', 'ties.geojson', or 'ties.shp', or None; writes both points of each selected tie in the input CRS using original pixel-center geotransforms, linked by tie_id; GeoPackage layer is 'ties'.
+        tie_load_path: str path to the same JSON format or None; matching pairs are validated and reused without detection, RANSAC, or reselection; missing pairs are computed; a missing file warns and loads nothing.
+        global_model: 'none', 'translation' (default), 'similarity', or 'affine' for image-wide corrections.
+        global_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns, e.g. {'base*': 100, '*': 1}; first match wins; unmatched names and None use 1; larger weights resist global movement.
+        global_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first wcmatch.glob basename match wins; unmatched names use 1; scales each image's solved global correction.
+        local_model: 'none', 'bilinear', or 'piecewise_affine' (default) for residual deformation.
+        local_image_movement_penalty_weights: Ordered dict[str, positive float] of wcmatch.glob basename patterns; first match wins; unmatched names and None use 1; larger weights resist local deformation during the solve.
+        local_tie_alignment_strength: Number in [0, 1] for all images or JSON object string such as '{"base": 0, "*": 1}'; first wcmatch.glob basename match wins; unmatched names use 1; scales each image's solved local displacement.
+        local_grid_spacing: Positive target local deformation mesh spacing in CRS units; default 500.0; independent of tie-point search spacing.
+        local_smoothness_weight: Non-negative number penalizing differences between neighboring node displacements; default 1.0.
+        local_bending_weight: Non-negative number penalizing displacement curvature; default 1.0.
+        local_anchor_falloff_distance: Positive CRS-unit distance controlling tie-point influence on mesh anchoring; default 500.0.
+        resampling_method: 'nearest', 'bilinear' (default), 'cubic', or 'lanczos' for the final composed warp.
+        tap: bool, default False; snap output extents to the target pixel grid.
+        resolution: 'highest', 'average', 'lowest', a positive CRS-unit pixel size, or None (default) to preserve native resolution.
+        output_dtype: GDAL dtype name such as 'uint16' or 'float32'; None preserves each input dtype.
+        custom_nodata_value: Numeric output NoData value; None preserves the detected input value.
+        window_size: Positive int output tile size in pixels or None for native block size; COG output requires a multiple of 16.
+        save_as_cog: bool, default False; write Cloud-Optimized GeoTIFF outputs.
+        build_overviews: bool, default False; build reduced-resolution output overviews.
+        window_scales: tuple[int, ...] of overview factors, default (2, 4, 8, 16, 32); None or () disables overview creation.
+        cache: Positive number of gigabytes for the GDAL cache; None retains its current setting.
+        image_threads: Positive int worker count, 'cpu' for all cores, or None for serial pair matching and output processing.
+        io_threads: Positive int GDAL I/O worker count, 'cpu' for all cores, or None for its default.
+        tile_threads: Positive int warp/tile worker count, 'cpu' for all cores, or None for serial processing.
+        concurrent_processing_backend: 'process_pool' (default) for local execution or 'dask' for an existing cluster.
+        dask_scheduler: ('file', scheduler_json_path), ('address', 'tcp://host:port'), or None; required with the Dask backend.
+        debug_logs: bool, default False; print processing details.
+        resume_from_outputs: 'no' (default) overwrites, 'yes' reuses existing outputs, or 'validate' reuses outputs that pass validation.
 
     Returns:
         Paths to coregistered output rasters, in input order.
@@ -211,27 +221,32 @@ def joint_coregistration(
         dask_scheduler=dask_scheduler,
     )
     JointCoregistration._validate(
+        tie_feature_method=tie_feature_method,
+        tie_grid_spacing=tie_grid_spacing,
+        tie_search_radius=tie_search_radius,
+        tie_orb_max_features=tie_orb_max_features,
+        tie_max_matches_per_window=tie_max_matches_per_window,
+        tie_maximum_displacement=tie_maximum_displacement,
+        tie_ransac_reprojection_threshold=tie_ransac_reprojection_threshold,
+        tie_robust_loss=tie_robust_loss,
+        tie_robust_loss_scale=tie_robust_loss_scale,
+        tie_save_path=tie_save_path,
+        tie_save_crs_path=tie_save_crs_path,
+        tie_load_path=tie_load_path,
         global_model=global_model,
-        global_image_position_preservation_weights=global_image_position_preservation_weights,
-        global_tie_point_alignment_strength=global_tie_point_alignment_strength,
+        global_image_movement_penalty_weights=global_image_movement_penalty_weights,
+        global_tie_alignment_strength=global_tie_alignment_strength,
         local_model=local_model,
-        local_image_position_preservation_weights=local_image_position_preservation_weights,
-        local_tie_point_alignment_strength=local_tie_point_alignment_strength,
+        local_image_movement_penalty_weights=local_image_movement_penalty_weights,
+        local_tie_alignment_strength=local_tie_alignment_strength,
         local_grid_spacing=local_grid_spacing,
         local_smoothness_weight=local_smoothness_weight,
         local_bending_weight=local_bending_weight,
         local_anchor_falloff_distance=local_anchor_falloff_distance,
-        feature_method=feature_method,
-        maximum_tie_point_displacement=maximum_tie_point_displacement,
-        ransac_reprojection_threshold=ransac_reprojection_threshold,
-        robust_loss=robust_loss,
-        robust_loss_scale=robust_loss_scale,
         resampling_method=resampling_method,
         tap=tap,
         resolution=resolution,
         build_overviews=build_overviews,
-        save_adjustments=save_adjustments,
-        load_adjustments=load_adjustments,
         resume_from_outputs=resume_from_outputs,
     )
 
@@ -251,12 +266,24 @@ def joint_coregistration(
         os.path.abspath(path) for path in output_paths
     }:
         raise ValueError("joint_coregistration does not support in-place output paths.")
+    if tie_save_crs_path:
+        protected_paths = input_paths + output_paths + [path for path in (tie_save_path, tie_load_path) if path]
+        if os.path.realpath(tie_save_crs_path) in {os.path.realpath(path) for path in protected_paths}:
+            raise ValueError("tie_save_crs_path must differ from raster and tie-cache paths.")
 
     names = _resolve_paths("name", input_paths)
     if len(set(names)) != len(names):
         raise ValueError("Input image basenames must be unique.")
-    _validate_weight_names(global_image_position_preservation_weights, names)
-    _validate_weight_names(local_image_position_preservation_weights, names)
+    global_strengths = _resolve_image_values(JointCoregistration._parse_alignment_strength(global_tie_alignment_strength, "global_tie_alignment_strength"), names)
+    local_strengths = _resolve_image_values(JointCoregistration._parse_alignment_strength(local_tie_alignment_strength, "local_tie_alignment_strength"), names)
+    global_penalties = _resolve_image_values(global_image_movement_penalty_weights, names)
+    local_penalties = _resolve_image_values(local_image_movement_penalty_weights, names)
+    global_weights = _normalize_image_weights(global_penalties)
+    local_weights = _normalize_image_weights(local_penalties)
+    if debug_logs:
+        print("Resolved image alignment controls:")
+        for name in names:
+            print(f"    {name}: global_strength={global_strengths[name]:g}, local_strength={local_strengths[name]:g}, global_movement_penalty={global_penalties[name]:g} (normalized={global_weights[name]:g}), local_movement_penalty={local_penalties[name]:g} (normalized={local_weights[name]:g})")
     _check_raster_requirements(input_paths, debug_logs, check_geotransform=True, check_crs=True)
     _set_gdal_cache(cache, debug_logs)
     _set_gdal_workers(io_threads, debug_logs)
@@ -272,7 +299,7 @@ def joint_coregistration(
         debug_logs=debug_logs,
         step_name="joint_coregistration",
     )
-    if len(reusable) == len(output_paths):
+    if len(reusable) == len(output_paths) and not tie_save_crs_path:
         return output_paths
 
     if debug_logs:
@@ -282,53 +309,59 @@ def joint_coregistration(
         print(f"Output resolution: {target_resolution or 'native'}")
 
     alignment_enabled = (
-        global_model != "none" and global_tie_point_alignment_strength > 0
-    ) or (local_model != "none" and local_tie_point_alignment_strength > 0)
-    if alignment_enabled or save_adjustments:
-        loaded = _load_tie_points(load_adjustments) if load_adjustments else {}
-        tie_points, raw_tie_points, thresholds = _collect_tie_points(
+        global_model != "none" and any(global_strengths.values())
+    ) or (local_model != "none" and any(local_strengths.values()))
+    if alignment_enabled or tie_save_path or tie_save_crs_path:
+        loaded = _load_ties(tie_load_path) if tie_load_path else {}
+        ties, thresholds = _collect_ties(
             overlaps,
             infos,
             loaded,
-            feature_method,
-            maximum_tie_point_displacement,
-            ransac_reprojection_threshold,
+            tie_feature_method,
+            tie_maximum_displacement,
+            tie_ransac_reprojection_threshold,
             image_threads,
             debug_logs,
             concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
+            grid_spacing=tie_grid_spacing,
+            search_radius=tie_search_radius,
+            tie_orb_max_features=tie_orb_max_features,
+            tie_max_matches_per_window=tie_max_matches_per_window,
         )
     else:
-        tie_points, raw_tie_points, thresholds = {}, {}, []
-    if save_adjustments:
-        _save_tie_points(save_adjustments, raw_tie_points)
+        ties, thresholds = {}, []
+    if tie_save_path:
+        _save_ties(tie_save_path, ties)
+    if tie_save_crs_path:
+        _save_ties_crs(tie_save_crs_path, ties, infos)
+    if len(reusable) == len(output_paths):
+        return output_paths
 
-    loss_scale = robust_loss_scale or (float(np.median(thresholds)) if thresholds else 1.0)
-    global_weights = _resolve_image_weights(global_image_position_preservation_weights, names)
-    local_weights = _resolve_image_weights(local_image_position_preservation_weights, names)
+    loss_scale = tie_robust_loss_scale or (float(np.median(thresholds)) if thresholds else 1.0)
     global_parameters = _solve_global_alignment(
         infos,
-        tie_points,
+        ties,
         global_model,
         global_weights,
-        global_tie_point_alignment_strength,
-        robust_loss,
+        global_strengths,
+        tie_robust_loss,
         loss_scale,
         debug_logs,
     )
     meshes = _solve_local_alignment(
         infos,
-        tie_points,
+        ties,
         global_model,
         global_parameters,
         local_model,
         local_weights,
-        local_tie_point_alignment_strength,
+        local_strengths,
         local_grid_spacing,
         local_smoothness_weight,
         local_bending_weight,
         local_anchor_falloff_distance,
-        robust_loss,
+        tie_robust_loss,
         loss_scale,
         debug_logs,
     )
@@ -390,16 +423,34 @@ def joint_coregistration(
     return output_paths
 
 
-def _validate_weight_names(weights: dict[str, float] | None, names: list[str]) -> None:
-    unknown = sorted(set(weights or {}) - set(names))
-    if unknown:
-        raise ValueError(f"Image-position weight basenames not found in input_images: {unknown}")
+def _resolve_image_values(values: float | dict[str, float] | None, names: list[str]) -> dict[str, float]:
+    """Apply ordered wcmatch.glob rules only to remaining basenames; unmatched names default to 1."""
+    if values is None:
+        return dict.fromkeys(names, 1.0)
+    if not isinstance(values, dict):
+        return dict.fromkeys(names, float(values))
+    resolved = dict.fromkeys(names, 1.0)
+    remaining = list(names)
+    for pattern, value in values.items():
+        if not remaining:
+            break
+        matcher = glob.compile(pattern, flags=GLOB_FLAGS, limit=0)
+        unmatched = []
+        for name in remaining:
+            if matcher.match(name):
+                resolved[name] = float(value)
+            else:
+                unmatched.append(name)
+        remaining = unmatched
+    return resolved
 
 
-def _resolve_image_weights(weights: dict[str, float] | None, names: list[str]) -> dict[str, float]:
-    resolved = {name: float((weights or {}).get(name, 1.0)) for name in names}
-    mean = float(np.mean(list(resolved.values())))
-    return {name: value / mean for name, value in resolved.items()}
+def _normalize_image_weights(weights: dict[str, float]) -> dict[str, float]:
+    """Normalize positive movement penalties to mean 1 without overflowing the sum."""
+    maximum = max(weights.values())
+    scaled = {name: value / maximum for name, value in weights.items()}
+    mean = float(np.mean(list(scaled.values())))
+    return {name: value / mean for name, value in scaled.items()}
 
 
 def _read_image_info(name: str, path: str) -> _ImageInfo:
@@ -443,7 +494,7 @@ def _use_common_coordinate_frame(infos: dict[str, _ImageInfo]) -> dict[str, _Ima
     }
 
 
-def _collect_tie_points(
+def _collect_ties(
     overlaps,
     infos,
     loaded,
@@ -454,25 +505,24 @@ def _collect_tie_points(
     debug_logs,
     concurrent_processing_backend="process_pool",
     dask_scheduler=None,
+    grid_spacing=500.0,
+    search_radius="128px",
+    tie_orb_max_features=100,
+    tie_max_matches_per_window=1,
 ):
     current_pairs = {_canonical_pair(*pair) for pair in overlaps}
-    raw_tie_points = {pair: points for pair, points in loaded.items() if pair in current_pairs}
-    tie_points = {}
+    ties = {pair: points for pair, points in loaded.items() if pair in current_pairs}
     thresholds = []
-    for pair, points in list(raw_tie_points.items()):
+    for pair, points in ties.items():
+        for name, pixels in ((pair[0], points[:, :2]), (pair[1], points[:, 2:])):
+            if not ((pixels >= 0) & (pixels < (infos[name].width, infos[name].height))).all():
+                raise ValueError(f"Loaded tie-point pixels are outside the input raster: {name}.")
         threshold = _resolved_ransac_threshold(infos[pair[0]], infos[pair[1]], ransac_threshold)
-        filtered = _filter_map_tie_points(
-            points, infos[pair[0]], infos[pair[1]], maximum_displacement, threshold
-        )
-        if len(filtered):
-            tie_points[pair] = filtered
-            thresholds.append(threshold)
-        else:
-            raw_tie_points.pop(pair)
+        thresholds.append(threshold)
 
-    missing = [pair for pair in overlaps if _canonical_pair(*pair) not in tie_points]
+    missing = [pair for pair in overlaps if _canonical_pair(*pair) not in ties]
     if debug_logs:
-        print(f"Loaded tie-point pairs: {len(tie_points)}")
+        print(f"Loaded tie-point pairs: {len(ties)}")
         print(f"Tie-point pairs to calculate: {len(missing)}")
     args = [
         (
@@ -482,6 +532,10 @@ def _collect_tie_points(
             maximum_displacement,
             ransac_threshold,
             debug_logs,
+            grid_spacing,
+            search_radius,
+            tie_orb_max_features,
+            tie_max_matches_per_window,
         )
         for name_i, name_j in missing
     ]
@@ -490,17 +544,16 @@ def _collect_tie_points(
     )
     _print_step_start("joint_coregistration tie points")
     results = _run_image_tasks(
-        _extract_pair_tie_points, args,
+        _extract_pair_ties, args,
         input_paths=[(arg[0].path, arg[1].path) for arg in args], output_paths=[None for arg in args],
         parallel=image_threads_on, backend='thread', workers=image_thread_workers,
         concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler, executor_factory=_get_executor,
     )
-    for pair, raw_points, points, threshold in results:
-        raw_tie_points[pair] = raw_points
-        tie_points[pair] = points
+    for pair, points, threshold in results:
+        ties[pair] = points
         thresholds.append(threshold)
-    return tie_points, raw_tie_points, thresholds
+    return ties, thresholds
 
 
 def _canonical_pair(name_i: str, name_j: str) -> tuple[str, str]:
@@ -511,7 +564,20 @@ def _resolved_ransac_threshold(info_i, info_j, threshold):
     return float(threshold if threshold is not None else 3 * max(info_i.pixel_size, info_j.pixel_size))
 
 
-def _extract_pair_tie_points(info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs):
+def _resolved_search_radius(info_i, info_j, radius):
+    """Resolve a radius with an explicit unit into the pair's common CRS units."""
+    magnitude, unit = JointCoregistration._parse_search_radius(radius)
+    resolved = magnitude * max(info_i.pixel_size, info_j.pixel_size) if unit == "px" else magnitude
+    if not math.isfinite(resolved) or resolved <= 0:
+        raise ValueError("tie_search_radius must resolve to a positive finite CRS distance.")
+    return resolved
+
+
+def _extract_pair_ties(
+    info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs,
+    grid_spacing=500.0, search_radius="128px",
+    tie_orb_max_features=100, tie_max_matches_per_window=1,
+):
     import cv2
 
     pair = _canonical_pair(info_i.name, info_j.name)
@@ -519,24 +585,25 @@ def _extract_pair_tie_points(info_i, info_j, feature_method, maximum_displacemen
         info_i, info_j = info_j, info_i
     threshold = _resolved_ransac_threshold(info_i, info_j, ransac_threshold)
     try:
-        with tempfile.TemporaryDirectory(prefix="spectralmatch_tie_points_") as tmpdir:
+        with tempfile.TemporaryDirectory(prefix="spectralmatch_ties_") as tmpdir:
             ref_vrt, sensed_vrt = _build_pair_overlap_vrts(info_i, info_j, tmpdir)
             ref_ds = gdal.Open(ref_vrt, gdal.GA_ReadOnly)
             sensed_ds = gdal.Open(sensed_vrt, gdal.GA_ReadOnly)
-            valid_mask = _build_overlap_valid_mask(ref_ds, sensed_ds)
             overlap_transform = tuple(ref_ds.GetGeoTransform())
+            overlap_points, window_centers = _extract_grid_pixel_matches(
+                ref_ds, sensed_ds, info_i, info_j, grid_spacing, search_radius, feature_method, tie_orb_max_features
+            )
             ref_ds = sensed_ds = None
-            overlap_points = _extract_overlap_pixel_matches(ref_vrt, sensed_vrt, valid_mask, feature_method)
-            raw_points = _overlap_to_original_pixels(overlap_points, overlap_transform, info_i, info_j)
-            points = _filter_map_tie_points(raw_points, info_i, info_j, maximum_displacement, threshold)
+            candidates = _overlap_to_original_pixels(overlap_points, overlap_transform, info_i, info_j)
+            inliers = _filter_map_ties(candidates, info_i, info_j, maximum_displacement, threshold)
+            points = _select_window_ties(candidates[inliers], window_centers[inliers], info_i, tie_max_matches_per_window)
     except (ValueError, RuntimeError, cv2.error) as error:
         if debug_logs:
             _report_image_result("Tie point reason", error)
-        raw_points = np.empty((0, 4), dtype=float)
         points = np.empty((0, 4), dtype=float)
     if debug_logs:
         _report_image_result("Tie points kept", len(points))
-    return pair, raw_points, points, threshold
+    return pair, points, threshold
 
 
 def _build_pair_overlap_vrts(info_i, info_j, tmpdir):
@@ -577,14 +644,22 @@ def _extract_overlap_pixel_matches(ref_vrt, sensed_vrt, valid_mask, feature_meth
     ref_gray = _read_uint8_gray(ref_vrt, valid_mask)
     sensed_gray = _read_uint8_gray(sensed_vrt, valid_mask)
     detector = cv2.ORB_create(nfeatures=5000)
+    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    points = _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher)
+    if not len(points):
+        raise ValueError("No tie-point matches found.")
+    return points
+
+
+def _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher):
     mask = valid_mask.astype(np.uint8) * 255
     ref_keypoints, ref_descriptors = detector.detectAndCompute(ref_gray, mask)
     sensed_keypoints, sensed_descriptors = detector.detectAndCompute(sensed_gray, mask)
     if ref_descriptors is None or sensed_descriptors is None:
-        raise ValueError("Could not compute tie-point descriptors.")
-    matches = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(ref_descriptors, sensed_descriptors)
+        return np.empty((0, 4), dtype=float)
+    matches = matcher.match(ref_descriptors, sensed_descriptors)
     if not matches:
-        raise ValueError("No tie-point matches found.")
+        return np.empty((0, 4), dtype=float)
     matches = sorted(matches, key=lambda match: match.distance)
     matches = matches[: max(1, int(math.ceil(len(matches) * 0.5)))]
     points = [
@@ -592,6 +667,82 @@ def _extract_overlap_pixel_matches(ref_vrt, sensed_vrt, valid_mask, feature_meth
         for match in matches
     ]
     return np.asarray(points, dtype=float)
+
+
+def _tie_grid(info_i, info_j, spacing):
+    """Center a regular grid in the overlap, including overlaps smaller than one cell."""
+    axes = []
+    for dimension in (0, 1):
+        low = max(info_i.bounds[dimension], info_j.bounds[dimension])
+        high = min(info_i.bounds[dimension + 2], info_j.bounds[dimension + 2])
+        if high <= low:
+            raise ValueError("Images do not overlap.")
+        count = max(1, int(math.ceil((high - low) / spacing)))
+        start = (low + high - (count - 1) * spacing) / 2
+        axes.append(start + np.arange(count) * spacing)
+    return axes
+
+
+def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, search_radius, feature_method, tie_orb_max_features=100):
+    """Return overlap-pixel matches and their originating window centers in CRS coordinates, reading one window at a time."""
+    if feature_method != "orb":
+        raise ValueError("Only feature_method='orb' is currently supported.")
+    import cv2
+
+    xs, ys = _tie_grid(info_i, info_j, spacing)
+    radius = _resolved_search_radius(info_i, info_j, search_radius)
+    transform = reference.GetGeoTransform()
+    inverse = gdal.InvGeoTransform(transform)
+    width = min(reference.RasterXSize, sensed.RasterXSize)
+    height = min(reference.RasterYSize, sensed.RasterYSize)
+    detector = cv2.ORB_create(nfeatures=tie_orb_max_features)
+    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    minimum_size = 2 * detector.getEdgeThreshold() + 1
+    candidates = []
+    window_centers = []
+    for y in reversed(ys):
+        for x in xs:
+            # Pair VRTs share a north-up grid at the coarser input resolution.
+            left, top = gdal.ApplyGeoTransform(inverse, x - radius, y + radius)
+            right, bottom = gdal.ApplyGeoTransform(inverse, x + radius, y - radius)
+            xoff, yoff = max(0, math.floor(left)), max(0, math.floor(top))
+            xend, yend = min(width, math.ceil(right)), min(height, math.ceil(bottom))
+            if min(xend - xoff, yend - yoff) < minimum_size:
+                continue
+            window = (xoff, yoff, xend - xoff, yend - yoff)
+            valid_mask = _build_overlap_valid_mask(reference, sensed, window)
+            if not valid_mask.any():
+                continue
+            ref_gray = _read_uint8_gray(reference, valid_mask, window)
+            sensed_gray = _read_uint8_gray(sensed, valid_mask, window)
+            points = _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher)
+            if not len(points):
+                continue
+            points += np.asarray([xoff, yoff, xoff, yoff])
+            candidates.append(points)
+            window_centers.append(np.tile((x, y), (len(points), 1)))
+    if not candidates:
+        return np.empty((0, 4), dtype=float), np.empty((0, 2), dtype=float)
+    return np.vstack(candidates), np.vstack(window_centers)
+
+
+def _select_window_ties(points, window_centers, info_i, tie_max_matches_per_window=1):
+    """Select inliers nearest their originating window center, then merge identical selected pairs."""
+    if not len(points):
+        return points
+    coordinates = _pixels_to_map(info_i.transform, points[:, :2])
+    order = np.argsort(np.linalg.norm(coordinates - window_centers, axis=1), kind="stable")
+    if tie_max_matches_per_window is None:
+        return _drop_duplicate_ties(points[order])
+    _, groups = np.unique(window_centers, axis=0, return_inverse=True)
+    counts = np.zeros(groups.max() + 1, dtype=int)
+    selected = []
+    for index in order:
+        group = groups[index]
+        if counts[group] < tie_max_matches_per_window:
+            selected.append(index)
+            counts[group] += 1
+    return _drop_duplicate_ties(points[selected])
 
 
 def _overlap_to_original_pixels(points, overlap_transform, info_i, info_j):
@@ -608,25 +759,29 @@ def _overlap_to_original_pixels(points, overlap_transform, info_i, info_j):
     return np.asarray(converted, dtype=float)
 
 
-def _filter_map_tie_points(points, info_i, info_j, maximum_displacement, ransac_threshold):
+def _filter_map_ties(points, info_i, info_j, maximum_displacement, ransac_threshold):
+    """Return an inlier mask preserving window membership; repeated matches share one RANSAC vote."""
     points = np.asarray(points, dtype=float).reshape((-1, 4))
-    if not len(points):
-        return points
     valid = np.isfinite(points).all(axis=1)
     valid &= (points[:, 0] >= 0) & (points[:, 0] < info_i.width)
     valid &= (points[:, 1] >= 0) & (points[:, 1] < info_i.height)
     valid &= (points[:, 2] >= 0) & (points[:, 2] < info_j.width)
     valid &= (points[:, 3] >= 0) & (points[:, 3] < info_j.height)
-    points = points[valid]
+    indices = np.flatnonzero(valid)
+    points = points[indices]
     if not len(points):
-        return points
+        return valid
     map_i = _pixels_to_map(info_i.transform, points[:, :2])
     map_j = _pixels_to_map(info_j.transform, points[:, 2:])
     if maximum_displacement is not None:
         keep = np.linalg.norm(map_i - map_j, axis=1) <= maximum_displacement
+        valid[indices[~keep]] = False
+        indices = indices[keep]
         points, map_i, map_j = points[keep], map_i[keep], map_j[keep]
-    if len(points) < 3:
-        return _drop_duplicate_tie_points(points)
+    _, unique_indices, inverse = np.unique(np.round(points, 6), axis=0, return_index=True, return_inverse=True)
+    if len(unique_indices) < 3:
+        return valid
+    map_i, map_j = map_i[unique_indices], map_j[unique_indices]
 
     import cv2
 
@@ -640,12 +795,13 @@ def _filter_map_tie_points(points, info_i, info_j, maximum_displacement, ransac_
         confidence=0.99,
     )
     if inliers is None or np.count_nonzero(inliers) < 3:
-        return np.empty((0, 4), dtype=float)
-    points = points[inliers.ravel().astype(bool)]
-    return _drop_duplicate_tie_points(points)
+        valid[indices] = False
+    else:
+        valid[indices] = inliers.ravel().astype(bool)[inverse]
+    return valid
 
 
-def _drop_duplicate_tie_points(points):
+def _drop_duplicate_ties(points):
     if not len(points):
         return points
     _, indices = np.unique(np.round(points, 6), axis=0, return_index=True)
@@ -662,7 +818,11 @@ def _pixels_to_map(transform, pixels):
     )
 
 
-def _load_tie_points(path: str) -> dict[tuple[str, str], np.ndarray]:
+def _load_ties(path: str) -> dict[tuple[str, str], np.ndarray]:
+    """Load selected pixel pairs from JSON; a missing file warns and returns an empty mapping."""
+    path = _resolve_optional_load_path(path, "load_ties")
+    if path is None:
+        return {}
     with open(path, "r", encoding="utf-8") as file:
         model = json.load(file)
     if not isinstance(model, dict) or not isinstance(model.get("tie_points"), list):
@@ -702,7 +862,7 @@ def _valid_pixel_coordinate(value) -> bool:
     )
 
 
-def _save_tie_points(path: str, tie_points: dict[tuple[str, str], np.ndarray]) -> None:
+def _save_ties(path: str, ties: dict[tuple[str, str], np.ndarray]) -> None:
     output_dir = os.path.dirname(path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
@@ -719,11 +879,46 @@ def _save_tie_points(path: str, tie_points: dict[tuple[str, str], np.ndarray]) -
                     for point in points
                 ],
             }
-            for (name_i, name_j), points in sorted(tie_points.items())
+            for (name_i, name_j), points in sorted(ties.items())
         ]
     }
     with open(path, "w", encoding="utf-8") as file:
         json.dump(model, file, indent=2)
+
+
+def _save_ties_crs(path: str, ties: dict[tuple[str, str], np.ndarray], infos: dict[str, _ImageInfo]) -> None:
+    """Stream two GIS point features per selected tie using the original image geotransforms and CRS."""
+    import fiona
+    from fiona.drvsupport import driver_from_extension
+
+    try:
+        driver = driver_from_extension(path)
+    except ValueError as error:
+        raise ValueError("tie_save_crs_path needs a supported vector extension, such as .gpkg, .geojson, .shp, or .fgb.") from error
+    output_dir = os.path.dirname(path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    schema = {
+        "geometry": "Point",
+        "properties": {"tie_id": "int64", "image": "str:254", "match_img": "str:254", "pixel_col": "float", "pixel_row": "float"},
+    }
+
+    def records():
+        tie_id = 0
+        for (name_i, name_j), points in sorted(ties.items()):
+            map_i = _pixels_to_map(infos[name_i].transform, points[:, :2])
+            map_j = _pixels_to_map(infos[name_j].transform, points[:, 2:])
+            for pixels, xy_i, xy_j in zip(points, map_i, map_j):
+                tie_id += 1
+                for name, other, pixel, xy in ((name_i, name_j, pixels[:2], xy_i), (name_j, name_i, pixels[2:], xy_j)):
+                    yield {
+                        "geometry": {"type": "Point", "coordinates": (float(xy[0]), float(xy[1]))},
+                        "properties": {"tie_id": tie_id, "image": name, "match_img": other, "pixel_col": float(pixel[0]), "pixel_row": float(pixel[1])},
+                    }
+
+    layer_options = {"layer": "ties"} if driver in {"GPKG", "SQLite"} else {}
+    with fiona.open(path, "w", driver=driver, schema=schema, crs_wkt=next(iter(infos.values())).projection, encoding="UTF-8", **layer_options) as destination:
+        destination.writerecords(records())
 
 
 def _global_parameter_count(model: str) -> int:
@@ -744,22 +939,23 @@ def _global_basis(info: _ImageInfo, x: float, y: float, model: str):
 
 def _solve_global_alignment(
     infos,
-    tie_points,
+    ties,
     model,
     image_weights,
     strength,
-    robust_loss,
+    tie_robust_loss,
     robust_scale,
     debug_logs,
 ):
     parameter_count = _global_parameter_count(model)
     zeros = {name: np.zeros(parameter_count, dtype=float) for name in infos}
-    if parameter_count == 0 or strength == 0 or not any(len(points) for points in tie_points.values()):
+    strengths = strength if isinstance(strength, dict) else dict.fromkeys(infos, float(strength))
+    if parameter_count == 0 or not any(strengths.values()) or not any(len(points) for points in ties.values()):
         return zeros
     names = list(infos)
     offsets = {name: index * parameter_count for index, name in enumerate(names)}
     equations = _SparseEquations(len(names) * parameter_count)
-    for (name_i, name_j), points in tie_points.items():
+    for (name_i, name_j), points in ties.items():
         if not len(points):
             continue
         map_i = _pixels_to_map(infos[name_i].transform, points[:, :2])
@@ -794,17 +990,17 @@ def _solve_global_alignment(
                 pair_weight,
                 True,
             )
-    solution = _solve_sparse_equations(equations, robust_loss, robust_scale)
+    solution = _solve_sparse_equations(equations, tie_robust_loss, robust_scale)
     result = {
         name: (
             solution[offsets[name] : offsets[name] + parameter_count]
-            * strength
+            * strengths[name]
             / math.sqrt(image_weights[name])
         )
         for name in names
     }
     if debug_logs:
-        print(f"Solved joint global {model} model from {sum(map(len, tie_points.values()))} tie points")
+        print(f"Solved joint global {model} model from {sum(map(len, ties.values()))} tie points")
         for name in names:
             print(f"    {name}: {np.array2string(result[name], precision=4)}")
     return result
@@ -818,7 +1014,7 @@ def _difference_coefficients(basis_i, offset_i, basis_j, offset_j, scale_i=1.0, 
     return coefficients
 
 
-def _solve_sparse_equations(equations: _SparseEquations, robust_loss: str, robust_scale: float):
+def _solve_sparse_equations(equations: _SparseEquations, tie_robust_loss: str, robust_scale: float):
 
     matrix, target, base_weights, robust_rows = equations.arrays()
     if not len(target) or matrix.shape[1] == 0:
@@ -839,14 +1035,14 @@ def _solve_sparse_equations(equations: _SparseEquations, robust_loss: str, robus
             solution = updated
             break
         solution = updated
-        if robust_loss != "none":
+        if tie_robust_loss != "none":
             residual = matrix @ solution - target
             indices = np.flatnonzero(robust_rows)
             if len(indices) % 2:
                 raise RuntimeError("Tie-point residual rows must occur in x/y pairs.")
             pairs = indices.reshape((-1, 2))
             magnitudes = np.linalg.norm(residual[pairs], axis=1)
-            pair_weights = _robust_weights(magnitudes, robust_loss, robust_scale)
+            pair_weights = _robust_weights(magnitudes, tie_robust_loss, robust_scale)
             robust_weights[pairs] = pair_weights[:, None]
     return solution
 
@@ -889,7 +1085,7 @@ def _build_mesh(info: _ImageInfo, spacing: float) -> _Mesh:
 
 def _solve_local_alignment(
     infos,
-    tie_points,
+    ties,
     global_model,
     global_parameters,
     local_model,
@@ -899,14 +1095,15 @@ def _solve_local_alignment(
     smoothness_weight,
     bending_weight,
     falloff_distance,
-    robust_loss,
+    tie_robust_loss,
     robust_scale,
     debug_logs,
 ):
     if local_model == "none":
         return {}
     meshes = {name: _build_mesh(info, grid_spacing) for name, info in infos.items()}
-    if strength == 0 or not any(len(points) for points in tie_points.values()):
+    strengths = strength if isinstance(strength, dict) else dict.fromkeys(infos, float(strength))
+    if not any(strengths.values()) or not any(len(points) for points in ties.values()):
         return meshes
     offsets, column_count = {}, 0
     for name, mesh in meshes.items():
@@ -915,7 +1112,7 @@ def _solve_local_alignment(
     equations = _SparseEquations(column_count)
     support = {name: [] for name in infos}
 
-    for (name_i, name_j), points in tie_points.items():
+    for (name_i, name_j), points in ties.items():
         if not len(points):
             continue
         map_i = _pixels_to_map(infos[name_i].transform, points[:, :2])
@@ -966,10 +1163,10 @@ def _solve_local_alignment(
             bending_weight,
         )
 
-    solution = _solve_sparse_equations(equations, robust_loss, robust_scale) * strength
+    solution = _solve_sparse_equations(equations, tie_robust_loss, robust_scale)
     for name, mesh in meshes.items():
         count = mesh.rows * mesh.columns * 2
-        mesh.displacement = solution[offsets[name] : offsets[name] + count].reshape(
+        mesh.displacement = strengths[name] * solution[offsets[name] : offsets[name] + count].reshape(
             (mesh.rows, mesh.columns, 2)
         )
     if debug_logs:
@@ -1445,7 +1642,7 @@ def _coregister_overlap(
     output_raster_path: str,
     *,
     valid_mask_path: str | None = None,
-    tie_point_pairs: list[tuple[float, float, float, float]] | None = None,
+    tie_pairs: list[tuple[float, float, float, float]] | None = None,
     feature_method: Literal["orb"] = "orb",
     cache: Universal.Cache = None,
     io_threads: Universal.Threads = None,
@@ -1454,9 +1651,7 @@ def _coregister_overlap(
 ) -> tuple[str, list[tuple[float, float, float, float]]]:
     """Coregister an overlap raster using conjugate points.
 
-    Returns the corrected raster path and the matched ``(reference_row,
-    reference_column, sensed_row, sensed_column)`` point pairs used by the
-    legacy PIF workflow.
+    Returns the corrected raster path and matched ``(reference_row, reference_column, sensed_row, sensed_column)`` pairs used by the PIF workflow; supplied selected points bypass ORB and RANSAC.
     """
     if not isinstance(reference_overlap_vrt, str) or not isinstance(sensed_overlap_vrt, str):
         raise ValueError("reference_overlap_vrt and sensed_overlap_vrt must be strings.")
@@ -1472,17 +1667,17 @@ def _coregister_overlap(
     if reference is None or sensed is None:
         raise RuntimeError("Could not open overlap rasters for coregistration.")
     valid_mask = _read_mask(valid_mask_path) if valid_mask_path else _build_overlap_valid_mask(reference, sensed)
-    supplied_tie_points = tie_point_pairs is not None
-    if not supplied_tie_points:
+    supplied_ties = tie_pairs is not None
+    if not supplied_ties:
         point_pairs = _extract_conjugate_point_pairs(
             reference_overlap_vrt, sensed_overlap_vrt, valid_mask, feature_method
         )
     else:
-        supplied = np.asarray(tie_point_pairs, dtype=float)
+        supplied = np.asarray(tie_pairs, dtype=float)
         if supplied.ndim != 2 or supplied.shape[1] != 4 or not np.isfinite(supplied).all():
-            raise ValueError("tie_point_pairs must contain finite row/column quadruples.")
+            raise ValueError("tie_pairs must contain finite row/column quadruples.")
         point_pairs = [tuple(point) for point in supplied]
-    point_pairs = _filter_point_pairs(point_pairs, debug_logs)
+    point_pairs = _drop_duplicate_point_pairs(point_pairs) if supplied_ties else _filter_point_pairs(point_pairs, debug_logs)
     if len(point_pairs) < 3:
         raise ValueError("At least 3 conjugate point pairs are required for overlap coregistration.")
     output_dir = os.path.dirname(output_raster_path)
@@ -1606,26 +1801,33 @@ def _read_mask(mask_path):
     return mask
 
 
-def _build_overlap_valid_mask(reference, sensed):
-    width = min(reference.RasterXSize, sensed.RasterXSize)
-    height = min(reference.RasterYSize, sensed.RasterYSize)
-    ref_mask = reference.GetRasterBand(1).GetMaskBand().ReadAsArray(0, 0, width, height) > 0
-    sensed_mask = sensed.GetRasterBand(1).GetMaskBand().ReadAsArray(0, 0, width, height) > 0
+def _build_overlap_valid_mask(reference, sensed, window=None):
+    if window is None:
+        width = min(reference.RasterXSize, sensed.RasterXSize)
+        height = min(reference.RasterYSize, sensed.RasterYSize)
+        window = (0, 0, width, height)
+    ref_mask = reference.GetRasterBand(1).GetMaskBand().ReadAsArray(*window) > 0
+    sensed_mask = sensed.GetRasterBand(1).GetMaskBand().ReadAsArray(*window) > 0
     return ref_mask & sensed_mask
 
 
-def _read_uint8_gray(raster_path, valid_mask):
-    dataset = gdal.Open(raster_path, gdal.GA_ReadOnly)
+def _read_uint8_gray(raster_path, valid_mask, window=None):
+    dataset = (
+        gdal.Open(os.fspath(raster_path), gdal.GA_ReadOnly)
+        if isinstance(raster_path, (str, os.PathLike)) else raster_path
+    )
     if dataset is None:
         raise RuntimeError(f"Could not open raster for feature detection: {raster_path}")
     rows, columns = valid_mask.shape
+    if window is None:
+        window = (0, 0, columns, rows)
     band_indices = [
         index
         for index in range(1, dataset.RasterCount + 1)
         if dataset.GetRasterBand(index).GetColorInterpretation() != gdal.GCI_AlphaBand
     ][:3]
     bands = [
-        dataset.GetRasterBand(index).ReadAsArray(0, 0, columns, rows).astype(np.float32)
+        dataset.GetRasterBand(index).ReadAsArray(*window).astype(np.float32)
         for index in band_indices
     ]
     dataset = None
@@ -1639,7 +1841,7 @@ def _read_uint8_gray(raster_path, valid_mask):
     if high <= low:
         return np.zeros(gray.shape, dtype=np.uint8)
     scaled = np.clip((gray - low) / (high - low), 0, 1) * 255
-    scaled[~valid_mask] = 0
+    scaled[~valid_mask | ~np.isfinite(gray)] = 0
     return scaled.astype(np.uint8)
 
 
