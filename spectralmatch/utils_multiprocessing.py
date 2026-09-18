@@ -14,29 +14,69 @@ from .types_and_validation import (
 )
 
 
-def _run_image_tasks(function, args, *, input_paths, output_paths, parallel=False, backend="thread", workers=None, concurrent_processing_backend="process_pool", dask_scheduler=None, executor_factory=None):
-    """Run image tasks with worker start messages and parent completion counts, returning results in input order."""
+def _run_image_tasks(
+    function,
+    args,
+    *,
+    input_paths,
+    output_paths,
+    parallel=False,
+    backend="thread",
+    workers=None,
+    concurrent_processing_backend="process_pool",
+    dask_scheduler=None,
+    executor_factory=None,
+    result_callback=None,
+    collect_results=True
+):
+    """Run tasks, optionally commit each result in a parent callback before logging completion, and collect results in input order."""
     total = len(args)
     if len(input_paths) != total or len(output_paths) != total:
-        raise ValueError("Each image task must have matching input and output progress paths.")
+        raise ValueError(
+            "Each image task must have matching input and output progress paths."
+        )
     if not parallel:
         results = []
-        for completed, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths), 1):
+        for completed, (arg, source, destination) in enumerate(
+            zip(args, input_paths, output_paths), 1
+        ):
             result, details = _run_logged_image(function, source, destination, arg)
-            results.append(result)
+            if result_callback is not None:
+                result_callback(completed - 1, result)
+            if collect_results:
+                results.append(result)
             _print_image_completed(source, completed, total, details=details)
         return results
     factory = executor_factory or _get_executor
-    results = [None] * total
-    with factory(backend, workers, concurrent_processing_backend=concurrent_processing_backend, dask_scheduler=dask_scheduler) as executor:
+    results = [None] * total if collect_results else []
+    with factory(
+        backend,
+        workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
+    ) as executor:
         futures = {
-            executor.submit(_run_logged_image, function, source, destination, arg): index
-            for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths))
+            executor.submit(
+                _run_logged_image, function, source, destination, arg
+            ): index
+            for index, (arg, source, destination) in enumerate(
+                zip(args, input_paths, output_paths)
+            )
         }
-        for completed, future in enumerate(as_completed(futures), 1):
-            index = futures[future]
-            results[index], details = future.result()
-            _print_image_completed(input_paths[index], completed, total, details=details)
+        try:
+            for completed, future in enumerate(as_completed(futures), 1):
+                index = futures.pop(future)
+                result, details = future.result()
+                if result_callback is not None:
+                    result_callback(index, result)
+                if collect_results:
+                    results[index] = result
+                _print_image_completed(
+                    input_paths[index], completed, total, details=details
+                )
+        finally:
+            for pending in futures:
+                pending.cancel()
     return results
 
 

@@ -411,3 +411,219 @@ def test_pipeline_delete_previous_step_removes_replaced_intermediate(tmp_path):
         str(output_dir / "B_Global_Local.tif"),
     ]
     assert not (temp_dir / "global").exists()
+
+
+@pytest.mark.parametrize("seamline_step", ["voronoi_center_seamline", "weighted_seamline"])
+@pytest.mark.parametrize("delete_previous_step", [False, True])
+def test_pipeline_footprints_through_seamlines_mask_and_merge(tmp_path, seamline_step, delete_previous_step):
+    input_paths = []
+    for name, origin, value in [("A", 0, 50), ("B", 16, 75)]:
+        path = tmp_path / f"{name}.tif"
+        data = np.full((2, 32, 32), value, dtype=np.uint8)
+        data[1, :, :4] = 0
+        create_dummy_raster(
+            path, band_data=data, crs="EPSG:32604",
+            transform=(origin, 1, 0, 32, 0, -1),
+        )
+        input_paths.append(str(path))
+    temp_dir = tmp_path / "work"
+    output = tmp_path / "mosaic.tif"
+
+    result = pipeline(
+        shared_input_images=input_paths,
+        shared_output_image_path=str(output),
+        shared_temp_dir=str(temp_dir),
+        delete_temp_dir=False,
+        delete_previous_step=delete_previous_step,
+        steps=("align", "create_footprints", "postprocess_footprints", seamline_step, "mask", "merge"),
+        shared_cache=None,
+        shared_image_threads=None,
+        shared_io_threads=1,
+        shared_tile_threads=1,
+        shared_window_size=16,
+        align_rasters_resampling_method="nearest",
+        create_footprints_band=2,
+        create_footprints_eight_connected=False,
+        create_footprints_image_field_name="scene",
+        create_footprints_output_layer="raw",
+        postprocess_footprints_output_layer="processed",
+        postprocess_footprints_edge_distance=0,
+        postprocess_footprints_smoothing_radius=0.5,
+        postprocess_footprints_simplify_tolerance=0,
+        postprocess_footprints_area_rank=None,
+        **{
+            f"{seamline_step}_image_field_name": "scene",
+            f"{seamline_step}_output_layer": "cuts",
+                **({"weighted_seamline_rank_function": "1 + ({scene} == 'A_Align')"} if seamline_step == "weighted_seamline" else {}),
+        },
+    )
+
+    assert result["output"] == str(output)
+    with gdal.Open(str(output)) as dataset:
+        assert dataset.RasterCount == 2
+        assert np.count_nonzero(dataset.ReadAsArray()) > 0
+        assert dataset.GetGeoTransform()[0] == 4
+    seamlines = gpd.read_file(result[seamline_step], layer="cuts")
+    assert set(seamlines["scene"]) == {os.path.splitext(os.path.basename(path))[0] for path in result["align"]}
+    if delete_previous_step:
+        assert not (temp_dir / "aligned").exists()
+        assert not (temp_dir / "clip").exists()
+        assert not os.path.exists(result["create_footprints"])
+        assert not os.path.exists(result["postprocess_footprints"])
+    else:
+        raw = gpd.read_file(result["create_footprints"], layer="raw")
+        processed = gpd.read_file(result["postprocess_footprints"], layer="processed")
+        assert list(raw.area) == [28 * 32, 28 * 32]
+        assert all(processed.area < raw.area)
+        assert set(processed["scene"]) == set(raw["scene"])
+    assert all(os.path.exists(path) for path in input_paths)
+
+
+@pytest.mark.parametrize("step", ["create_footprints", "postprocess_footprints"])
+def test_pipeline_final_footprints_output_and_resume(tmp_path, monkeypatch, step):
+    source = tmp_path / "A.tif"
+    create_dummy_raster(source, crs="EPSG:32604", count=1)
+    output = tmp_path / "output.gpkg"
+    options = dict(
+        shared_input_images=[str(source)],
+        shared_output_image_path=str(output),
+        shared_temp_dir=str(tmp_path / "work"),
+        delete_previous_step=True,
+        shared_image_threads=None,
+        steps=("create_footprints",) if step == "create_footprints" else ("create_footprints", "postprocess_footprints"),
+        postprocess_footprints_edge_distance=0,
+        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_simplify_tolerance=0,
+    )
+    result = pipeline(**options)
+    assert result["output"] == result[step] == str(output)
+    assert output.is_file()
+    assert not (tmp_path / "work").exists()
+    assert list(gpd.read_file(output)["image"]) == ["A"]
+    modified = output.stat().st_mtime_ns
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("Existing final footprints should be reused")
+
+    worker = "_footprint_from_image" if step == "create_footprints" else "_postprocess_polygon"
+    monkeypatch.setattr(f"spectralmatch.seamline.footprints.{worker}", fail_if_called)
+    resumed = pipeline(**options, shared_resume_from_steps="validate")
+    assert resumed["output"] == str(output)
+    assert output.stat().st_mtime_ns == modified
+
+
+@pytest.mark.parametrize("input_layer", [None, "external"])
+@pytest.mark.parametrize("step", ["postprocess_footprints", "voronoi_center_seamline", "weighted_seamline"])
+def test_pipeline_explicit_polygons_override_generated_footprints(tmp_path, step, input_layer):
+    source = tmp_path / "A.tif"
+    create_dummy_raster(source, crs="EPSG:32604", count=1)
+    polygons = tmp_path / "external.gpkg"
+    external = gpd.GeoDataFrame(
+        {"image": ["external"], "quality": [7], "geometry": [box(2, 2, 8, 8)]},
+        crs="EPSG:32604",
+    )
+    external.to_file(polygons, layer="external", driver="GPKG")
+
+    result = pipeline(
+        shared_input_images=[str(source)],
+        shared_output_image_path=str(tmp_path / "result.gpkg"),
+        steps=("create_footprints", step),
+        shared_image_threads=None,
+        create_footprints_output_layer="generated",
+        postprocess_footprints_edge_distance=0,
+        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_simplify_tolerance=0,
+        weighted_seamline_rank_function="{quality}",
+        **{f"{step}_input_polygons": str(polygons), f"{step}_input_layer": input_layer},
+    )
+
+    actual = gpd.read_file(result["output"])
+    assert list(actual["image"]) == ["external"]
+    assert actual.geometry.iloc[0].equals(external.geometry.iloc[0])
+    if step in {"postprocess_footprints", "weighted_seamline"}:
+        assert list(actual["quality"]) == [7]
+    assert polygons.is_file()
+
+
+def test_pipeline_postprocessed_attributes_feed_weighted_seamline(tmp_path):
+    source = tmp_path / "A.tif"
+    create_dummy_raster(source, crs="EPSG:32604", count=1)
+    polygons = tmp_path / "external.gpkg"
+    gpd.GeoDataFrame(
+        {"image": ["A", "B"], "quality": [1, 2], "geometry": [box(0, 0, 10, 10), box(5, 0, 15, 10)]},
+        crs="EPSG:32604",
+    ).to_file(polygons, layer="external", driver="GPKG")
+    result = pipeline(
+        shared_input_images=[str(source)],
+        shared_output_image_path=str(tmp_path / "result.gpkg"),
+        steps=("postprocess_footprints", "weighted_seamline"),
+        shared_image_threads=None,
+        postprocess_footprints_input_polygons=str(polygons),
+        postprocess_footprints_input_layer="external",
+        postprocess_footprints_output_layer="processed",
+        postprocess_footprints_edge_distance=0,
+        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_simplify_tolerance=0,
+        weighted_seamline_rank_function="{quality}",
+    )
+    actual = gpd.read_file(result["output"]).set_index("image")
+    assert actual.loc["A"].geometry.area == 50
+    assert actual.loc["B"].geometry.area == 100
+
+
+def test_pipeline_implicit_footprints_use_creation_options(tmp_path):
+    source = tmp_path / "A.tif"
+    data = np.ones((2, 10, 10), dtype=np.uint8)
+    data[1, :, :4] = 0
+    create_dummy_raster(source, band_data=data, crs="EPSG:32604")
+    result = pipeline(
+        shared_input_images=[str(source)],
+        shared_output_image_path=str(tmp_path / "seamlines.gpkg"),
+        shared_temp_dir=str(tmp_path / "work"),
+        delete_temp_dir=False,
+        steps=("voronoi_center_seamline",),
+        shared_image_threads=None,
+        create_footprints_band=2,
+        create_footprints_eight_connected=False,
+        create_footprints_output_layer="valid_pixels",
+        voronoi_center_seamline_image_field_name="scene",
+    )
+    footprints = gpd.read_file(result["create_footprints"], layer="valid_pixels")
+    seamlines = gpd.read_file(result["output"])
+    assert list(seamlines["scene"]) == ["A"]
+    assert footprints.geometry.iloc[0].equals(box(4, 0, 10, 10))
+    assert seamlines.geometry.iloc[0].equals(footprints.geometry.iloc[0])
+
+
+def test_pipeline_keeps_footprints_across_intervening_raster_step(tmp_path):
+    source = tmp_path / "A.tif"
+    create_dummy_raster(source, count=1, crs="EPSG:32604")
+    result = pipeline(
+        shared_input_images=[str(source)],
+        shared_output_image_path=str(tmp_path / "processed.gpkg"),
+        shared_temp_dir=str(tmp_path / "work"),
+        delete_temp_dir=False,
+        delete_previous_step=True,
+        shared_image_threads=None,
+        steps=("create_footprints", "align", "postprocess_footprints"),
+        create_footprints_output_layer="raw",
+        postprocess_footprints_edge_distance=0,
+        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_simplify_tolerance=0,
+    )
+    actual = gpd.read_file(result["output"])
+    assert list(actual["image"]) == ["A"]
+    assert actual.geometry.iloc[0].equals(box(0, 0, 10, 10))
+    assert not os.path.exists(result["create_footprints"])
+
+
+@pytest.mark.parametrize("step", ["postprocess_footprints", "weighted_seamline"])
+def test_pipeline_missing_polygon_source(tmp_path, step):
+    source = tmp_path / "A.tif"
+    create_dummy_raster(source, count=1)
+    with pytest.raises(ValueError, match=f"{step} requires input polygons"):
+        pipeline(
+            shared_input_images=[str(source)],
+            shared_output_image_path=str(tmp_path / "result.gpkg"),
+            steps=(step,),
+        )

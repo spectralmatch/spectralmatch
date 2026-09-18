@@ -11,7 +11,7 @@ from .statistics import (
     compare_before_after_all_images,
     compare_spatial_spectral_difference_band_average,
 )
-from .seamline import Seamline
+from .seamline import Seamline, create_footprints, postprocess_footprints
 
 global_regression = Match.global_regression
 local_block_adjustment = Match.local_block_adjustment
@@ -30,6 +30,8 @@ __all__ = [
     "pipeline",
     "voronoi_center_seamline",
     "weighted_seamline",
+    "create_footprints",
+    "postprocess_footprints",
     # Handlers
     "search_paths",
     "create_paths",

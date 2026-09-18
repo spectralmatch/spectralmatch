@@ -4,8 +4,6 @@ import networkx as nx
 import fiona
 
 from fiona.errors import DriverError
-from shapely.affinity import affine_transform
-from shapely.wkt import loads as wkt_loads
 from shapely.geometry import (
     Polygon,
     LineString,
@@ -19,74 +17,6 @@ from fiona import open as fopen
 from shapely.ops import split, voronoi_diagram, unary_union
 from itertools import combinations
 from typing import List
-from osgeo import gdal, ogr
-gdal.UseExceptions()
-
-
-def _load_emp_polygons_from_vector(
-    input_image_paths: list[str],
-    input_image_names: list[str],
-    vector_mask: tuple[str, str],
-    debug_logs: bool,
-) -> tuple[list[Polygon], str | None]:
-    """
-    Load one polygon footprint per image from a vector source by substring matching.
-    """
-    if (
-        not isinstance(vector_mask, tuple)
-        or len(vector_mask) != 2
-        or not all(isinstance(value, str) for value in vector_mask)
-    ):
-        raise ValueError(
-            "vector_mask must be a tuple of (vector_path, field_name)."
-        )
-
-    vector_path, field_name = vector_mask
-    matched_geometries: dict[str, list[Polygon]] = {name: [] for name in input_image_names}
-    crs = None
-
-    with fiona.open(vector_path, "r") as src:
-        crs = src.crs_wkt
-        for feature in src:
-            properties = feature["properties"] or {}
-            if field_name not in properties:
-                raise ValueError(
-                    f"Field '{field_name}' was not found in {vector_path}."
-                )
-            field_value = properties[field_name]
-            if field_value is None:
-                continue
-            match_value = str(field_value)
-            geom = shape(feature["geometry"])
-            if geom.is_empty:
-                continue
-
-            for image_name in input_image_names:
-                if match_value in image_name:
-                    matched_geometries[image_name].append(geom)
-
-    emps = []
-    for image_path, image_name in zip(input_image_paths, input_image_names):
-        geometries = matched_geometries[image_name]
-        if not geometries:
-            raise ValueError(
-                f"No polygons from {vector_path} matched image '{image_name}'. "
-                "Expected the field value to be included in the image name."
-            )
-        merged = unary_union(geometries)
-        if merged.geom_type == "MultiPolygon":
-            merged = max(merged.geoms, key=lambda polygon: polygon.area)
-        if not isinstance(merged, Polygon):
-            raise ValueError(
-                f"Matched geometry for image '{image_name}' is not polygonal."
-            )
-        if debug_logs:
-            print(
-                f"Loaded {len(geometries)} polygon(s) from vector mask for {image_name}"
-            )
-        emps.append(merged)
-
-    return emps, crs
 
 
 def _densify_polygon(
@@ -106,6 +36,8 @@ def _densify_polygon(
     if target_spacing <= 0:
         raise ValueError("target_spacing must be > 0")
 
+    if hasattr(poly, "geoms"):
+        return [point for part in poly.geoms if isinstance(part, Polygon) for point in _densify_polygon(part, target_spacing)]
     coords = list(poly.exterior.coords)
     if len(coords) < 2:
         return coords
@@ -494,53 +426,6 @@ def _save_seed_points(
             dst.write({"geometry": mapping(Point(x, y)), "properties": {}})
 
 
-def _emp_polygon_from_image(
-    path: str,
-    eight_connected: bool = True
-):
-    """
-    Extract the largest valid EMP polygon from a raster mask using GDAL.
-
-    Args:
-        path (str): Path to the input raster file.
-        eight_connected (bool, optional): Use 8-connectedness for polygonization. Default is True.
-
-    Returns:
-        shapely.geometry.Polygon | ogr.Geometry: The largest EMP polygon.
-    """
-    ds = gdal.Open(path, gdal.GA_ReadOnly)
-    if ds is None:
-        raise RuntimeError(f"Cannot open {path}")
-    gt = ds.GetGeoTransform()
-    band = ds.GetRasterBand(1)
-    mask = band.GetMaskBand()
-
-    vds = ogr.GetDriverByName("MEM").CreateDataSource("mem")
-    lyr = vds.CreateLayer("emp", geom_type=ogr.wkbPolygon)
-    lyr.CreateField(ogr.FieldDefn("val", ogr.OFTInteger))
-
-    opts = ["8CONNECTED=8"] if eight_connected else None
-    gdal.Polygonize(mask, None, lyr, 0, options=opts, callback=None)
-
-    lyr.ResetReading()
-    best_area, best_geom = -1, None
-    for feat in lyr:
-        if feat.GetField("val") == 255:  # 255 = valid
-            geom = feat.GetGeometryRef()
-            if geom and geom.GetArea() > best_area:
-                best_area = geom.GetArea()
-                best_geom = geom.Clone()
-
-    if best_geom is None:
-        raise ValueError("No valid EMP polygon found")
-
-    poly_px = wkt_loads(best_geom.ExportToWkt())
-    poly_map = affine_transform(poly_px, (gt[1], gt[2], gt[4], gt[5], gt[0], gt[3]))
-
-    ds = None
-    return poly_map
-
-
 def _mask_by_aoi(polygons: list[Polygon], aoi_path: str) -> list[Polygon]:
     """Clip polygons by an AOI layer from file.
 
@@ -554,4 +439,4 @@ def _mask_by_aoi(polygons: list[Polygon], aoi_path: str) -> list[Polygon]:
     with fopen(aoi_path, "r") as src:
         aoi = unary_union([shape(feat["geometry"]) for feat in src])
 
-    return [poly.intersection(aoi) for poly in polygons if not poly.is_empty]
+    return [poly.intersection(aoi) for poly in polygons]

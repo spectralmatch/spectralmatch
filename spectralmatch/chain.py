@@ -24,6 +24,8 @@ PipelineStep = Literal[
     "global_regression",
     "local_block_adjustment",
     "align",
+    "create_footprints",
+    "postprocess_footprints",
     "voronoi_center_seamline",
     "weighted_seamline",
     "mask",
@@ -34,6 +36,8 @@ PIPELINE_STEP_ORDER: tuple[PipelineStep, ...] = (
     "align",
     "global_regression",
     "local_block_adjustment",
+    "create_footprints",
+    "postprocess_footprints",
     "voronoi_center_seamline",
     "weighted_seamline",
     "mask",
@@ -48,6 +52,7 @@ MULTI_RASTER_STEPS = {
     "mask",
 }
 SEAMLINE_STEPS = {"voronoi_center_seamline", "weighted_seamline"}
+FOOTPRINT_STEPS = {"create_footprints", "postprocess_footprints"}
 DEFAULT_PIPELINE_STEPS: tuple[PipelineStep, ...] = (
     "joint_coregistration",
     "global_regression",
@@ -62,6 +67,8 @@ STEP_TEMP_OUTPUTS = {
     "local_block_adjustment": os.path.join("local"),
     "align": os.path.join("aligned"),
     "mask": os.path.join("clip"),
+    "create_footprints": os.path.join("seamline", "Footprints.gpkg"),
+    "postprocess_footprints": os.path.join("seamline", "ProcessedFootprints.gpkg"),
     "voronoi_center_seamline": os.path.join("seamline", "ImageMasks.gpkg"),
     "weighted_seamline": os.path.join("seamline", "ImageMasks.gpkg"),
 }
@@ -145,8 +152,27 @@ def pipeline(
     local_block_adjustment_load_block_maps: Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None = None,
     local_block_adjustment_override_bounds_canvas_coords: Tuple[float, float, float, float] | None = None,
     local_block_adjustment_build_overviews: bool = False,
+    create_footprints_image_field_name: str = "image",
+    create_footprints_output_layer: str = "footprints",
+    create_footprints_band: int = 1,
+    create_footprints_eight_connected: bool = True,
+    postprocess_footprints_input_polygons: str | None = None,
+    postprocess_footprints_input_layer: str | None = None,
+    postprocess_footprints_output_layer: str = "footprints",
+    postprocess_footprints_edge_distance: float = 800,
+    postprocess_footprints_hole_to_hole_distance: float = 800,
+    postprocess_footprints_relative_edge_distance: float | None = None,
+    postprocess_footprints_cut_width: int | Literal["hole_size", "maximum_inscribed_circle"] = "maximum_inscribed_circle",
+    postprocess_footprints_cut_method: Literal["corridor", "buffer"] = "corridor",
+    postprocess_footprints_smoothing_radius: float = 240,
+    postprocess_footprints_simplify_tolerance: float = 120,
+    postprocess_footprints_simplify_area_weight: float = 0.5,
+    postprocess_footprints_area_filter: float | None = None,
+    postprocess_footprints_area_rank: int | None = 1,
     voronoi_center_seamline_aoi_path: str | None = None,
-    voronoi_center_seamline_vector_mask: tuple[str, str] | None = None,
+    voronoi_center_seamline_input_polygons: str | None = None,
+    voronoi_center_seamline_input_layer: str | None = None,
+    voronoi_center_seamline_output_layer: str = "seamlines",
     voronoi_center_seamline_image_field_name: str = "image",
     voronoi_center_seamline_min_point_spacing: float = 10,
     voronoi_center_seamline_min_cut_length: float = 0,
@@ -178,6 +204,8 @@ def pipeline(
 
     Step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.
 
+    Select ``create_footprints`` followed by ``postprocess_footprints`` before either seamline step to prepare its polygons. These steps retain the current rasters for later masking and merging. Polygon paths and layer names flow between steps unless an explicit input overrides them. Postprocessing is opt-in because its distances require a suitable projected CRS and tuning for the imagery.
+
     Args:
         shared_window_scales: Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.
         shared_window_size: Processing window size; for tiled merge, also the output tile width and height in pixels, default 1024.
@@ -188,7 +216,28 @@ def pipeline(
         global_regression_pif_method: PIF selection method, default "flood_from_match_points", matching Match.global_regression.
         global_regression_pif_max_samples: Maximum number of PIF samples, default 10000; None disables the cap.
         global_regression_pif_min_samples: Minimum number of PIF samples, default 10.
-        weighted_seamline_input_polygons: Input polygon path, required when steps includes weighted_seamline.
+        create_footprints_image_field_name: Image identifier field for generated footprints, default "image"; use the same field name in the seamline step.
+        create_footprints_output_layer: Output GeoPackage layer for generated footprints, default "footprints".
+        create_footprints_band: One-based raster band whose validity mask defines the footprints, default 1.
+        create_footprints_eight_connected: Use eight-connected polygonization, default True; False uses four-connected polygonization.
+        postprocess_footprints_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output.
+        postprocess_footprints_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
+        postprocess_footprints_output_layer: Output GeoPackage layer for processed footprints, default "footprints".
+        postprocess_footprints_edge_distance: Maximum hole-to-edge distance in projected CRS units, default 800; 0 disables only edge cuts.
+        postprocess_footprints_hole_to_hole_distance: Maximum distance between original holes in the same polygon component, default 800; 0 disables only hole-pair cuts.
+        postprocess_footprints_relative_edge_distance: Optional edge-only limit on distance divided by sqrt(hole_area / pi), default None.
+        postprocess_footprints_cut_width: Positive integer width, "hole_size" for the largest diameter, or "maximum_inscribed_circle" (default) for the inscribed diameter. Applies to both cut types; pairs use the smaller width.
+        postprocess_footprints_cut_method: Hole cutting method, "corridor" (default) or "buffer".
+        postprocess_footprints_smoothing_radius: Inward smoothing radius in projected CRS units, default 240; 0 disables smoothing.
+        postprocess_footprints_simplify_tolerance: Maximum inward simplification deviation in projected CRS units, default 120; 0 disables simplification.
+        postprocess_footprints_simplify_area_weight: Area retention weight in [0, 1], default 0.5.
+        postprocess_footprints_area_filter: Optional minimum component area in squared CRS units, default None.
+        postprocess_footprints_area_rank: Keep the largest N components for positive N or smallest abs(N) for negative N; 0 or None keeps all; default 1.
+        voronoi_center_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output or creates footprints from the current images if no footprint step has run.
+        voronoi_center_seamline_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
+        voronoi_center_seamline_output_layer: Output GeoPackage layer name for Voronoi seamlines; default "seamlines".
+        weighted_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output. One of these sources is required for weighted_seamline.
+        weighted_seamline_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
         weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
         merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
         joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
@@ -290,6 +339,8 @@ def pipeline(
     print(f"Number of input images: {len(input_image_paths)}")
 
     current_images: Universal.SearchFolderOrListFiles = shared_input_images
+    current_polygons: str | None = None
+    current_polygon_layer: str | None = None
     seamline_mask_path: str | None = None
     seamline_mask_image_field_name: str | None = None
     previous_cleanup_paths: list[str] = []
@@ -481,6 +532,75 @@ def pipeline(
                     step_name, current_images, temp_dir
                 )
 
+            elif step_name == "create_footprints":
+                output_polygons = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                current_polygons = Seamline.create_footprints(
+                    input_images=current_images,
+                    output_polygons=output_polygons,
+                    image_field_name=create_footprints_image_field_name,
+                    output_layer=create_footprints_output_layer,
+                    band=create_footprints_band,
+                    eight_connected=create_footprints_eight_connected,
+                    image_threads=shared_image_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
+                    debug_logs=shared_debug_logs,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                current_polygon_layer = create_footprints_output_layer
+                results[step_name] = current_polygons
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, current_polygons, temp_dir
+                )
+
+            elif step_name == "postprocess_footprints":
+                input_polygons = postprocess_footprints_input_polygons
+                input_layer = postprocess_footprints_input_layer
+                if input_polygons is None:
+                    input_polygons = current_polygons
+                    if input_layer is None:
+                        input_layer = current_polygon_layer
+                if input_polygons is None:
+                    raise ValueError(
+                        "postprocess_footprints requires input polygons. Set "
+                        "postprocess_footprints_input_polygons or run create_footprints earlier in the pipeline."
+                    )
+                output_polygons = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                current_polygons = Seamline.postprocess_footprints(
+                    input_polygons=input_polygons,
+                    output_polygons=output_polygons,
+                    input_layer=input_layer,
+                    output_layer=postprocess_footprints_output_layer,
+                    edge_distance=postprocess_footprints_edge_distance,
+                    hole_to_hole_distance=postprocess_footprints_hole_to_hole_distance,
+                    relative_edge_distance=postprocess_footprints_relative_edge_distance,
+                    cut_width=postprocess_footprints_cut_width,
+                    cut_method=postprocess_footprints_cut_method,
+                    smoothing_radius=postprocess_footprints_smoothing_radius,
+                    simplify_tolerance=postprocess_footprints_simplify_tolerance,
+                    simplify_area_weight=postprocess_footprints_simplify_area_weight,
+                    area_filter=postprocess_footprints_area_filter,
+                    area_rank=postprocess_footprints_area_rank,
+                    image_threads=shared_image_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
+                    debug_logs=shared_debug_logs,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                current_polygon_layer = postprocess_footprints_output_layer
+                results[step_name] = current_polygons
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, current_polygons, temp_dir
+                )
+
             elif step_name == "voronoi_center_seamline":
                 seamline_mask_path = (
                     shared_output_image_path
@@ -492,11 +612,43 @@ def pipeline(
                         "shared_output_image_path must be a single file path when the final step is a seamline."
                     )
                 seamline_mask_image_field_name = voronoi_center_seamline_image_field_name
+                input_polygons = voronoi_center_seamline_input_polygons
+                input_layer = voronoi_center_seamline_input_layer
+                if input_polygons is None:
+                    input_polygons = current_polygons
+                    if input_layer is None:
+                        input_layer = current_polygon_layer
+                if input_polygons is None:
+                    input_layer = input_layer or create_footprints_output_layer
+                    input_polygons = Seamline.create_footprints(
+                        input_images=current_images,
+                        output_polygons=_step_temp_output("create_footprints", temp_dir),
+                        image_field_name=(
+                            voronoi_center_seamline_image_field_name
+                            if create_footprints_image_field_name == "image"
+                            else create_footprints_image_field_name
+                        ),
+                        output_layer=input_layer,
+                        band=create_footprints_band,
+                        eight_connected=create_footprints_eight_connected,
+                        image_threads=shared_image_threads,
+                        concurrent_processing_backend=shared_concurrent_processing_backend,
+                        dask_scheduler=shared_dask_scheduler,
+                        debug_logs=shared_debug_logs,
+                        resume_from_outputs=shared_resume_from_steps,
+                    )
+                    current_polygons = input_polygons
+                    current_polygon_layer = input_layer
+                    results["create_footprints"] = input_polygons
+                    previous_cleanup_paths.extend(
+                        _collect_step_cleanup_paths("create_footprints", input_polygons, temp_dir)
+                    )
                 Seamline.voronoi(
-                    input_images=current_images,
+                    input_polygons=input_polygons,
                     output_mask=seamline_mask_path,
                     aoi_path=voronoi_center_seamline_aoi_path,
-                    vector_mask=voronoi_center_seamline_vector_mask,
+                    input_layer=input_layer,
+                    output_layer=voronoi_center_seamline_output_layer,
                     image_field_name=voronoi_center_seamline_image_field_name,
                     min_point_spacing=voronoi_center_seamline_min_point_spacing,
                     min_cut_length=voronoi_center_seamline_min_cut_length,
@@ -520,12 +672,23 @@ def pipeline(
                         "shared_output_image_path must be a single file path when the final step is a seamline."
                     )
                 seamline_mask_image_field_name = weighted_seamline_image_field_name
+                input_polygons = weighted_seamline_input_polygons
+                input_layer = weighted_seamline_input_layer
+                if input_polygons is None:
+                    input_polygons = current_polygons
+                    if input_layer is None:
+                        input_layer = current_polygon_layer
+                if input_polygons is None:
+                    raise ValueError(
+                        "weighted_seamline requires input polygons. Set "
+                        "weighted_seamline_input_polygons or run a footprint step earlier in the pipeline."
+                    )
                 Seamline.weighted(
-                    input_polygons=weighted_seamline_input_polygons,
+                    input_polygons=input_polygons,
                     output_mask=seamline_mask_path,
                     rank_function=weighted_seamline_rank_function,
                     image_field_name=weighted_seamline_image_field_name,
-                    input_layer=weighted_seamline_input_layer,
+                    input_layer=input_layer,
                     output_layer=weighted_seamline_output_layer,
                     rank_descending=weighted_seamline_rank_descending,
                     debug_logs=shared_debug_logs,
@@ -615,20 +778,32 @@ def pipeline(
             else:
                 raise ValueError(f"Unsupported pipeline step: {step_name}")
 
+            previous_cleanup_paths.extend(step_cleanup_paths)
             if delete_previous_step and previous_cleanup_paths:
-                _delete_step_outputs_if_inactive(
+                # Rasters remain active through vector steps. Keep polygons until
+                # their last consumer, including consumers after intervening steps.
+                polygons_are_active = (
+                    (is_last_step and step_name in FOOTPRINT_STEPS)
+                    or any(
+                        upcoming in SEAMLINE_STEPS | {"postprocess_footprints"}
+                        for upcoming in resolved_steps[step_index + 1 :]
+                    )
+                )
+                previous_cleanup_paths = _delete_step_outputs_if_inactive(
                     previous_cleanup_paths=previous_cleanup_paths,
                     current_images=current_images,
                     seamline_mask_path=seamline_mask_path,
+                    current_polygons=current_polygons if polygons_are_active else None,
                     temp_dir=temp_dir,
                     debug_logs=shared_debug_logs,
                 )
-            previous_cleanup_paths = step_cleanup_paths
 
         if not resolved_steps:
             results["output"] = current_images
         elif last_step in SEAMLINE_STEPS:
             results["output"] = seamline_mask_path
+        elif last_step in FOOTPRINT_STEPS:
+            results["output"] = current_polygons
         else:
             results["output"] = current_images
 
@@ -749,9 +924,10 @@ def _delete_step_outputs_if_inactive(
     previous_cleanup_paths: list[str],
     current_images: Universal.SearchFolderOrListFiles,
     seamline_mask_path: str | None,
+    current_polygons: str | None = None,
     temp_dir: str,
     debug_logs: bool,
-) -> None:
+) -> list[str]:
     active_paths = set()
     if isinstance(current_images, list):
         active_paths.update(current_images)
@@ -759,11 +935,15 @@ def _delete_step_outputs_if_inactive(
         active_paths.add(current_images)
     if seamline_mask_path:
         active_paths.add(seamline_mask_path)
+    if current_polygons:
+        active_paths.add(current_polygons)
 
+    retained_paths = []
     for path in previous_cleanup_paths:
         if not _path_is_within(path, temp_dir):
             continue
         if any(_paths_overlap(path, active_path) for active_path in active_paths):
+            retained_paths.append(path)
             continue
         if os.path.isdir(path):
             shutil.rmtree(path, ignore_errors=True)
@@ -773,6 +953,7 @@ def _delete_step_outputs_if_inactive(
             os.remove(path)
             if debug_logs:
                 print(f"Deleted previous step file: {path}")
+    return retained_paths
 
 
 def _path_is_within(path: str, root: str) -> bool:

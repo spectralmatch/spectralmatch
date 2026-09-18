@@ -12,12 +12,14 @@ STEPS = [
     ("align", "align_rasters", chain, "align_rasters"),
     ("global_regression", "global_regression", chain.Match, "global_regression"),
     ("local_block_adjustment", "local_block_adjustment", chain.Match, "local_block_adjustment"),
+    ("create_footprints", "create_footprints", chain.Seamline, "create_footprints"),
+    ("postprocess_footprints", "postprocess_footprints", chain.Seamline, "postprocess_footprints"),
     ("voronoi_center_seamline", "voronoi_center_seamline", chain.Seamline, "voronoi"),
     ("weighted_seamline", "weighted_seamline", chain.Seamline, "weighted"),
     ("mask", "mask_rasters", chain, "mask_rasters"),
     ("merge", "merge_rasters", chain, "merge_rasters"),
 ]
-PATH_PARAMETERS = {"input_images", "output_images", "output_image_path", "output_mask"}
+PATH_PARAMETERS = {"input_images", "output_images", "output_image_path", "output_mask", "output_polygons"}
 
 
 @pytest.mark.parametrize("step,prefix,owner,name", STEPS)
@@ -26,7 +28,8 @@ def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step,
     signature = inspect.signature(target)
     source = tmp_path / "input.tif"
     create_dummy_raster(source, count=1)
-    output = str(tmp_path / ("output.gpkg" if "seamline" in step else "output"))
+    vector_step = step in chain.SEAMLINE_STEPS | chain.FOOTPRINT_STEPS
+    output = str(tmp_path / ("output.gpkg" if vector_step else "output"))
     options = {
         "shared_input_images": [str(source)],
         "shared_output_image_path": output,
@@ -72,8 +75,19 @@ def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step,
                     "shared_resume_from_steps" if parameter_name == "resume_from_outputs" else f"shared_{parameter_name}"
                 )
                 assert actual == expected.arguments[pipeline_name], pipeline_name
-        return output if step == "merge" or "seamline" in step else [output + "/result.tif"]
+        return output if step == "merge" or vector_step else [output + "/result.tif"]
 
     monkeypatch.setattr(owner, name, capture)
     chain.pipeline(**options)
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize("name", ["create_footprints", "postprocess_footprints"])
+def test_pipeline_footprint_defaults_match_function(name):
+    pipeline_parameters = inspect.signature(chain.pipeline).parameters
+    for parameter_name, parameter in inspect.signature(getattr(chain.Seamline, name)).parameters.items():
+        if parameter.default is inspect.Parameter.empty:
+            continue
+        dedicated = f"{name}_{parameter_name}"
+        if dedicated in pipeline_parameters:
+            assert pipeline_parameters[dedicated].default == parameter.default

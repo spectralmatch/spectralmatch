@@ -691,7 +691,6 @@ class Seamline:
         *,
         output_mask=_UNSET,
         aoi_path=_UNSET,
-        vector_mask=_UNSET,
         image_field_name=_UNSET,
         min_point_spacing=_UNSET,
         min_cut_length=_UNSET,
@@ -703,15 +702,6 @@ class Seamline:
         if aoi_path is not _UNSET and aoi_path is not None:
             if not isinstance(aoi_path, str):
                 raise ValueError("aoi_path must be a string or None.")
-        if vector_mask is not _UNSET and vector_mask is not None:
-            if (
-                not isinstance(vector_mask, tuple)
-                or len(vector_mask) != 2
-                or not all(isinstance(value, str) for value in vector_mask)
-            ):
-                raise ValueError(
-                    "vector_mask must be a tuple of (vector_path, field_name) or None."
-                )
         if image_field_name is not _UNSET:
             if not isinstance(image_field_name, str):
                 raise ValueError("image_field_name must be a string.")

@@ -4,6 +4,8 @@ import re
 
 import geopandas as gpd
 
+from .footprints import _read_polygons
+
 
 _FIELD_PATTERN = re.compile(r"\{([^{}]+)\}")
 _SAFE_FUNCTIONS = {
@@ -35,19 +37,20 @@ def weighted_seamline(
     """Generate ranked seamline polygons from input polygons and a score expression.
 
     Rank function placeholders support field references like ``{cloud_cover}``.
-    """
-    read_kwargs = {}
-    if input_layer is not None:
-        read_kwargs["layer"] = input_layer
-    gdf = gpd.read_file(input_polygons, **read_kwargs)
-    if gdf.empty:
-        raise ValueError("input_polygons contains no features.")
-    if image_field_name not in gdf.columns:
-        raise ValueError(
-            f"Field '{image_field_name}' was not found in input_polygons."
-        )
-    if gdf.crs is None:
-        raise ValueError("input_polygons must have a CRS.")
+
+    Args:
+        input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one.
+        output_mask (str): Output GeoPackage path for the ranked seamline polygons.
+        rank_function (str): Ranking expression using field placeholders like ``{cloud_cover}`` or formulas like ``1 / ({sun_elevation} + 1)``.
+        image_field_name (str, optional): Field containing the image identifier. Features sharing the same value are merged before ranking. Defaults to ``"image"``.
+        input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
+        output_layer (str, optional): Output GeoPackage layer name. Defaults to ``"seamlines"``.
+        rank_descending (bool, optional): If True, larger scores rank higher and remain on top. Defaults to True.
+        debug_logs (bool, optional): If True, prints ranking details. Defaults to False.
+
+    Returns:
+        str: Written output GeoPackage path."""
+    gdf = _read_polygons(input_polygons, input_layer, image_field_name)
 
     grouped_records = []
     for _, group in gdf.groupby(image_field_name, sort=False, dropna=False):
