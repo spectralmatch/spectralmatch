@@ -1,6 +1,6 @@
 # %% Worldview Mosaic
 # This file demonstrates how to preprocess Worldview3 imagery into a mosaic using spectralmatch.
-# Starting from two overlapping Worldview3 images in reflectance, the process includes joint coregistration, global matching, local matching, starting from saved block maps (optional for demonstration purposes), generating seamlines, and marging images, and before vs after statistics.
+# Starting from two overlapping Worldview3 images in reflectance, the process includes joint coregistration, global matching, local matching, starting from saved block maps (optional for demonstration purposes), polygonizing valid-pixel footprints, smoothing footprint polygons, generating seamlines, and merging images, and before vs after statistics.
 # This script is set up to perform matching on all .tif files from a folder within the working directory called "Input" e.g. working_directory/Input/*.tif. The easiest way to process your own imagery is to move it inside that folder or change the working_directory to another folder with this structure, alternatively, you can pass in custom lists of image paths.
 
 # %% Setup
@@ -10,6 +10,8 @@ from spectralmatch import (
     compare_before_after_all_images,
     compare_image_spectral_profiles_pairs,
     compare_spatial_spectral_difference_band_average,
+    create_footprints,
+    postprocess_footprints,
     joint_coregistration,
     global_regression,
     local_block_adjustment,
@@ -30,6 +32,9 @@ global_folder = os.path.join(working_directory, "GlobalMatch")
 local_folder = os.path.join(working_directory, "LocalMatch")
 clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
+footprints_path = os.path.join(working_directory, "Footprints.gpkg")
+smoothed_footprints_path = os.path.join(working_directory, "SmoothedFootprints.gpkg")
+seamlines_path = os.path.join(working_directory, "ImageMasks.gpkg")
 
 window_size = 1024
 image_threads = 3 # Dask: None | int
@@ -123,22 +128,63 @@ local_block_adjustment(
     # load_block_maps=(reference_map_path, searched_paths), # Local match from saved block maps (this code just passes in local maps, but if a reference map is passed in, it will match images to the reference map without recomputing it)
 )
 
+# %% Polygonize valid-pixel footprints
+# Use the locally matched images so footprint identifiers match the images clipped below.
+# GDAL's validity mask defines valid pixels. Apply cloud masks as nodata or a raster validity mask before this step; cloud class values alone do not mark pixels invalid.
+create_footprints(
+    input_images=local_folder,
+    output_polygons=footprints_path,
+    image_field_name="image",
+    output_layer="footprints",
+    band=1,
+    eight_connected=True,
+    image_threads=image_threads,
+    concurrent_processing_backend=concurrent_processing_backend,
+    dask_scheduler=dask_scheduler,
+    debug_logs=debug_mode,
+)
+
+# %% Cut edge holes and smooth footprints
+# Input polygons must use a suitable projected CRS; distances below use its linear units (metres for the example imagery).
+# These are starting values to tune for your imagery. Cuts use the original outer ring to select holes, and processing cannot expand the valid area.
+postprocess_footprints(
+    input_polygons=footprints_path,
+    output_polygons=smoothed_footprints_path,
+    input_layer="footprints",
+    output_layer="footprints",
+    edge_distance=800,  # Maximum hole-to-edge distance; 0 disables edge-hole cuts.
+    hole_to_hole_distance=800,  # Maximum distance between holes; 0 disables hole-pair cuts.
+    relative_edge_distance=None,  # Optionally also limit distance / sqrt(hole_area / pi).
+    cut_width="maximum_inscribed_circle",  # Inscribed diameter; pairs use the smaller width. Also accepts a positive integer or "hole_size".
+    cut_method="corridor",  # "corridor" subtracts a shortest connection; "buffer" expands the selected hole to the edge.
+    smoothing_radius=200,  # Erode then dilate within the cut polygon; 0 disables smoothing.
+    simplify_tolerance=120,  # Maximum inward-shortcut deviation; 0 disables simplification.
+    simplify_area_weight=0.5,  # Larger values favor retaining area over reducing perimeter.
+    area_filter=None,  # Optional minimum component area in squared CRS units.
+    area_rank=2,  # Keep the largest component per feature; negative N keeps the smallest abs(N), 0 or None keeps all.
+    image_threads=image_threads,
+    concurrent_processing_backend=concurrent_processing_backend,
+    dask_scheduler=dask_scheduler,
+    debug_logs=debug_mode,
+)
+
 # %% Generate seamlines
 
-# Option 1: Voronoi center seamlines from the raster footprints
+# Option 1: Voronoi center seamlines from the smoothed footprints
 
 voronoi_center_seamline(
-    input_images=local_folder,
-    output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
+    input_polygons=smoothed_footprints_path,
+    input_layer="footprints",
+    output_mask=seamlines_path,
     image_field_name="image",
     debug_logs=debug_mode,
     debug_vectors_path=os.path.join(working_directory, "DebugVectors.gpkg"),
 )
 
-# Option 2: Weighted seamlines from a polygon layer that already contains ranking attributes. This is useful when another workflow prepares footprint polygons plus metadata fields for ranking. Rank placeholders support direct fields like {quality_score}.
+# Option 2: Use the same smoothed footprints for weighted seamlines instead of Option 1. Add quality_score and cloud_cover attributes to this layer first, or add them to Footprints.gpkg before postprocessing, which preserves attributes. Rank placeholders support direct fields like {quality_score}.
 # weighted_seamline(
-#     input_polygons=os.path.join(working_directory, "SeamlineMetadata.gpkg"),
-#     output_mask=os.path.join(working_directory, "ImageMasks.gpkg"),
+#     input_polygons=smoothed_footprints_path,
+#     output_mask=seamlines_path,
 #     input_layer="footprints",
 #     image_field_name="image",
 #     rank_function="{quality_score} - {cloud_cover}",
@@ -151,7 +197,7 @@ voronoi_center_seamline(
 mask_rasters(
     input_images=local_folder,
     output_images=clipped_folder,
-    vector_mask=("include", os.path.join(working_directory, "ImageMasks.gpkg"), "image"),
+    vector_mask=("include", seamlines_path, "image"),
     debug_logs=debug_mode,
     window_size=window_size,
     image_threads=image_threads,

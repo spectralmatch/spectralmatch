@@ -985,6 +985,8 @@ def pipeline(shared_input_images, shared_output_image_path):
 
 Step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.
 
+Select ``create_footprints`` followed by ``postprocess_footprints`` before either seamline step to prepare its polygons. These steps retain the current rasters for later masking and merging. Polygon paths and layer names flow between steps unless an explicit input overrides them. Postprocessing is opt-in because its distances require a suitable projected CRS and tuning for the imagery.
+
 Args:
     shared_window_scales: Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.
     shared_window_size: Processing window size; for tiled merge, also the output tile width and height in pixels, default 1024.
@@ -995,7 +997,28 @@ Args:
     global_regression_pif_method: PIF selection method, default "flood_from_match_points", matching Match.global_regression.
     global_regression_pif_max_samples: Maximum number of PIF samples, default 10000; None disables the cap.
     global_regression_pif_min_samples: Minimum number of PIF samples, default 10.
-    weighted_seamline_input_polygons: Input polygon path, required when steps includes weighted_seamline.
+    create_footprints_image_field_name: Image identifier field for generated footprints, default "image"; use the same field name in the seamline step.
+    create_footprints_output_layer: Output GeoPackage layer for generated footprints, default "footprints".
+    create_footprints_band: One-based raster band whose validity mask defines the footprints, default 1.
+    create_footprints_eight_connected: Use eight-connected polygonization, default True; False uses four-connected polygonization.
+    postprocess_footprints_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output.
+    postprocess_footprints_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
+    postprocess_footprints_output_layer: Output GeoPackage layer for processed footprints, default "footprints".
+    postprocess_footprints_edge_distance: Maximum hole-to-edge distance in projected CRS units, default 800; 0 disables only edge cuts.
+    postprocess_footprints_hole_to_hole_distance: Maximum distance between original holes in the same polygon component, default 800; 0 disables only hole-pair cuts.
+    postprocess_footprints_relative_edge_distance: Optional edge-only limit on distance divided by sqrt(hole_area / pi), default None.
+    postprocess_footprints_cut_width: Positive integer width, "hole_size" for the largest diameter, or "maximum_inscribed_circle" (default) for the inscribed diameter. Applies to both cut types; pairs use the smaller width.
+    postprocess_footprints_cut_method: Hole cutting method, "corridor" (default) or "buffer".
+    postprocess_footprints_smoothing_radius: Inward smoothing radius in projected CRS units, default 240; 0 disables smoothing.
+    postprocess_footprints_simplify_tolerance: Maximum inward simplification deviation in projected CRS units, default 120; 0 disables simplification.
+    postprocess_footprints_simplify_area_weight: Area retention weight in [0, 1], default 0.5.
+    postprocess_footprints_area_filter: Optional minimum component area in squared CRS units, default None.
+    postprocess_footprints_area_rank: Keep the largest N components for positive N or smallest abs(N) for negative N; 0 or None keeps all; default 1.
+    voronoi_center_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output or creates footprints from the current images if no footprint step has run.
+    voronoi_center_seamline_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
+    voronoi_center_seamline_output_layer: Output GeoPackage layer name for Voronoi seamlines; default "seamlines".
+    weighted_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output. One of these sources is required for weighted_seamline.
+    weighted_seamline_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
     weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
     merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
     joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
@@ -1287,7 +1310,7 @@ def run():
 ### File: utils_multiprocessing.py
 
 def _run_image_tasks(function, args):
-    """Run image tasks with worker start messages and parent completion counts, returning results in input order."""
+    """Run tasks, optionally commit each result in a parent callback before logging completion, and collect results in input order."""
 
 def _parse_dask_scheduler(value):
     """Validate and normalize a Dask scheduler connection tuple."""
@@ -1957,22 +1980,30 @@ Args:
     rank_descending (bool, optional): If True, larger scores rank higher and remain on top. Defaults to True.
     debug_logs (bool, optional): If True, prints ranking details. Defaults to False.
 
+    resume_from_outputs (Literal["no", "yes", "validate"], optional): Recompute outputs with "no", reuse existing outputs with "yes", or validate existing outputs before reusing them with "validate"; default is "no".
+
 Returns:
     str: Written output GeoPackage path."""
 
-def voronoi(input_images, output_mask):
+def voronoi(input_polygons, output_mask):
     """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
 
 Args:
-    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"].
+    input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one. Features sharing the same image identifier are merged before processing.
+    input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
+    output_layer (str, optional): Output GeoPackage layer name. Defaults to ``"seamlines"``.
     output_mask (str): Output path for the final seamline polygon vector file.
     aoi_path (str, optional): Path to an AOI vector file to clip overlapping image polygons; default is None.
-    vector_mask (Tuple[str, str] | None, optional): Optional polygon source to use instead of extracting EMPs from rasters. The tuple is (vector_path, field_name). For each input image, polygons are selected when the field value is included anywhere in the image name. Matching polygons for the same image are unioned together.
     min_point_spacing (float, optional): Minimum spacing between Voronoi seed points; default is 10.
     min_cut_length (float, optional): Minimum cutline segment length to retain; default is 0.
     debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
     image_field_name (str, optional): Name of the attribute field for image ID in output; default is 'image'.
     debug_vectors_path (str | None, optional): Optional path to save debug layers (cutlines, intersections).
+
+    resume_from_outputs (Literal["no", "yes", "validate"], optional): Recompute outputs with "no", reuse existing outputs with "yes", or validate existing outputs before reusing them with "validate"; default is "no".
+
+Returns:
+    str: Written output GeoPackage path.
 
 Outputs:
     Saves a polygon seamline layer to `output_mask`, and optionally saves intermediate cutlines to `debug_vectors_path`."""
@@ -1982,14 +2013,125 @@ Outputs:
 def weighted_seamline(input_polygons, output_mask):
     """Generate ranked seamline polygons from input polygons and a score expression.
 
-Rank function placeholders support field references like ``{cloud_cover}``."""
+Rank function placeholders support field references like ``{cloud_cover}``.
+
+Args:
+    input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one.
+    output_mask (str): Output GeoPackage path for the ranked seamline polygons.
+    rank_function (str): Ranking expression using field placeholders like ``{cloud_cover}`` or formulas like ``1 / ({sun_elevation} + 1)``.
+    image_field_name (str, optional): Field containing the image identifier. Features sharing the same value are merged before ranking. Defaults to ``"image"``.
+    input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
+    output_layer (str, optional): Output GeoPackage layer name. Defaults to ``"seamlines"``.
+    rank_descending (bool, optional): If True, larger scores rank higher and remain on top. Defaults to True.
+    debug_logs (bool, optional): If True, prints ranking details. Defaults to False.
+
+Returns:
+    str: Written output GeoPackage path."""
 
 def _evaluate_weighted_expression(row, expression):
 
-### File: seamline/voronoi_center_seamline.py
+### File: seamline/footprints.py
 
-def _load_emp_polygons_from_vector(input_image_paths, input_image_names, vector_mask, debug_logs):
-    """Load one polygon footprint per image from a vector source by substring matching."""
+def _polygon_parts(geometry):
+    """Return all nonempty polygon components of a geometry."""
+
+def _read_polygons(path, input_layer, image_field_name):
+    """Read valid polygon features with a CRS and optional image identifiers."""
+
+def _validate_polygon_output(output_path, output_layer):
+    """Validate the GeoPackage destination and layer name."""
+
+def _footprint_output_is_reusable(output_path, resume_mode, debug_logs, step_name):
+    """Never reuse a partial streaming output as a completed GeoPackage."""
+
+def _footprint_from_image(path, band, eight_connected):
+    """Polygonize a raster band's valid-data mask in map coordinates."""
+
+def create_footprints(input_images, output_polygons):
+    """Polygonize valid raster masks into a shared seamline GeoPackage, retaining holes and islands.
+
+Args:
+    input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"]. Images must have unique basenames and the same CRS.
+    output_polygons (str): Output GeoPackage path for the image footprints, including image identifiers and image_path attributes.
+    image_field_name (str, optional): Name of the field containing each image basename without its extension; must differ from geometry and image_path. Defaults to "image".
+    output_layer (str, optional): Output GeoPackage layer name. Defaults to "footprints".
+    band (int, optional): One-based raster band whose GDAL validity mask defines valid pixels; categorical mask values alone do not define validity. Defaults to 1.
+    eight_connected (bool, optional): Use 8-connectedness for polygonization; if False, use 4-connectedness. Defaults to True.
+    image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-image operations; "cpu" uses all CPU cores, an integer sets the worker count, and None disables local parallelism. Local GDAL workers use threads. Defaults to None.
+    concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use the local execution backend or an existing Dask cluster; local raster polygonization uses threads under the "process_pool" setting. Defaults to "process_pool".
+    dask_scheduler (tuple[str, str] | None, optional): Existing Dask scheduler as ("file", path) or ("address", address); required for Dask execution, which requires image_threads=None. Defaults to None.
+    debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
+    resume_from_outputs (Literal["no", "yes", "validate"], optional): Recompute outputs with "no", reuse existing outputs with "yes", or validate existing outputs before reusing them with "validate"; incomplete streaming outputs are recomputed. Defaults to "no".
+
+Returns:
+    str: Written output GeoPackage path."""
+
+def _simplify_inner(polygon, tolerance, area_weight):
+    """Greedily remove vertices using inward shortcuts and a normalized area/perimeter cost."""
+
+def _filter_polygon_area(geometry, area_filter, area_rank):
+    """Filter components by minimum area, then retain the largest or smallest requested count."""
+
+def _hole_diameter(hole):
+    """Return the maximum vertex-to-vertex distance using convex-hull rotating calipers."""
+
+def _hole_cut_width(hole, cut_width):
+    """Resolve an angle-independent width from the original hole geometry."""
+
+def _postprocess_polygon(geometry, edge_distance, relative_edge_distance, cut_width, cut_method, smoothing_radius, simplify_tolerance, simplify_area_weight, area_filter, area_rank, hole_to_hole_distance):
+    """Connect selected holes to edges/holes, then smooth and simplify inward."""
+
+def postprocess_footprints(input_polygons, output_polygons):
+    """Connect nearby holes and edges, then smooth/simplify inward, preserving attributes.
+
+Args:
+    input_polygons (str): Input polygon layer path with valid, nonempty Polygon or MultiPolygon features in a suitable projected CRS; all distances use that CRS's linear units.
+    output_polygons (str): Output GeoPackage path for processed polygons and their original attributes; must differ from input_polygons.
+    input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
+    output_layer (str, optional): Output GeoPackage layer name. Defaults to "footprints".
+    edge_distance (float, optional): Maximum hole-to-edge distance in CRS units, measured against each component's original outer ring; zero disables only hole-to-edge cuts. Defaults to 800.
+    hole_to_hole_distance (float, optional): Maximum boundary-to-boundary distance in CRS units between original holes in the same polygon component; every qualifying pair is connected. Zero disables only hole-to-hole cuts. Defaults to 800.
+    relative_edge_distance (float | None, optional): Additional upper limit on hole-to-edge distance divided by sqrt(hole_area / pi); applies only to edge cuts. None disables this size-relative filter. Defaults to None.
+    cut_width (int | Literal["hole_size", "maximum_inscribed_circle"], optional): Positive integer width in CRS units, "hole_size" for the largest vertex-to-vertex diameter, or "maximum_inscribed_circle" for the largest circle fitting inside the hole (diameter, approximated with radius tolerance sqrt(hole_area) / 1000). Applies to both edge and hole-pair cuts; pairs use the smaller hole width. Defaults to "maximum_inscribed_circle".
+    cut_method (Literal["corridor", "buffer"], optional): Subtract a shortest connection buffered by half the cut width with "corridor". With "buffer", expand an edge-selected hole by distance + width / 2, or both holes in a pair by (distance + width) / 2. Defaults to "corridor".
+    smoothing_radius (float, optional): Nonnegative erosion and dilation radius, followed by intersection with the cut polygon to prevent expansion or refilling cuts; zero disables smoothing. Defaults to 240.
+    simplify_tolerance (float, optional): Nonnegative maximum deviation of removed vertices from inward shortcuts, including cumulative removals; zero disables simplification. Defaults to 120.
+    simplify_area_weight (float, optional): Weight in [0, 1] balancing normalized area loss against perimeter reduction in the greedy inward shortcut simplifier; larger values favor retaining area. Defaults to 0.5.
+    area_filter (float | None, optional): Minimum retained component area in squared CRS units, applied after smoothing and simplification and before area_rank; None disables the threshold. Defaults to None.
+    area_rank (int | None, optional): Keep the largest N components per feature for positive N, or the smallest abs(N) for negative N; 0 or None keeps all components passing area_filter. Defaults to 1.
+    image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-feature geometry operations; "cpu" uses all CPU cores, an integer sets the process count, and None disables local parallelism. Defaults to None.
+    concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use a local process pool or an existing Dask cluster. Defaults to "process_pool".
+    dask_scheduler (tuple[str, str] | None, optional): Existing Dask scheduler as ("file", path) or ("address", address); required for Dask execution, which requires image_threads=None. Defaults to None.
+    debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
+    resume_from_outputs (Literal["no", "yes", "validate"], optional): Recompute outputs with "no", reuse existing outputs with "yes", or validate existing outputs before reusing them with "validate"; incomplete streaming outputs are recomputed. Defaults to "no".
+
+Returns:
+    str: Written output GeoPackage path; empty processed features are omitted, and removing all features raises ValueError."""
+
+def __init__(self, path, layer, schema, crs):
+
+def __enter__(self):
+
+def write(self, geometry, record):
+    """Write and flush one feature before the parent reports completion."""
+
+def __exit__(self, exc_type, exc_value, traceback):
+
+def enqueue(r, i):
+    """Queue a local shortcut with its area/perimeter cost and displacement bound."""
+
+def cross_area(a, b, point):
+    """Return twice the unsigned area between an edge and a point."""
+
+def commit(index, result):
+    """Validate each raster CRS and commit its geometry and identifier."""
+
+def width_for(index):
+
+def commit(index, geometry):
+    """Commit each returned geometry with its original input attributes."""
+
+### File: seamline/voronoi_center_seamline.py
 
 def _densify_polygon(poly, target_spacing):
     """Return evenly spaced points along a polygon's exterior by arc-length.
@@ -2074,16 +2216,6 @@ Args:
     path (str): Path to the output GeoPackage.
     crs: Coordinate reference system.
     layer_name (str, optional): Layer name. Defaults to 'voronoi_seeds'."""
-
-def _emp_polygon_from_image(path, eight_connected):
-    """Extract the largest valid EMP polygon from a raster mask using GDAL.
-
-Args:
-    path (str): Path to the input raster file.
-    eight_connected (bool, optional): Use 8-connectedness for polygonization. Default is True.
-
-Returns:
-    shapely.geometry.Polygon | ogr.Geometry: The largest EMP polygon."""
 
 def _mask_by_aoi(polygons, aoi_path):
     """Clip polygons by an AOI layer from file.
@@ -3524,6 +3656,72 @@ This library was developed at the [Spatial Data Analysis and Visualization Lab (
 
 
 ### File: api/seamline.md
+Create footprints once, optionally postprocess them, then pass the resulting GeoPackage to either seamline method:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">create_footprints</span><span class="p">,</span> <span class="n">postprocess_footprints</span><span class="p">,</span>
+    <span class="n">voronoi_center_seamline</span><span class="p">,</span> <span class="n">weighted_seamline</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">footprints</span> <span class="o">=</span> <span class="n">create_footprints</span><span class="p">(</span>
+    <span class="s2">"images/*.tif"</span><span class="p">,</span> <span class="s2">"footprints.gpkg"</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cleaned</span> <span class="o">=</span> <span class="n">postprocess_footprints</span><span class="p">(</span>
+    <span class="n">footprints</span><span class="p">,</span> <span class="s2">"cleaned.gpkg"</span><span class="p">,</span>
+    <span class="n">edge_distance</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">hole_to_hole_distance</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span>
+    <span class="n">cut_width</span><span class="o">=</span><span class="s2">"maximum_inscribed_circle"</span><span class="p">,</span> <span class="n">smoothing_radius</span><span class="o">=</span><span class="mi">240</span><span class="p">,</span>
+    <span class="n">simplify_tolerance</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">area_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">area_rank</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">image_threads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">voronoi_center_seamline</span><span class="p">(</span><span class="n">cleaned</span><span class="p">,</span> <span class="s2">"voronoi.gpkg"</span><span class="p">)</span>
+
+<span class="c1"># Add ranking attributes (e.g. quality) to the footprint layer before ranking.</span>
+<span class="n">weighted_seamline</span><span class="p">(</span><span class="n">cleaned</span><span class="p">,</span> <span class="s2">"weighted.gpkg"</span><span class="p">,</span> <span class="n">rank_function</span><span class="o">=</span><span class="s2">"</span><span class="si">{quality}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+These functions are also available as `Seamline.create_footprints`, `Seamline.postprocess_footprints`, `Seamline.voronoi`, and `Seamline.weighted`, and through the CLI. Voronoi now takes `input_polygons`, `input_layer`, and `image_field_name`; its former `input_images` and substring-based `vector_mask` inputs have been removed. Pipeline callers use `voronoi_center_seamline_input_polygons` and `voronoi_center_seamline_input_layer`. When no polygon input is supplied, the default pipeline explicitly calls `create_footprints` on its current images before invoking Voronoi.
+
+`create_footprints` polygonizes the GDAL validity mask of `band` (default 1), including nodata, dataset masks, or alpha masks as provided by GDAL. It retains all islands and holes, with one feature per image and fields `image` (basename without extension) and `image_path`. Images must have unique basenames and the same CRS. A categorical cloud raster must first encode invalid pixels as nodata or a validity mask; its class values alone do not define validity. `eight_connected` controls diagonal connectivity. Polygonization explicitly supplies the raster georeferencing for mask bands through [GDAL's DATASET_FOR_GEOREF option](https://gdal.org/en/stable/api/gdal_alg.html).
+
+Postprocessing preserves attributes and requires a suitable projected CRS. Distances use that CRS's linear units. Both new functions accept `image_threads`, `concurrent_processing_backend`, `dask_scheduler`, `debug_logs`, and `resume_from_outputs`, following the package's existing execution conventions. Local raster polygonization uses threads, matching the existing raster-to-vector function; local geometry postprocessing uses processes. Dask dispatches both through the shared executor. Workers return geometries; the parent alone writes and flushes each feature as soon as it completes, before logging completion. Parallel outputs are stored in completion order, with attributes attached by input index. Completed features remain readable if another worker fails; an adjacent `.incomplete` marker prevents resume modes from mistaking a partial output for a completed one. Rerunning an incomplete output recomputes the layer.
+
+| Postprocessing parameter | Effect |
+| --- | --- |
+| `edge_distance=800` | Maximum distance from a hole to its original component's outer ring; zero disables only hole-to-edge cuts. |
+| `hole_to_hole_distance=800` | Maximum boundary-to-boundary distance between original holes in the same polygon component. Connects every qualifying pair; zero disables only hole-to-hole cuts. |
+| `relative_edge_distance=None` | Optional additional limit on hole-to-edge distance divided by `sqrt(hole_area / pi)`. Does not restrict hole-to-hole cuts. |
+| `cut_width="maximum_inscribed_circle"` | Diameter of the largest circle fitting inside each hole, independent of cut direction. Also accepts `"hole_size"` for the largest vertex-to-vertex diameter or a positive integer for a fixed width. Applies to both cut types; hole pairs use the smaller of their two widths. |
+| `cut_method="corridor"` | Subtract a shortest connection buffered by half the cut width. With `"buffer"`, expand an edge-selected hole by `distance + width / 2`, or both holes in a pair by `(distance + width) / 2`. |
+| `smoothing_radius=240` | Erode then dilate, intersecting with the cut geometry to prevent expansion or refilling cuts. |
+| `simplify_tolerance=120` | Maximum deviation of removed vertices from each shortcut; zero disables simplification. |
+| `simplify_area_weight=0.5` | Balance normalized area loss against perimeter reduction; larger values favor retaining area. |
+| `area_filter=None` | Minimum polygon component area in squared CRS units; None disables the threshold. |
+| `area_rank=1` | Keep the largest N components per feature for positive N or smallest abs(N) for negative N; 0 or None keeps all. |
+
+Area filtering runs after smoothing and simplification, first by threshold and then by rank, independently for each feature. Ranking does not remove interior holes from retained components.
+
+Both distance limits use the original geometry, before any cuts or smoothing. Hole pairs are evaluated once, within each polygon component; separate components and features are never paired. A chain of qualifying hole pairs can connect a deep hole to an edge-selected hole, even when the deep hole itself exceeds `edge_distance`. Newly cut boundaries do not make additional pairs or edge cuts eligible. Set both distance parameters to `0` to disable explicit cuts; smoothing can still connect holes by removing narrow strips.
+
+The maximum inscribed circle width measures the hole's thickest interior region: a 1000-by-200 rectangle produces a width of approximately 200 at any rotation. The radius is approximated to a tolerance of `sqrt(hole_area) / 1000`; the width is twice that radius. For an irregular hole with a large lobe and a narrow neck, the large lobe determines the width. Other holes can still be reached by wide cuts, overlapping corridors, or smoothing. Holes are not filled. Empty processed features are omitted; removing every feature raises an error.
+
+The simplifier is an **inward greedy adaptation** of the vertex-restricted shortcut idea in [Shortcut Hulls (Bonerath et al., 2021)](https://arxiv.org/abs/2106.13620). The paper's algorithm constructs outer hulls and optimizes globally; this implementation does neither. It uses a priority queue of vertex removals, cached area and coordinate arithmetic for shortcut costs and displacement, and a spatial index of boundary vertices for local inward-ear checks. It balances normalized area loss and perimeter savings and bounds cumulative shortcut displacement. A final validity and containment check retains the input if numerical degeneracies defeat the local checks. Exterior and hole rings retain at least three vertices. It therefore cannot expand the valid region or fill a cloud hole. It is a local heuristic, and may leave vertices that a global optimizer could remove. Geometry checks can still be costly for very detailed footprints. Smoothing may introduce vertices before simplification; shortcut endpoints come from the geometry entering the simplifier.
+
 ::: spectralmatch.seamline.Seamline
 
 
@@ -3677,6 +3875,80 @@ Debug logging prints the resolved global/local strength and movement-penalty wei
 
 
 ### File: api/pipeline.md
+The pipeline runs `steps` in the order supplied. To use the footprint processing
+functions before generating seamlines, include them after the raster matching
+steps:
+
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">spectralmatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">pipeline</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span>
+    <span class="n">shared_input_images</span><span class="o">=</span><span class="s2">"matched_images"</span><span class="p">,</span>
+    <span class="n">shared_output_image_path</span><span class="o">=</span><span class="s2">"mosaic.tif"</span><span class="p">,</span>
+    <span class="n">steps</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">"create_footprints"</span><span class="p">,</span>
+        <span class="s2">"postprocess_footprints"</span><span class="p">,</span>
+        <span class="s2">"voronoi_center_seamline"</span><span class="p">,</span>
+        <span class="s2">"mask"</span><span class="p">,</span>
+        <span class="s2">"merge"</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">create_footprints_band</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">create_footprints_eight_connected</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_edge_distance</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_hole_to_hole_distance</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_cut_width</span><span class="o">=</span><span class="s2">"maximum_inscribed_circle"</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_cut_method</span><span class="o">=</span><span class="s2">"corridor"</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_smoothing_radius</span><span class="o">=</span><span class="mi">220</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_simplify_tolerance</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_simplify_area_weight</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">postprocess_footprints_area_rank</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+
+Postprocessing requires a suitable projected CRS. Tune distances in that CRS's
+linear units for your imagery; the example values are starting points for the
+WorldView example. Postprocessing is opt-in. The default workflow still creates
+footprints automatically when Voronoi has no polygon input.
+
+Footprint paths and layer names pass automatically from creation to postprocessing
+and then to either seamline method. Explicit `*_input_polygons` and `*_input_layer`
+options override these inputs. When supplying an external polygon path without a
+layer name, the source's default layer is used. Set the same `*_image_field_name`
+for footprint creation and the selected seamline method when using a custom field.
+
+Replace `voronoi_center_seamline` with `weighted_seamline` and supply
+`weighted_seamline_rank_function` to use ranked seamlines. Fields referenced by the
+expression must exist in the input polygons; postprocessing preserves them. Existing
+polygons can enter through `postprocess_footprints_input_polygons` or the chosen
+seamline step's `*_input_polygons` option.
+
+Each footprint step can also be the final step, in which case
+`shared_output_image_path` is its output `.gpkg` file. Intermediate footprint
+outputs appear in the result dictionary under `create_footprints` and
+`postprocess_footprints`. Both steps use the shared worker, backend, debugging,
+resume, and temporary-output cleanup settings.
+
 ::: spectralmatch.pipeline
 
 
