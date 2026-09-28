@@ -17,6 +17,8 @@ result = pipeline(
     ),
     create_footprints_band=1,
     create_footprints_eight_connected=True,
+    # create_footprints_metadata_csv="image_metadata.csv",
+    create_footprints_metadata_image_field_name="image",
     postprocess_footprints_hole_edge_distance=800,
     postprocess_footprints_hole_to_hole_distance=800,
     postprocess_footprints_hole_cut_width="maximum_inscribed_circle",
@@ -35,8 +37,10 @@ footprints automatically when Voronoi has no polygon input.
 
 Footprint paths and layer names pass automatically from creation to postprocessing
 and then to either seamline method. Explicit `*_input_polygons` and `*_input_layer`
-options override these inputs. When supplying an external polygon path without a
-layer name, the source's default layer is used. Set the same `*_image_field_name`
+options override these inputs. External polygons default to the `"footprints"`
+layer; pass `*_input_layer=None` to read their first layer. When using preceding
+footprints, the default `"footprints"` or None inherits their generated layer name.
+Set the same `*_image_field_name`
 for footprint creation and the selected seamline method when using a custom field.
 
 Replace `voronoi_center_seamline` with `weighted_seamline` and supply
@@ -44,6 +48,14 @@ Replace `voronoi_center_seamline` with `weighted_seamline` and supply
 expression must exist in the input polygons; postprocessing preserves them. Existing
 polygons can enter through `postprocess_footprints_input_polygons` or the chosen
 seamline step's `*_input_polygons` option.
+
+Supply `create_footprints_metadata_csv` to join image-level CSV attributes in either
+an explicit footprint step or automatic footprint creation before Voronoi.
+`create_footprints_metadata_image_field_name` selects the CSV column containing each
+full current image basename, including processing suffixes but without its extension,
+as a literal, case-insensitive substring. Each
+image must match exactly one row. Other columns become footprint attributes and
+remain available to ranking expressions after postprocessing.
 
 Each footprint step can also be the final step, in which case
 `shared_output_image_path` is its output `.gpkg` file. Intermediate footprint

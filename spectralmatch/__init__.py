@@ -17,6 +17,7 @@ global_regression = Match.global_regression
 local_block_adjustment = Match.local_block_adjustment
 voronoi_center_seamline = Seamline.voronoi
 weighted_seamline = Seamline.weighted
+markov_triangles = Seamline.markov_triangles
 
 __all__ = [
     "Pif",
@@ -30,6 +31,7 @@ __all__ = [
     "pipeline",
     "voronoi_center_seamline",
     "weighted_seamline",
+    "markov_triangles",
     "create_footprints",
     "postprocess_footprints",
     # Handlers

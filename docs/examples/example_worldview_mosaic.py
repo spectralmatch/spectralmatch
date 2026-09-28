@@ -16,6 +16,7 @@ from spectralmatch import (
     global_regression,
     local_block_adjustment,
     mask_rasters,
+    markov_triangles,
     merge_rasters,
     search_paths,
     voronoi_center_seamline,
@@ -33,6 +34,7 @@ local_folder = os.path.join(working_directory, "LocalMatch")
 clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
 footprints_path = os.path.join(working_directory, "Footprints.gpkg")
+metadata_csv_path = os.path.join(input_folder, "ImageMetadata.csv")
 smoothed_footprints_path = os.path.join(working_directory, "SmoothedFootprints.gpkg")
 seamlines_path = os.path.join(working_directory, "ImageMasks.gpkg")
 
@@ -131,9 +133,13 @@ local_block_adjustment(
 # %% Polygonize valid-pixel footprints
 # Use the locally matched images so footprint identifiers match the images clipped below.
 # GDAL's validity mask defines valid pixels. Apply cloud masks as nodata or a raster validity mask before this step; cloud class values alone do not mark pixels invalid.
+# ImageMetadata.csv contains illustrative scores (0–100), cloud percentages and sun/off-nadir angles in degrees; replace them with measured metadata for your images.
+# Its image column includes the full LocalMatch basename, e.g. Worldview_20160922_Coregistered_Global_Local; .tif is optional.
 create_footprints(
     input_images=local_folder,
     output_polygons=footprints_path,
+    metadata_csv=metadata_csv_path,
+    metadata_image_field_name="image",  # CSV values must contain the full current basename, including processing suffixes.
     image_field_name="image",
     output_layer="footprints",
     band=1,
@@ -172,25 +178,52 @@ postprocess_footprints(
 
 # Option 1: Voronoi center seamlines from the smoothed footprints
 
-voronoi_center_seamline(
-    input_polygons=smoothed_footprints_path,
-    input_layer="footprints",
-    output_mask=seamlines_path,
-    image_field_name="image",
-    debug_logs=debug_mode,
-    debug_vectors_path=os.path.join(working_directory, "DebugVectors.gpkg"),
-)
+# voronoi_center_seamline(
+#     input_polygons=smoothed_footprints_path,
+#     input_layer="footprints",
+#     output_mask=seamlines_path,
+#     image_field_name="image",
+#     debug_logs=debug_mode,
+#     debug_vectors_path=os.path.join(working_directory, "DebugVectors.gpkg"),
+# )
 
-# Option 2: Use the same smoothed footprints for weighted seamlines instead of Option 1. Add quality_score and cloud_cover attributes to this layer first, or add them to Footprints.gpkg before postprocessing, which preserves attributes. Rank placeholders support direct fields like {quality_score}.
+# Option 2: Rank the smoothed footprints using CSV attributes, which postprocessing preserves. Adjust the example coefficients to your priorities.
 # weighted_seamline(
 #     input_polygons=smoothed_footprints_path,
 #     output_mask=seamlines_path,
 #     input_layer="footprints",
 #     image_field_name="image",
-#     rank_function="{quality_score} - {cloud_cover}",
+#     rank_function="{quality_score} - {cloud_cover} + 0.1 * {sun_elevation} - 0.2 * {off_nadir_angle}",
 #     rank_descending=True,
 #     debug_logs=debug_mode,
 # )
+
+# Option 3: Optimize triangle seamlines using image texture, inter-image differences, and image level metadata.
+# GSDs are positive integer CRS distances (metres here) or "native", independent of mesh_spacing.
+# Omit input_polygons to generate valid-data footprints automatically.
+# Single GSDs/bands use [value]; multiple values require a reducer, e.g. {"average": ["native", 4]}.
+markov_triangles(
+    input_images=local_folder,
+    input_polygons=smoothed_footprints_path,
+    input_layer="footprints",
+    output_mask=seamlines_path,
+    image_field_name="image",
+    mesh_spacing=10,
+    edge_variables_weights_gsds_bands=[
+        ["laplacian_difference", 0.7, ["native"], [1]],
+        ["laplacian_magnitude", 1.0, ["native"], {"largest": [1, 2, 3]}],
+        # ["/path/to/costs.tif", 0.5, {"largest": [2, 8]}, [1]],
+    ],
+    # image_rank_function="{quality_score} - {cloud_cover} + 0.1 * {sun_elevation} - 0.2 * {off_nadir_angle}",
+    # image_rank_descending=True,
+    # image_quality_weight=1.0,
+    # foreground_path="/path/to/protected_objects.gpkg",
+    # foreground_layer="objects",
+    image_threads=image_threads,
+    concurrent_processing_backend=concurrent_processing_backend,
+    dask_scheduler=dask_scheduler,
+    debug_logs=debug_mode,
+)
 
 # %% Clip
 

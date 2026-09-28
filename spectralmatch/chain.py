@@ -152,12 +152,14 @@ def pipeline(
     local_block_adjustment_load_block_maps: Tuple[str, List[str]] | Tuple[str, None] | Tuple[None, List[str]] | None = None,
     local_block_adjustment_override_bounds_canvas_coords: Tuple[float, float, float, float] | None = None,
     local_block_adjustment_build_overviews: bool = False,
+    create_footprints_metadata_csv: str | None = None,
+    create_footprints_metadata_image_field_name: str = "image",
     create_footprints_image_field_name: str = "image",
     create_footprints_output_layer: str = "footprints",
     create_footprints_band: int = 1,
     create_footprints_eight_connected: bool = True,
     postprocess_footprints_input_polygons: str | None = None,
-    postprocess_footprints_input_layer: str | None = None,
+    postprocess_footprints_input_layer: str | None = "footprints",
     postprocess_footprints_output_layer: str = "footprints",
     postprocess_footprints_hole_edge_distance: float = 800,
     postprocess_footprints_hole_to_hole_distance: float = 800,
@@ -170,17 +172,19 @@ def pipeline(
     postprocess_footprints_filter_area_size: float | None = None,
     postprocess_footprints_filter_area_rank: int | None = 1,
     voronoi_center_seamline_aoi_path: str | None = None,
+    voronoi_center_seamline_input_images: Universal.SearchFolderOrListFiles | None = None,
     voronoi_center_seamline_input_polygons: str | None = None,
-    voronoi_center_seamline_input_layer: str | None = None,
+    voronoi_center_seamline_input_layer: str | None = "footprints",
     voronoi_center_seamline_output_layer: str = "seamlines",
     voronoi_center_seamline_image_field_name: str = "image",
     voronoi_center_seamline_min_point_spacing: float = 10,
     voronoi_center_seamline_min_cut_length: float = 0,
     voronoi_center_seamline_debug_vectors_path: str | None = None,
+    weighted_seamline_input_images: Universal.SearchFolderOrListFiles | None = None,
     weighted_seamline_input_polygons: str | None = None,
     weighted_seamline_rank_function: str | None = None,
     weighted_seamline_image_field_name: str = "image",
-    weighted_seamline_input_layer: str | None = None,
+    weighted_seamline_input_layer: str | None = "footprints",
     weighted_seamline_output_layer: str = "seamlines",
     weighted_seamline_rank_descending: bool = True,
     mask_rasters_vector_mask: Universal.VectorMask = None,
@@ -216,12 +220,14 @@ def pipeline(
         global_regression_pif_method: PIF selection method, default "flood_from_match_points", matching Match.global_regression.
         global_regression_pif_max_samples: Maximum number of PIF samples, default 10000; None disables the cap.
         global_regression_pif_min_samples: Minimum number of PIF samples, default 10.
+        create_footprints_metadata_csv: Optional CSV with image-level ranking attributes; every image must match exactly one row, default None.
+        create_footprints_metadata_image_field_name: CSV column containing the image basename as a case-insensitive literal substring, default "image".
         create_footprints_image_field_name: Image identifier field for generated footprints, default "image"; use the same field name in the seamline step.
         create_footprints_output_layer: Output GeoPackage layer for generated footprints, default "footprints".
         create_footprints_band: One-based raster band whose validity mask defines the footprints, default 1.
         create_footprints_eight_connected: Use eight-connected polygonization, default True; False uses four-connected polygonization.
         postprocess_footprints_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output.
-        postprocess_footprints_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
+        postprocess_footprints_input_layer: Defaults to "footprints" for explicit polygons; None selects their first layer; either inherits the preceding footprint step's layer when using its polygons.
         postprocess_footprints_output_layer: Output GeoPackage layer for processed footprints, default "footprints".
         postprocess_footprints_hole_edge_distance: Maximum hole-to-edge distance in projected CRS units, default 800; 0 disables only edge cuts.
         postprocess_footprints_hole_to_hole_distance: Maximum distance between original holes in the same polygon component, default 800; 0 disables only hole-pair cuts.
@@ -233,11 +239,13 @@ def pipeline(
         postprocess_footprints_simplify_area_weight: Area retention weight in [0, 1], default 0.5.
         postprocess_footprints_filter_area_size: Optional minimum component area in squared CRS units, default None.
         postprocess_footprints_filter_area_rank: Keep the largest N components for positive N or smallest abs(N) for negative N; 0 or None keeps all; default 1.
+        voronoi_center_seamline_input_images: Optional raster folder, glob or paths for substring footprint matching; None infers names from the polygon field.
         voronoi_center_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output or creates footprints from the current images if no footprint step has run.
-        voronoi_center_seamline_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
+        voronoi_center_seamline_input_layer: Defaults to "footprints" for explicit polygons; None selects their first layer; either inherits the preceding footprint step's layer when using its polygons.
         voronoi_center_seamline_output_layer: Output GeoPackage layer name for Voronoi seamlines; default "seamlines".
+        weighted_seamline_input_images: Optional raster folder, glob or paths for substring footprint matching; None infers names from the polygon field.
         weighted_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output. One of these sources is required for weighted_seamline.
-        weighted_seamline_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
+        weighted_seamline_input_layer: Defaults to "footprints" for explicit polygons; None selects their first layer; either inherits the preceding footprint step's layer when using its polygons.
         weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
         merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
         joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
@@ -541,6 +549,8 @@ def pipeline(
                 current_polygons = Seamline.create_footprints(
                     input_images=current_images,
                     output_polygons=output_polygons,
+                    metadata_csv=create_footprints_metadata_csv,
+                    metadata_image_field_name=create_footprints_metadata_image_field_name,
                     image_field_name=create_footprints_image_field_name,
                     output_layer=create_footprints_output_layer,
                     band=create_footprints_band,
@@ -562,7 +572,7 @@ def pipeline(
                 input_layer = postprocess_footprints_input_layer
                 if input_polygons is None:
                     input_polygons = current_polygons
-                    if input_layer is None:
+                    if input_layer in (None, "footprints"):
                         input_layer = current_polygon_layer
                 if input_polygons is None:
                     raise ValueError(
@@ -616,13 +626,15 @@ def pipeline(
                 input_layer = voronoi_center_seamline_input_layer
                 if input_polygons is None:
                     input_polygons = current_polygons
-                    if input_layer is None:
+                    if input_layer in (None, "footprints"):
                         input_layer = current_polygon_layer
                 if input_polygons is None:
                     input_layer = input_layer or create_footprints_output_layer
                     input_polygons = Seamline.create_footprints(
                         input_images=current_images,
                         output_polygons=_step_temp_output("create_footprints", temp_dir),
+                        metadata_csv=create_footprints_metadata_csv,
+                        metadata_image_field_name=create_footprints_metadata_image_field_name,
                         image_field_name=(
                             voronoi_center_seamline_image_field_name
                             if create_footprints_image_field_name == "image"
@@ -644,6 +656,7 @@ def pipeline(
                         _collect_step_cleanup_paths("create_footprints", input_polygons, temp_dir)
                     )
                 Seamline.voronoi(
+                    input_images=voronoi_center_seamline_input_images,
                     input_polygons=input_polygons,
                     output_mask=seamline_mask_path,
                     aoi_path=voronoi_center_seamline_aoi_path,
@@ -676,7 +689,7 @@ def pipeline(
                 input_layer = weighted_seamline_input_layer
                 if input_polygons is None:
                     input_polygons = current_polygons
-                    if input_layer is None:
+                    if input_layer in (None, "footprints"):
                         input_layer = current_polygon_layer
                 if input_polygons is None:
                     raise ValueError(
@@ -684,6 +697,7 @@ def pipeline(
                         "weighted_seamline_input_polygons or run a footprint step earlier in the pipeline."
                     )
                 Seamline.weighted(
+                    input_images=weighted_seamline_input_images,
                     input_polygons=input_polygons,
                     output_mask=seamline_mask_path,
                     rank_function=weighted_seamline_rank_function,

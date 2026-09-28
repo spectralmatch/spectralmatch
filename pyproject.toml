@@ -38,6 +38,8 @@ dependencies = [
     "matplotlib>=3.8",
     "opencv-python-headless>=4.10",
     "wcmatch>=11.0",
+    "PyMaxflow>=1.3.2",
+    "shapely>=2.1.0",
 ]
 
 [project.optional-dependencies]

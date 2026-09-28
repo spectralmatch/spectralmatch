@@ -66,7 +66,7 @@ def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step,
         assert set(kwargs) == set(signature.parameters)
         for parameter_name, actual in kwargs.items():
             if parameter_name == "input_images":
-                assert actual == options["shared_input_images"]
+                assert actual == options.get(f"{prefix}_input_images", options["shared_input_images"])
             elif parameter_name in PATH_PARAMETERS:
                 assert actual == output
             else:

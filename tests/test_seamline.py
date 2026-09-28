@@ -141,7 +141,7 @@ def test_postprocess_opens_edge_holes_preserves_center_and_attributes(tmp_path, 
     source = str(tmp_path / "input.gpkg")
     gpd.GeoDataFrame(
         {"image": ["A"], "quality": [7]}, geometry=[original], crs=32604
-    ).to_file(source)
+    ).to_file(source, layer="footprints")
     result = postprocess_footprints(
         source,
         str(tmp_path / "processed.gpkg"),
@@ -196,7 +196,7 @@ def test_postprocess_uses_original_exterior_for_hole_selection():
 def test_postprocess_rejects_geographic_crs(tmp_path):
     path = str(tmp_path / "input.gpkg")
     gpd.GeoDataFrame({"image": ["A"]}, geometry=[box(0, 0, 1, 1)], crs=4326).to_file(
-        path
+        path, layer="footprints"
     )
     with pytest.raises(ValueError, match="projected CRS"):
         postprocess_footprints(path, str(tmp_path / "out.gpkg"))
@@ -429,7 +429,7 @@ def test_area_rank_applies_per_feature_after_smoothing(tmp_path):
             MultiPolygon([box(20, 0, 23, 3), box(30, 0, 34, 4)]),
         ],
         crs=32604,
-    ).to_file(path)
+    ).to_file(path, layer="footprints")
     postprocess_footprints(
         path, out, hole_edge_distance=0, simplify_smoothing_radius=0, simplify_tolerance=0
     )
@@ -498,7 +498,7 @@ def test_hole_size_width_is_computed_per_selected_hole(tmp_path, method):
     expected = original.difference(unary_union(cuts))
     source = str(tmp_path / "holes.gpkg")
     output = str(tmp_path / "result.gpkg")
-    gpd.GeoDataFrame({"image": ["A"]}, geometry=[original], crs=32604).to_file(source)
+    gpd.GeoDataFrame({"image": ["A"]}, geometry=[original], crs=32604).to_file(source, layer="footprints")
     postprocess_footprints(
         source,
         output,
@@ -711,7 +711,7 @@ def test_default_hole_pair_distance_connects_only_pairs_within_800(tmp_path):
     output = str(tmp_path / "result.gpkg")
     gpd.GeoDataFrame(
         {"image": ["near", "far"]}, geometry=geometries, crs=32604
-    ).to_file(source)
+    ).to_file(source, layer="footprints")
     postprocess_footprints(source, output, simplify_smoothing_radius=0, simplify_tolerance=0)
     actual = gpd.read_file(output).set_index("image")
     assert len(actual.loc["near"].geometry.interiors) == 1

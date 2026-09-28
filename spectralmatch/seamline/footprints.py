@@ -1,12 +1,13 @@
+import csv
 import heapq
 import math
 import os
-from typing import Literal
 
 import fiona
 import geopandas as gpd
 import pandas as pd
 from osgeo import gdal, ogr
+from pyproj import CRS
 from shapely import make_valid
 from shapely.strtree import STRtree
 from shapely.geometry import LineString, Polygon, MultiPolygon, Point, mapping
@@ -15,8 +16,150 @@ from shapely.wkb import loads
 
 from ..handlers import _resolve_paths, _existing_outputs_are_reusable
 from ..types_and_validation import Universal
-from ..utils_logging import _print_step_start
 from ..utils_multiprocessing import _resolve_parallel_config, _run_image_tasks
+
+
+def _matching_image_rows(frame, field, name):
+    """Select rows whose field literally contains an image basename, ignoring case."""
+    return frame[frame[field].astype(str).str.contains(name, regex=False, case=False)]
+
+
+def _read_image_metadata(path, join_field, names, image_field_name):
+    """Read typed CSV attributes and require one basename-substring match per image before polygonization."""
+    if not isinstance(join_field, str) or not join_field.strip():
+        raise ValueError("metadata_image_field_name must be a nonempty string.")
+    if path is None:
+        return {}, [{} for _ in names]
+    with open(path, newline="", encoding="utf-8-sig") as source:
+        columns = next(csv.reader(source), [])
+        if not columns or any(not column.strip() for column in columns):
+            raise ValueError("metadata_csv requires nonempty column names.")
+        if len({column.casefold() for column in columns}) != len(columns):
+            raise ValueError("metadata_csv column names must be unique ignoring case.")
+        if join_field not in columns:
+            raise ValueError(f"metadata_csv has no join column {join_field!r}.")
+        source.seek(0)
+        frame = pd.read_csv(
+            source,
+            dtype={join_field: str},
+            keep_default_na=False,
+            na_values={column: [""] for column in columns if column != join_field},
+        )
+    if frame[join_field].str.strip().eq("").any():
+        raise ValueError(f"metadata_csv join column {join_field!r} has empty values.")
+    attributes = frame.drop(columns=join_field)
+    reserved = {image_field_name.casefold(), "image_path", "geometry", "fid"}
+    collisions = [column for column in attributes if column.casefold() in reserved]
+    if collisions:
+        raise ValueError(
+            f"metadata_csv columns conflict with output fields: {collisions}."
+        )
+    schema = {
+        column: (
+            "int64"
+            if pd.api.types.is_integer_dtype(dtype) or pd.api.types.is_bool_dtype(dtype)
+            else "float" if pd.api.types.is_float_dtype(dtype) else "str"
+        )
+        for column, dtype in attributes.dtypes.items()
+    }
+    attributes = attributes.to_dict("index")
+    records = []
+    for name in names:
+        matches = _matching_image_rows(frame, join_field, name)
+        if len(matches) != 1:
+            raise ValueError(
+                f"metadata_csv requires exactly one row in {join_field!r} containing "
+                f"input image name {name!r}; found {len(matches)}. "
+                "The CSV value must contain the full current raster basename, "
+                "including processing suffixes; the file extension is optional."
+            )
+        records.append(attributes[matches.index[0]])
+    return schema, records
+
+
+def _match_footprints(frame, image_field_name, paths=None):
+    """Dissolve features whose field contains each image basename without extension, preserving first-match attributes."""
+    names = (
+        _resolve_paths("name", paths)
+        if paths is not None
+        else list(
+            dict.fromkeys(
+                _resolve_paths("name", frame[image_field_name].astype(str).tolist())
+            )
+        )
+    )
+    if paths is not None and len(set(names)) != len(names):
+        raise ValueError("Input image basenames must be unique.")
+    records = []
+    for index, name in enumerate(names):
+        matches = _matching_image_rows(frame, image_field_name, name)
+        if matches.empty:
+            raise ValueError(
+                f"No footprint in '{image_field_name}' contains input image name {name!r}."
+            )
+        record = matches.iloc[0].copy()
+        record.geometry = unary_union(list(matches.geometry))
+        record[image_field_name] = name
+        if paths is not None:
+            record["image_path"] = paths[index]
+        records.append(record)
+    return gpd.GeoDataFrame(records, geometry="geometry", crs=frame.crs).reset_index(
+        drop=True
+    )
+
+
+def _prepare_footprints(
+    input_images,
+    input_polygons,
+    input_layer,
+    image_field_name,
+    image_threads=None,
+    concurrent_processing_backend="process_pool",
+    dask_scheduler=None,
+):
+    """Match supplied footprints to every raster, or polygonize valid masks only when polygons are omitted."""
+    paths = None
+    if input_images is not None:
+        Universal._validate(input_images=input_images)
+        paths = _resolve_paths(
+            "search", input_images, kwargs={"default_file_pattern": "*.tif"}
+        )
+        if not paths:
+            raise ValueError("No input images found.")
+        paths = [os.path.abspath(path) for path in paths]
+    if input_polygons is not None:
+        return _match_footprints(
+            _read_polygons(input_polygons, input_layer, image_field_name),
+            image_field_name,
+            paths,
+        )
+    if paths is None:
+        raise ValueError("input_images or input_polygons is required.")
+    names = _resolve_paths("name", paths)
+    if len(set(names)) != len(names):
+        raise ValueError("Input image basenames must be unique.")
+    parallel, workers = _resolve_parallel_config(
+        image_threads, concurrent_processing_backend, dask_scheduler
+    )
+    results = _run_image_tasks(
+        _footprint_from_image,
+        [(path, 1, True) for path in paths],
+        input_paths=paths,
+        output_paths=["valid-data footprint"] * len(paths),
+        parallel=parallel,
+        backend="thread",
+        workers=workers,
+        concurrent_processing_backend=concurrent_processing_backend,
+        dask_scheduler=dask_scheduler,
+    )
+    crs = CRS(results[0][1])
+    if any(CRS(result[1]) != crs for result in results):
+        raise ValueError("Input rasters must use the same CRS.")
+    return gpd.GeoDataFrame(
+        {image_field_name: names, "image_path": paths},
+        geometry=[result[0] for result in results],
+        crs=crs,
+    )
 
 
 def _polygon_parts(geometry):
@@ -85,6 +228,11 @@ class _PolygonWriter:
         if self.destination is None:
             # Open only after workers have started, so processes cannot inherit
             # an open GeoPackage writer or its SQLite locks.
+            if os.path.isfile(self.path):
+                try:
+                    fiona.listlayers(self.path)
+                except fiona.errors.DriverError:
+                    os.remove(self.path)
             self.destination = fiona.open(
                 self.path,
                 "w",
@@ -113,9 +261,17 @@ class _PolygonWriter:
             os.remove(self.marker)
 
 
-def _footprint_output_is_reusable(output_path, resume_mode, debug_logs, step_name):
-    """Never reuse a partial streaming output as a completed GeoPackage."""
-    return _existing_outputs_are_reusable(
+def _footprint_output_is_reusable(
+    output_path,
+    resume_mode,
+    debug_logs,
+    step_name,
+    *,
+    output_layer=None,
+    image_field_name=None,
+):
+    """Reject incomplete outputs, and inspect polygon data in validate mode."""
+    reusable = _existing_outputs_are_reusable(
         [output_path],
         resume_mode=(
             "no" if os.path.exists(output_path + ".incomplete") else resume_mode
@@ -123,6 +279,14 @@ def _footprint_output_is_reusable(output_path, resume_mode, debug_logs, step_nam
         debug_logs=debug_logs,
         step_name=step_name,
     )
+    if reusable and resume_mode == "validate":
+        try:
+            _read_polygons(output_path, output_layer, image_field_name)
+        except (ValueError, OSError, RuntimeError, fiona.errors.FionaError) as exc:
+            if debug_logs:
+                print(f"Existing polygon output invalid; recomputing ({exc})")
+            return False
+    return reusable
 
 
 def _footprint_from_image(path, band, eight_connected):
@@ -152,112 +316,6 @@ def _footprint_from_image(path, band, eight_connected):
     if not parts:
         raise ValueError(f"No valid pixels in {path}.")
     return unary_union(parts), crs
-
-
-def create_footprints(
-    input_images: Universal.SearchFolderOrListFiles,
-    output_polygons: str,
-    *,
-    image_field_name: str = "image",
-    output_layer: str = "footprints",
-    band: int = 1,
-    eight_connected: bool = True,
-    image_threads: Universal.Threads = None,
-    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
-    dask_scheduler: Universal.DaskScheduler = None,
-    debug_logs: Universal.DebugLogs = False,
-    resume_from_outputs: Literal["no", "yes", "validate"] = "no",
-) -> str:
-    """Polygonize valid raster masks into a shared seamline GeoPackage, retaining holes and islands.
-
-    Args:
-        input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"]. Images must have unique basenames and the same CRS.
-        output_polygons (str): Output GeoPackage path for the image footprints, including image identifiers and image_path attributes.
-        image_field_name (str, optional): Name of the field containing each image basename without its extension; must differ from geometry and image_path. Defaults to "image".
-        output_layer (str, optional): Output GeoPackage layer name. Defaults to "footprints".
-        band (int, optional): One-based raster band whose GDAL validity mask defines valid pixels; categorical mask values alone do not define validity. Defaults to 1.
-        eight_connected (bool, optional): Use 8-connectedness for polygonization; if False, use 4-connectedness. Defaults to True.
-        image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-image operations; "cpu" uses all CPU cores, an integer sets the worker count, and None disables local parallelism. Local GDAL workers use threads. Defaults to None.
-        concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use the local execution backend or an existing Dask cluster; local raster polygonization uses threads under the "process_pool" setting. Defaults to "process_pool".
-        dask_scheduler (tuple[str, str] | None, optional): Existing Dask scheduler as ("file", path) or ("address", address); required for Dask execution, which requires image_threads=None. Defaults to None.
-        debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
-        resume_from_outputs (Literal["no", "yes", "validate"], optional): Recompute outputs with "no", reuse existing outputs with "yes", or validate existing outputs before reusing them with "validate"; incomplete streaming outputs are recomputed. Defaults to "no".
-
-    Returns:
-        str: Written output GeoPackage path."""
-    _print_step_start("create_footprints")
-    _validate_polygon_output(output_polygons, output_layer)
-    Universal._validate(
-        input_images=input_images,
-        image_threads=image_threads,
-        debug_logs=debug_logs,
-        concurrent_processing_backend=concurrent_processing_backend,
-        dask_scheduler=dask_scheduler,
-    )
-    if not isinstance(band, int) or isinstance(band, bool) or band < 1:
-        raise ValueError("band must be a positive integer.")
-    if not isinstance(eight_connected, bool):
-        raise ValueError("eight_connected must be a bool.")
-    if (
-        not isinstance(image_field_name, str)
-        or not image_field_name.strip()
-        or image_field_name in {"geometry", "image_path"}
-    ):
-        raise ValueError(
-            "image_field_name must be nonempty and distinct from geometry and image_path."
-        )
-    if _footprint_output_is_reusable(
-        output_polygons,
-        resume_mode=resume_from_outputs,
-        debug_logs=debug_logs,
-        step_name="create_footprints",
-    ):
-        return output_polygons
-    paths = _resolve_paths(
-        "search", input_images, kwargs={"default_file_pattern": "*.tif"}
-    )
-    if not paths:
-        raise ValueError("No input images found.")
-    names = _resolve_paths("name", paths)
-    if len(set(names)) != len(names):
-        raise ValueError("Input image basenames must be unique.")
-    parallel, workers = _resolve_parallel_config(
-        image_threads, concurrent_processing_backend, dask_scheduler
-    )
-    from pyproj import CRS
-
-    schema = {
-        "geometry": "Unknown",
-        "properties": {image_field_name: "str", "image_path": "str"},
-    }
-    with _PolygonWriter(output_polygons, output_layer, schema, None) as writer:
-
-        def commit(index, result):
-            """Validate each raster CRS and commit its geometry and identifier."""
-            geometry, crs = result
-            crs = CRS.from_user_input(crs)
-            if writer.crs is None:
-                writer.crs = crs.to_wkt()
-            elif crs != CRS.from_user_input(writer.crs):
-                raise ValueError("Input rasters must use the same CRS.")
-            writer.write(
-                geometry, {image_field_name: names[index], "image_path": paths[index]}
-            )
-
-        _run_image_tasks(
-            _footprint_from_image,
-            [(path, band, eight_connected) for path in paths],
-            input_paths=paths,
-            output_paths=[output_polygons] * len(paths),
-            parallel=parallel,
-            backend="thread",
-            workers=workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-            result_callback=commit,
-            collect_results=False,
-        )
-    return output_polygons
 
 
 def _simplify_inner(polygon, tolerance, area_weight):
@@ -476,172 +534,3 @@ def _postprocess_polygon(
             results.append(part)
     geometry = unary_union(results) if results else MultiPolygon()
     return _filter_polygon_area(geometry, filter_area_size, filter_area_rank)
-
-
-def postprocess_footprints(
-    input_polygons: str,
-    output_polygons: str,
-    *,
-    input_layer: str | None = None,
-    output_layer: str = "footprints",
-    hole_edge_distance: float = 800,
-    hole_to_hole_distance: float = 800,
-    hole_relative_edge_distance: float | None = None,
-    hole_cut_width: (
-        int | Literal["hole_size", "maximum_inscribed_circle"]
-    ) = "maximum_inscribed_circle",
-    hole_cut_method: Literal["corridor", "buffer"] = "corridor",
-    simplify_smoothing_radius: float = 240,
-    simplify_tolerance: float = 120,
-    simplify_area_weight: float = 0.5,
-    filter_area_size: float | None = None,
-    filter_area_rank: int | None = 1,
-    image_threads: Universal.Threads = None,
-    concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
-    dask_scheduler: Universal.DaskScheduler = None,
-    debug_logs: Universal.DebugLogs = False,
-    resume_from_outputs: Literal["no", "yes", "validate"] = "no",
-) -> str:
-    """Connect nearby holes and edges, then smooth/simplify inward, preserving attributes.
-
-    Args:
-        input_polygons (str): Input polygon layer path with valid, nonempty Polygon or MultiPolygon features in a suitable projected CRS; all distances use that CRS's linear units.
-        output_polygons (str): Output GeoPackage path for processed polygons and their original attributes; must differ from input_polygons.
-        input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
-        output_layer (str, optional): Output GeoPackage layer name. Defaults to "footprints".
-        hole_edge_distance (float, optional): Maximum hole-to-edge distance in CRS units, measured against each component's original outer ring; zero disables only hole-to-edge cuts. Defaults to 800.
-        hole_to_hole_distance (float, optional): Maximum boundary-to-boundary distance in CRS units between original holes in the same polygon component; every qualifying pair is connected. Zero disables only hole-to-hole cuts. Defaults to 800.
-        hole_relative_edge_distance (float | None, optional): Additional upper limit on hole-to-edge distance divided by sqrt(hole_area / pi); applies only to edge cuts. None disables this size-relative filter. Defaults to None.
-        hole_cut_width (int | Literal["hole_size", "maximum_inscribed_circle"], optional): Positive integer width in CRS units, "hole_size" for the largest vertex-to-vertex diameter, or "maximum_inscribed_circle" for the largest circle fitting inside the hole (diameter, approximated with radius tolerance sqrt(hole_area) / 1000). Applies to both edge and hole-pair cuts; pairs use the smaller hole width. Defaults to "maximum_inscribed_circle".
-        hole_cut_method (Literal["corridor", "buffer"], optional): Subtract a shortest connection buffered by half the cut width with "corridor". With "buffer", expand an edge-selected hole by distance + width / 2, or both holes in a pair by (distance + width) / 2. Defaults to "corridor".
-        simplify_smoothing_radius (float, optional): Nonnegative erosion and dilation radius, followed by intersection with the cut polygon to prevent expansion or refilling cuts; zero disables smoothing. Defaults to 240.
-        simplify_tolerance (float, optional): Nonnegative maximum deviation of removed vertices from inward shortcuts, including cumulative removals; zero disables simplification. Defaults to 120.
-        simplify_area_weight (float, optional): Weight in [0, 1] balancing normalized area loss against perimeter reduction in the greedy inward shortcut simplifier; larger values favor retaining area. Defaults to 0.5.
-        filter_area_size (float | None, optional): Minimum retained component area in squared CRS units, applied after smoothing and simplification and before filter_area_rank; None disables the threshold. Defaults to None.
-        filter_area_rank (int | None, optional): Keep the largest N components per feature for positive N, or the smallest abs(N) for negative N; 0 or None keeps all components passing filter_area_size. Defaults to 1.
-        image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-feature geometry operations; "cpu" uses all CPU cores, an integer sets the process count, and None disables local parallelism. Defaults to None.
-        concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use a local process pool or an existing Dask cluster. Defaults to "process_pool".
-        dask_scheduler (tuple[str, str] | None, optional): Existing Dask scheduler as ("file", path) or ("address", address); required for Dask execution, which requires image_threads=None. Defaults to None.
-        debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
-        resume_from_outputs (Literal["no", "yes", "validate"], optional): Recompute outputs with "no", reuse existing outputs with "yes", or validate existing outputs before reusing them with "validate"; incomplete streaming outputs are recomputed. Defaults to "no".
-
-    Returns:
-        str: Written output GeoPackage path; empty processed features are omitted, and removing all features raises ValueError.
-    """
-    _print_step_start("postprocess_footprints")
-    _validate_polygon_output(output_polygons, output_layer)
-    Universal._validate(
-        image_threads=image_threads,
-        debug_logs=debug_logs,
-        concurrent_processing_backend=concurrent_processing_backend,
-        dask_scheduler=dask_scheduler,
-    )
-    for name, value in {
-        "hole_edge_distance": hole_edge_distance,
-        "hole_to_hole_distance": hole_to_hole_distance,
-        "simplify_smoothing_radius": simplify_smoothing_radius,
-        "simplify_tolerance": simplify_tolerance,
-        "simplify_area_weight": simplify_area_weight,
-        "hole_relative_edge_distance": (
-            0 if hole_relative_edge_distance is None else hole_relative_edge_distance
-        ),
-    }.items():
-        if (
-            isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(value)
-            or value < 0
-        ):
-            raise ValueError(f"{name} must be finite and nonnegative.")
-    if hole_cut_width not in ("hole_size", "maximum_inscribed_circle") and (
-        isinstance(hole_cut_width, bool)
-        or not isinstance(hole_cut_width, int)
-        or hole_cut_width <= 0
-    ):
-        raise ValueError(
-            'hole_cut_width must be a positive integer, "hole_size", or "maximum_inscribed_circle".'
-        )
-    if simplify_area_weight > 1 or hole_cut_method not in {"corridor", "buffer"}:
-        raise ValueError(
-            "Require simplify_area_weight in [0, 1] and hole_cut_method corridor or buffer."
-        )
-    if filter_area_size is not None and (
-        isinstance(filter_area_size, bool)
-        or not isinstance(filter_area_size, (int, float))
-        or not math.isfinite(filter_area_size)
-        or filter_area_size < 0
-    ):
-        raise ValueError(
-            "filter_area_size must be a finite nonnegative number or None."
-        )
-    if filter_area_rank is not None and (
-        isinstance(filter_area_rank, bool) or not isinstance(filter_area_rank, int)
-    ):
-        raise ValueError("filter_area_rank must be an integer or None.")
-    if os.path.realpath(input_polygons) == os.path.realpath(output_polygons):
-        raise ValueError("Input and output GeoPackages must be different files.")
-    if _footprint_output_is_reusable(
-        output_polygons,
-        resume_mode=resume_from_outputs,
-        debug_logs=debug_logs,
-        step_name="postprocess_footprints",
-    ):
-        return output_polygons
-    frame = _read_polygons(input_polygons, input_layer)
-    if not frame.crs.is_projected:
-        raise ValueError(
-            "Postprocessing requires a projected CRS; reproject the input first."
-        )
-    parallel, workers = _resolve_parallel_config(
-        image_threads, concurrent_processing_backend, dask_scheduler
-    )
-    args = [
-        (
-            geometry,
-            hole_edge_distance,
-            hole_relative_edge_distance,
-            hole_cut_width,
-            hole_cut_method,
-            simplify_smoothing_radius,
-            simplify_tolerance,
-            simplify_area_weight,
-            filter_area_size,
-            filter_area_rank,
-            hole_to_hole_distance,
-        )
-        for geometry in frame.geometry
-    ]
-    with fiona.open(
-        input_polygons, **({"layer": input_layer} if input_layer else {})
-    ) as source:
-        schema = {
-            "geometry": "Unknown",
-            "properties": dict(source.schema["properties"]),
-        }
-    records = frame.drop(columns=frame.geometry.name).to_dict("records")
-    with _PolygonWriter(
-        output_polygons, output_layer, schema, frame.crs.to_wkt()
-    ) as writer:
-
-        def commit(index, geometry):
-            """Commit each returned geometry with its original input attributes."""
-            writer.write(geometry, records[index])
-
-        _run_image_tasks(
-            _postprocess_polygon,
-            args,
-            input_paths=[f"{input_polygons}:{index}" for index in frame.index],
-            output_paths=[output_polygons] * len(frame),
-            parallel=parallel,
-            backend="process",
-            workers=workers,
-            concurrent_processing_backend=concurrent_processing_backend,
-            dask_scheduler=dask_scheduler,
-            result_callback=commit,
-            collect_results=False,
-        )
-        if writer.count == 0:
-            raise ValueError(
-                "Postprocessing removed all polygons; reduce the processing distances or filter_area_size."
-            )
-    return output_polygons

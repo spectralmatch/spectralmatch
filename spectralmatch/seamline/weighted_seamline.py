@@ -4,8 +4,8 @@ import re
 
 import geopandas as gpd
 
-from .footprints import _read_polygons
-
+from .footprints import _prepare_footprints
+from ..types_and_validation import Universal
 
 _FIELD_PATTERN = re.compile(r"\{([^{}]+)\}")
 _SAFE_FUNCTIONS = {
@@ -28,8 +28,9 @@ def weighted_seamline(
     output_mask: str,
     *,
     rank_function: str,
+    input_images: Universal.SearchFolderOrListFiles | None = None,
     image_field_name: str = "image",
-    input_layer: str | None = None,
+    input_layer: str | None = "footprints",
     output_layer: str = "seamlines",
     rank_descending: bool = True,
     debug_logs: bool = False,
@@ -40,44 +41,21 @@ def weighted_seamline(
 
     Args:
         input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one.
+        input_images (str | list[str] | None, optional): Optional raster folder, glob or paths for substring matching; None infers basenames from field values.
         output_mask (str): Output GeoPackage path for the ranked seamline polygons.
         rank_function (str): Ranking expression using field placeholders like ``{cloud_cover}`` or formulas like ``1 / ({sun_elevation} + 1)``.
-        image_field_name (str, optional): Field containing the image identifier. Features sharing the same value are merged before ranking. Defaults to ``"image"``.
-        input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
+        image_field_name (str, optional): Field containing each image basename without extension as a substring; matches are dissolved and first-match attributes are ranked. Defaults to "image".
+        input_layer (str | None, optional): Input footprint layer name; None selects the first layer. Defaults to "footprints".
         output_layer (str, optional): Output GeoPackage layer name. Defaults to ``"seamlines"``.
         rank_descending (bool, optional): If True, larger scores rank higher and remain on top. Defaults to True.
         debug_logs (bool, optional): If True, prints ranking details. Defaults to False.
 
     Returns:
         str: Written output GeoPackage path."""
-    gdf = _read_polygons(input_polygons, input_layer, image_field_name)
-
-    grouped_records = []
-    for _, group in gdf.groupby(image_field_name, sort=False, dropna=False):
-        record = group.iloc[0].copy()
-        geometries = group.geometry[group.geometry.notnull()]
-        if geometries.empty:
-            continue
-        if hasattr(geometries, "union_all"):
-            record.geometry = geometries.union_all()
-        else:
-            record.geometry = geometries.unary_union
-        grouped_records.append(record)
-
-    if not grouped_records:
-        raise ValueError("input_polygons contains no valid polygon geometry.")
-
-    ranked_gdf = gpd.GeoDataFrame(grouped_records, geometry="geometry", crs=gdf.crs)
-    ranked_gdf["weighted_score"] = ranked_gdf.apply(
-        lambda row: _evaluate_weighted_expression(row, rank_function),
-        axis=1,
+    frame = _prepare_footprints(
+        input_images, input_polygons, input_layer, image_field_name
     )
-    ranked_gdf = ranked_gdf.sort_values(
-        by=["weighted_score", image_field_name],
-        ascending=[not rank_descending, True],
-        kind="mergesort",
-    ).reset_index(drop=True)
-    ranked_gdf["weighted_rank"] = ranked_gdf.index + 1
+    ranked_gdf = _rank_polygons(frame, image_field_name, rank_function, rank_descending)
 
     output_records = []
     painted_geometry = None
@@ -104,7 +82,9 @@ def weighted_seamline(
     if not output_records:
         raise ValueError("No seamline polygons were produced from the ranked inputs.")
 
-    output_gdf = gpd.GeoDataFrame(output_records, geometry="geometry", crs=ranked_gdf.crs)
+    output_gdf = gpd.GeoDataFrame(
+        output_records, geometry="geometry", crs=ranked_gdf.crs
+    )
     output_dir = os.path.dirname(output_mask)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
@@ -112,6 +92,21 @@ def weighted_seamline(
         os.remove(output_mask)
     output_gdf.to_file(output_mask, layer=output_layer, driver="GPKG")
     return output_mask
+
+
+def _rank_polygons(frame, image_field_name, rank_function, rank_descending):
+    """Score footprint attributes with the shared expression evaluator and order images deterministically."""
+    ranked = frame.copy()
+    ranked["weighted_score"] = ranked.apply(
+        lambda row: _evaluate_weighted_expression(row, rank_function), axis=1
+    )
+    ranked = ranked.sort_values(
+        by=["weighted_score", image_field_name],
+        ascending=[not rank_descending, True],
+        kind="mergesort",
+    ).reset_index(drop=True)
+    ranked["weighted_rank"] = ranked.index + 1
+    return ranked
 
 
 def _evaluate_weighted_expression(row, expression: str) -> float:
@@ -142,11 +137,16 @@ def _evaluate_weighted_expression(row, expression: str) -> float:
             {**_SAFE_FUNCTIONS, **local_values},
         )
     except Exception as exc:
-        raise ValueError(f"Could not evaluate rank_function '{expression}': {exc}") from exc
+        raise ValueError(
+            f"Could not evaluate rank_function '{expression}': {exc}"
+        ) from exc
 
     try:
-        return float(result)
+        result = float(result)
+        if not math.isfinite(result):
+            raise ValueError("Score must be finite.")
+        return result
     except (TypeError, ValueError) as exc:
         raise ValueError(
-            f"rank_function '{expression}' did not produce a numeric result."
+            f"rank_function '{expression}' did not produce a finite numeric result."
         ) from exc
