@@ -11,9 +11,9 @@ footprints = create_footprints(
 )
 cleaned = postprocess_footprints(
     footprints, "cleaned.gpkg",
-    edge_distance=800, hole_to_hole_distance=800,
-    cut_width="maximum_inscribed_circle", smoothing_radius=240,
-    simplify_tolerance=120, area_filter=None, area_rank=1, image_threads=4,
+    hole_edge_distance=800, hole_to_hole_distance=800,
+    hole_cut_width="maximum_inscribed_circle", simplify_smoothing_radius=240,
+    simplify_tolerance=120, filter_area_size=None, filter_area_rank=1, image_threads=4,
 )
 voronoi_center_seamline(cleaned, "voronoi.gpkg")
 
@@ -29,20 +29,20 @@ Postprocessing preserves attributes and requires a suitable projected CRS. Dista
 
 | Postprocessing parameter | Effect |
 | --- | --- |
-| `edge_distance=800` | Maximum distance from a hole to its original component's outer ring; zero disables only hole-to-edge cuts. |
+| `hole_edge_distance=800` | Maximum distance from a hole to its original component's outer ring; zero disables only hole-to-edge cuts. |
 | `hole_to_hole_distance=800` | Maximum boundary-to-boundary distance between original holes in the same polygon component. Connects every qualifying pair; zero disables only hole-to-hole cuts. |
-| `relative_edge_distance=None` | Optional additional limit on hole-to-edge distance divided by `sqrt(hole_area / pi)`. Does not restrict hole-to-hole cuts. |
-| `cut_width="maximum_inscribed_circle"` | Diameter of the largest circle fitting inside each hole, independent of cut direction. Also accepts `"hole_size"` for the largest vertex-to-vertex diameter or a positive integer for a fixed width. Applies to both cut types; hole pairs use the smaller of their two widths. |
-| `cut_method="corridor"` | Subtract a shortest connection buffered by half the cut width. With `"buffer"`, expand an edge-selected hole by `distance + width / 2`, or both holes in a pair by `(distance + width) / 2`. |
-| `smoothing_radius=240` | Erode then dilate, intersecting with the cut geometry to prevent expansion or refilling cuts. |
+| `hole_relative_edge_distance=None` | Optional additional limit on hole-to-edge distance divided by `sqrt(hole_area / pi)`. Does not restrict hole-to-hole cuts. |
+| `hole_cut_width="maximum_inscribed_circle"` | Diameter of the largest circle fitting inside each hole, independent of cut direction. Also accepts `"hole_size"` for the largest vertex-to-vertex diameter or a positive integer for a fixed width. Applies to both cut types; hole pairs use the smaller of their two widths. |
+| `hole_cut_method="corridor"` | Subtract a shortest connection buffered by half the cut width. With `"buffer"`, expand an edge-selected hole by `distance + width / 2`, or both holes in a pair by `(distance + width) / 2`. |
+| `simplify_smoothing_radius=240` | Erode then dilate, intersecting with the cut geometry to prevent expansion or refilling cuts. |
 | `simplify_tolerance=120` | Maximum deviation of removed vertices from each shortcut; zero disables simplification. |
 | `simplify_area_weight=0.5` | Balance normalized area loss against perimeter reduction; larger values favor retaining area. |
-| `area_filter=None` | Minimum polygon component area in squared CRS units; None disables the threshold. |
-| `area_rank=1` | Keep the largest N components per feature for positive N or smallest abs(N) for negative N; 0 or None keeps all. |
+| `filter_area_size=None` | Minimum polygon component area in squared CRS units; None disables the threshold. |
+| `filter_area_rank=1` | Keep the largest N components per feature for positive N or smallest abs(N) for negative N; 0 or None keeps all. |
 
 Area filtering runs after smoothing and simplification, first by threshold and then by rank, independently for each feature. Ranking does not remove interior holes from retained components.
 
-Both distance limits use the original geometry, before any cuts or smoothing. Hole pairs are evaluated once, within each polygon component; separate components and features are never paired. A chain of qualifying hole pairs can connect a deep hole to an edge-selected hole, even when the deep hole itself exceeds `edge_distance`. Newly cut boundaries do not make additional pairs or edge cuts eligible. Set both distance parameters to `0` to disable explicit cuts; smoothing can still connect holes by removing narrow strips.
+Both distance limits use the original geometry, before any cuts or smoothing. Hole pairs are evaluated once, within each polygon component; separate components and features are never paired. A chain of qualifying hole pairs can connect a deep hole to an edge-selected hole, even when the deep hole itself exceeds `hole_edge_distance`. Newly cut boundaries do not make additional pairs or edge cuts eligible. Set both distance parameters to `0` to disable explicit cuts; smoothing can still connect holes by removing narrow strips.
 
 The maximum inscribed circle width measures the hole's thickest interior region: a 1000-by-200 rectangle produces a width of approximately 200 at any rotation. The radius is approximated to a tolerance of `sqrt(hole_area) / 1000`; the width is twice that radius. For an irregular hole with a large lobe and a narrow neck, the large lobe determines the width. Other holes can still be reached by wide cuts, overlapping corridors, or smoothing. Holes are not filled. Empty processed features are omitted; removing every feature raises an error.
 

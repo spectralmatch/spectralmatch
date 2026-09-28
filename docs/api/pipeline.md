@@ -17,14 +17,14 @@ result = pipeline(
     ),
     create_footprints_band=1,
     create_footprints_eight_connected=True,
-    postprocess_footprints_edge_distance=800,
+    postprocess_footprints_hole_edge_distance=800,
     postprocess_footprints_hole_to_hole_distance=800,
-    postprocess_footprints_cut_width="maximum_inscribed_circle",
-    postprocess_footprints_cut_method="corridor",
-    postprocess_footprints_smoothing_radius=220,
+    postprocess_footprints_hole_cut_width="maximum_inscribed_circle",
+    postprocess_footprints_hole_cut_method="corridor",
+    postprocess_footprints_simplify_smoothing_radius=220,
     postprocess_footprints_simplify_tolerance=120,
     postprocess_footprints_simplify_area_weight=0.5,
-    postprocess_footprints_area_rank=1,
+    postprocess_footprints_filter_area_rank=1,
 )
 ```
 

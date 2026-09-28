@@ -447,10 +447,10 @@ def test_pipeline_footprints_through_seamlines_mask_and_merge(tmp_path, seamline
         create_footprints_image_field_name="scene",
         create_footprints_output_layer="raw",
         postprocess_footprints_output_layer="processed",
-        postprocess_footprints_edge_distance=0,
-        postprocess_footprints_smoothing_radius=0.5,
+        postprocess_footprints_hole_edge_distance=0,
+        postprocess_footprints_simplify_smoothing_radius=0.5,
         postprocess_footprints_simplify_tolerance=0,
-        postprocess_footprints_area_rank=None,
+        postprocess_footprints_filter_area_rank=None,
         **{
             f"{seamline_step}_image_field_name": "scene",
             f"{seamline_step}_output_layer": "cuts",
@@ -491,8 +491,8 @@ def test_pipeline_final_footprints_output_and_resume(tmp_path, monkeypatch, step
         delete_previous_step=True,
         shared_image_threads=None,
         steps=("create_footprints",) if step == "create_footprints" else ("create_footprints", "postprocess_footprints"),
-        postprocess_footprints_edge_distance=0,
-        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_hole_edge_distance=0,
+        postprocess_footprints_simplify_smoothing_radius=0,
         postprocess_footprints_simplify_tolerance=0,
     )
     result = pipeline(**options)
@@ -530,8 +530,8 @@ def test_pipeline_explicit_polygons_override_generated_footprints(tmp_path, step
         steps=("create_footprints", step),
         shared_image_threads=None,
         create_footprints_output_layer="generated",
-        postprocess_footprints_edge_distance=0,
-        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_hole_edge_distance=0,
+        postprocess_footprints_simplify_smoothing_radius=0,
         postprocess_footprints_simplify_tolerance=0,
         weighted_seamline_rank_function="{quality}",
         **{f"{step}_input_polygons": str(polygons), f"{step}_input_layer": input_layer},
@@ -561,8 +561,8 @@ def test_pipeline_postprocessed_attributes_feed_weighted_seamline(tmp_path):
         postprocess_footprints_input_polygons=str(polygons),
         postprocess_footprints_input_layer="external",
         postprocess_footprints_output_layer="processed",
-        postprocess_footprints_edge_distance=0,
-        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_hole_edge_distance=0,
+        postprocess_footprints_simplify_smoothing_radius=0,
         postprocess_footprints_simplify_tolerance=0,
         weighted_seamline_rank_function="{quality}",
     )
@@ -607,8 +607,8 @@ def test_pipeline_keeps_footprints_across_intervening_raster_step(tmp_path):
         shared_image_threads=None,
         steps=("create_footprints", "align", "postprocess_footprints"),
         create_footprints_output_layer="raw",
-        postprocess_footprints_edge_distance=0,
-        postprocess_footprints_smoothing_radius=0,
+        postprocess_footprints_hole_edge_distance=0,
+        postprocess_footprints_simplify_smoothing_radius=0,
         postprocess_footprints_simplify_tolerance=0,
     )
     actual = gpd.read_file(result["output"])

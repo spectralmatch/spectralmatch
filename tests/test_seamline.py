@@ -145,11 +145,11 @@ def test_postprocess_opens_edge_holes_preserves_center_and_attributes(tmp_path, 
     result = postprocess_footprints(
         source,
         str(tmp_path / "processed.gpkg"),
-        edge_distance=3,
+        hole_edge_distance=3,
         hole_to_hole_distance=0,
-        cut_width=4,
-        cut_method=method,
-        smoothing_radius=0.5,
+        hole_cut_width=4,
+        hole_cut_method=method,
+        simplify_smoothing_radius=0.5,
         simplify_tolerance=0.5,
     )
     frame = gpd.read_file(result)
@@ -241,8 +241,8 @@ def test_footprints_dask_and_postprocessing_process_pool(tmp_path, monkeypatch):
         output,
         str(tmp_path / "processed.gpkg"),
         image_threads=2,
-        edge_distance=0,
-        smoothing_radius=0,
+        hole_edge_distance=0,
+        simplify_smoothing_radius=0,
         simplify_tolerance=0,
     )
     assert gpd.read_file(result).geometry.iloc[0].equals(frame.geometry.iloc[0])
@@ -278,7 +278,7 @@ def test_postprocess_streams_completed_features_and_marks_failure(
     monkeypatch.setattr(module, "_postprocess_polygon", fail_after_first)
     with pytest.raises(RuntimeError, match="worker failed"):
         postprocess_footprints(
-            source, output, edge_distance=0, smoothing_radius=0, simplify_tolerance=0
+            source, output, hole_edge_distance=0, simplify_smoothing_radius=0, simplify_tolerance=0
         )
     assert os.path.exists(output + ".incomplete")
     assert len(gpd.read_file(output)) == 1
@@ -287,8 +287,8 @@ def test_postprocess_streams_completed_features_and_marks_failure(
         source,
         output,
         resume_from_outputs="yes",
-        edge_distance=0,
-        smoothing_radius=0,
+        hole_edge_distance=0,
+        simplify_smoothing_radius=0,
         simplify_tolerance=0,
     )
     result = gpd.read_file(output)
@@ -394,12 +394,12 @@ def test_area_component_filter(threshold, rank, areas):
 @pytest.mark.parametrize(
     "params",
     [
-        {"area_rank": 1.5},
-        {"area_rank": True},
-        {"area_filter": -1.0},
-        {"area_filter": float("nan")},
-        {"area_filter": float("inf")},
-        {"area_filter": True},
+        {"filter_area_rank": 1.5},
+        {"filter_area_rank": True},
+        {"filter_area_size": -1.0},
+        {"filter_area_size": float("nan")},
+        {"filter_area_size": float("inf")},
+        {"filter_area_size": True},
     ],
 )
 def test_area_filter_parameter_validation(tmp_path, params):
@@ -431,7 +431,7 @@ def test_area_rank_applies_per_feature_after_smoothing(tmp_path):
         crs=32604,
     ).to_file(path)
     postprocess_footprints(
-        path, out, edge_distance=0, smoothing_radius=0, simplify_tolerance=0
+        path, out, hole_edge_distance=0, simplify_smoothing_radius=0, simplify_tolerance=0
     )
     frame = gpd.read_file(out)
     assert list(frame.geometry.area) == [4, 16]
@@ -442,13 +442,13 @@ def test_preferred_postprocess_defaults():
     import inspect
 
     expected = dict(
-        edge_distance=800,
+        hole_edge_distance=800,
         hole_to_hole_distance=800,
-        cut_width="maximum_inscribed_circle",
-        smoothing_radius=240,
+        hole_cut_width="maximum_inscribed_circle",
+        simplify_smoothing_radius=240,
         simplify_tolerance=120,
-        area_filter=None,
-        area_rank=1,
+        filter_area_size=None,
+        filter_area_rank=1,
     )
     signature = inspect.signature(postprocess_footprints)
     assert {name: signature.parameters[name].default for name in expected} == expected
@@ -502,13 +502,13 @@ def test_hole_size_width_is_computed_per_selected_hole(tmp_path, method):
     postprocess_footprints(
         source,
         output,
-        edge_distance=3,
+        hole_edge_distance=3,
         hole_to_hole_distance=0,
-        cut_width="hole_size",
-        cut_method=method,
-        smoothing_radius=0,
+        hole_cut_width="hole_size",
+        hole_cut_method=method,
+        simplify_smoothing_radius=0,
         simplify_tolerance=0,
-        area_rank=0,
+        filter_area_rank=0,
     )
     result = gpd.read_file(output).geometry.iloc[0]
     assert result.equals(expected)
@@ -520,9 +520,9 @@ def test_hole_size_width_is_computed_per_selected_hole(tmp_path, method):
     "width", [0, -1, 1.0, 1.5, True, None, "diameter", float("nan"), float("inf")]
 )
 def test_cut_width_rejects_invalid_types_and_values(tmp_path, width):
-    with pytest.raises(ValueError, match="cut_width"):
+    with pytest.raises(ValueError, match="hole_cut_width"):
         postprocess_footprints(
-            "unused.gpkg", str(tmp_path / "out.gpkg"), cut_width=width
+            "unused.gpkg", str(tmp_path / "out.gpkg"), hole_cut_width=width
         )
 
 
@@ -647,9 +647,9 @@ def test_default_inscribed_width_applies_to_edge_and_hole_pair_cuts(
         source,
         output,
         input_layer="footprints",
-        edge_distance=5,
+        hole_edge_distance=5,
         hole_to_hole_distance=20,
-        smoothing_radius=0,
+        simplify_smoothing_radius=0,
         simplify_tolerance=0,
         image_threads=image_threads,
     )
@@ -712,7 +712,7 @@ def test_default_hole_pair_distance_connects_only_pairs_within_800(tmp_path):
     gpd.GeoDataFrame(
         {"image": ["near", "far"]}, geometry=geometries, crs=32604
     ).to_file(source)
-    postprocess_footprints(source, output, smoothing_radius=0, simplify_tolerance=0)
+    postprocess_footprints(source, output, simplify_smoothing_radius=0, simplify_tolerance=0)
     actual = gpd.read_file(output).set_index("image")
     assert len(actual.loc["near"].geometry.interiors) == 1
     assert len(actual.loc["far"].geometry.interiors) == 2
@@ -740,7 +740,7 @@ def test_hole_pairs_are_limited_to_original_polygon_components():
         0,
         0,
         0.5,
-        area_rank=0,
+        filter_area_rank=0,
         hole_to_hole_distance=1400,
     )
     assert result.equals(original)

@@ -159,16 +159,16 @@ def pipeline(
     postprocess_footprints_input_polygons: str | None = None,
     postprocess_footprints_input_layer: str | None = None,
     postprocess_footprints_output_layer: str = "footprints",
-    postprocess_footprints_edge_distance: float = 800,
+    postprocess_footprints_hole_edge_distance: float = 800,
     postprocess_footprints_hole_to_hole_distance: float = 800,
-    postprocess_footprints_relative_edge_distance: float | None = None,
-    postprocess_footprints_cut_width: int | Literal["hole_size", "maximum_inscribed_circle"] = "maximum_inscribed_circle",
-    postprocess_footprints_cut_method: Literal["corridor", "buffer"] = "corridor",
-    postprocess_footprints_smoothing_radius: float = 240,
+    postprocess_footprints_hole_relative_edge_distance: float | None = None,
+    postprocess_footprints_hole_cut_width: int | Literal["hole_size", "maximum_inscribed_circle"] = "maximum_inscribed_circle",
+    postprocess_footprints_hole_cut_method: Literal["corridor", "buffer"] = "corridor",
+    postprocess_footprints_simplify_smoothing_radius: float = 240,
     postprocess_footprints_simplify_tolerance: float = 120,
     postprocess_footprints_simplify_area_weight: float = 0.5,
-    postprocess_footprints_area_filter: float | None = None,
-    postprocess_footprints_area_rank: int | None = 1,
+    postprocess_footprints_filter_area_size: float | None = None,
+    postprocess_footprints_filter_area_rank: int | None = 1,
     voronoi_center_seamline_aoi_path: str | None = None,
     voronoi_center_seamline_input_polygons: str | None = None,
     voronoi_center_seamline_input_layer: str | None = None,
@@ -223,16 +223,16 @@ def pipeline(
         postprocess_footprints_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output.
         postprocess_footprints_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
         postprocess_footprints_output_layer: Output GeoPackage layer for processed footprints, default "footprints".
-        postprocess_footprints_edge_distance: Maximum hole-to-edge distance in projected CRS units, default 800; 0 disables only edge cuts.
+        postprocess_footprints_hole_edge_distance: Maximum hole-to-edge distance in projected CRS units, default 800; 0 disables only edge cuts.
         postprocess_footprints_hole_to_hole_distance: Maximum distance between original holes in the same polygon component, default 800; 0 disables only hole-pair cuts.
-        postprocess_footprints_relative_edge_distance: Optional edge-only limit on distance divided by sqrt(hole_area / pi), default None.
-        postprocess_footprints_cut_width: Positive integer width, "hole_size" for the largest diameter, or "maximum_inscribed_circle" (default) for the inscribed diameter. Applies to both cut types; pairs use the smaller width.
-        postprocess_footprints_cut_method: Hole cutting method, "corridor" (default) or "buffer".
-        postprocess_footprints_smoothing_radius: Inward smoothing radius in projected CRS units, default 240; 0 disables smoothing.
+        postprocess_footprints_hole_relative_edge_distance: Optional edge-only limit on distance divided by sqrt(hole_area / pi), default None.
+        postprocess_footprints_hole_cut_width: Positive integer width, "hole_size" for the largest diameter, or "maximum_inscribed_circle" (default) for the inscribed diameter. Applies to both cut types; pairs use the smaller width.
+        postprocess_footprints_hole_cut_method: Hole cutting method, "corridor" (default) or "buffer".
+        postprocess_footprints_simplify_smoothing_radius: Inward smoothing radius in projected CRS units, default 240; 0 disables smoothing.
         postprocess_footprints_simplify_tolerance: Maximum inward simplification deviation in projected CRS units, default 120; 0 disables simplification.
         postprocess_footprints_simplify_area_weight: Area retention weight in [0, 1], default 0.5.
-        postprocess_footprints_area_filter: Optional minimum component area in squared CRS units, default None.
-        postprocess_footprints_area_rank: Keep the largest N components for positive N or smallest abs(N) for negative N; 0 or None keeps all; default 1.
+        postprocess_footprints_filter_area_size: Optional minimum component area in squared CRS units, default None.
+        postprocess_footprints_filter_area_rank: Keep the largest N components for positive N or smallest abs(N) for negative N; 0 or None keeps all; default 1.
         voronoi_center_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output or creates footprints from the current images if no footprint step has run.
         voronoi_center_seamline_input_layer: Explicit input layer; None inherits the preceding footprint step's layer when using its polygons.
         voronoi_center_seamline_output_layer: Output GeoPackage layer name for Voronoi seamlines; default "seamlines".
@@ -579,16 +579,16 @@ def pipeline(
                     output_polygons=output_polygons,
                     input_layer=input_layer,
                     output_layer=postprocess_footprints_output_layer,
-                    edge_distance=postprocess_footprints_edge_distance,
+                    hole_edge_distance=postprocess_footprints_hole_edge_distance,
                     hole_to_hole_distance=postprocess_footprints_hole_to_hole_distance,
-                    relative_edge_distance=postprocess_footprints_relative_edge_distance,
-                    cut_width=postprocess_footprints_cut_width,
-                    cut_method=postprocess_footprints_cut_method,
-                    smoothing_radius=postprocess_footprints_smoothing_radius,
+                    hole_relative_edge_distance=postprocess_footprints_hole_relative_edge_distance,
+                    hole_cut_width=postprocess_footprints_hole_cut_width,
+                    hole_cut_method=postprocess_footprints_hole_cut_method,
+                    simplify_smoothing_radius=postprocess_footprints_simplify_smoothing_radius,
                     simplify_tolerance=postprocess_footprints_simplify_tolerance,
                     simplify_area_weight=postprocess_footprints_simplify_area_weight,
-                    area_filter=postprocess_footprints_area_filter,
-                    area_rank=postprocess_footprints_area_rank,
+                    filter_area_size=postprocess_footprints_filter_area_size,
+                    filter_area_rank=postprocess_footprints_filter_area_rank,
                     image_threads=shared_image_threads,
                     concurrent_processing_backend=shared_concurrent_processing_backend,
                     dask_scheduler=shared_dask_scheduler,

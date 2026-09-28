@@ -344,16 +344,16 @@ def _simplify_inner(polygon, tolerance, area_weight):
     return candidate if candidate.is_valid and original.covers(candidate) else original
 
 
-def _filter_polygon_area(geometry, area_filter=None, area_rank=1):
+def _filter_polygon_area(geometry, filter_area_size=None, filter_area_rank=1):
     """Filter components by minimum area, then retain the largest or smallest requested count."""
     parts = [
         part
         for part in _polygon_parts(geometry)
-        if area_filter is None or part.area >= area_filter
+        if filter_area_size is None or part.area >= filter_area_size
     ]
-    if area_rank:
-        parts = sorted(parts, key=lambda part: part.area, reverse=area_rank > 0)[
-            : abs(area_rank)
+    if filter_area_rank:
+        parts = sorted(parts, key=lambda part: part.area, reverse=filter_area_rank > 0)[
+            : abs(filter_area_rank)
         ]
     return unary_union(parts) if parts else MultiPolygon()
 
@@ -388,29 +388,29 @@ def _hole_diameter(hole):
     return math.sqrt(diameter_squared)
 
 
-def _hole_cut_width(hole, cut_width):
+def _hole_cut_width(hole, hole_cut_width):
     """Resolve an angle-independent width from the original hole geometry."""
-    if cut_width == "maximum_inscribed_circle":
+    if hole_cut_width == "maximum_inscribed_circle":
         # polylabel uses the native MIC implementation on Shapely 2.1+, and
         # provides the same search on 2.0. Use a rotation-invariant tolerance.
         center = polylabel(hole, tolerance=math.sqrt(hole.area) / 1000)
         return 2 * center.distance(hole.boundary)
-    if cut_width == "hole_size":
+    if hole_cut_width == "hole_size":
         return _hole_diameter(hole)
-    return cut_width
+    return hole_cut_width
 
 
 def _postprocess_polygon(
     geometry,
-    edge_distance,
-    relative_edge_distance,
-    cut_width,
-    cut_method,
-    smoothing_radius,
+    hole_edge_distance,
+    hole_relative_edge_distance,
+    hole_cut_width,
+    hole_cut_method,
+    simplify_smoothing_radius,
     simplify_tolerance,
     simplify_area_weight,
-    area_filter=None,
-    area_rank=1,
+    filter_area_size=None,
+    filter_area_rank=1,
     hole_to_hole_distance=800,
 ):
     """Connect selected holes to edges/holes, then smooth and simplify inward."""
@@ -422,22 +422,22 @@ def _postprocess_polygon(
 
         def width_for(index):
             if index not in widths:
-                widths[index] = _hole_cut_width(holes[index], cut_width)
+                widths[index] = _hole_cut_width(holes[index], hole_cut_width)
             return widths[index]
 
-        if edge_distance > 0:
+        if hole_edge_distance > 0:
             for index, hole in enumerate(holes):
                 distance = hole.distance(original.exterior)
-                if distance > edge_distance:
+                if distance > hole_edge_distance:
                     continue
                 if (
-                    relative_edge_distance is not None
+                    hole_relative_edge_distance is not None
                     and distance / math.sqrt(hole.area / math.pi)
-                    > relative_edge_distance
+                    > hole_relative_edge_distance
                 ):
                     continue
                 width = width_for(index)
-                if cut_method == "corridor":
+                if hole_cut_method == "corridor":
                     cuts.append(
                         LineString(nearest_points(hole, original.exterior)).buffer(
                             width / 2
@@ -456,7 +456,7 @@ def _postprocess_polygon(
                 for other_index in sorted(i for i in neighbors if i > index):
                     other = holes[other_index]
                     width = min(width_for(index), width_for(other_index))
-                    if cut_method == "corridor":
+                    if hole_cut_method == "corridor":
                         cuts.append(
                             LineString(nearest_points(hole, other)).buffer(width / 2)
                         )
@@ -464,16 +464,18 @@ def _postprocess_polygon(
                         radius = (hole.distance(other) + width) / 2
                         cuts.extend([hole.buffer(radius), other.buffer(radius)])
         cut = original.difference(unary_union(cuts)) if cuts else original
-        if smoothing_radius:
+        if simplify_smoothing_radius:
             cut = (
-                cut.buffer(-smoothing_radius).buffer(smoothing_radius).intersection(cut)
+                cut.buffer(-simplify_smoothing_radius)
+                .buffer(simplify_smoothing_radius)
+                .intersection(cut)
             )
         for part in _polygon_parts(cut):
             if simplify_tolerance:
                 part = _simplify_inner(part, simplify_tolerance, simplify_area_weight)
             results.append(part)
     geometry = unary_union(results) if results else MultiPolygon()
-    return _filter_polygon_area(geometry, area_filter, area_rank)
+    return _filter_polygon_area(geometry, filter_area_size, filter_area_rank)
 
 
 def postprocess_footprints(
@@ -482,18 +484,18 @@ def postprocess_footprints(
     *,
     input_layer: str | None = None,
     output_layer: str = "footprints",
-    edge_distance: float = 800,
+    hole_edge_distance: float = 800,
     hole_to_hole_distance: float = 800,
-    relative_edge_distance: float | None = None,
-    cut_width: (
+    hole_relative_edge_distance: float | None = None,
+    hole_cut_width: (
         int | Literal["hole_size", "maximum_inscribed_circle"]
     ) = "maximum_inscribed_circle",
-    cut_method: Literal["corridor", "buffer"] = "corridor",
-    smoothing_radius: float = 240,
+    hole_cut_method: Literal["corridor", "buffer"] = "corridor",
+    simplify_smoothing_radius: float = 240,
     simplify_tolerance: float = 120,
     simplify_area_weight: float = 0.5,
-    area_filter: float | None = None,
-    area_rank: int | None = 1,
+    filter_area_size: float | None = None,
+    filter_area_rank: int | None = 1,
     image_threads: Universal.Threads = None,
     concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
@@ -507,16 +509,16 @@ def postprocess_footprints(
         output_polygons (str): Output GeoPackage path for processed polygons and their original attributes; must differ from input_polygons.
         input_layer (str | None, optional): Optional input layer name when reading multi-layer vector sources. Defaults to None.
         output_layer (str, optional): Output GeoPackage layer name. Defaults to "footprints".
-        edge_distance (float, optional): Maximum hole-to-edge distance in CRS units, measured against each component's original outer ring; zero disables only hole-to-edge cuts. Defaults to 800.
+        hole_edge_distance (float, optional): Maximum hole-to-edge distance in CRS units, measured against each component's original outer ring; zero disables only hole-to-edge cuts. Defaults to 800.
         hole_to_hole_distance (float, optional): Maximum boundary-to-boundary distance in CRS units between original holes in the same polygon component; every qualifying pair is connected. Zero disables only hole-to-hole cuts. Defaults to 800.
-        relative_edge_distance (float | None, optional): Additional upper limit on hole-to-edge distance divided by sqrt(hole_area / pi); applies only to edge cuts. None disables this size-relative filter. Defaults to None.
-        cut_width (int | Literal["hole_size", "maximum_inscribed_circle"], optional): Positive integer width in CRS units, "hole_size" for the largest vertex-to-vertex diameter, or "maximum_inscribed_circle" for the largest circle fitting inside the hole (diameter, approximated with radius tolerance sqrt(hole_area) / 1000). Applies to both edge and hole-pair cuts; pairs use the smaller hole width. Defaults to "maximum_inscribed_circle".
-        cut_method (Literal["corridor", "buffer"], optional): Subtract a shortest connection buffered by half the cut width with "corridor". With "buffer", expand an edge-selected hole by distance + width / 2, or both holes in a pair by (distance + width) / 2. Defaults to "corridor".
-        smoothing_radius (float, optional): Nonnegative erosion and dilation radius, followed by intersection with the cut polygon to prevent expansion or refilling cuts; zero disables smoothing. Defaults to 240.
+        hole_relative_edge_distance (float | None, optional): Additional upper limit on hole-to-edge distance divided by sqrt(hole_area / pi); applies only to edge cuts. None disables this size-relative filter. Defaults to None.
+        hole_cut_width (int | Literal["hole_size", "maximum_inscribed_circle"], optional): Positive integer width in CRS units, "hole_size" for the largest vertex-to-vertex diameter, or "maximum_inscribed_circle" for the largest circle fitting inside the hole (diameter, approximated with radius tolerance sqrt(hole_area) / 1000). Applies to both edge and hole-pair cuts; pairs use the smaller hole width. Defaults to "maximum_inscribed_circle".
+        hole_cut_method (Literal["corridor", "buffer"], optional): Subtract a shortest connection buffered by half the cut width with "corridor". With "buffer", expand an edge-selected hole by distance + width / 2, or both holes in a pair by (distance + width) / 2. Defaults to "corridor".
+        simplify_smoothing_radius (float, optional): Nonnegative erosion and dilation radius, followed by intersection with the cut polygon to prevent expansion or refilling cuts; zero disables smoothing. Defaults to 240.
         simplify_tolerance (float, optional): Nonnegative maximum deviation of removed vertices from inward shortcuts, including cumulative removals; zero disables simplification. Defaults to 120.
         simplify_area_weight (float, optional): Weight in [0, 1] balancing normalized area loss against perimeter reduction in the greedy inward shortcut simplifier; larger values favor retaining area. Defaults to 0.5.
-        area_filter (float | None, optional): Minimum retained component area in squared CRS units, applied after smoothing and simplification and before area_rank; None disables the threshold. Defaults to None.
-        area_rank (int | None, optional): Keep the largest N components per feature for positive N, or the smallest abs(N) for negative N; 0 or None keeps all components passing area_filter. Defaults to 1.
+        filter_area_size (float | None, optional): Minimum retained component area in squared CRS units, applied after smoothing and simplification and before filter_area_rank; None disables the threshold. Defaults to None.
+        filter_area_rank (int | None, optional): Keep the largest N components per feature for positive N, or the smallest abs(N) for negative N; 0 or None keeps all components passing filter_area_size. Defaults to 1.
         image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-feature geometry operations; "cpu" uses all CPU cores, an integer sets the process count, and None disables local parallelism. Defaults to None.
         concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use a local process pool or an existing Dask cluster. Defaults to "process_pool".
         dask_scheduler (tuple[str, str] | None, optional): Existing Dask scheduler as ("file", path) or ("address", address); required for Dask execution, which requires image_threads=None. Defaults to None.
@@ -535,13 +537,13 @@ def postprocess_footprints(
         dask_scheduler=dask_scheduler,
     )
     for name, value in {
-        "edge_distance": edge_distance,
+        "hole_edge_distance": hole_edge_distance,
         "hole_to_hole_distance": hole_to_hole_distance,
-        "smoothing_radius": smoothing_radius,
+        "simplify_smoothing_radius": simplify_smoothing_radius,
         "simplify_tolerance": simplify_tolerance,
         "simplify_area_weight": simplify_area_weight,
-        "relative_edge_distance": (
-            0 if relative_edge_distance is None else relative_edge_distance
+        "hole_relative_edge_distance": (
+            0 if hole_relative_edge_distance is None else hole_relative_edge_distance
         ),
     }.items():
         if (
@@ -551,27 +553,31 @@ def postprocess_footprints(
             or value < 0
         ):
             raise ValueError(f"{name} must be finite and nonnegative.")
-    if cut_width not in ("hole_size", "maximum_inscribed_circle") and (
-        isinstance(cut_width, bool) or not isinstance(cut_width, int) or cut_width <= 0
+    if hole_cut_width not in ("hole_size", "maximum_inscribed_circle") and (
+        isinstance(hole_cut_width, bool)
+        or not isinstance(hole_cut_width, int)
+        or hole_cut_width <= 0
     ):
         raise ValueError(
-            'cut_width must be a positive integer, "hole_size", or "maximum_inscribed_circle".'
+            'hole_cut_width must be a positive integer, "hole_size", or "maximum_inscribed_circle".'
         )
-    if simplify_area_weight > 1 or cut_method not in {"corridor", "buffer"}:
+    if simplify_area_weight > 1 or hole_cut_method not in {"corridor", "buffer"}:
         raise ValueError(
-            "Require simplify_area_weight in [0, 1] and cut_method corridor or buffer."
+            "Require simplify_area_weight in [0, 1] and hole_cut_method corridor or buffer."
         )
-    if area_filter is not None and (
-        isinstance(area_filter, bool)
-        or not isinstance(area_filter, (int, float))
-        or not math.isfinite(area_filter)
-        or area_filter < 0
+    if filter_area_size is not None and (
+        isinstance(filter_area_size, bool)
+        or not isinstance(filter_area_size, (int, float))
+        or not math.isfinite(filter_area_size)
+        or filter_area_size < 0
     ):
-        raise ValueError("area_filter must be a finite nonnegative number or None.")
-    if area_rank is not None and (
-        isinstance(area_rank, bool) or not isinstance(area_rank, int)
+        raise ValueError(
+            "filter_area_size must be a finite nonnegative number or None."
+        )
+    if filter_area_rank is not None and (
+        isinstance(filter_area_rank, bool) or not isinstance(filter_area_rank, int)
     ):
-        raise ValueError("area_rank must be an integer or None.")
+        raise ValueError("filter_area_rank must be an integer or None.")
     if os.path.realpath(input_polygons) == os.path.realpath(output_polygons):
         raise ValueError("Input and output GeoPackages must be different files.")
     if _footprint_output_is_reusable(
@@ -592,15 +598,15 @@ def postprocess_footprints(
     args = [
         (
             geometry,
-            edge_distance,
-            relative_edge_distance,
-            cut_width,
-            cut_method,
-            smoothing_radius,
+            hole_edge_distance,
+            hole_relative_edge_distance,
+            hole_cut_width,
+            hole_cut_method,
+            simplify_smoothing_radius,
             simplify_tolerance,
             simplify_area_weight,
-            area_filter,
-            area_rank,
+            filter_area_size,
+            filter_area_rank,
             hole_to_hole_distance,
         )
         for geometry in frame.geometry
@@ -636,6 +642,6 @@ def postprocess_footprints(
         )
         if writer.count == 0:
             raise ValueError(
-                "Postprocessing removed all polygons; reduce the processing distances or area_filter."
+                "Postprocessing removed all polygons; reduce the processing distances or filter_area_size."
             )
     return output_polygons
