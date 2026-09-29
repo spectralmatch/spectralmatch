@@ -1,6 +1,8 @@
 """Joint global and locally varying coregistration of overlapping rasters."""
 
 from __future__ import annotations
+from ..utils_progress import gdal_progress
+from ..utils_progress import reports_progress
 
 import json
 import math
@@ -109,6 +111,7 @@ class _SparseEquations:
         )
 
 
+@reports_progress(worker_progress=True)
 def joint_coregistration(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -628,6 +631,7 @@ def _build_pair_overlap_vrts(info_i, info_j, tmpdir):
                 resampleAlg=gdal.GRIORA_Bilinear,
                 dstAlpha=True,
                 warpOptions=["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"],
+                callback=gdal_progress("Warping raster"),
             ),
         )
         if dataset is None:
@@ -1387,7 +1391,7 @@ def _write_global_affine_output(
     tile_thread_workers=None,
 ):
     vrt_path = os.path.join(tmpdir, "global_alignment.vrt")
-    dataset = gdal.Translate(vrt_path, info.path, options=gdal.TranslateOptions(format="VRT"))
+    dataset = gdal.Translate(vrt_path, info.path, options=gdal.TranslateOptions(format="VRT", callback=gdal_progress("Writing raster")))
     if dataset is None:
         raise RuntimeError("Failed to create global-alignment VRT.")
     corrected_transform = _corrected_geotransform(info, global_parameters, global_model)
@@ -1403,6 +1407,7 @@ def _write_global_affine_output(
                 outputType=gdal.GetDataTypeByName(output_dtype),
                 noData=nodata_value,
                 creationOptions=creation_options,
+                callback=gdal_progress("Writing raster"),
             ),
         )
     else:
@@ -1428,6 +1433,7 @@ def _write_global_affine_output(
                 multithread=tile_thread_on,
                 warpOptions=warp_options,
                 creationOptions=creation_options,
+                callback=gdal_progress("Warping raster"),
             ),
         )
     if output is None:
@@ -1498,7 +1504,7 @@ def _write_local_warp_output(
     _write_coordinate_raster(x_path, x_values, info.projection)
     _write_coordinate_raster(y_path, y_values, info.projection)
 
-    source = gdal.Translate(vrt_path, info.path, options=gdal.TranslateOptions(format="VRT"))
+    source = gdal.Translate(vrt_path, info.path, options=gdal.TranslateOptions(format="VRT", callback=gdal_progress("Writing raster")))
     if source is None:
         raise RuntimeError("Failed to create geolocation source VRT.")
     source.SetMetadata(
@@ -1553,6 +1559,7 @@ def _write_local_warp_output(
             multithread=tile_thread_on,
             warpOptions=warp_options,
             creationOptions=creation_options,
+            callback=gdal_progress("Warping raster"),
         ),
     )
     if output is None:
@@ -1685,7 +1692,7 @@ def _coregister_overlap(
         os.makedirs(output_dir, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="spectralmatch_gcps_") as tmpdir:
         gcp_vrt = os.path.join(tmpdir, "sensed_gcps.vrt")
-        gcp_dataset = gdal.Translate(gcp_vrt, sensed_overlap_vrt, options=gdal.TranslateOptions(format="VRT"))
+        gcp_dataset = gdal.Translate(gcp_vrt, sensed_overlap_vrt, options=gdal.TranslateOptions(format="VRT", callback=gdal_progress("Writing raster")))
         if gcp_dataset is None:
             raise RuntimeError("Failed to create temporary VRT for overlap coregistration.")
         reference_transform = reference.GetGeoTransform()
@@ -1721,6 +1728,7 @@ def _coregister_overlap(
                 multithread=tile_thread_on,
                 warpOptions=warp_options,
                 creationOptions=_get_creation_options(format_name),
+                callback=gdal_progress("Warping raster"),
             ),
         )
         if corrected is None:

@@ -1,3 +1,4 @@
+from ..utils_progress import gdal_progress
 import os
 import numpy as np
 import json
@@ -393,7 +394,8 @@ def _apply_adjustments_process_image(
                 creationOptions=co,
                 bandList=list(range(1, num_bands + 1)),
                 noData=nodata_val if nodata_val is not None else None,
-                outputType=gdal.GetDataTypeByName(output_dtype)
+                outputType=gdal.GetDataTypeByName(output_dtype),
+                callback=gdal_progress("Writing raster"),
             )
         )
         if out_ds is None:
@@ -776,6 +778,7 @@ def _overlap_stats_from_masked_images(
                 resampleAlg=gdal.GRIORA_NearestNeighbour,
                 multithread=tile_thread_on,
                 warpOptions=(["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
+                callback=gdal_progress("Warping raster"),
             ),
         )
         if j_ds is None:
@@ -787,7 +790,7 @@ def _overlap_stats_from_masked_images(
         i_ds = gdal.Translate(
             i_base,
             input_image_path_i,
-            options=gdal.TranslateOptions(format="VRT", projWin=[x_min, y_max, x_max, y_min]),
+            options=gdal.TranslateOptions(format="VRT", projWin=[x_min, y_max, x_max, y_min], callback=gdal_progress("Writing raster")),
         )
         if i_ds is None:
             raise RuntimeError("Translate failed for I overlap")

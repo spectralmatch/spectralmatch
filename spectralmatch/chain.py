@@ -1,3 +1,4 @@
+from .utils_progress import reports_progress
 import os
 import shutil
 import tempfile
@@ -74,6 +75,7 @@ STEP_TEMP_OUTPUTS = {
 }
 
 
+@reports_progress(worker_progress=True)
 def pipeline(
     shared_input_images: Universal.SearchFolderOrListFiles,
     shared_output_image_path: Universal.CreateInFolderOrListFiles,

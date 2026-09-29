@@ -1,3 +1,4 @@
+from ..utils_progress import reports_progress
 import math
 import os
 from itertools import combinations
@@ -44,6 +45,7 @@ gdal.UseExceptions()
 
 class Seamline:
     @staticmethod
+    @reports_progress(worker_progress=True)
     def create_footprints(
         input_images: Universal.SearchFolderOrListFiles,
         output_polygons: str,
@@ -166,6 +168,7 @@ class Seamline:
         return output_polygons
 
     @staticmethod
+    @reports_progress(worker_progress=True)
     def postprocess_footprints(
         input_polygons: str,
         output_polygons: str,
@@ -337,6 +340,7 @@ class Seamline:
         return output_polygons
 
     @staticmethod
+    @reports_progress(worker_progress=True)
     def markov_triangles(
         input_images: Universal.SearchFolderOrListFiles,
         output_mask: str,
@@ -604,6 +608,7 @@ class Seamline:
         return output_mask
 
     @staticmethod
+    @reports_progress
     def weighted(
         input_polygons: str,
         output_mask: str,
@@ -670,6 +675,7 @@ class Seamline:
         return result
 
     @staticmethod
+    @reports_progress
     def voronoi(
         input_polygons: str,
         output_mask: str,

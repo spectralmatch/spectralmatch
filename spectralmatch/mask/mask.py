@@ -1,3 +1,5 @@
+from ..utils_progress import gdal_progress
+from ..utils_progress import reports_progress
 import tempfile
 import re
 import os
@@ -18,6 +20,7 @@ from ..utils_multiprocessing import _resolve_parallel_config, _get_executor
 from ..utils import _set_gdal_cache, _set_gdal_workers, _resolve_gdal_dtype, _resolve_window_size
 
 
+@reports_progress(worker_progress=True)
 def create_cloud_mask_with_omnicloudmask(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -185,6 +188,7 @@ def _process_cloud_mask_image(
 
 
 
+@reports_progress(worker_progress=True)
 def band_math(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -453,6 +457,7 @@ def _band_math_process_image(
             bandList=[1],
             noData=nodata_value if nodata_value is not None else None,
             outputType=gdal.GetDataTypeByName(output_dtype),
+            callback=gdal_progress("Writing raster"),
         )
     )
 

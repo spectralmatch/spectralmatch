@@ -30,6 +30,7 @@ classifiers = [
 
 dependencies = [
     "numpy>=2.2.3",
+    "tqdm>=4.66",
     "scipy>=1.15.2",
     "fiona>=1.10.1",
     "omnicloudmask>=1.0.11",

@@ -1,3 +1,4 @@
+from ..utils_progress import reports_progress
 import math
 import os
 import re
@@ -23,6 +24,7 @@ _SAFE_FUNCTIONS = {
 }
 
 
+@reports_progress
 def weighted_seamline(
     input_polygons: str,
     output_mask: str,

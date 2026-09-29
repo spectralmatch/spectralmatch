@@ -177,3 +177,36 @@ This project is licensed under the MIT License. See [LICENSE](https://github.com
 
 ## Project Support
 This library was developed at the [Spatial Data Analysis and Visualization Lab (SDAV)](https://hilo.hawaii.edu/sdav/) at the University of Hawaii at Hilo by Kanoa Lindiwe. Funding was partly provided by the [Hau‘oli Mau Loa Foundation](https://www.hauolimauloa.org/), in addition to the National Science Foundation EPSCoR grant 2149133, Change Hawaiʻi: Harnessing the Data Revolution for Island Resilience.
+
+### Python progress callbacks
+
+Processing functions accept an optional `progress_callback` callable. It receives
+keyword fields from `tqdm.format_dict`: `n`, `total`, `prefix`, `unit`, `elapsed`
+and `rate`, plus an `operation` identifier and, for image workers, `scene`.
+`total=None` means the current phase has no measurable intermediate progress.
+Accept `**stats` to remain compatible with additional fields.
+
+```python
+from spectralmatch import align_rasters
+
+updates = []
+align_rasters(
+    ["a.tif", "b.tif"], ["aligned_a.tif", "aligned_b.tif"],
+    image_threads=2,
+    progress_callback=lambda **stats: updates.append(stats),
+)
+```
+
+The existing image-task runner reports image completions only after successful
+processing and parent-side result commits. Worker GDAL callbacks reach the same
+parent callback through local queues or Dask events. Callbacks can be local
+closures: only lightweight reporters cross process boundaries. This works for
+aggregate functions as well as serial calls. With callbacks enabled, progress
+messages go to `callback.message(text)` when supplied, and no worker terminal
+bars are created. Without a callback, ordinary console logging is unchanged.
+
+Applications such as VHR Harmonize can render these callbacks in Rich without
+adding a Rich dependency to SpectralMatch. Custom functions can use
+`spectralmatch.utils_progress.progress(...)` like tqdm and
+`@reports_progress` to inherit the current callback through nested calls.
+Opaque backend operations report lifecycle/phase progress until they return.

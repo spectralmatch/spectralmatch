@@ -1,3 +1,4 @@
+from ..utils_progress import gdal_progress
 import csv
 import heapq
 import math
@@ -304,7 +305,7 @@ def _footprint_from_image(path, band, eight_connected):
     options = [f"DATASET_FOR_GEOREF={path}"] + (
         ["8CONNECTED=8"] if eight_connected else []
     )
-    if gdal.Polygonize(mask, mask, layer, -1, options) != gdal.CE_None:
+    if gdal.Polygonize(mask, mask, layer, -1, options, callback=gdal_progress("Polygonizing raster")) != gdal.CE_None:
         raise RuntimeError(f"Cannot polygonize {path}.")
     parts = []
     for feature in layer:

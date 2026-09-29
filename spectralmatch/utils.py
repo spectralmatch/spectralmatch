@@ -1,3 +1,6 @@
+from .utils_progress import gdal_progress
+from .utils_progress import phase, progress, reports_progress
+from contextlib import nullcontext
 import importlib.util
 import os
 import math
@@ -9,7 +12,6 @@ import numpy as np
 
 from typing import Optional, Literal, Tuple, List
 from types import SimpleNamespace
-from concurrent.futures import as_completed
 from functools import partial
 from osgeo import gdal, ogr, osr
 from osgeo_utils import gdal_retile
@@ -28,6 +30,7 @@ from .types_and_validation import Universal, Utils as UtilsValidation
 from .utils_multiprocessing import _get_executor, _resolve_parallel_config
 
 
+@reports_progress
 def merge_vectors(
     input_vectors: Universal.SearchFolderOrListFiles,
     merged_vector_path: str,
@@ -106,6 +109,7 @@ def merge_vectors(
         _print_image_completed(path, completed, len(input_vector_paths))
 
 
+@reports_progress(worker_progress=True)
 def align_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -324,7 +328,7 @@ def _align_process_image(
         ods = gdal.Translate(
             out_path,
             in_path,
-            options=gdal.TranslateOptions(format="GTiff", creationOptions=co),
+            options=gdal.TranslateOptions(format="GTiff", creationOptions=co, callback=gdal_progress("Writing raster")),
         )
     else:
         xres, yres = target_res or (
@@ -344,6 +348,7 @@ def _align_process_image(
                 creationOptions=co,
                 multithread=True,
                 warpOptions=(["SKIP_NOSOURCE=YES"]),
+                callback=gdal_progress("Warping raster"),
             )
         )
 
@@ -352,6 +357,7 @@ def _align_process_image(
     ods = None
 
 
+@reports_progress
 def compute_resolution(
     paths: list[str],
     strategy: Universal.Resolution,
@@ -376,6 +382,7 @@ def compute_resolution(
     return float(res_arr[:, 0].mean()), float(res_arr[:, 1].mean())
 
 
+@reports_progress(worker_progress=True)
 def merge_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_image_path: str,
@@ -497,6 +504,7 @@ def merge_rasters(
         srcNodata=custom_nodata_value,
         VRTNodata=custom_nodata_value,
         resampleAlg=resampling_method,
+        callback=gdal_progress("Building mosaic"),
     )
 
     vrt_ds = gdal.BuildVRT("", input_image_paths, options=vrt_opts)
@@ -579,6 +587,7 @@ def merge_rasters(
         noData=custom_nodata_value,
         creationOptions=creation_options,
         resampleAlg=resampling_method,
+        callback=gdal_progress("Writing raster"),
     )
 
     merged_dataset = gdal.Translate(
@@ -640,6 +649,7 @@ def _create_tile_vrts(output_folder, filename, mosaic, tile_size, overlap, level
                 xRes=transform[1] * width / overview_width,
                 yRes=abs(transform[5]) * height / overview_height,
                 resampleAlg=resampling_method, strict=True,
+                callback=gdal_progress("Building mosaic"),
             ),
         )
         if dataset is None:
@@ -675,7 +685,7 @@ def _run_gdal_retile(
             concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
         ) as executor:
-            _install_parallel_writers(retile, executor, cache, io_threads, debug_logs)
+            _install_parallel_writers(retile, executor, cache, io_threads, debug_logs, concurrent_processing_backend)
             result = retile.main(argv)
     if result != 0:
         raise RuntimeError(f"gdal_retile failed with status {result}.")
@@ -699,7 +709,9 @@ def _install_serial_writers(retile):
         def run(g, minfo, tile_info, *args):
             state.update(completed=0, total=tile_info.countTilesX * tile_info.countTilesY)
             _print_step_start(f"merge_rasters tiles level {args[0] if args else 0}")
-            return original(g, minfo, tile_info, *args)
+            with progress(total=state["total"], desc=phase(), unit="tiles") as bar:
+                state["bar"] = bar
+                return original(g, minfo, tile_info, *args)
         return run
 
     def writer(original):
@@ -711,6 +723,7 @@ def _install_serial_writers(retile):
                 raise RuntimeError(f"gdal_retile failed to write {path}.")
             if os.path.isfile(path):
                 state["completed"] += 1
+                state["bar"].update(1)
                 _print_image_completed(path, state["completed"], state["total"])
             return result
         return run
@@ -721,7 +734,7 @@ def _install_serial_writers(retile):
     retile.buildPyramidLevel = level(retile.buildPyramidLevel)
 
 
-def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs):
+def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs, concurrent_processing_backend="process_pool"):
     args = []
 
     def writer(original, pyramid):
@@ -763,11 +776,14 @@ def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs):
             _print_step_start(f"merge_rasters tiles level {level_args[3] if len(level_args) > 3 else 0}")
             index = original(*level_args)
             # Complete this level before GDAL opens its tiles for the next one.
-            futures = {executor.submit(_retile_process_tile, *arg): arg[7] for arg in args}
+            tasks = list(args)
             args.clear()
-            for completed, future in enumerate(as_completed(futures), 1):
-                future.result()
-                _print_image_completed(futures[future], completed, len(futures))
+            _run_image_tasks(
+                _retile_process_tile, tasks,
+                input_paths=[arg[0] for arg in tasks], output_paths=[arg[7] for arg in tasks],
+                parallel=True, backend="process", concurrent_processing_backend=concurrent_processing_backend,
+                executor_factory=lambda *args, **kwargs: nullcontext(executor), collect_results=False,
+            )
             return index
         return run
 
@@ -782,7 +798,6 @@ def _retile_process_tile(
     settings, cache, io_threads, debug_logs,
 ):
     """Reopen tile inputs in a worker and invoke GDAL's native tile writer."""
-    _print_image_start(sources, path, image_id=os.path.basename(path))
     _set_gdal_cache(cache, debug_logs)
     _set_gdal_workers(io_threads, debug_logs)
     g = gdal_retile.RetileGlobals()
@@ -808,6 +823,7 @@ def _retile_process_tile(
         raise RuntimeError(f"gdal_retile failed to write {path}.")
 
 
+@reports_progress(worker_progress=True)
 def mask_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -992,7 +1008,7 @@ def _mask_raster_process_image(
             warp_options["warpOptions"].append("CUTLINE_ALL_TOUCHED=TRUE")
     # Else no cutline for this image
 
-    gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options))
+    gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options, callback=gdal_progress("Warping raster")))
 
 
 def _create_masked_vrt(
@@ -1037,7 +1053,7 @@ def _create_masked_vrt(
         if mask_mode == "exclude":
             warp_kwargs["warpOptions"].append("CUTLINE_INVERT=YES")
 
-    out_ds = gdal.Warp(vrt_path, image_path, options=gdal.WarpOptions(**warp_kwargs))
+    out_ds = gdal.Warp(vrt_path, image_path, options=gdal.WarpOptions(**warp_kwargs, callback=gdal_progress("Warping raster")))
     if out_ds is None:
         raise RuntimeError(f"Failed to build masked VRT for {image_name}")
     out_ds = None
@@ -1234,6 +1250,7 @@ def _get_valid_count(
     return n_valid
 
 
+@reports_progress(worker_progress=True)
 def compute_overviews(
     input_images_paths: Universal.SearchFolderOrListFiles,
     *,
@@ -1343,7 +1360,7 @@ def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, 
     if dataset is None:
         raise RuntimeError(f"Cannot open {path}")
     options = [f"NUM_THREADS={tile_workers}"] if tile_threads_on else []
-    dataset.BuildOverviews("AVERAGE", window_scales, options=options)
+    dataset.BuildOverviews("AVERAGE", window_scales, options=options, callback=gdal_progress("Building overviews"))
     dataset = None
     if debug_logs:
         _report_image_result("Overview levels", len(window_scales))

@@ -1,3 +1,5 @@
+from ..utils_progress import gdal_progress
+from ..utils_progress import reports_progress
 import os
 import tempfile
 import shutil
@@ -16,6 +18,7 @@ from ..types_and_validation import Universal
 from ..utils import _set_gdal_cache, _set_gdal_workers
 
 
+@reports_progress(worker_progress=True)
 def process_raster_values_to_vector_polygons(
     input_images: Universal.SearchFolderOrListFiles,
     output_vectors: Universal.CreateInFolderOrListFiles,
@@ -226,6 +229,7 @@ def _process_image_to_polygons(
             bandList=[1],
             noData=0 if custom_nodata_value is None else custom_nodata_value,
             outputType=gdal.GDT_Byte,
+            callback=gdal_progress("Writing raster"),
         ),
     )
 
@@ -246,7 +250,7 @@ def _process_image_to_polygons(
 
     rds = gdal.Open(mask_tif, gdal.GA_ReadOnly)
     band = rds.GetRasterBand(1)
-    gdal.Polygonize(srcBand=band, maskBand=None, outLayer=layer, iPixValField=layer.GetLayerDefn().GetFieldIndex("value"))
+    gdal.Polygonize(srcBand=band, maskBand=None, outLayer=layer, iPixValField=layer.GetLayerDefn().GetFieldIndex("value"), callback=gdal_progress("Polygonizing raster"))
 
     # Area filter
     def _apply_mapping_feat(feat):

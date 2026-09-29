@@ -1,3 +1,5 @@
+from .utils_progress import gdal_progress
+from .utils_progress import reports_progress
 import itertools
 import os
 from typing import Literal
@@ -10,6 +12,7 @@ from osgeo import gdal
 
 from .utils_logging import _print_step_start, _print_image_start, _print_image_completed
 
+@reports_progress
 def compare_image_spectral_profiles_pairs(
     image_groups_dict: dict,
     output_figure_path: str,
@@ -108,6 +111,7 @@ def compare_image_spectral_profiles_pairs(
         _print_image_completed(path, completed, len(processed_paths))
 
 
+@reports_progress(worker_progress=True)
 def compare_spatial_spectral_difference_band_average(
     input_images: list,
     output_figure_path: str,
@@ -206,6 +210,7 @@ def _projected_mean_spectral_difference(before_ds, after_ds, resampling_method):
                 options=gdal.WarpOptions(
                     resampleAlg=resampling_method, srcAlpha=True,
                     dstNodata=np.nan, errorThreshold=0.0, overviewLevel="NONE",
+                    callback=gdal_progress("Warping raster"),
                 ),
             )
             if not result:
@@ -234,6 +239,7 @@ def _projected_mean_spectral_difference(before_ds, after_ds, resampling_method):
     return mean_diff
 
 
+@reports_progress
 def compare_before_after_all_images(
     input_images_1: list,
     input_images_2: list,

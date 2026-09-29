@@ -1,3 +1,5 @@
+from ..utils_progress import gdal_progress
+from ..utils_progress import reports_progress
 import os
 import tempfile
 from typing import Literal
@@ -20,6 +22,7 @@ class Pif:
     """Utilities for deriving radiometric adjustment parameters from PIF statistics."""
 
     @staticmethod
+    @reports_progress(worker_progress=True)
     def flood_from_match_points(
         input_images: Universal.SearchFolderOrListFiles,
         *,
@@ -522,6 +525,7 @@ def _build_overlap_vrts(
         options=gdal.TranslateOptions(
             format="VRT",
             projWin=[x_min, y_max, x_max, y_min],
+            callback=gdal_progress("Writing raster"),
         ),
     )
     if ref_crop is None:
@@ -540,6 +544,7 @@ def _build_overlap_vrts(
             resampleAlg=gdal.GRIORA_Bilinear,
             dstAlpha=True,
             warpOptions=["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"],
+            callback=gdal_progress("Warping raster"),
         ),
     )
     if sensed_warp is None:
@@ -606,6 +611,7 @@ def _translate_vrt_to_raster(
             outputType=output_type,
             noData=nodata_value,
             creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+            callback=gdal_progress("Writing raster"),
         ),
     )
     if ds is None:
@@ -711,6 +717,7 @@ def _build_inz_stable_mask_raster(
                 outputType=gdal.GDT_Float32,
                 noData=-999999999,
                 creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+                callback=gdal_progress("Writing raster"),
             ),
         )
         if saved is None:

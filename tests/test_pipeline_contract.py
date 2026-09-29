@@ -3,6 +3,7 @@ import inspect
 import pytest
 
 from spectralmatch import chain
+from spectralmatch.utils_progress import current_callback
 
 from .utils_test import create_dummy_raster
 
@@ -30,7 +31,10 @@ def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step,
     create_dummy_raster(source, count=1)
     vector_step = step in chain.SEAMLINE_STEPS | chain.FOOTPRINT_STEPS
     output = str(tmp_path / ("output.gpkg" if vector_step else "output"))
+    progress_updates = []
+    callback = lambda **stats: progress_updates.append(stats)
     options = {
+        "progress_callback": callback,
         "shared_input_images": [str(source)],
         "shared_output_image_path": output,
         "shared_temp_dir": str(tmp_path / "temp"),
@@ -63,7 +67,9 @@ def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step,
     def capture(**kwargs):
         signature.bind(**kwargs)
         calls.append(kwargs)
-        assert set(kwargs) == set(signature.parameters)
+        # Algorithm settings are forwarded; nested functions inherit the callback.
+        assert set(kwargs) == set(signature.parameters) - {"progress_callback"}
+        assert current_callback() is callback
         for parameter_name, actual in kwargs.items():
             if parameter_name == "input_images":
                 assert actual == options.get(f"{prefix}_input_images", options["shared_input_images"])
@@ -80,6 +86,7 @@ def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step,
     monkeypatch.setattr(owner, name, capture)
     chain.pipeline(**options)
     assert len(calls) == 1
+    assert progress_updates[-1]["n"] == progress_updates[-1]["total"] == 1
 
 
 @pytest.mark.parametrize("name", ["create_footprints", "postprocess_footprints"])

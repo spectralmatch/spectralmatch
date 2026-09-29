@@ -1,8 +1,12 @@
 import multiprocessing as mp
 import os
 import sys
+from contextlib import ExitStack
 
-from concurrent.futures import Future, ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from .utils_progress import current_callback, phase, progress, progress_context
+from .progress_transport import local_worker_progress, dask_worker_progress
+
+from concurrent.futures import Future, ThreadPoolExecutor, ProcessPoolExecutor, as_completed, wait
 from typing import Tuple, Literal, Callable, Optional
 
 from .utils_logging import _print_image_completed, _run_logged_image
@@ -27,7 +31,8 @@ def _run_image_tasks(
     dask_scheduler=None,
     executor_factory=None,
     result_callback=None,
-    collect_results=True
+    collect_results=True,
+    progress_callback=None,
 ):
     """Run tasks, optionally commit each result in a parent callback before logging completion, and collect results in input order."""
     total = len(args)
@@ -35,48 +40,53 @@ def _run_image_tasks(
         raise ValueError(
             "Each image task must have matching input and output progress paths."
         )
-    if not parallel:
-        results = []
-        for completed, (arg, source, destination) in enumerate(
-            zip(args, input_paths, output_paths), 1
-        ):
-            result, details = _run_logged_image(function, source, destination, arg)
-            if result_callback is not None:
-                result_callback(completed - 1, result)
-            if collect_results:
-                results.append(result)
-            _print_image_completed(source, completed, total, details=details)
-        return results
-    factory = executor_factory or _get_executor
+    callback = progress_callback if progress_callback is not None else current_callback()
     results = [None] * total if collect_results else []
-    with factory(
-        backend,
-        workers,
-        concurrent_processing_backend=concurrent_processing_backend,
-        dask_scheduler=dask_scheduler,
-    ) as executor:
-        futures = {
-            executor.submit(
-                _run_logged_image, function, source, destination, arg
-            ): index
-            for index, (arg, source, destination) in enumerate(
-                zip(args, input_paths, output_paths)
+    with progress_context(callback), progress(total=total, desc=phase(), unit="images", callback=callback) as bar:
+        # tqdm disables its counter when silent, so retain an independent count.
+        completed = 0
+        def commit(index, result, details):
+            nonlocal completed
+            if result_callback is not None:
+                result_callback(index, result)
+            if collect_results:
+                results[index] = result
+            completed += 1
+            bar.update(1)
+            _print_image_completed(input_paths[index], completed, total, details=details)
+
+        if not parallel:
+            for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths)):
+                result, details = _run_logged_image(function, source, destination, arg, callback)
+                commit(index, result, details)
+            return results
+        factory = executor_factory or _get_executor
+        with ExitStack() as stack:
+            remote = concurrent_processing_backend == "dask"
+            # Local queues outlive the executor so already-running workers can finish.
+            reporter = None if remote else stack.enter_context(
+                local_worker_progress(callback, processes=backend == "process")
             )
-        }
-        try:
-            for completed, future in enumerate(as_completed(futures), 1):
-                index = futures.pop(future)
-                result, details = future.result()
-                if result_callback is not None:
-                    result_callback(index, result)
-                if collect_results:
-                    results[index] = result
-                _print_image_completed(
-                    input_paths[index], completed, total, details=details
-                )
-        finally:
-            for pending in futures:
-                pending.cancel()
+            executor = stack.enter_context(factory(
+                backend, workers, concurrent_processing_backend=concurrent_processing_backend,
+                dask_scheduler=dask_scheduler,
+            ))
+            if remote and callback is not None:
+                reporter = stack.enter_context(dask_worker_progress(callback, executor._client))
+            futures = {
+                executor.submit(_run_logged_image, function, source, destination, arg, reporter): index
+                for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths))
+            }
+            try:
+                for future in as_completed(futures):
+                    index = futures.pop(future)
+                    result, details = future.result()
+                    commit(index, result, details)
+            finally:
+                for pending in futures:
+                    pending.cancel()
+                if not remote:
+                    wait(futures)  # Keep progress queues alive for workers already running.
     return results
 
 
@@ -187,7 +197,8 @@ def _get_executor(
             max_workers=max_workers,
             initializer=initializer,
             initargs=initargs or (),
-            mp_context=_choose_context(),
+            # Progress delivery uses a parent reader thread; never fork that state.
+            mp_context=_choose_context(prefer_fork=current_callback() is None),
         )
 
     elif backend == "thread":

@@ -1,3 +1,4 @@
+from ..utils_progress import gdal_progress
 import math
 import tempfile
 import numpy as np
@@ -260,6 +261,7 @@ def _apply_adjustment_process_image(
                 resampleAlg=gdal.GRIORA_Bilinear,
                 multithread=tile_thread_on,
                 warpOptions=(["SKIP_NOSOURCE=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
+                callback=gdal_progress("Warping raster"),
             )
         )
         if ds_out is None:
@@ -405,6 +407,7 @@ def _apply_adjustment_process_image(
             format=driver_name,
             creationOptions=co,
             noData=nodata_val if nodata_val is not None else None,
+            callback=gdal_progress("Writing raster"),
         )
     )
     if ods is None:
@@ -637,7 +640,7 @@ def _calculate_blocks_from_masked_image(
         "warpOptions": ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else []),
         "multithread": tile_thread_on,
     }
-    mem_ds = gdal.Warp("", image_path, options=gdal.WarpOptions(**warp_kwargs))
+    mem_ds = gdal.Warp("", image_path, options=gdal.WarpOptions(**warp_kwargs, callback=gdal_progress("Warping raster")))
     if mem_ds is None:
         raise RuntimeError("Warp failed computing block means")
 

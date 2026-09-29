@@ -1,3 +1,4 @@
+from ..utils_progress import reports_progress
 import json
 
 import numpy as np
@@ -149,6 +150,7 @@ class Match:
         }
 
     @staticmethod
+    @reports_progress(worker_progress=True)
     def global_regression(
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,
@@ -538,6 +540,7 @@ Returns:
 
 
     @staticmethod
+    @reports_progress(worker_progress=True)
     def local_block_adjustment(
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,

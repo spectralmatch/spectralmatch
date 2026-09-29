@@ -1,3 +1,4 @@
+from .utils_progress import reports_progress
 import os
 import warnings
 import re
@@ -169,6 +170,7 @@ def _gdal_raster_is_valid(path: str) -> tuple[bool, str | None]:
     return True, None
 
 
+@reports_progress
 def search_paths(
     search_pattern: str,
     *,
@@ -225,6 +227,7 @@ def search_paths(
     return input_paths
 
 
+@reports_progress
 def create_paths(
     template_pattern: str,
     paths_or_bases: List[str],
@@ -280,6 +283,7 @@ def create_paths(
     return output_paths
 
 
+@reports_progress
 def match_paths(
     input_match_paths: List[str],
     reference_paths: List[str],

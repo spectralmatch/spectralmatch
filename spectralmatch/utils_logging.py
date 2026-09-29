@@ -1,19 +1,39 @@
 import os
 import sys
 from contextvars import ContextVar
+from dataclasses import dataclass
+from .utils_progress import current_callback, progress_context, report_phase
 
 
 _IMAGE_RESULTS = ContextVar("spectralmatch_image_results", default=None)
 
 
+@dataclass
+class _SceneReporter:
+    callback: object
+    scene: str
+
+    def __call__(self, **stats):
+        self.callback(**{**stats, "scene": self.scene})
+
+    def message(self, text):
+        if hasattr(self.callback, "message"):
+            self.callback.message(text)
+
+
 def _print_line(message):
     """Write each progress line and its newline together so parallel messages cannot split between them."""
-    sys.stdout.write(message + "\n")
-    sys.stdout.flush()
+    callback = current_callback()
+    if callback is None:
+        sys.stdout.write(message + "\n")
+        sys.stdout.flush()
+    elif hasattr(callback, "message"):
+        callback.message(message)
 
 
 def _print_step_start(step):
     """Print a step announcement immediately, including when debug logging is disabled."""
+    report_phase(step)
     _print_line(f"START {step.upper()}:")
 
 
@@ -57,13 +77,15 @@ def _report_image_result(key, value):
         results[key] = value
 
 
-def _run_logged_image(function, input_paths, output_paths, args):
+def _run_logged_image(function, input_paths, output_paths, args, progress_callback=None):
     """Run an image in an isolated reporting context and return its original result with completion details."""
-    _print_image_start(input_paths, output_paths)
     details = {}
     token = _IMAGE_RESULTS.set(details)
     try:
-        result = function(*args)
+        callback = _SceneReporter(progress_callback, _image_id(input_paths)) if progress_callback is not None else None
+        with progress_context(callback):
+            _print_image_start(input_paths, output_paths)
+            result = function(*args)
         return result, details
     finally:
         _IMAGE_RESULTS.reset(token)
