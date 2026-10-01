@@ -273,10 +273,10 @@ def pipeline(
         align_rasters_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
         merge_rasters_resolution: Merge resolution strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.
         merge_rasters_overlap: Overlap in pixels between output tiles, default 0; nonzero values require tiled merge and must be smaller than shared_window_size.
-        merge_rasters_build_overviews: Build overviews using shared_window_scales, default False; tiled merge creates pyramid tiles in numbered subfolders and requires consecutive powers of two starting at 2.
+        merge_rasters_build_overviews: Build overviews using shared_window_scales, default False; tiled merge writes GDAL external .vrt.ovr overviews of the complete mosaic.
         merge_rasters_resampling_method: Resampling for both merge modes: nearest (or near), bilinear, cubic, cubicspline, or lanczos, default nearest.
-        merge_rasters_custom_tiles_csv: Optional .csv filename within the tile folder; GDAL writes a headerless, semicolon-delimited index with columns tilename;minx;maxx;miny;maxy in the output CRS, also in each pyramid subfolder; requires tiled merge.
-        merge_rasters_create_vrts: VRT filename within the tile folder, default "MergedImage.vrt"; also creates and links pyramid VRTs as overviews; a custom name requires tiled merge.
+        merge_rasters_custom_tiles_csv: Optional .csv filename within the tile folder; GDAL writes a headerless, semicolon-delimited index with columns tilename;minx;maxx;miny;maxy in the output CRS; requires tiled merge.
+        merge_rasters_create_vrts: VRT filename within the tile folder, default "MergedImage.vrt"; builds external .vrt.ovr overviews when requested; a custom name requires tiled merge.
     """
     _print_step_start("pipeline")
     Universal._validate(window_scales=shared_window_scales)

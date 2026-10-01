@@ -43,9 +43,10 @@ def test_pipeline_tiled_merge_survives_intermediate_cleanup(tmp_path):
     assert result["output"] == result["merge_rasters"] == str(output_dir)
     assert not temp_dir.exists()
     assert len(list(output_dir.glob("*.tif"))) > 1
-    for level in (output_dir, output_dir / "1", output_dir / "2"):
-        assert (level / "index.csv").is_file()
-        assert (level / "Mosaic.vrt").is_file()
+    assert (output_dir / "index.csv").is_file()
+    assert (output_dir / "Mosaic.vrt").is_file()
+    assert (output_dir / "Mosaic.vrt.ovr").is_file()
+    assert not any(p.is_dir() for p in output_dir.iterdir())
     with gdal.Open(str(output_dir / "Mosaic.vrt")) as dataset:
         assert (dataset.RasterXSize, dataset.RasterYSize) == (48, 32)
         np.testing.assert_array_equal(dataset.ReadAsArray()[:, :16], 50)
@@ -94,7 +95,6 @@ def test_pipeline_forwards_merge_concurrency_and_resume(tmp_path, monkeypatch, o
 @pytest.mark.parametrize("output_name,options,error", [
     ("tiles.tif", {"merge_rasters_output_tiles": True}, "must be a folder"),
     ("merged.tif", {"merge_rasters_overlap": 4}, "require output_tiles=True"),
-    ("tiles", {"merge_rasters_output_tiles": True, "shared_window_scales": (2, 8)}, "consecutive powers"),
 ])
 def test_pipeline_rejects_invalid_merge_options_before_cleanup(tmp_path, output_name, options, error):
     temp_dir = tmp_path / "work"

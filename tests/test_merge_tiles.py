@@ -1,4 +1,5 @@
 import csv
+from pathlib import Path
 import math
 import xml.etree.ElementTree as ET
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -80,7 +81,7 @@ def test_merge_tiles_matches_single_mosaic(merge_sources, tmp_path, workers):
     assert not list(folder.glob(".merge_rasters-*"))
 
 
-def test_parallel_pyramids_match_native_retile(merge_sources, tmp_path):
+def test_parallel_tiles_and_external_overviews_match_serial(merge_sources, tmp_path):
     for workers, name in [(None, "serial"), (2, "parallel")]:
         merge_rasters(
             merge_sources, str(tmp_path / name), output_tiles=True,
@@ -90,7 +91,7 @@ def test_parallel_pyramids_match_native_retile(merge_sources, tmp_path):
         )
     serial = tmp_path / "serial"
     parallel = tmp_path / "parallel"
-    assert [p.name for p in sorted(serial.iterdir()) if p.is_dir()] == ["1", "2", "3", "4", "5"]
+    assert [p.name for p in sorted(serial.iterdir()) if p.is_dir()] == []
     assert {p.relative_to(serial) for p in serial.rglob("*")} == {
         p.relative_to(parallel) for p in parallel.rglob("*")
     }
@@ -99,6 +100,11 @@ def test_parallel_pyramids_match_native_retile(merge_sources, tmp_path):
         a, b = gdal.Open(str(path)), gdal.Open(str(other))
         assert a.GetGeoTransform() == b.GetGeoTransform()
         np.testing.assert_array_equal(a.ReadAsArray(), b.ReadAsArray())
+    for index in range(5):
+        a = gdal.Open(str(serial / "MergedImage.vrt"))
+        b = gdal.Open(str(parallel / "MergedImage.vrt"))
+        np.testing.assert_array_equal(a.GetRasterBand(1).GetOverview(index).ReadAsArray(),
+                                      b.GetRasterBand(1).GetOverview(index).ReadAsArray())
     for path in serial.rglob("*.csv"):
         assert path.read_text() == (parallel / path.relative_to(serial)).read_text()
 
@@ -117,7 +123,7 @@ def test_tile_resume_validates_and_repairs(merge_sources, tmp_path, workers):
     missing.unlink()
     merge_rasters(merge_sources, str(folder), resume_from_outputs="yes", **kwargs)
     assert missing.exists()
-    # Validate both base and pyramid tiles, and repair invalid files before resume.
+    # Repair base tiles before rebuilding external overviews.
     broken.write_bytes(b"invalid raster")
     next(folder.glob("*.tif")).write_bytes(b"invalid base tile")
     merge_rasters(merge_sources, str(folder), resume_from_outputs="validate", **kwargs)
@@ -135,7 +141,6 @@ def test_tile_resume_validates_and_repairs(merge_sources, tmp_path, workers):
     ({"output_tiles": True, "window_size": 16, "overlap": 16}, "overlap"),
     ({"output_tiles": True, "custom_tiles_csv": "../index.csv"}, "custom_tiles_csv"),
     ({"resampling_method": "unknown"}, "resampling_method"),
-    ({"output_tiles": True, "window_scales": (2, 8)}, "window_scales"),
     ({"window_size": 17}, "multiple of 16"),
     ({"output_tiles": True, "create_vrts": "../Custom.vrt"}, "create_vrts"),
     ({"output_tiles": True, "create_vrts": "Custom.tif"}, "create_vrts"),
@@ -195,13 +200,15 @@ def test_single_file_overviews_and_resume(merge_sources, tmp_path):
     assert merge_rasters(["missing.tif"], output, resume_from_outputs="validate") == output
 
 
-def test_small_mosaic_limits_pyramid_levels(tmp_path):
+def test_small_mosaic_external_overviews(tmp_path):
     source = tmp_path / "tiny.tif"
     create_dummy_raster(source, width=3, height=3, count=1)
     folder = tmp_path / "tiles"
     merge_rasters([str(source)], str(folder), output_tiles=True, build_overviews=True)
-    assert (folder / "1" / "mosaic_1_1.tif").exists()
-    assert not (folder / "2").exists()
+    assert (folder / "MergedImage.vrt.ovr").exists()
+    assert not any(p.is_dir() for p in folder.iterdir())
+    ds = gdal.Open(str(folder / "MergedImage.vrt"))
+    np.testing.assert_array_equal(ds.ReadAsArray(), ds.GetRasterBand(1).ReadAsArray())
 
 
 def test_parallel_worker_error_propagates(merge_sources, tmp_path, monkeypatch):
@@ -245,16 +252,16 @@ def test_dask_uses_shared_executor(merge_sources, tmp_path, monkeypatch):
     assert len(submitted) == 2
 
 
-def test_vrt_links_all_bands_and_uses_existing_pyramids(tmp_path):
+def test_vrt_external_overviews_all_bands_and_portability(tmp_path):
     source = tmp_path / "source.tif"
     create_dummy_raster(source, width=128, height=64, count=3, dtype="uint16", fill_value=100)
     folder = tmp_path / "tiles"
     merge_rasters([str(source)], str(folder), output_tiles=True, window_size=32, build_overviews=True, create_vrts="My Mosaic.vrt")
-    for tile in (folder / "1").glob("*.tif"):
-        dataset = gdal.Open(str(tile), gdal.GA_Update)
+    assert (folder / "My Mosaic.vrt.ovr").exists()
+    assert not any(p.is_dir() for p in folder.iterdir())
+    with gdal.Open(str(folder / "My Mosaic.vrt.ovr"), gdal.GA_Update) as overview:
         for band in range(1, 4):
-            dataset.GetRasterBand(band).Fill(1000 + band)
-        dataset = None
+            overview.GetRasterBand(band).Fill(1000 + band)
     dataset = gdal.Open(str(folder / "My Mosaic.vrt"))
     assert dataset.RasterCount == 3
     for band in range(1, 4):
@@ -285,9 +292,6 @@ def test_vrt_overviews_preserve_extent_and_cover_truncated_edges(tmp_path):
         overview = dataset.GetRasterBand(1).GetOverview(index)
         assert (overview.XSize, overview.YSize) == (math.ceil(95 / factor), math.ceil(79 / factor))
         np.testing.assert_array_equal(overview.ReadAsArray(), 100)
-        level = gdal.Open(str(folder / str(index + 1) / "MergedImage.vrt"))
-        x, dx, _, y, _, dy = level.GetGeoTransform()
-        assert (x, y, x + dx * level.RasterXSize, y + dy * level.RasterYSize) == pytest.approx((0, 79, 95, 0))
 
 
 def test_vrt_resume_rebuilds_missing_links_and_ignores_other_rasters(merge_sources, tmp_path):
@@ -298,7 +302,7 @@ def test_vrt_resume_rebuilds_missing_links_and_ignores_other_rasters(merge_sourc
     expected = gdal.Open(str(vrt)).ReadAsArray()
     stamps = {path: path.stat().st_mtime_ns for path in folder.rglob("*.tif")}
     vrt.unlink()
-    (folder / "1" / "MergedImage.vrt").unlink()
+    (folder / "MergedImage.vrt.ovr").unlink()
     create_dummy_raster(folder / "unrelated.tif", transform=(200, 1, 0, 10, 0, -1))
     merge_rasters(merge_sources, str(folder), resume_from_outputs="yes", **options)
     assert all(path.stat().st_mtime_ns == stamp for path, stamp in stamps.items())
@@ -334,3 +338,24 @@ def test_compute_overviews_custom_scales(tmp_path, scales):
 def test_overview_scales_validate_before_processing(function):
     with pytest.raises(ValueError, match="window_scales"):
         function(["missing.tif"], "unused", window_scales=(4, 2), build_overviews=True)
+
+
+def test_tiled_overviews_custom_factors_and_stale_rebuild(tmp_path):
+    source = tmp_path / "source.tif"
+    create_dummy_raster(source, width=95, height=79, count=1, fill_value=100)
+    folder = tmp_path / "tiles"
+    options = dict(output_tiles=True, window_size=32, window_scales=(2, 8))
+    merge_rasters([str(source)], str(folder), build_overviews=True, **options)
+    vrt = folder / "MergedImage.vrt"
+    with gdal.Open(str(vrt)) as ds:
+        assert ds.GetRasterBand(1).GetOverviewCount() == 2
+        np.testing.assert_array_equal(ds.GetRasterBand(1).GetOverview(1).ReadAsArray(), 100)
+    with gdal.Open(str(source), gdal.GA_Update) as ds:
+        ds.GetRasterBand(1).Fill(200)
+    merge_rasters([str(source)], str(folder), build_overviews=True, **options)
+    with gdal.Open(str(vrt)) as ds:
+        np.testing.assert_array_equal(ds.GetRasterBand(1).GetOverview(1).ReadAsArray(), 200)
+    merge_rasters([str(source)], str(folder), build_overviews=False, resume_from_outputs="yes", **options)
+    assert not Path(str(vrt) + ".ovr").exists()
+    with gdal.Open(str(vrt)) as ds:
+        assert ds.GetRasterBand(1).GetOverviewCount() == 0

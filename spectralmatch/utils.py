@@ -5,7 +5,6 @@ import importlib.util
 import os
 import math
 import tempfile
-import xml.etree.ElementTree as ET
 import geopandas as gpd
 import pandas as pd
 import numpy as np
@@ -415,7 +414,7 @@ def merge_rasters(
         output_image_path (str): Output file, or output folder when output_tiles=True.
         output_tiles: Create separate GeoTIFF files with gdal_retile. Defaults to False.
         cache: GDAL cache size in GB, or None for the GDAL default.
-        image_threads: Workers across output tiles (positive int, "cpu", or None). Requires output_tiles=True. Each pyramid level finishes before the next starts.
+        image_threads: Workers across output tiles (positive int, "cpu", or None). Requires output_tiles=True. External overviews are built afterward by GDAL.
         io_threads (Literal["cpu"] | int | None): Parallelism for IO operations. "cpu" to get number of cores, int to assign number, and None to disable io level parallelism.
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
         debug_logs (bool, optional): If True, prints progress. Defaults to False.
@@ -424,11 +423,11 @@ def merge_rasters(
         resolution: Strategy (highest, average, lowest) or a positive int or float specifying square output pixels in CRS units for either merge mode; default highest.
         window_size: In tile mode, output tile width/height in pixels (-ps), default 256. In single-file mode, internal TIFF block size, which must be a multiple of 16.
         overlap: Overlap in pixels between adjacent output tiles (-overlap). Requires tile mode; must be nonnegative and smaller than window_size.
-        build_overviews: Build internal overviews for one file, or external pyramid tiles in numbered subfolders using -levels in tile mode.
-        window_scales: Overview factors, default (2, 4, 8, 16, 32). Tile mode requires consecutive powers of two starting at 2 and passes their count to -levels, capped to avoid zero-sized pyramid rasters. None or an empty tuple disables overviews.
+        build_overviews: Build internal overviews for one file, or external .vrt.ovr overviews for a tiled mosaic.
+        window_scales: Overview factors, default (2, 4, 8, 16, 32). Tile mode builds external .vrt.ovr overviews of the complete mosaic. None or an empty tuple disables overviews.
         resampling_method: nearest (or near), bilinear, cubic, cubicspline, or lanczos. Used for VRT resolution changes and Translate, and passed to retile -r.
-        custom_tiles_csv: Optional .csv filename inside the output folder (-csv). GDAL writes a headerless, semicolon-delimited tile index with columns tilename;minx;maxx;miny;maxy in the output CRS. A separate index with the same filename is written in each pyramid subfolder. Tile mode only.
-        create_vrts: Filename of the full-resolution VRT in the output folder, default "MergedImage.vrt". Tile mode also creates a VRT with this name in each generated pyramid folder and links those VRTs as overviews; references are relative so the folder can be moved. Only tile mode accepts a custom name; single-file mode ignores the default.
+        custom_tiles_csv: Optional .csv filename inside the output folder (-csv). GDAL writes a headerless, semicolon-delimited tile index with columns tilename;minx;maxx;miny;maxy in the output CRS. Tile mode only.
+        create_vrts: Filename of the full-resolution VRT in the output folder, default "MergedImage.vrt". Tile mode creates one VRT with relative tile references and, when requested, a GDAL .vrt.ovr sidecar; move the entire folder together. Only tile mode accepts a custom name; single-file mode ignores the default.
         concurrent_processing_backend: Tile mode only: process_pool (default when omitted) or dask. Dask workers must share access to input/output paths.
         dask_scheduler: Tile mode only: existing Dask scheduler as ("file", path) or ("address", address).
         resume_from_outputs: "no" overwrites outputs (omits -resume); "yes" skips existing files (-resume); "validate" checks existing tiles with the raster validation helper, removes invalid tiles, then uses -resume. Resume assumes the inputs, grid, and processing options are unchanged.
@@ -530,9 +529,8 @@ def merge_rasters(
         os.makedirs(output_image_path, exist_ok=True)
         if resume_from_outputs == "validate":
             existing_tiles = [
-                os.path.join(folder, name)
-                for folder, _, names in os.walk(output_image_path)
-                for name in names
+                os.path.join(output_image_path, name)
+                for name in os.listdir(output_image_path)
                 if name.lower().endswith((".tif", ".tiff"))
             ]
             reusable = _resolve_reusable_output_paths(
@@ -546,8 +544,6 @@ def merge_rasters(
                         if os.path.isfile(path + suffix):
                             os.remove(path + suffix)
 
-        levels = len(window_scales or ()) if build_overviews else 0
-        levels = min(levels, int(math.log2(min(vrt_ds.RasterXSize, vrt_ds.RasterYSize))))
         # Store the VRT on the shared output filesystem so process/Dask workers
         # can open it independently. Its stable basename preserves resume names.
         with tempfile.TemporaryDirectory(prefix=".merge_rasters-", dir=os.path.abspath(output_image_path)) as temp_dir:
@@ -563,8 +559,6 @@ def merge_rasters(
             ]
             for option in creation_options:
                 argv.extend(["-co", option])
-            if levels:
-                argv.extend(["-levels", str(levels)])
             if debug_logs:
                 argv.append("-v")
             if custom_tiles_csv is not None:
@@ -576,7 +570,7 @@ def merge_rasters(
                 argv, image_threads, concurrent_processing_backend or "process_pool",
                 dask_scheduler, cache, io_threads, debug_logs,
             )
-        _create_tile_vrts(output_image_path, create_vrts, vrt_ds, window_size or 256, overlap, levels, resampling_method)
+        _create_tile_vrt(output_image_path, create_vrts, vrt_ds, window_size or 256, overlap, resampling_method, window_scales if build_overviews else (), tile_thread_workers)
         vrt_ds = None
         _print_image_completed(input_image_paths, 1, 1, image_id=os.path.basename(output_image_path.rstrip(os.sep)))
         return output_image_path
@@ -613,65 +607,50 @@ def merge_rasters(
     return output_image_path
 
 
-def _create_tile_vrts(output_folder, filename, mosaic, tile_size, overlap, levels, resampling_method):
-    """Build portable VRTs for the current retile grid and link the pyramid VRTs as band overviews."""
+def _create_tile_vrt(output_folder, filename, mosaic, tile_size, overlap, resampling_method, window_scales, tile_workers):
+    """Build one portable tile mosaic and materialize GDAL external overviews."""
     output_folder = os.path.abspath(output_folder)
-    width, height = mosaic.RasterXSize, mosaic.RasterYSize
-    transform = mosaic.GetGeoTransform()
-    bounds = (transform[0], transform[3] + height * transform[5], transform[0] + width * transform[1], transform[3])
     settings = gdal_retile.RetileGlobals()
     settings.TargetDir = output_folder + os.sep
     settings.Extension = "tif"
     source = SimpleNamespace(filename="mosaic.vrt")
-    base_tiles = []
-
-    for level in range(levels + 1):
-        factor = 2 ** level
-        grid = gdal_retile.tile_info(width // factor, height // factor, tile_size, tile_size, overlap)
-        tiles = [
-            gdal_retile.getTileName(settings, source, grid, x, y, level if level else -1)
-            for y in range(1, grid.countTilesY + 1)
-            for x in range(1, grid.countTilesX + 1)
-        ]
-        if level == 0:
-            base_tiles = tiles
-        elif width % factor or height % factor:
-            # Retile floors pyramid dimensions and can omit the far edges.
-            # Base tiles fill that fringe while pyramid tiles take precedence.
-            tiles = base_tiles + tiles
-        vrt_path = os.path.join(output_folder, str(level), filename) if level else os.path.join(output_folder, filename)
-        overview_width = math.ceil(width / factor)
-        overview_height = math.ceil(height / factor)
-        dataset = gdal.BuildVRT(
-            vrt_path, tiles,
-            options=gdal.BuildVRTOptions(
-                resolution="user", outputBounds=bounds,
-                xRes=transform[1] * width / overview_width,
-                yRes=abs(transform[5]) * height / overview_height,
-                resampleAlg=resampling_method, strict=True,
-                callback=gdal_progress("Building mosaic"),
-            ),
+    grid = gdal_retile.tile_info(mosaic.RasterXSize, mosaic.RasterYSize, tile_size, tile_size, overlap)
+    tiles = [
+        gdal_retile.getTileName(settings, source, grid, x, y, -1)
+        for y in range(1, grid.countTilesY + 1)
+        for x in range(1, grid.countTilesX + 1)
+    ]
+    vrt_path = os.path.join(output_folder, filename)
+    # Always rebuild overviews after tile repair/replacement; never reuse stale pixels.
+    if os.path.isfile(vrt_path + ".ovr"):
+        os.remove(vrt_path + ".ovr")
+    dataset = gdal.BuildVRT(
+        vrt_path, tiles,
+        options=gdal.BuildVRTOptions(resampleAlg=resampling_method, strict=True,
+                                     callback=gdal_progress("Building mosaic")),
+    )
+    if dataset is None:
+        raise RuntimeError(f"GDAL could not build tile VRT: {vrt_path}")
+    dataset = None
+    if window_scales:
+        dataset = gdal.Open(vrt_path, gdal.GA_ReadOnly)
+        options = ["COMPRESS_OVERVIEW=ZSTD", "BIGTIFF_OVERVIEW=IF_SAFER"]
+        if tile_workers is not None:
+            options.append(f"NUM_THREADS={tile_workers}")
+        result = dataset.BuildOverviews(
+            resampling_method, list(window_scales), options=options,
+            callback=gdal_progress("Building overviews"),
         )
-        if dataset is None:
-            raise RuntimeError(f"GDAL could not build tile VRT: {vrt_path}")
         dataset = None
-
-    if levels:
-        vrt_path = os.path.join(output_folder, filename)
-        tree = ET.parse(vrt_path)
-        for band in tree.getroot().findall("VRTRasterBand"):
-            for level in range(1, levels + 1):
-                overview = ET.SubElement(band, "Overview")
-                ET.SubElement(overview, "SourceFilename", relativeToVRT="1").text = f"{level}/{filename}"
-                ET.SubElement(overview, "SourceBand").text = band.attrib["band"]
-        tree.write(vrt_path, encoding="utf-8", xml_declaration=True)
+        if result != 0:
+            raise RuntimeError(f"GDAL could not build external overviews: {vrt_path}")
 
 
 def _run_gdal_retile(
     argv, image_threads, concurrent_processing_backend, dask_scheduler,
     cache, io_threads, debug_logs,
 ):
-    """Run GDAL retile, optionally distributing its tile writers. GDAL owns grid construction, naming, CSV generation, and pyramid ordering. An isolated module instance keeps tile callbacks local to this call; workers receive no GDAL/OGR objects."""
+    """Run GDAL retile, optionally distributing its tile writers. GDAL owns base-tile grid construction, naming, and CSV generation. An isolated module instance keeps tile callbacks local to this call; workers receive no GDAL/OGR objects."""
     parallel, workers = _resolve_parallel_config(
         image_threads, concurrent_processing_backend, dask_scheduler,
     )
@@ -702,7 +681,7 @@ def _load_gdal_retile():
 
 
 def _install_serial_writers(retile):
-    """Log native serial tile writers, counting completed tiles separately for each pyramid level."""
+    """Log native serial base-tile writers and count completed tiles."""
     state = {"completed": 0, "total": 0}
 
     def level(original):
@@ -729,23 +708,20 @@ def _install_serial_writers(retile):
         return run
 
     retile.createTile = writer(retile.createTile)
-    retile.createPyramidTile = writer(retile.createPyramidTile)
     retile.tileImage = level(retile.tileImage)
-    retile.buildPyramidLevel = level(retile.buildPyramidLevel)
 
 
 def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs, concurrent_processing_backend="process_pool"):
     args = []
 
-    def writer(original, pyramid):
+    def writer(original):
         def enqueue(g, minfo, x, y, width, height, path, index, feature_only):
             if feature_only:
                 return original(g, minfo, x, y, width, height, path, index, True)
 
             # Select the same intersecting sources as GDAL's getDataSet. Workers
             # open only these sources, preserving index order in overlap areas.
-            factor = 2 if pyramid else 1
-            sx, sy = minfo.scaleX * factor, minfo.scaleY * factor
+            sx, sy = minfo.scaleX, minfo.scaleY
             left, top = minfo.ulx + x * sx, minfo.uly + y * sy
             layer = minfo.ogrTileIndexDS.GetLayer()
             layer.SetSpatialFilterRect(left, top + height * sy, left + width * sx, top)
@@ -766,7 +742,7 @@ def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs, c
             }
             args.append((
                 sources, (minfo.ulx, minfo.uly), minfo.projection,
-                x, y, width, height, path, pyramid, settings,
+                x, y, width, height, path, settings,
                 cache, io_threads, debug_logs,
             ))
         return enqueue
@@ -775,7 +751,7 @@ def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs, c
         def run(*level_args):
             _print_step_start(f"merge_rasters tiles level {level_args[3] if len(level_args) > 3 else 0}")
             index = original(*level_args)
-            # Complete this level before GDAL opens its tiles for the next one.
+            # Finish the base tiles before constructing the mosaic VRT.
             tasks = list(args)
             args.clear()
             _run_image_tasks(
@@ -787,14 +763,12 @@ def _install_parallel_writers(retile, executor, cache, io_threads, debug_logs, c
             return index
         return run
 
-    retile.createTile = writer(retile.createTile, False)
-    retile.createPyramidTile = writer(retile.createPyramidTile, True)
+    retile.createTile = writer(retile.createTile)
     retile.tileImage = level(retile.tileImage)
-    retile.buildPyramidLevel = level(retile.buildPyramidLevel)
 
 
 def _retile_process_tile(
-    sources, origin, projection, x, y, width, height, path, pyramid,
+    sources, origin, projection, x, y, width, height, path,
     settings, cache, io_threads, debug_logs,
 ):
     """Reopen tile inputs in a worker and invoke GDAL's native tile writer."""
@@ -817,8 +791,7 @@ def _retile_process_tile(
     output_index = gdal_retile.createTileIndex(
         False, "TileResult", g.TileIndexFieldName, g.Source_SRS, g.TileIndexDriverTyp,
     )
-    create = gdal_retile.createPyramidTile if pyramid else gdal_retile.createTile
-    result = create(g, minfo, x, y, width, height, path, output_index, False)
+    result = gdal_retile.createTile(g, minfo, x, y, width, height, path, output_index, False)
     if result not in (None, 0) or not os.path.isfile(path):
         raise RuntimeError(f"gdal_retile failed to write {path}.")
 

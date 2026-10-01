@@ -648,9 +648,6 @@ class Utils:
         if window_size is not None and type(window_size) is not int:
             raise ValueError("window_size must be a positive integer or None.")
         Universal._validate(window_scales=window_scales)
-        if window_scales is not None:
-            if output_tiles and window_scales != tuple(2 ** i for i in range(1, len(window_scales) + 1)):
-                raise ValueError("With output_tiles=True, window_scales must be consecutive powers of two starting at 2 (gdal_retile -levels).")
         if not output_tiles:
             if image_threads is not None or concurrent_processing_backend is not None or dask_scheduler is not None:
                 raise ValueError("image_threads, concurrent_processing_backend, and dask_scheduler require output_tiles=True.")
