@@ -21,8 +21,8 @@ from ..utils_multiprocessing import _resolve_parallel_config, _run_image_tasks
 
 
 def _matching_image_rows(frame, field, name):
-    """Select rows whose field literally contains an image basename, ignoring case."""
-    return frame[frame[field].astype(str).str.contains(name, regex=False, case=False)]
+    """Select rows whose field is literally contained in an image basename, ignoring case."""
+    return frame[frame[field].astype(str).map(lambda value: value.casefold() in name.casefold())]
 
 
 def _read_image_metadata(path, join_field, names, image_field_name):

@@ -680,12 +680,12 @@ Returns:
                         input_name: loaded_name
                         for input_name in input_image_names
                         for loaded_name in loaded_names
-                        if input_name in loaded_name
+                        if loaded_name in input_name
                     }
                 ).keys()
             )
-            only_loaded = [l for l in loaded_names if not any(n in l for n in input_image_names)]
-            only_input = [n for n in input_image_names if not any(n in l for l in loaded_names)]
+            only_loaded = [l for l in loaded_names if not any(l in n for n in input_image_names)]
+            only_input = [n for n in input_image_names if not any(l in n for l in loaded_names)]
         else:
             only_input = input_image_names
             matched = []

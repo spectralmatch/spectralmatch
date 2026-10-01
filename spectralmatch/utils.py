@@ -1086,7 +1086,7 @@ def _resolve_cutline_options(vector_mask, image_name):
             raise ValueError(f"Cutline field '{field[0]}' was not found in {path}")
         safe_name = image_name.replace("'", "''")
         safe_field = field[0].replace('"', '""')
-        where = f'"{safe_field}" LIKE \'%{safe_name}%\''
+        where = f"'{safe_name}' LIKE CONCAT('%', \"{safe_field}\", '%')"
         layer.SetAttributeFilter(where)
         if layer.GetFeatureCount() == 0:
             return None, {}
