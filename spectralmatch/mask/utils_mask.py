@@ -1,3 +1,4 @@
+from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
 import os
@@ -19,6 +20,7 @@ from ..utils import _set_gdal_cache, _set_gdal_workers
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def process_raster_values_to_vector_polygons(
     input_images: Universal.SearchFolderOrListFiles,
     output_vectors: Universal.CreateInFolderOrListFiles,
@@ -37,6 +39,7 @@ def process_raster_values_to_vector_polygons(
     polygon_buffer: float = 0.0,
     value_mapping: dict | None = None,
     estimate_statistics: bool = True,
+    executor=None,
 ):
     """
     Converts raster values into vector polygons based on an expression and optional filtering logic.

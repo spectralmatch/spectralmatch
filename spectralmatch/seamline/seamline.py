@@ -1,3 +1,4 @@
+from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import reports_progress
 import math
 import os
@@ -46,6 +47,7 @@ gdal.UseExceptions()
 class Seamline:
     @staticmethod
     @reports_progress(worker_progress=True)
+    @uses_executor
     def create_footprints(
         input_images: Universal.SearchFolderOrListFiles,
         output_polygons: str,
@@ -61,6 +63,7 @@ class Seamline:
         dask_scheduler: Universal.DaskScheduler = None,
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+        executor=None,
     ) -> str:
         """Polygonize valid raster masks into a shared seamline GeoPackage, retaining holes and islands.
 
@@ -169,6 +172,7 @@ class Seamline:
 
     @staticmethod
     @reports_progress(worker_progress=True)
+    @uses_executor
     def postprocess_footprints(
         input_polygons: str,
         output_polygons: str,
@@ -192,6 +196,7 @@ class Seamline:
         dask_scheduler: Universal.DaskScheduler = None,
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+        executor=None,
     ) -> str:
         """Connect nearby holes and edges, then smooth/simplify inward, preserving attributes.
 
@@ -341,6 +346,7 @@ class Seamline:
 
     @staticmethod
     @reports_progress(worker_progress=True)
+    @uses_executor
     def markov_triangles(
         input_images: Universal.SearchFolderOrListFiles,
         output_mask: str,
@@ -368,6 +374,7 @@ class Seamline:
         dask_scheduler: Universal.DaskScheduler = None,
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+        executor=None,
     ) -> str:
         """Optimize triangle-MRF seamlines through overlapping quadtree mosaics, extending Yang et al. (2022; doi:10.1109/LGRS.2022.3166347).
 

@@ -1,3 +1,4 @@
+from spectralmatch.utils_multiprocessing import uses_executor, current_executor
 from .utils_progress import gdal_progress
 from .utils_progress import phase, progress, reports_progress
 from contextlib import nullcontext
@@ -109,6 +110,7 @@ def merge_vectors(
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def align_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -125,6 +127,7 @@ def align_rasters(
     concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+    executor=None,
 ) -> None:
     """
     Aligns multiple rasters to a common resolution and grid using specified resampling.
@@ -382,6 +385,7 @@ def compute_resolution(
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def merge_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_image_path: str,
@@ -405,6 +409,7 @@ def merge_rasters(
     concurrent_processing_backend: Universal.ConcurrentProcessingBackend | None = None,
     dask_scheduler: Universal.DaskScheduler = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+    executor=None,
 ) -> str:
     """
     Merge rasters into one GeoTIFF or a folder of GeoTIFF tiles using gdal_retile.
@@ -655,15 +660,16 @@ def _run_gdal_retile(
         image_threads, concurrent_processing_backend, dask_scheduler,
     )
     retile = _load_gdal_retile()
-    if not parallel:
+    borrowed = current_executor()
+    if not parallel and borrowed is None:
         _install_serial_writers(retile)
         result = retile.main(argv)
     else:
-        with _get_executor(
+        with (nullcontext(borrowed) if borrowed is not None else _get_executor(
             "process", workers,
             concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
-        ) as executor:
+        )) as executor:
             _install_parallel_writers(retile, executor, cache, io_threads, debug_logs, concurrent_processing_backend)
             result = retile.main(argv)
     if result != 0:
@@ -797,6 +803,7 @@ def _retile_process_tile(
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def mask_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -812,6 +819,8 @@ def mask_rasters(
     include_touched_pixels: bool = False,
     custom_nodata_value: Universal.CustomNodataValue = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+    *,
+    executor=None,
     ) -> list:
     """
     Applies a vector-based mask to one or more rasters using GDAL Warp.
@@ -1224,6 +1233,7 @@ def _get_valid_count(
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def compute_overviews(
     input_images_paths: Universal.SearchFolderOrListFiles,
     *,
@@ -1236,6 +1246,7 @@ def compute_overviews(
     concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: bool = False,
+    executor=None,
 ):
     """
     Compute and attach GDAL overviews for one or more raster images.

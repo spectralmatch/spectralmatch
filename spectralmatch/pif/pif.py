@@ -1,3 +1,4 @@
+from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
 import os
@@ -23,6 +24,7 @@ class Pif:
 
     @staticmethod
     @reports_progress(worker_progress=True)
+    @uses_executor
     def flood_from_match_points(
         input_images: Universal.SearchFolderOrListFiles,
         *,
@@ -50,6 +52,7 @@ class Pif:
         dask_scheduler: Universal.DaskScheduler = None,
         save_inz: str | None = None,
         debug_logs: Universal.DebugLogs = False,
+        executor=None,
     ) -> np.ndarray:
         """
         Generate correction parameters using PIFs flooded from matched points.

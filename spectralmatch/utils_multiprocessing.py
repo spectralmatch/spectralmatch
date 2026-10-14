@@ -2,6 +2,8 @@ import multiprocessing as mp
 import os
 import sys
 from contextlib import ExitStack
+from contextvars import ContextVar
+from functools import wraps
 
 from .utils_progress import current_callback, phase, progress, progress_context
 from .progress_transport import local_worker_progress, dask_worker_progress
@@ -9,13 +11,43 @@ from .progress_transport import local_worker_progress, dask_worker_progress
 from concurrent.futures import Future, ThreadPoolExecutor, ProcessPoolExecutor, as_completed, wait
 from typing import Tuple, Literal, Callable, Optional
 
-from .utils_logging import _print_image_completed, _run_logged_image
+from .utils_logging import _print_image_completed, _run_logged_image, _image_id
+from .substeps import substep
 
 from .types_and_validation import (
     Universal,
     _validate_dask_scheduler,
     _validate_concurrent_processing_config,
 )
+
+
+_IMAGE_EXECUTOR = ContextVar("spectralmatch_image_executor", default=None)
+
+
+def current_executor():
+    """Return the caller-owned image executor in the current coordination context."""
+    return _IMAGE_EXECUTOR.get()
+
+
+def uses_executor(function):
+    """Expose an optional executor without forwarding it to worker task arguments.
+
+    The caller owns shutdown. Nested image phases reuse it; tile pools remain
+    independent. submit() must return concurrent.futures-compatible futures.
+    Dask bridges may expose their existing client as _client for worker progress.
+    """
+    @wraps(function)
+    def wrapped(*args, executor=None, **kwargs):
+        if executor is not None and not callable(getattr(executor, "submit", None)):
+            raise TypeError("executor must provide submit()")
+        token = _IMAGE_EXECUTOR.set(executor if executor is not None else current_executor())
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _IMAGE_EXECUTOR.reset(token)
+    if wrapped.__doc__:
+        wrapped.__doc__ += "\n\n    executor: Optional caller-owned executor for image/pair jobs; never shut down by SpectralMatch."
+    return wrapped
 
 
 def _run_image_tasks(
@@ -30,11 +62,15 @@ def _run_image_tasks(
     concurrent_processing_backend="process_pool",
     dask_scheduler=None,
     executor_factory=None,
+    executor=None,
+    unit=None,
+    reused=0,
     result_callback=None,
     collect_results=True,
     progress_callback=None,
 ):
     """Run tasks, optionally commit each result in a parent callback before logging completion, and collect results in input order."""
+    executor = executor if executor is not None else current_executor()
     total = len(args)
     if len(input_paths) != total or len(output_paths) != total:
         raise ValueError(
@@ -42,7 +78,12 @@ def _run_image_tasks(
         )
     callback = progress_callback if progress_callback is not None else current_callback()
     results = [None] * total if collect_results else []
-    with progress_context(callback), progress(total=total, desc=phase(), unit="images", callback=callback) as bar:
+    unit = unit or ("pairs" if input_paths and all(isinstance(p, tuple) and len(p) == 2 for p in input_paths) else "images")
+    with (
+        progress_context(callback),
+        substep(callback, phase(), total, unit=unit, kind="jobs", reused=reused) as phase_row,
+        progress(total=total, desc=phase(), unit=unit, callback=callback) as bar,
+    ):
         # tqdm disables its counter when silent, so retain an independent count.
         completed = 0
         def commit(index, result, details):
@@ -52,32 +93,33 @@ def _run_image_tasks(
             if collect_results:
                 results[index] = result
             completed += 1
+            phase_row.commit(str(index))
             bar.update(1)
             _print_image_completed(input_paths[index], completed, total, details=details)
 
-        if not parallel:
+        if not parallel and executor is None:
             for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths)):
-                result, details = _run_logged_image(function, source, destination, arg, callback)
+                result, details = _run_logged_image(function, source, destination, arg, phase_row.reporter(callback, index, _image_id(source)))
                 commit(index, result, details)
             return results
         factory = executor_factory or _get_executor
         with ExitStack() as stack:
-            remote = concurrent_processing_backend == "dask"
+            remote = hasattr(executor, "_client") if executor is not None else concurrent_processing_backend == "dask"
             # Local queues outlive the executor so already-running workers can finish.
             reporter = None if remote else stack.enter_context(
-                local_worker_progress(callback, processes=backend == "process")
+                local_worker_progress(callback, processes=executor is not None or backend == "process")
             )
-            executor = stack.enter_context(factory(
-                backend, workers, concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-            ))
+            if executor is None:
+                executor = stack.enter_context(factory(
+                    backend, workers, concurrent_processing_backend=concurrent_processing_backend,
+                    dask_scheduler=dask_scheduler,
+                ))
             if remote and callback is not None:
                 reporter = stack.enter_context(dask_worker_progress(callback, executor._client))
-            futures = {
-                executor.submit(_run_logged_image, function, source, destination, arg, reporter): index
-                for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths))
-            }
+            futures = {}
             try:
+                for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths)):
+                    futures[executor.submit(_run_logged_image, function, source, destination, arg, phase_row.reporter(reporter, index, _image_id(source)))] = index
                 for future in as_completed(futures):
                     index = futures.pop(future)
                     result, details = future.result()
@@ -85,8 +127,7 @@ def _run_image_tasks(
             finally:
                 for pending in futures:
                     pending.cancel()
-                if not remote:
-                    wait(futures)  # Keep progress queues alive for workers already running.
+                wait(futures)  # Keep progress queues alive for workers already running.
     return results
 
 

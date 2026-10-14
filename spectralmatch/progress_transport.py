@@ -21,7 +21,7 @@ class WorkerReporter:
             self.queue.put(event)
 
     def __call__(self, **stats):
-        keys = ("n", "total", "prefix", "unit", "elapsed", "rate", "operation", "status", "scene")
+        keys = ("n", "total", "prefix", "unit", "elapsed", "rate", "operation", "status", "scene", "substep", "job_id", "parent_substep")
         self._send({"stats": {key: stats[key] for key in keys if key in stats}})
 
     def message(self, text):

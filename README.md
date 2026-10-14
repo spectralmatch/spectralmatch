@@ -210,3 +210,38 @@ adding a Rich dependency to SpectralMatch. Custom functions can use
 `spectralmatch.utils_progress.progress(...)` like tqdm and
 `@reports_progress` to inherit the current callback through nested calls.
 Opaque backend operations report lifecycle/phase progress until they return.
+
+### Caller-owned image executors
+
+Image-processing APIs (matching, coregistration, PIF, masks, seamlines, raster
+alignment/merge, and overviews) accept an optional keyword-only `executor`.
+It must expose `submit()` returning `concurrent.futures`-compatible futures.
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
+from spectralmatch import global_regression
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=4, mp_context=get_context("spawn")) as pool:
+        global_regression(
+            input_images=["a.tif", "b.tif"],
+            output_images=["a_matched.tif", "b_matched.tif"],
+            executor=pool,
+            tile_threads=1,
+        )
+```
+
+The coordinator stays in the calling process; only image/pair jobs are submitted.
+Do not run that coordinator inside the same pool it submits to. SpectralMatch
+borrows the executor across nested image phases, preserves result ordering and
+parent-side result commits, and never shuts it down. Tile parallelism remains
+independent. Without an executor, the existing `image_threads`, backend, and Dask
+scheduler arguments retain their standalone behavior. With one, leave those
+native image scheduling arguments at their defaults; the supplied executor
+controls scheduling. A single-file merge has no independent image jobs to submit.
+
+For Dask, supply an adapter returning concurrent-futures-compatible futures,
+not a raw `distributed.Client`. An adapter can expose its client as `_client`
+for SpectralMatch's Dask worker-progress transport. VHRHarmonize supplies this
+adapter automatically when using its Dask backend.

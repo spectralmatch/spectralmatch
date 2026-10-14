@@ -1,3 +1,4 @@
+from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
 import tempfile
@@ -21,6 +22,7 @@ from ..utils import _set_gdal_cache, _set_gdal_workers, _resolve_gdal_dtype, _re
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def create_cloud_mask_with_omnicloudmask(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -34,6 +36,7 @@ def create_cloud_mask_with_omnicloudmask(
     concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
     omnicloud_kwargs: dict | None = None,
+    executor=None,
 ) -> list[str]:
     """
     Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
@@ -189,6 +192,7 @@ def _process_cloud_mask_image(
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def band_math(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -205,6 +209,7 @@ def band_math(
     window_size: Universal.WindowSize = None,
     custom_output_dtype: Universal.CustomOutputDtype = None,
     calculation_dtype: Universal.CalculationDtype = "float32",
+    executor=None,
 ) -> List[str]:
     """
     Applies a thresholding operation to input raster images using a mathematical expression string.

@@ -1,6 +1,7 @@
 """Joint global and locally varying coregistration of overlapping rasters."""
 
 from __future__ import annotations
+from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
 
@@ -112,6 +113,7 @@ class _SparseEquations:
 
 
 @reports_progress(worker_progress=True)
+@uses_executor
 def joint_coregistration(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -155,6 +157,7 @@ def joint_coregistration(
     dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: Universal.DebugLogs = False,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+    executor=None,
 ) -> list[str]:
     """Coregister overlapping rasters with a joint global transform and local deformation mesh.
 
@@ -547,7 +550,7 @@ def _collect_ties(
     )
     _print_step_start("joint_coregistration tie points")
     results = _run_image_tasks(
-        _extract_pair_ties, args,
+        _extract_pair_ties, args, unit="pairs", reused=len(ties),
         input_paths=[(arg[0].path, arg[1].path) for arg in args], output_paths=[None for arg in args],
         parallel=image_threads_on, backend='thread', workers=image_thread_workers,
         concurrent_processing_backend=concurrent_processing_backend,

@@ -10,6 +10,7 @@ from time import monotonic
 from uuid import uuid4
 
 from tqdm import tqdm
+from .substeps import substep
 
 
 _callback = ContextVar("progress_callback", default=None)
@@ -83,16 +84,17 @@ def operation(description, callback=None):
     if callback is None:
         yield
         return
-    identity, started = uuid4().hex, monotonic()
-    fields = dict(prefix=description, unit="call", operation=identity, rate=None)
-    callback(n=0, total=None, elapsed=0, **fields)
-    try:
-        yield
-    except BaseException:
-        callback(n=0, total=None, elapsed=monotonic() - started, status="failed", **fields)
-        raise
-    else:
-        callback(n=1, total=1, elapsed=monotonic() - started, **fields)
+    with substep(callback, description, kind="group"):
+        identity, started = uuid4().hex, monotonic()
+        fields = dict(prefix=description, unit="call", operation=identity, rate=None)
+        callback(n=0, total=None, elapsed=0, **fields)
+        try:
+            yield
+        except BaseException:
+            callback(n=0, total=None, elapsed=monotonic() - started, status="failed", **fields)
+            raise
+        else:
+            callback(n=1, total=1, elapsed=monotonic() - started, **fields)
 
 
 def reports_progress(function=None, *, worker_progress=False):
