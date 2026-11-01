@@ -9,12 +9,12 @@ from html import escape
 import numpy as np
 from osgeo import gdal
 
-from ..utils_logging import _print_step_start, _report_image_result
+from ..utils_logging import _print_step_start, _report_image_result, _print_line
 
 from ..joint_coregistration.joint_coregistration import _coregister_overlap, _load_ties
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths, _resolve_optional_load_path
 from ..match.global_regression import _solve_pif_global_model
-from ..types_and_validation import Universal
+from ..types_and_validation import Universal, JointCoregistration
 from ..utils import _get_gdal_bounds, _set_gdal_cache, _set_gdal_workers
 from ..utils_multiprocessing import _run_image_tasks, _get_executor, _resolve_parallel_config
 
@@ -40,10 +40,21 @@ class Pif:
         region_radius: int = 5,
         max_samples: int | None = 1000,
         min_samples: int | None = 10,
+        skip_overlap_when_not_enough_matches: bool = False,
         custom_mean_factor: float = 1.0,
         custom_std_factor: float = 1.0,
         feature_method: Literal["orb"] = "orb",
         load_ties: str | None = None,
+        stats_scope: Literal["overlap", "matched_windows"] = "overlap",
+        window_size: int = 257,
+        estimate_stats: bool = True,
+        tie_grid_spacing: float = 500.0,
+        tie_search_radius: str = "128px",
+        tie_orb_max_features: int = 100,
+        tie_max_matches_per_window: int | None = 1,
+        tie_maximum_displacement: float | None = None,
+        tie_ransac_reprojection_threshold: float | None = None,
+        _return_statistics: bool = False,
         cache: Universal.Cache = None,
         image_threads: Universal.Threads = None,
         io_threads: Universal.Threads = None,
@@ -73,23 +84,39 @@ class Pif:
             region_radius: Integer PIF seed-growth radius in pixels; default 5.
             max_samples: Positive int maximum sampled PIF pixels or None for all; default 1000.
             min_samples: Positive int required PIF pixels or None to disable the minimum; default 10.
+            skip_overlap_when_not_enough_matches: bool, default False; warn and drop only pairs with fewer than three usable ties or insufficient selected PIF samples. Other errors still raise.
             custom_mean_factor: Numeric mean-constraint weight; default 1.0.
             custom_std_factor: Numeric standard-deviation-constraint weight; default 1.0.
             feature_method: 'orb', currently the only feature matcher.
             load_ties: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.
+            stats_scope: 'overlap' (default) uses the whole valid overlap for difference statistics;
+                'matched_windows' warps only bounded matched windows and pools their difference statistics.
+            window_size: Positive odd window side length in overlap pixels; default 257.
+                In matched_windows mode, seed regions are clipped at each window boundary.
+            estimate_stats: Use GDAL approximate (True) or exact (False) mean/std throughout.
+            tie_grid_spacing: Distributed search spacing in CRS units; default 500.
+            tie_search_radius: Search window half-width, e.g. '128px'; same as joint_coregistration.
+            tie_orb_max_features: ORB features per search window; default 100.
+            tie_max_matches_per_window: Selected inliers per window; default 1, None keeps all.
+            tie_maximum_displacement: Maximum tie displacement in CRS units or None.
+            tie_ransac_reprojection_threshold: RANSAC threshold in CRS units or None for three pixels.
+            _return_statistics: Internal integration flag; also return overlap and anchor statistics.
             cache: GDAL cache size in GB or None to retain the current setting.
             image_threads: Positive int pair-worker count, 'cpu', or None for serial execution.
             io_threads: Positive int GDAL I/O worker count, 'cpu', or None for its default.
             tile_threads: Positive int tile-worker count, 'cpu', or None for serial execution.
             concurrent_processing_backend: 'process_pool' or 'dask' for an existing cluster.
             dask_scheduler: ('file', scheduler_json_path), ('address', 'tcp://host:port'), or None.
-            save_inz: Output raster path or None; for multiple pairs, use two '$' placeholders for sensed and reference basenames.
+            save_inz: Output raster path or None; matched_windows diagnostics use packed-window coordinates;
+                 for multiple pairs, use two '$' placeholders for sensed and reference basenames.
             debug_logs: bool, default False; print processing details.
 
         Returns:
             np.ndarray: Shape (num_bands, 2 * num_images, 1); each image has scale then offset, with corrected = scale * image + offset.
         """
         _print_step_start("flood_from_match_points")
+        if not isinstance(skip_overlap_when_not_enough_matches, bool):
+            raise ValueError("skip_overlap_when_not_enough_matches must be a bool.")
         input_image_paths = _resolve_paths(
             "search",
             input_images,
@@ -99,6 +126,26 @@ class Pif:
             raise ValueError("No input images found for flood_from_match_points.")
         if load_ties is not None and not isinstance(load_ties, str):
             raise ValueError("load_ties must be a string or None.")
+        if stats_scope not in {"overlap", "matched_windows"}:
+            raise ValueError("stats_scope must be 'overlap' or 'matched_windows'.")
+        if isinstance(window_size, bool) or not isinstance(window_size, int) or window_size < 3 or window_size % 2 != 1:
+            raise ValueError("window_size must be an odd integer >= 3.")
+        if not isinstance(estimate_stats, bool):
+            raise ValueError("estimate_stats must be a bool.")
+        tie_options = dict(
+            tie_grid_spacing=tie_grid_spacing, tie_search_radius=tie_search_radius,
+            tie_orb_max_features=tie_orb_max_features,
+            tie_max_matches_per_window=tie_max_matches_per_window,
+            tie_maximum_displacement=tie_maximum_displacement,
+            tie_ransac_reprojection_threshold=tie_ransac_reprojection_threshold,
+        )
+        from inspect import signature
+        from ..joint_coregistration.joint_coregistration import joint_coregistration
+        defaults = signature(joint_coregistration).parameters
+        JointCoregistration._validate(**{
+            name: tie_options.get(name, defaults[name].default)
+            for name in signature(JointCoregistration._validate).parameters
+        })
         Universal._validate(
             image_threads=image_threads,
             io_threads=io_threads,
@@ -164,9 +211,11 @@ class Pif:
                     f"Loaded tie-point JSON is missing overlap pair: {name_i} <-> {name_j}."
                 )
             if load_ties and len(source_ties) < 3:
-                raise ValueError(
-                    f"Loaded tie-point pair {name_i} <-> {name_j} must contain at least 3 points."
+                _insufficient_pair_result(
+                    f"Loaded tie-point pair {name_i} <-> {name_j} must contain at least 3 points.",
+                    skip_overlap_when_not_enough_matches,
                 )
+                continue
             parallel_args.append(
                 (
                     image_path_pairs[name_i],
@@ -190,12 +239,17 @@ class Pif:
                     tile_threads,
                     _resolve_pair_output_path(save_inz, name_j, name_i, pair_index, len(overlapping_pairs)),
                     debug_logs,
+                    stats_scope,
+                    window_size,
+                    estimate_stats,
+                    tie_options,
+                    skip_overlap_when_not_enough_matches,
                 )
             )
 
         pair_results = _run_image_tasks(
             _calculate_pair_pif_stats, parallel_args,
-            input_paths=[(arg[0], arg[1]) for arg in parallel_args], output_paths=[arg[-2] for arg in parallel_args],
+            input_paths=[(arg[0], arg[1]) for arg in parallel_args], output_paths=[arg[19] for arg in parallel_args],
             parallel=image_threads_on, backend=image_backend, workers=image_thread_workers,
             concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler, executor_factory=_get_executor,
@@ -205,7 +259,12 @@ class Pif:
                 all_overlap_stats.setdefault(outer, {}).update(inner)
             _merge_whole_stat_updates(all_whole_stats, whole_updates)
 
-        return _solve_pif_global_model(
+        # Only successful pairs may constrain the model, including in saved statistics.
+        overlapping_pairs = tuple(
+            (i, j) for i, j in overlapping_pairs
+            if j in all_overlap_stats.get(i, {})
+        )
+        parameters = _solve_pif_global_model(
             num_bands=num_bands,
             all_image_names=input_image_names,
             included_names=included_names,
@@ -216,6 +275,25 @@ class Pif:
             overlapping_pairs=overlapping_pairs,
             debug_logs=debug_logs,
         )
+        if skip_overlap_when_not_enough_matches:
+            # An image disconnected by skipped pairs has no radiometric solution;
+            # preserve its values rather than applying unconstrained zero coefficients.
+            matched_names = {name for pair in overlapping_pairs for name in pair}
+            for index, name in enumerate(input_image_names):
+                if name not in matched_names:
+                    parameters[:, 2 * index, 0] = 1.0
+                    parameters[:, 2 * index + 1, 0] = 0.0
+        if _return_statistics:
+            from ..match.global_regression import _finalize_pif_whole_stats
+            whole_stats = _finalize_pif_whole_stats(all_whole_stats)
+            if skip_overlap_when_not_enough_matches:
+                for name in input_image_names:
+                    whole_stats.setdefault(name, {
+                        band: {"mean": 0.0, "std": 0.0, "size": 0}
+                        for band in range(num_bands)
+                    })
+            return parameters, all_overlap_stats, whole_stats
+        return parameters
 
 def _resolve_pair_output_path(
     base_path: str | None,
@@ -298,7 +376,7 @@ def _source_ties_to_overlap_pairs(
     sensed_overlap_grid = _raster_grid(sensed_overlap_path)
     reference_inverse = gdal.InvGeoTransform(reference_overlap_grid[0])
     sensed_inverse = gdal.InvGeoTransform(sensed_overlap_grid[0])
-    valid_mask = _read_mask(valid_mask_path)
+    valid_mask = _read_mask(valid_mask_path) if valid_mask_path else None
     converted = []
     for ref_col, ref_row, sensed_col, sensed_row in points:
         if not _pixel_is_inside(ref_col, ref_row, reference_grid[1:]):
@@ -311,13 +389,11 @@ def _source_ties_to_overlap_pairs(
         out_sensed_row, out_sensed_col = _pixel_between_grids(
             sensed_grid[0], sensed_inverse, sensed_col, sensed_row
         )
-        if abs(out_ref_col - out_sensed_col) > 20 or abs(out_ref_row - out_sensed_row) > 20:
+        if not _pixel_is_inside(out_ref_col, out_ref_row, reference_overlap_grid[1:]):
             continue
-        if not _pixel_is_inside(out_ref_col, out_ref_row, (valid_mask.shape[1], valid_mask.shape[0])):
+        if not _pixel_is_inside(out_sensed_col, out_sensed_row, sensed_overlap_grid[1:]):
             continue
-        if not _pixel_is_inside(out_sensed_col, out_sensed_row, (valid_mask.shape[1], valid_mask.shape[0])):
-            continue
-        if valid_mask[out_ref_row, out_ref_col] and valid_mask[out_sensed_row, out_sensed_col]:
+        if valid_mask is None or (valid_mask[out_ref_row, out_ref_col] and valid_mask[out_sensed_row, out_sensed_col]):
             converted.append((out_ref_row, out_ref_col, out_sensed_row, out_sensed_col))
     return converted
 
@@ -339,6 +415,14 @@ def _pixel_between_grids(source_transform, destination_inverse, column, row):
 
 def _pixel_is_inside(column, row, size):
     return 0 <= column < size[0] and 0 <= row < size[1]
+
+
+def _insufficient_pair_result(message, skip):
+    """Skip a known match/sample shortage, without catching unrelated failures."""
+    if not skip:
+        raise ValueError(message)
+    _print_line(f"WARNING: Skipping overlap: {message}")
+    return {}, {}
 
 
 def _calculate_pair_pif_stats(
@@ -363,6 +447,11 @@ def _calculate_pair_pif_stats(
     tile_threads,
     save_inz_path: str | None,
     debug_logs: bool,
+    stats_scope: str = "overlap",
+    window_size: int = 257,
+    estimate_stats: bool = True,
+    tie_options: dict | None = None,
+    skip_overlap_when_not_enough_matches: bool = False,
 ) -> tuple[dict, dict[str, dict[int, dict[str, float | int]]]]:
     with tempfile.TemporaryDirectory(prefix="spectralmatch_pif_") as tmpdir:
         overlap = _build_overlap_vrts(
@@ -374,43 +463,42 @@ def _calculate_pair_pif_stats(
             raise ValueError(f"No overlap between {reference_path} and {sensed_path}.")
         ref_vrt, sensed_vrt, width, height, gt, projection = overlap
 
-        valid_mask_path = _build_valid_mask_raster(
-            ref_vrt,
-            sensed_vrt,
-            width,
-            height,
-            gt,
-            projection,
-            tmpdir,
-        )
-        loaded_point_pairs = _source_ties_to_overlap_pairs(
-            source_ties,
-            reference_path,
-            sensed_path,
-            ref_vrt,
-            sensed_vrt,
-            valid_mask_path,
-        )
-        if source_ties is not None and len(loaded_point_pairs) < 3:
-            raise ValueError(
-                f"Loaded tie-point pair {reference_name} <-> {sensed_name} has fewer than "
-                "3 usable points after overlap validation."
+        if source_ties is None:
+            from ..joint_coregistration.joint_coregistration import _read_image_info, _extract_pair_ties
+            options = tie_options or {}
+            _, source_ties, _ = _extract_pair_ties(
+                _read_image_info(reference_name, reference_path),
+                _read_image_info(sensed_name, sensed_path), feature_method,
+                options.get("tie_maximum_displacement"), options.get("tie_ransac_reprojection_threshold"),
+                debug_logs, grid_spacing=options.get("tie_grid_spacing", 500.0),
+                search_radius=options.get("tie_search_radius", "128px"),
+                tie_orb_max_features=options.get("tie_orb_max_features", 100),
+                tie_max_matches_per_window=options.get("tie_max_matches_per_window", 1),
             )
-        if debug_logs and source_ties is not None:
-            _report_image_result("Tie points reused", len(loaded_point_pairs))
-        corrected_sensed_path = os.path.join(tmpdir, "sensed_overlap_corrected.tif")
-        corrected_sensed_path, point_pairs = _coregister_overlap(
-            ref_vrt,
-            sensed_vrt,
-            corrected_sensed_path,
-            valid_mask_path=valid_mask_path,
-            tie_pairs=loaded_point_pairs if source_ties is not None else None,
-            feature_method=feature_method,
-            cache=cache,
-            io_threads=io_threads,
-            tile_threads=tile_threads,
-            debug_logs=debug_logs,
+            # _extract_pair_ties canonicalizes the pair before returning pixel coordinates.
+            if reference_name > sensed_name:
+                source_ties = source_ties[:, [2, 3, 0, 1]]
+        point_pairs = _source_ties_to_overlap_pairs(
+            source_ties, reference_path, sensed_path, ref_vrt, sensed_vrt, None,
         )
+        if len(point_pairs) < 3:
+            return _insufficient_pair_result(
+                f"Tie-point pair {reference_name} <-> {sensed_name} has fewer than "
+                "3 usable points after overlap validation.",
+                skip_overlap_when_not_enough_matches,
+            )
+        seed_mask_override = None
+        if stats_scope == "matched_windows":
+            ref_vrt, corrected_sensed_path, width, height, gt, projection, seed_mask_override = _build_matched_window_stack(
+                ref_vrt, sensed_vrt, point_pairs, num_bands, window_size, tmpdir, region_radius=region_radius,
+                cache=cache, io_threads=io_threads, tile_threads=tile_threads, debug_logs=debug_logs,
+            )
+        else:
+            corrected_sensed_path, point_pairs = _coregister_overlap(
+                ref_vrt, sensed_vrt, os.path.join(tmpdir, "sensed_overlap_corrected.tif"),
+                tie_pairs=point_pairs, feature_method=feature_method,
+                cache=cache, io_threads=io_threads, tile_threads=tile_threads, debug_logs=debug_logs,
+            )
 
         corrected_valid_mask_path = _build_valid_mask_raster(
             ref_vrt,
@@ -436,9 +524,10 @@ def _calculate_pair_pif_stats(
             inz_threshold=inz_threshold,
             tmpdir=tmpdir,
             save_inz_path=save_inz_path,
+            estimate_stats=estimate_stats,
         )
         seed_points = _reference_seed_points_from_pairs(point_pairs, height, width)
-        seed_mask_path = _build_seed_mask_raster(
+        seed_mask_path = seed_mask_override or _build_seed_mask_raster(
             seed_points,
             width,
             height,
@@ -471,25 +560,27 @@ def _calculate_pair_pif_stats(
         if debug_logs:
             _report_image_result("PIF pixels", pif_count)
         if min_samples is not None and pif_count < min_samples:
-            raise ValueError(
+            return _insufficient_pair_result(
                 f"Not enough flood_from_match_points PIF samples between {reference_path} and "
-                f"{sensed_path}: {pif_count} found, {min_samples} required."
+                f"{sensed_path}: {pif_count} found, {min_samples} required.",
+                skip_overlap_when_not_enough_matches,
             )
 
         pair_stats = {reference_name: {sensed_name: {}}, sensed_name: {reference_name: {}}}
         whole_updates = {reference_name: {}, sensed_name: {}}
         for band_index in range(num_bands):
             ref_stats = _masked_band_stats(
-                ref_vrt, band_index + 1, pif_mask_path, pif_count
+                ref_vrt, band_index + 1, pif_mask_path, pif_count, estimate_stats=estimate_stats
             )
             sensed_stats = _masked_band_stats(
-                corrected_sensed_path, band_index + 1, pif_mask_path, pif_count
+                corrected_sensed_path, band_index + 1, pif_mask_path, pif_count, estimate_stats=estimate_stats
             )
             if min_samples is not None and ref_stats["size"] < min_samples:
-                raise ValueError(
+                return _insufficient_pair_result(
                     f"Band {band_index + 1} has {ref_stats['size']} flood_from_match_points PIF "
                     f"samples between {reference_name} and {sensed_name}; "
-                    f"{min_samples} required."
+                    f"{min_samples} required.",
+                    skip_overlap_when_not_enough_matches,
                 )
             pair_stats[reference_name][sensed_name][band_index] = ref_stats
             pair_stats[sensed_name][reference_name][band_index] = sensed_stats
@@ -497,6 +588,108 @@ def _calculate_pair_pif_stats(
             whole_updates[sensed_name][band_index] = sensed_stats
 
     return pair_stats, whole_updates
+
+
+def _build_matched_window_stack(
+    ref_vrt, sensed_vrt, point_pairs, num_bands, window_size, tmpdir, *, region_radius=5, **warp_options,
+):
+    """Warp bounded windows, mask duplicate source pixels, and pack lazy VRTs.
+
+    The packed grid gives GDAL one pooled sample population, including between-
+    window variance. A masked separator row prevents seed regions from crossing
+    between unrelated windows. Original overlap coordinates stay in rectangles.
+    """
+    reference = gdal.Open(ref_vrt)
+    width, height = reference.RasterXSize, reference.RasterYSize
+    projection = reference.GetProjectionRef()
+    transform = reference.GetGeoTransform()
+    reference = None
+    radius = window_size // 2
+    region_radius = max(0, int(region_radius))
+    windows, seed_windows, rectangles = [], [], []
+    for index, (rr, rc, _, _) in enumerate(point_pairs):
+        rr, rc = int(round(rr)), int(round(rc))
+        xoff, yoff = max(0, rc - radius), max(0, rr - radius)
+        w, h = min(width, rc + radius + 1) - xoff, min(height, rr + radius + 1) - yoff
+        folder = os.path.join(tmpdir, f"window_{index}")
+        os.makedirs(folder)
+        ref_patch = os.path.join(folder, "reference.vrt")
+        patch = gdal.Translate(ref_patch, ref_vrt, format="VRT", srcWin=[xoff, yoff, w, h])
+        patch_gt = patch.GetGeoTransform()
+        patch = None
+        sensed_patch, _ = _coregister_overlap(
+            ref_vrt, sensed_vrt, os.path.join(folder, "sensed.tif"),
+            tie_pairs=point_pairs, output_window=(xoff, yoff, w, h), **warp_options,
+        )
+        mask_path = _build_valid_mask_raster(ref_patch, sensed_patch, w, h, patch_gt, projection, folder)
+        mask_ds = gdal.Open(mask_path, gdal.GA_Update)
+        mask = mask_ds.GetRasterBand(1).ReadAsArray()
+        # A reference pixel contributes once even when matched windows intersect.
+        for px, py, pw, ph in rectangles:
+            left, top = max(xoff, px), max(yoff, py)
+            right, bottom = min(xoff + w, px + pw), min(yoff + h, py + ph)
+            if left < right and top < bottom:
+                mask[top-yoff:bottom-yoff, left-xoff:right-xoff] = 0
+        if mask.any():
+            mask_ds.GetRasterBand(1).WriteArray(mask)
+            offset = len(windows) * (window_size + 1)
+            windows.append((ref_patch, sensed_patch, mask_path, w, h, offset))
+            # Every nearby tie can seed the owned pixels, including ties whose
+            # own window overlaps this one. Build the same square dilation as
+            # _build_seed_mask_raster, clipped in original overlap coordinates.
+            seed_mask = np.zeros((h, w), dtype=np.uint8)
+            for seed_row, seed_col, _, _ in point_pairs:
+                seed_row, seed_col = int(round(seed_row)), int(round(seed_col))
+                left, right = max(0, seed_col-xoff-region_radius), min(w, seed_col-xoff+region_radius+1)
+                top, bottom = max(0, seed_row-yoff-region_radius), min(h, seed_row-yoff+region_radius+1)
+                if left < right and top < bottom:
+                    seed_mask[top:bottom, left:right] = 1
+            seed_path = os.path.join(folder, "seeds.tif")
+            seed_ds = gdal.GetDriverByName("GTiff").Create(seed_path, w, h, 1, gdal.GDT_Byte)
+            seed_ds.GetRasterBand(1).WriteArray(seed_mask)
+            seed_ds = None
+            seed_windows.append((seed_path, None, None, w, h, offset))
+            rectangles.append((xoff, yoff, w, h))
+        mask_ds = None
+    if not windows:
+        raise ValueError("No valid pixels in matched PIF windows.")
+    packed_width, packed_height = window_size, len(windows) * (window_size + 1)
+    # Coordinates describe the packed diagnostic layout, not a geographic mosaic.
+    packed_gt = (0, abs(transform[1]), 0, 0, 0, -abs(transform[5]))
+    paths = []
+    for source_index, name in enumerate(("reference_windows", "sensed_windows")):
+        bands = []
+        for band in range(1, num_bands + 1):
+            sources = "".join(_window_vrt_source(window[source_index], band, window) for window in windows)
+            bands.append(f'<VRTRasterBand dataType="Float32" band="{band}">{sources}</VRTRasterBand>')
+        masks = "".join(_window_vrt_source(window[2], 1, window) for window in windows)
+        path = os.path.join(tmpdir, f"{name}.vrt")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(
+                f'<VRTDataset rasterXSize="{packed_width}" rasterYSize="{packed_height}">'
+                f'<GeoTransform>{", ".join(map(str, packed_gt))}</GeoTransform>'
+                + "".join(bands)
+                + f'<MaskBand><VRTRasterBand dataType="Byte">{masks}</VRTRasterBand></MaskBand></VRTDataset>'
+            )
+        paths.append(path)
+    seed_path = os.path.join(tmpdir, "window_seeds.vrt")
+    sources = "".join(_window_vrt_source(window[0], 1, window) for window in seed_windows)
+    with open(seed_path, "w", encoding="utf-8") as stream:
+        stream.write(
+            f'<VRTDataset rasterXSize="{packed_width}" rasterYSize="{packed_height}">'
+            f'<GeoTransform>{", ".join(map(str, packed_gt))}</GeoTransform>'
+            f'<VRTRasterBand dataType="Byte" band="1">{sources}</VRTRasterBand></VRTDataset>'
+        )
+    return *paths, packed_width, packed_height, packed_gt, "", seed_path
+
+
+def _window_vrt_source(path, band, window):
+    _, _, _, width, height, offset = window
+    return (
+        f'<SimpleSource><SourceFilename relativeToVRT="0">{escape(path)}</SourceFilename>'
+        f'<SourceBand>{band}</SourceBand><SrcRect xOff="0" yOff="0" xSize="{width}" ySize="{height}"/>'
+        f'<DstRect xOff="0" yOff="{offset}" xSize="{width}" ySize="{height}"/></SimpleSource>'
+    )
 
 
 def _build_overlap_vrts(
@@ -664,6 +857,7 @@ def _build_inz_stable_mask_raster(
     inz_threshold: float,
     tmpdir: str,
     save_inz_path: str | None = None,
+    estimate_stats: bool = True,
 ) -> str:
     sources = {"m": (valid_mask_path, 1)}
     z_terms = []
@@ -687,7 +881,7 @@ def _build_inz_stable_mask_raster(
             nodata_value=-999999999,
         )
         diff_ds = gdal.Open(diff_vrt, gdal.GA_ReadOnly)
-        _, _, mean, std = diff_ds.GetRasterBand(1).GetStatistics(0, 1)
+        _, _, mean, std = diff_ds.GetRasterBand(1).GetStatistics(int(estimate_stats), 1)
         diff_ds = None
         if std == 0:
             std = 1.0
@@ -928,6 +1122,8 @@ def _masked_band_stats(
     band_index: int,
     mask_path: str,
     mask_pixel_count: int | None = None,
+    *,
+    estimate_stats: bool = True,
 ) -> dict[str, float | int]:
     raster_ds = gdal.Open(raster_path, gdal.GA_ReadOnly)
     mask_ds = gdal.Open(mask_path, gdal.GA_ReadOnly)
@@ -962,8 +1158,18 @@ def _masked_band_stats(
     if stats_ds is None:
         raise RuntimeError(f"Could not open masked statistics VRT: {stats_vrt}")
     band = stats_ds.GetRasterBand(1)
-    _, _, mean, std = band.GetStatistics(0, 1)
-    stats_ds = None
+    try:
+        try:
+            _, _, mean, std = band.GetStatistics(int(estimate_stats), 1)
+        except RuntimeError as error:
+            if not estimate_stats or "no valid pixels found in sampling" not in str(error).lower():
+                raise
+            # Approximate sampling can miss sparse PIF pixels. Retry only this
+            # selected-pixel calculation, retaining GDAL's exact statistics.
+            _, _, mean, std = band.GetStatistics(0, 1)
+    finally:
+        band = None
+        stats_ds = None
     return {
         "mean": float(mean),
         "std": float(std),

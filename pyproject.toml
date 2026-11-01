@@ -44,6 +44,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+elastix = ["itk-elastix>=0.23"]
 system-level = [
     "gdal>=3.11",
     "proj>=9.3",

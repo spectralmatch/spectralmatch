@@ -98,7 +98,12 @@ def pipeline(
     shared_output_dtype: Universal.CustomOutputDtype = None,
     shared_save_as_cog: Universal.SaveAsCog = False,
     steps: list[PipelineStep] | tuple[PipelineStep, ...] = DEFAULT_PIPELINE_STEPS,
-    joint_coregistration_tie_feature_method: Literal["orb"] = "orb",
+    joint_coregistration_moving_tie_method: Literal["orb", "elastix"] = "orb",
+    joint_coregistration_fixed_images: list[str] | None = None,
+    joint_coregistration_input_images_bands: list[int] = [1],
+    joint_coregistration_fixed_images_bands: list[int] = [1],
+    joint_coregistration_fixed_on_no_or_partial_overlap: Literal["error", "no_influence", "partial_influence"] = "partial_influence",
+    joint_coregistration_fixed_tie_method: Literal["orb", "elastix"] = "elastix",
     joint_coregistration_tie_grid_spacing: float = 500.0,
     joint_coregistration_tie_search_radius: str = "128px",
     joint_coregistration_tie_orb_max_features: int = 100,
@@ -251,7 +256,12 @@ def pipeline(
         weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
         merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
         joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
-        joint_coregistration_tie_feature_method: 'orb', currently the only supported tie-point detector.
+        joint_coregistration_moving_tie_method: Matcher between non-fixed inputs: 'orb' (default) or 'elastix'.
+        joint_coregistration_fixed_tie_method: Matcher involving fixed_images: 'elastix' (default) or 'orb'; unused without fixed images.
+        joint_coregistration_fixed_images: Read-only reference raster paths supplied separately from moving inputs.
+        joint_coregistration_input_images_bands: One-based moving-image matching bands; default [1]. Multiple bands are averaged into grayscale.
+        joint_coregistration_fixed_images_bands: One-based reference matching bands; default [1]. Multiple bands are averaged into grayscale.
+        joint_coregistration_fixed_on_no_or_partial_overlap: Valid-data coverage policy: partial_influence (default), no_influence, or error.
         joint_coregistration_tie_grid_spacing: Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.
         joint_coregistration_tie_search_radius: Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.
         joint_coregistration_tie_orb_max_features: Positive int ORB detection cap per image per window; default 100.
@@ -384,7 +394,12 @@ def pipeline(
                 current_images = joint_coregistration(
                     input_images=current_images,
                     output_images=output_images,
-                    tie_feature_method=joint_coregistration_tie_feature_method,
+                    moving_tie_method=joint_coregistration_moving_tie_method,
+                    fixed_images=joint_coregistration_fixed_images,
+                    input_images_bands=joint_coregistration_input_images_bands,
+                    fixed_images_bands=joint_coregistration_fixed_images_bands,
+                    fixed_on_no_or_partial_overlap=joint_coregistration_fixed_on_no_or_partial_overlap,
+                    fixed_tie_method=joint_coregistration_fixed_tie_method,
                     tie_grid_spacing=joint_coregistration_tie_grid_spacing,
                     tie_search_radius=joint_coregistration_tie_search_radius,
                     tie_orb_max_features=joint_coregistration_tie_orb_max_features,

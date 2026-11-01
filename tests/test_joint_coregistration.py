@@ -458,7 +458,7 @@ def test_grid_orb_reads_only_windows_and_recovers_original_pixels(tmp_path, monk
     )
     assert pair == ("a", "b")
     assert 6 <= len(points) <= 9
-    assert len(reads) == 9 * 4  # Two masks and two data bands per window.
+    assert len(reads) == 9 * 4  # Two masks and two band reads, reused for validity and grayscale.
     xs, ys = coregistration_module._tie_grid(info_a, info_b, 512)
     inverse = gdal.InvGeoTransform((108, 2, 0, 2000, 0, -2))
     expected_windows = set()

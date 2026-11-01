@@ -22,7 +22,7 @@ import numpy as np
 from osgeo import gdal
 
 from ..utils_multiprocessing import _run_image_tasks
-from ..utils_logging import _print_step_start, _report_image_result
+from ..utils_logging import _print_step_start, _report_image_result, _print_line
 from ..utils_glob import GLOB_FLAGS
 
 from ..handlers import (
@@ -60,6 +60,7 @@ class _ImageInfo:
     pixel_size: float
     center: tuple[float, float]
     coordinate_scale: float
+    matching_bands: tuple[int, ...] = (1,)
 
 
 @dataclass
@@ -118,7 +119,13 @@ def joint_coregistration(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
     *,
-    tie_feature_method: Literal["orb"] = "orb",
+    moving_tie_method: Literal["orb", "elastix"] = "orb",
+    skip_overlap_when_not_enough_matches: bool = False,
+    fixed_images: list[str] | None = None,
+    input_images_bands: list[int] = [1],
+    fixed_images_bands: list[int] = [1],
+    fixed_on_no_or_partial_overlap: Literal["error", "no_influence", "partial_influence"] = "partial_influence",
+    fixed_tie_method: Literal["orb", "elastix"] = "elastix",
     tie_grid_spacing: float = 500.0,
     tie_search_radius: str = "128px",
     tie_orb_max_features: int = 100,
@@ -161,12 +168,18 @@ def joint_coregistration(
 ) -> list[str]:
     """Coregister overlapping rasters with a joint global transform and local deformation mesh.
 
-    ORB detects and matches features in small windows centered on a regular grid within each image overlap. Candidate matches are filtered for geometric consistency, then selected within their originating windows, nearest each window's center first. The tie points drive a joint image-wide alignment followed by a joint local deformation solve, and the combined corrections are applied to the output rasters.
+    ORB or Elastix matches small windows centered on a regular grid within each image overlap. Candidate matches are filtered for geometric consistency, then selected within their originating windows, nearest each window's center first. The tie points drive a joint image-wide alignment followed by a joint local deformation solve, and the combined corrections are applied to the output rasters.
 
     Args:
-        input_images: Folder (searches '*.tif'), wcmatch.glob pattern such as 'input/**/*.{tif,tiff}', or list[str] of literal paths; at least two rasters with unique basenames and a shared CRS.
+        input_images: Folder (searches '*.tif'), wcmatch.glob pattern such as 'input/**/*.{tif,tiff}', or list[str] of literal paths; moving rasters with unique basenames and a shared CRS. Requires at least one moving raster and two total rasters including fixed_images.
         output_images: Folder (writes '$_Coregistered.tif'), '$' basename template, or list[str] matching input order and length; output paths must be unique and differ from inputs.
-        tie_feature_method: 'orb', currently the only supported detector.
+        moving_tie_method: Matcher for pairs between non-fixed input images: 'orb' (default) or 'elastix'. Elastix requires spectralmatch[elastix].
+        skip_overlap_when_not_enough_matches: bool, default False; warn and omit pairs with no selected ties from the alignment graph and saved tie cache. Images remain in the output list.
+        fixed_images: List of existing reference raster paths held fixed in both solvers, supplied separately from input_images. References are read-only inputs and have no output entries. None keeps unanchored joint behavior.
+        input_images_bands: Nonempty list of unique one-based moving-image band numbers; default [1]. Multiple selected bands are averaged into grayscale before stretching. All output bands are retained.
+        fixed_images_bands: Nonempty list of unique one-based reference-image band numbers; default [1]. Multiple selected bands are averaged into grayscale before stretching.
+        fixed_on_no_or_partial_overlap: "partial_influence" (default) uses fixed-reference ties only at valid reference pixels. "no_influence" drops direct fixed-reference pairs for moving images not fully covered by the combined valid reference footprint; moving-to-moving ties remain, including indirect reference influence. "error" requires full valid-data coverage. Coverage checks use valid moving pixel centres, not rectangular bounds. Disconnected moving components may align without a reference; a fixed-image alignment with no usable ties at all still errors. Ignored without fixed_images.
+        fixed_tie_method: Matcher for pairs involving fixed_images: 'orb' or 'elastix' (default). Unused without fixed_images; it does not load Elastix unless a pair needs matching.
         tie_grid_spacing: Positive CRS-unit distance between search-window centers in each pair's overlap; default 500.0; independent of local_model and local_grid_spacing.
         tie_search_radius: Positive number with a unit suffix, e.g. '100crs' or '128px' (default); square window half-width; 'px' uses the coarser input resolution.
         tie_orb_max_features: Positive int limiting detected ORB features per image per search window; default 100; fewer may be found.
@@ -210,6 +223,11 @@ def joint_coregistration(
         Paths to coregistered output rasters, in input order.
     """
     _print_step_start("joint_coregistration")
+    if not isinstance(skip_overlap_when_not_enough_matches, bool):
+        raise ValueError("skip_overlap_when_not_enough_matches must be a bool.")
+    if fixed_images is not None and (not isinstance(fixed_images, list) or
+            not all(isinstance(name, str) for name in fixed_images)):
+        raise ValueError("fixed_images must be a list of existing reference raster paths")
     Universal._validate(
         input_images=input_images,
         window_scales=window_scales,
@@ -227,7 +245,11 @@ def joint_coregistration(
         dask_scheduler=dask_scheduler,
     )
     JointCoregistration._validate(
-        tie_feature_method=tie_feature_method,
+        moving_tie_method=moving_tie_method,
+        fixed_tie_method=fixed_tie_method,
+        fixed_on_no_or_partial_overlap=fixed_on_no_or_partial_overlap,
+        input_images_bands=input_images_bands,
+        fixed_images_bands=fixed_images_bands,
         tie_grid_spacing=tie_grid_spacing,
         tie_search_radius=tie_search_radius,
         tie_orb_max_features=tie_orb_max_features,
@@ -262,16 +284,26 @@ def joint_coregistration(
         output_images,
         kwargs={"paths_or_bases": input_paths, "default_file_pattern": "$_Coregistered.tif"},
     )
-    if len(input_paths) < 2:
-        raise ValueError("joint_coregistration requires at least two input images.")
+    moving_paths = list(input_paths)
+    reference_paths = [os.path.abspath(os.path.expanduser(path)) for path in (fixed_images or [])]
+    for path in reference_paths:
+        if not os.path.isfile(path):
+            raise FileNotFoundError(f"Fixed reference raster does not exist: {path}")
+    if not moving_paths or len(moving_paths) + len(reference_paths) < 2:
+        raise ValueError("joint_coregistration requires at least two rasters including fixed_images, with at least one moving input.")
+    if {os.path.realpath(path) for path in moving_paths} & {os.path.realpath(path) for path in reference_paths}:
+        raise ValueError("Fixed references must be supplied only through fixed_images, separately from input_images.")
     if len(output_paths) != len(input_paths):
         raise ValueError("output_images must resolve to one path per input image.")
     if len({os.path.abspath(path) for path in output_paths}) != len(output_paths):
         raise ValueError("output_images must resolve to unique paths.")
-    if {os.path.abspath(path) for path in input_paths} & {
-        os.path.abspath(path) for path in output_paths
+    input_paths = moving_paths + reference_paths
+    if {os.path.realpath(path) for path in input_paths} & {
+        os.path.realpath(path) for path in output_paths
     }:
         raise ValueError("joint_coregistration does not support in-place output paths.")
+    if tie_save_path and os.path.realpath(tie_save_path) in {os.path.realpath(path) for path in input_paths + output_paths}:
+        raise ValueError("tie_save_path must differ from input rasters and output images.")
     if tie_save_crs_path:
         protected_paths = input_paths + output_paths + [path for path in (tie_save_path, tie_load_path) if path]
         if os.path.realpath(tie_save_crs_path) in {os.path.realpath(path) for path in protected_paths}:
@@ -280,6 +312,8 @@ def joint_coregistration(
     names = _resolve_paths("name", input_paths)
     if len(set(names)) != len(names):
         raise ValueError("Input image basenames must be unique.")
+    moving_names = names[:len(moving_paths)]
+    fixed_names = set(names[len(moving_paths):])
     global_strengths = _resolve_image_values(JointCoregistration._parse_alignment_strength(global_tie_alignment_strength, "global_tie_alignment_strength"), names)
     local_strengths = _resolve_image_values(JointCoregistration._parse_alignment_strength(local_tie_alignment_strength, "local_tie_alignment_strength"), names)
     global_penalties = _resolve_image_values(global_image_movement_penalty_weights, names)
@@ -296,7 +330,8 @@ def joint_coregistration(
     target_resolution = compute_resolution(input_paths, resolution)
 
     infos = _use_common_coordinate_frame(
-        {name: _read_image_info(name, path) for name, path in zip(names, input_paths)}
+        {name: _read_image_info(name, path, fixed_images_bands if name in fixed_names else input_images_bands)
+         for name, path in zip(names, input_paths)}
     )
     overlaps = _find_overlaps({name: info.bounds for name, info in infos.items()})
     reusable = _resolve_reusable_output_paths(
@@ -314,6 +349,19 @@ def joint_coregistration(
         print(f"Overlapping image pairs: {len(overlaps)}")
         print(f"Output resolution: {target_resolution or 'native'}")
 
+    from .fixed_coverage import fully_covered_images, valid_fixed_ties
+    if fixed_names and fixed_on_no_or_partial_overlap != "partial_influence":
+        covered = fully_covered_images(infos, fixed_names)
+        uncovered = set(names) - fixed_names - covered
+        if uncovered and fixed_on_no_or_partial_overlap == "error":
+            raise ValueError("Moving images are not fully covered by valid fixed-image data: "
+                             f"{sorted(uncovered)}")
+        if uncovered:
+            _print_line("WARNING: Omitting direct fixed-reference matches for incompletely covered images: "
+                        f"{sorted(uncovered)}")
+            overlaps = tuple(pair for pair in overlaps
+                             if not (fixed_names.intersection(pair) and uncovered.intersection(pair)))
+
     alignment_enabled = (
         global_model != "none" and any(global_strengths.values())
     ) or (local_model != "none" and any(local_strengths.values()))
@@ -323,7 +371,7 @@ def joint_coregistration(
             overlaps,
             infos,
             loaded,
-            tie_feature_method,
+            moving_tie_method,
             tie_maximum_displacement,
             tie_ransac_reprojection_threshold,
             image_threads,
@@ -334,9 +382,23 @@ def joint_coregistration(
             search_radius=tie_search_radius,
             tie_orb_max_features=tie_orb_max_features,
             tie_max_matches_per_window=tie_max_matches_per_window,
+            skip_overlap_when_not_enough_matches=skip_overlap_when_not_enough_matches,
+            fixed_images=fixed_names,
+            fixed_feature_method=fixed_tie_method,
         )
+        if skip_overlap_when_not_enough_matches and not ties:
+            raise ValueError("No usable tie-point overlap pairs remain for joint_coregistration.")
     else:
         ties, thresholds = {}, []
+    if fixed_names:
+        filtered = valid_fixed_ties(ties, infos, fixed_names)
+        for pair, points in filtered.items():
+            if len(points) < len(ties[pair]):
+                _print_line(f"WARNING: Dropped {len(ties[pair])-len(points)} tie points outside valid "
+                            f"fixed-reference data: {pair[0]} <-> {pair[1]}")
+        ties = {pair: points for pair, points in filtered.items() if len(points)}
+        if alignment_enabled and set(names) - fixed_names and not ties:
+            raise ValueError("No usable tie-point overlap pairs remain for joint_coregistration.")
     if tie_save_path:
         _save_ties(tie_save_path, ties)
     if tie_save_crs_path:
@@ -354,6 +416,7 @@ def joint_coregistration(
         tie_robust_loss,
         loss_scale,
         debug_logs,
+        fixed_names,
     )
     meshes = _solve_local_alignment(
         infos,
@@ -370,6 +433,7 @@ def joint_coregistration(
         tie_robust_loss,
         loss_scale,
         debug_logs,
+        fixed_names,
     )
 
     image_threads_on, image_thread_workers = _resolve_parallel_config(
@@ -399,8 +463,9 @@ def joint_coregistration(
             tile_thread_workers,
             debug_logs,
             resume_from_outputs,
+            name in fixed_names,
         )
-        for name, output_path in zip(names, output_paths)
+        for name, output_path in zip(moving_names, output_paths)
         if output_path not in reusable
     ]
     _print_step_start("joint_coregistration apply alignment")
@@ -459,13 +524,15 @@ def _normalize_image_weights(weights: dict[str, float]) -> dict[str, float]:
     return {name: value / mean for name, value in scaled.items()}
 
 
-def _read_image_info(name: str, path: str) -> _ImageInfo:
+def _read_image_info(name: str, path: str, matching_bands=(1,)) -> _ImageInfo:
     dataset = gdal.Open(path, gdal.GA_ReadOnly)
     if dataset is None:
         raise RuntimeError(f"Could not open raster: {path}")
     transform = tuple(dataset.GetGeoTransform())
     width, height = dataset.RasterXSize, dataset.RasterYSize
     projection = dataset.GetProjectionRef() or ""
+    if any(band > dataset.RasterCount for band in matching_bands):
+        raise ValueError(f"Matching bands {list(matching_bands)} exceed the {dataset.RasterCount} bands in {path}")
     dataset = None
     if not projection:
         raise ValueError(f"Input image has no coordinate reference system: {path}")
@@ -473,7 +540,7 @@ def _read_image_info(name: str, path: str) -> _ImageInfo:
     center = ((bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2)
     pixel_size = max(math.hypot(transform[1], transform[4]), math.hypot(transform[2], transform[5]))
     coordinate_scale = max(bounds[2] - bounds[0], bounds[3] - bounds[1], pixel_size)
-    return _ImageInfo(name, path, transform, projection, width, height, bounds, pixel_size, center, coordinate_scale)
+    return _ImageInfo(name, path, transform, projection, width, height, bounds, pixel_size, center, coordinate_scale, tuple(matching_bands))
 
 
 def _use_common_coordinate_frame(infos: dict[str, _ImageInfo]) -> dict[str, _ImageInfo]:
@@ -495,6 +562,7 @@ def _use_common_coordinate_frame(infos: dict[str, _ImageInfo]) -> dict[str, _Ima
             info.pixel_size,
             center,
             scale,
+            info.matching_bands,
         )
         for name, info in infos.items()
     }
@@ -515,9 +583,18 @@ def _collect_ties(
     search_radius="128px",
     tie_orb_max_features=100,
     tie_max_matches_per_window=1,
+    skip_overlap_when_not_enough_matches=False,
+    fixed_images=(),
+    fixed_feature_method="elastix",
 ):
+    fixed_names = set(fixed_images)
     current_pairs = {_canonical_pair(*pair) for pair in overlaps}
     ties = {pair: points for pair, points in loaded.items() if pair in current_pairs}
+    if skip_overlap_when_not_enough_matches:
+        for pair, points in list(ties.items()):
+            if not len(points):
+                _print_line(f"WARNING: Skipping overlap {pair[0]} <-> {pair[1]}: no selected tie-point matches.")
+                del ties[pair]
     thresholds = []
     for pair, points in ties.items():
         for name, pixels in ((pair[0], points[:, :2]), (pair[1], points[:, 2:])):
@@ -526,7 +603,7 @@ def _collect_ties(
         threshold = _resolved_ransac_threshold(infos[pair[0]], infos[pair[1]], ransac_threshold)
         thresholds.append(threshold)
 
-    missing = [pair for pair in overlaps if _canonical_pair(*pair) not in ties]
+    missing = [pair for pair in overlaps if _canonical_pair(*pair) not in loaded]
     if debug_logs:
         print(f"Loaded tie-point pairs: {len(ties)}")
         print(f"Tie-point pairs to calculate: {len(missing)}")
@@ -534,7 +611,7 @@ def _collect_ties(
         (
             infos[name_i],
             infos[name_j],
-            feature_method,
+            fixed_feature_method if fixed_names.intersection((name_i, name_j)) else feature_method,
             maximum_displacement,
             ransac_threshold,
             debug_logs,
@@ -542,9 +619,13 @@ def _collect_ties(
             search_radius,
             tie_orb_max_features,
             tie_max_matches_per_window,
-        )
+        ) + ((tuple(sorted(fixed_names)),) if fixed_names else ())
         for name_i, name_j in missing
     ]
+    uses_elastix = any(arg[2] == "elastix" for arg in args)
+    if uses_elastix:
+        from .elastix import require_elastix
+        require_elastix()
     image_threads_on, image_thread_workers = _resolve_parallel_config(
         image_threads, concurrent_processing_backend, dask_scheduler
     )
@@ -552,11 +633,14 @@ def _collect_ties(
     results = _run_image_tasks(
         _extract_pair_ties, args, unit="pairs", reused=len(ties),
         input_paths=[(arg[0].path, arg[1].path) for arg in args], output_paths=[None for arg in args],
-        parallel=image_threads_on, backend='thread', workers=image_thread_workers,
+        parallel=image_threads_on, backend='process' if uses_elastix else 'thread', workers=image_thread_workers,
         concurrent_processing_backend=concurrent_processing_backend,
         dask_scheduler=dask_scheduler, executor_factory=_get_executor,
     )
     for pair, points, threshold in results:
+        if skip_overlap_when_not_enough_matches and not len(points):
+            _print_line(f"WARNING: Skipping overlap {pair[0]} <-> {pair[1]}: no selected tie-point matches.")
+            continue
         ties[pair] = points
         thresholds.append(threshold)
     return ties, thresholds
@@ -582,12 +666,15 @@ def _resolved_search_radius(info_i, info_j, radius):
 def _extract_pair_ties(
     info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs,
     grid_spacing=500.0, search_radius="128px",
-    tie_orb_max_features=100, tie_max_matches_per_window=1,
+    tie_orb_max_features=100, tie_max_matches_per_window=1, fixed_images=(),
 ):
     import cv2
 
     pair = _canonical_pair(info_i.name, info_j.name)
-    if pair != (info_i.name, info_j.name):
+    # Keep a fixed reference as the actual registration target, even when its
+    # basename sorts after the moving image. Cache coordinates stay canonical.
+    first_fixed, second_fixed = info_i.name in fixed_images, info_j.name in fixed_images
+    if (second_fixed and not first_fixed) or (first_fixed == second_fixed and pair != (info_i.name, info_j.name)):
         info_i, info_j = info_j, info_i
     threshold = _resolved_ransac_threshold(info_i, info_j, ransac_threshold)
     try:
@@ -607,6 +694,8 @@ def _extract_pair_ties(
         if debug_logs:
             _report_image_result("Tie point reason", error)
         points = np.empty((0, 4), dtype=float)
+    if (info_i.name, info_j.name) != pair:
+        points = points[:, [2, 3, 0, 1]]
     if debug_logs:
         _report_image_result("Tie points kept", len(points))
     return pair, points, threshold
@@ -692,8 +781,8 @@ def _tie_grid(info_i, info_j, spacing):
 
 def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, search_radius, feature_method, tie_orb_max_features=100):
     """Return overlap-pixel matches and their originating window centers in CRS coordinates, reading one window at a time."""
-    if feature_method != "orb":
-        raise ValueError("Only feature_method='orb' is currently supported.")
+    if feature_method not in {"orb", "elastix"}:
+        raise ValueError("feature_method must be orb or elastix")
     import cv2
 
     xs, ys = _tie_grid(info_i, info_j, spacing)
@@ -702,9 +791,9 @@ def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, sear
     inverse = gdal.InvGeoTransform(transform)
     width = min(reference.RasterXSize, sensed.RasterXSize)
     height = min(reference.RasterYSize, sensed.RasterYSize)
-    detector = cv2.ORB_create(nfeatures=tie_orb_max_features)
-    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    minimum_size = 2 * detector.getEdgeThreshold() + 1
+    detector = cv2.ORB_create(nfeatures=tie_orb_max_features) if feature_method == "orb" else None
+    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True) if detector else None
+    minimum_size = 2 * detector.getEdgeThreshold() + 1 if detector else 32
     candidates = []
     window_centers = []
     for y in reversed(ys):
@@ -717,12 +806,20 @@ def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, sear
             if min(xend - xoff, yend - yoff) < minimum_size:
                 continue
             window = (xoff, yoff, xend - xoff, yend - yoff)
-            valid_mask = _build_overlap_valid_mask(reference, sensed, window)
+            # Discard the cache after this window; both matchers share these reads.
+            window_data = {}
+            valid_mask = _build_overlap_valid_mask(reference, sensed, window,
+                                                   info_i.matching_bands, info_j.matching_bands,
+                                                   window_data=window_data)
             if not valid_mask.any():
                 continue
-            ref_gray = _read_uint8_gray(reference, valid_mask, window)
-            sensed_gray = _read_uint8_gray(sensed, valid_mask, window)
-            points = _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher)
+            ref_gray = _read_uint8_gray(reference, valid_mask, window, bands=info_i.matching_bands, window_data=window_data)
+            sensed_gray = _read_uint8_gray(sensed, valid_mask, window, bands=info_j.matching_bands, window_data=window_data)
+            if feature_method == "elastix":
+                from .elastix import match_window
+                points = match_window(ref_gray, sensed_gray, valid_mask)
+            else:
+                points = _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher)
             if not len(points):
                 continue
             points += np.asarray([xoff, yoff, xoff, yoff])
@@ -953,6 +1050,7 @@ def _solve_global_alignment(
     tie_robust_loss,
     robust_scale,
     debug_logs,
+    fixed_images=(),
 ):
     parameter_count = _global_parameter_count(model)
     zeros = {name: np.zeros(parameter_count, dtype=float) for name in infos}
@@ -997,7 +1095,8 @@ def _solve_global_alignment(
                 pair_weight,
                 True,
             )
-    solution = _solve_sparse_equations(equations, tie_robust_loss, robust_scale)
+    fixed_columns = [offsets[name] + column for name in fixed_images for column in range(parameter_count)]
+    solution = _solve_sparse_equations(equations, tie_robust_loss, robust_scale, fixed_columns)
     result = {
         name: (
             solution[offsets[name] : offsets[name] + parameter_count]
@@ -1021,11 +1120,15 @@ def _difference_coefficients(basis_i, offset_i, basis_j, offset_j, scale_i=1.0, 
     return coefficients
 
 
-def _solve_sparse_equations(equations: _SparseEquations, tie_robust_loss: str, robust_scale: float):
+def _solve_sparse_equations(equations: _SparseEquations, tie_robust_loss: str, robust_scale: float, fixed_columns=()):
 
     matrix, target, base_weights, robust_rows = equations.arrays()
+    column_count = matrix.shape[1]
+    free = np.ones(column_count, dtype=bool)
+    free[list(fixed_columns)] = False
+    matrix = matrix[:, free]
     if not len(target) or matrix.shape[1] == 0:
-        return np.zeros(matrix.shape[1], dtype=float)
+        return np.zeros(column_count, dtype=float)
     solution = np.zeros(matrix.shape[1], dtype=float)
     robust_weights = np.ones(len(target), dtype=float)
     for iteration in range(10):
@@ -1051,7 +1154,9 @@ def _solve_sparse_equations(equations: _SparseEquations, tie_robust_loss: str, r
             magnitudes = np.linalg.norm(residual[pairs], axis=1)
             pair_weights = _robust_weights(magnitudes, tie_robust_loss, robust_scale)
             robust_weights[pairs] = pair_weights[:, None]
-    return solution
+    full_solution = np.zeros(column_count, dtype=float)
+    full_solution[free] = solution
+    return full_solution
 
 
 def _robust_weights(residual, loss, scale):
@@ -1105,6 +1210,7 @@ def _solve_local_alignment(
     tie_robust_loss,
     robust_scale,
     debug_logs,
+    fixed_images=(),
 ):
     if local_model == "none":
         return {}
@@ -1170,7 +1276,9 @@ def _solve_local_alignment(
             bending_weight,
         )
 
-    solution = _solve_sparse_equations(equations, tie_robust_loss, robust_scale)
+    fixed_columns = [offsets[name] + column for name in fixed_images
+                     for column in range(meshes[name].rows * meshes[name].columns * 2)]
+    solution = _solve_sparse_equations(equations, tie_robust_loss, robust_scale, fixed_columns)
     for name, mesh in meshes.items():
         count = mesh.rows * mesh.columns * 2
         mesh.displacement = strengths[name] * solution[offsets[name] : offsets[name] + count].reshape(
@@ -1291,6 +1399,7 @@ def _apply_alignment_process_image(
     tile_thread_workers,
     debug_logs,
     resume_from_outputs,
+    fixed=False,
 ):
     if _existing_outputs_are_reusable(
         [output_path],
@@ -1298,6 +1407,14 @@ def _apply_alignment_process_image(
         debug_logs=debug_logs,
         step_name="joint_coregistration",
     ):
+        return
+    if fixed:
+        # Fixed references retain native pixels, CRS, extent, resolution and nodata.
+        driver = "VRT" if os.path.splitext(output_path)[1].lower() == ".vrt" else ("COG" if save_as_cog else "GTiff")
+        output = gdal.Translate(output_path, info.path, format=driver)
+        if output is None:
+            raise RuntimeError(f"Could not copy fixed image: {info.path}")
+        output = None
         return
     resolved_window = _resolve_window_size(window_size, info.path, debug_logs) or 256
     resolved_window = max(16, int(math.ceil(resolved_window / 16)) * 16)
@@ -1653,6 +1770,7 @@ def _coregister_overlap(
     *,
     valid_mask_path: str | None = None,
     tie_pairs: list[tuple[float, float, float, float]] | None = None,
+    output_window: tuple[int, int, int, int] | None = None,
     feature_method: Literal["orb"] = "orb",
     cache: Universal.Cache = None,
     io_threads: Universal.Threads = None,
@@ -1662,6 +1780,8 @@ def _coregister_overlap(
     """Coregister an overlap raster using conjugate points.
 
     Returns the corrected raster path and matched ``(reference_row, reference_column, sensed_row, sensed_column)`` pairs used by the PIF workflow; supplied selected points bypass ORB and RANSAC.
+    output_window optionally limits the warp to (column, row, width, height)
+    in the reference overlap grid; returned point coordinates stay on that grid.
     """
     if not isinstance(reference_overlap_vrt, str) or not isinstance(sensed_overlap_vrt, str):
         raise ValueError("reference_overlap_vrt and sensed_overlap_vrt must be strings.")
@@ -1676,9 +1796,9 @@ def _coregister_overlap(
     sensed = gdal.Open(sensed_overlap_vrt, gdal.GA_ReadOnly)
     if reference is None or sensed is None:
         raise RuntimeError("Could not open overlap rasters for coregistration.")
-    valid_mask = _read_mask(valid_mask_path) if valid_mask_path else _build_overlap_valid_mask(reference, sensed)
     supplied_ties = tie_pairs is not None
     if not supplied_ties:
+        valid_mask = _read_mask(valid_mask_path) if valid_mask_path else _build_overlap_valid_mask(reference, sensed)
         point_pairs = _extract_conjugate_point_pairs(
             reference_overlap_vrt, sensed_overlap_vrt, valid_mask, feature_method
         )
@@ -1712,6 +1832,14 @@ def _coregister_overlap(
         gcp_dataset.SetGCPs(gcps, projection)
         gcp_dataset = None
         bounds = _get_bounds_from_gt(reference_transform, reference.RasterXSize, reference.RasterYSize)
+        width, height = reference.RasterXSize, reference.RasterYSize
+        if output_window is not None:
+            xoff, yoff, width, height = output_window
+            if min(xoff, yoff) < 0 or min(width, height) <= 0 or xoff + width > reference.RasterXSize or yoff + height > reference.RasterYSize:
+                raise ValueError("output_window must be inside the reference overlap grid.")
+            left, top = gdal.ApplyGeoTransform(reference_transform, xoff, yoff)
+            right, bottom = gdal.ApplyGeoTransform(reference_transform, xoff + width, yoff + height)
+            bounds = (left, bottom, right, top)
         format_name = _infer_gdal_format(output_raster_path)
         warp_options = ["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"]
         if tile_thread_on:
@@ -1724,8 +1852,8 @@ def _coregister_overlap(
                 tps=True,
                 dstSRS=projection or None,
                 outputBounds=bounds,
-                width=reference.RasterXSize,
-                height=reference.RasterYSize,
+                width=width,
+                height=height,
                 resampleAlg=gdal.GRIORA_Bilinear,
                 dstAlpha=True,
                 multithread=tile_thread_on,
@@ -1812,17 +1940,45 @@ def _read_mask(mask_path):
     return mask
 
 
-def _build_overlap_valid_mask(reference, sensed, window=None):
+def _read_window_band(dataset, index, window, window_data=None, *, mask=False):
+    """Read each selected band/shared mask once within the current matching window."""
+    band = dataset.GetRasterBand(index)
+    if mask:
+        flags = band.GetMaskFlags()
+        # Alpha/per-dataset masks and all-valid masks are common to these bands.
+        mask_index = 0 if flags & (gdal.GMF_PER_DATASET | gdal.GMF_ALL_VALID) else index
+        key = (id(dataset), "mask", flags, mask_index, tuple(window))
+    else:
+        key = (id(dataset), "data", index, tuple(window))
+    if window_data is not None and key in window_data:
+        return window_data[key]
+    values = (band.GetMaskBand() if mask else band).ReadAsArray(*window)
+    if window_data is not None:
+        window_data[key] = values
+    return values
+
+
+def _build_overlap_valid_mask(reference, sensed, window=None, reference_bands=None, sensed_bands=None,
+                              *, window_data=None):
     if window is None:
         width = min(reference.RasterXSize, sensed.RasterXSize)
         height = min(reference.RasterYSize, sensed.RasterYSize)
         window = (0, 0, width, height)
-    ref_mask = reference.GetRasterBand(1).GetMaskBand().ReadAsArray(*window) > 0
-    sensed_mask = sensed.GetRasterBand(1).GetMaskBand().ReadAsArray(*window) > 0
-    return ref_mask & sensed_mask
+    valid = np.ones((window[3], window[2]), dtype=bool)
+    for dataset, bands in ((reference, reference_bands), (sensed, sensed_bands)):
+        for index in bands or (1,):
+            band = dataset.GetRasterBand(index)
+            valid &= _read_window_band(dataset, index, window, window_data, mask=True) > 0
+            if bands is not None and valid.any():
+                values = _read_window_band(dataset, index, window, window_data)
+                valid &= np.isfinite(values)
+                nodata = band.GetNoDataValue()
+                if nodata is not None:
+                    valid &= values != nodata
+    return valid
 
 
-def _read_uint8_gray(raster_path, valid_mask, window=None):
+def _read_uint8_gray(raster_path, valid_mask, window=None, bands=None, *, window_data=None):
     dataset = (
         gdal.Open(os.fspath(raster_path), gdal.GA_ReadOnly)
         if isinstance(raster_path, (str, os.PathLike)) else raster_path
@@ -1832,13 +1988,13 @@ def _read_uint8_gray(raster_path, valid_mask, window=None):
     rows, columns = valid_mask.shape
     if window is None:
         window = (0, 0, columns, rows)
-    band_indices = [
+    band_indices = list(bands) if bands is not None else [
         index
         for index in range(1, dataset.RasterCount + 1)
         if dataset.GetRasterBand(index).GetColorInterpretation() != gdal.GCI_AlphaBand
     ][:3]
     bands = [
-        dataset.GetRasterBand(index).ReadAsArray(*window).astype(np.float32)
+        _read_window_band(dataset, index, window, window_data).astype(np.float32)
         for index in band_indices
     ]
     dataset = None

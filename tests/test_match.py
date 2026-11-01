@@ -354,6 +354,10 @@ def test_local_block_adjustment_all_params_load(tmp_path):
 
 
 def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
+    joint = importlib.import_module("spectralmatch.joint_coregistration.joint_coregistration")
+    monkeypatch.setattr(joint, "_read_image_info", lambda *args: None)
+    monkeypatch.setattr(joint, "_extract_pair_ties", lambda *args, **kwargs: (("A", "B"), np.zeros((3, 4)), 3))
+    monkeypatch.setattr(pif_module, "_source_ties_to_overlap_pairs", lambda *args: [(1, 1, 1, 1)] * 3)
     sampled = {"called": False}
 
     monkeypatch.setattr(
@@ -376,7 +380,7 @@ def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
     monkeypatch.setattr(
         pif_module,
         "_masked_band_stats",
-        lambda raster_path, band_index, mask_path, mask_pixel_count=None: {
+        lambda raster_path, band_index, mask_path, mask_pixel_count=None, **kwargs: {
             "mean": 1.0,
             "std": 0.5,
             "size": mask_pixel_count,

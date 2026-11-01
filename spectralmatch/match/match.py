@@ -184,8 +184,17 @@ class Match:
         pif_region_radius: int = 5,
         pif_max_samples: int | None = 10000,
         pif_min_samples: int | None = 10,
+        skip_overlap_when_not_enough_matches: bool = False,
         pif_feature_method: Literal["orb"] = "orb",
         pif_load_ties: str | None = None,
+        pif_stats_scope: Literal["overlap", "matched_windows"] = "overlap",
+        pif_window_size: int = 257,
+        tie_grid_spacing: float = 500.0,
+        tie_search_radius: str = "128px",
+        tie_orb_max_features: int = 100,
+        tie_max_matches_per_window: int | None = 1,
+        tie_maximum_displacement: float | None = None,
+        tie_ransac_reprojection_threshold: float | None = None,
         pif_save_inz: str | None = None,
         build_overviews: bool = False,
         window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
@@ -224,9 +233,19 @@ Args:
     pif_region_radius (int, optional): Radius used to expand matched points into PIF seed areas. Defaults to 5.
     pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 10000.
     pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 10.
+    skip_overlap_when_not_enough_matches (bool, optional): Warn and omit PIF overlaps with insufficient ties or samples, retaining all images. Defaults to False, preserving errors; applies only to flood_from_match_points.
     pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".
     pif_load_ties (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.
-    pif_save_inz (str | None, optional): Output path to save the INZ raster. If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.
+    pif_stats_scope: 'overlap' (default) calculates difference mean/std over the whole valid overlap;
+        'matched_windows' uses only bounded tie-point windows, including the PIF model statistics.
+    pif_window_size: Odd window side length in overlap pixels; default 257. Applies to matched_windows.
+    tie_grid_spacing: Distributed tie search spacing in CRS units; default 500, as in joint_coregistration.
+    tie_search_radius: Search window half-width; default '128px', as in joint_coregistration.
+    tie_orb_max_features: ORB features per search window; default 100.
+    tie_max_matches_per_window: Selected geometric inliers per window; default 1, None keeps all.
+    tie_maximum_displacement: Maximum displacement in CRS units or None.
+    tie_ransac_reprojection_threshold: CRS-unit RANSAC threshold or None for three pixels.
+    pif_save_inz (str | None, optional): Output path to save the INZ raster (packed-window coordinates in matched_windows mode). If two "$" are given, the first is the main basename and the second is the reference basename. Defaults to None.
     build_overviews (bool, optional): If True, computes overviews. Defaults to False.
     window_scales: Overview decimation factors, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation.
 
@@ -246,7 +265,10 @@ Returns:
             pif_method=pif_method,
             pif_feature_method=pif_feature_method,
             pif_load_ties=pif_load_ties,
+            pif_stats_scope=pif_stats_scope,
+            pif_window_size=pif_window_size,
             pif_save_inz=pif_save_inz,
+            skip_overlap_when_not_enough_matches=skip_overlap_when_not_enough_matches,
         )
 
         setup = Match._setup_images(
@@ -340,6 +362,7 @@ Returns:
         all_bounds = {name: _get_gdal_bounds(path) for name, path in input_image_path_pairs.items()}
         overlapping_pairs = _find_overlaps(all_bounds)
 
+        local_pif_statistics = pif_method == "flood_from_match_points" and pif_stats_scope == "matched_windows"
         all_overlap_stats = {}
         if load_adjustments:
             for name_i, model_entry in loaded_model.items():
@@ -374,8 +397,10 @@ Returns:
                 debug_logs,
             )
             for name_i, name_j in overlapping_pairs
-            if name_i not in loaded_model
-            or name_j not in loaded_model.get(name_i, {}).get("overlap_stats", {})
+            if not local_pif_statistics and (
+                name_i not in loaded_model
+                or name_j not in loaded_model.get(name_i, {}).get("overlap_stats", {})
+            )
         ]
         _print_step_start("global_regression overlap statistics")
         overlap_statistics = _run_image_tasks(
@@ -415,7 +440,7 @@ Returns:
                 debug_logs,
             )
             for image_name, image_path in input_image_path_pairs.items()
-            if image_name not in loaded_model
+            if not local_pif_statistics and image_name not in loaded_model
         ]
         _print_step_start("global_regression image statistics")
         whole_statistics = _run_image_tasks(
@@ -457,8 +482,19 @@ Returns:
                 region_radius=pif_region_radius,
                 max_samples=pif_max_samples,
                 min_samples=pif_min_samples,
+                skip_overlap_when_not_enough_matches=skip_overlap_when_not_enough_matches,
                 feature_method=pif_feature_method,
                 load_ties=pif_load_ties,
+                stats_scope=pif_stats_scope,
+                window_size=pif_window_size,
+                estimate_stats=estimate_stats,
+                tie_grid_spacing=tie_grid_spacing,
+                tie_search_radius=tie_search_radius,
+                tie_orb_max_features=tie_orb_max_features,
+                tie_max_matches_per_window=tie_max_matches_per_window,
+                tie_maximum_displacement=tie_maximum_displacement,
+                tie_ransac_reprojection_threshold=tie_ransac_reprojection_threshold,
+                _return_statistics=local_pif_statistics or skip_overlap_when_not_enough_matches,
                 custom_mean_factor=custom_mean_factor,
                 custom_std_factor=custom_std_factor,
                 debug_logs=debug_logs,
@@ -470,6 +506,14 @@ Returns:
                 concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             )
+            if local_pif_statistics or skip_overlap_when_not_enough_matches:
+                all_params, all_overlap_stats, pif_whole_stats = all_params
+                if local_pif_statistics:
+                    all_whole_stats = pif_whole_stats
+                overlapping_pairs = tuple(
+                    (i, j) for i, j in overlapping_pairs
+                    if j in all_overlap_stats.get(i, {})
+                )
         else:
             all_params = _solve_global_model(
                 num_bands,

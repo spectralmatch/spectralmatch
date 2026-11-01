@@ -283,7 +283,7 @@ class JointCoregistration:
     @staticmethod
     def _validate(
         *,
-        tie_feature_method,
+        moving_tie_method,
         tie_grid_spacing,
         tie_search_radius,
         tie_orb_max_features,
@@ -310,7 +310,18 @@ class JointCoregistration:
         resolution,
         build_overviews,
         resume_from_outputs,
+        fixed_tie_method="elastix",
+        fixed_on_no_or_partial_overlap="partial_influence",
+        input_images_bands=[1],
+        fixed_images_bands=[1],
     ):
+        for name, bands in (("input_images_bands", input_images_bands), ("fixed_images_bands", fixed_images_bands)):
+            if (not isinstance(bands, list) or not bands
+                    or any(isinstance(band, bool) or not isinstance(band, int) or band < 1 for band in bands)
+                    or len(set(bands)) != len(bands)):
+                raise ValueError(f"{name} must be a nonempty list of unique one-based positive integer band numbers.")
+        if fixed_on_no_or_partial_overlap not in {"error", "no_influence", "partial_influence"}:
+            raise ValueError("fixed_on_no_or_partial_overlap must be error, no_influence, or partial_influence.")
         if global_model not in {"none", "translation", "similarity", "affine"}:
             raise ValueError("global_model must be 'none', 'translation', 'similarity', or 'affine'.")
         if local_model not in {"none", "bilinear", "piecewise_affine"}:
@@ -366,8 +377,10 @@ class JointCoregistration:
                 continue
             if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
                 raise ValueError(f"{name} must be a positive integer" + (" or None." if name == "tie_max_matches_per_window" else "."))
-        if tie_feature_method != "orb":
-            raise ValueError("Only tie_feature_method='orb' is currently supported.")
+        if moving_tie_method not in {"orb", "elastix"}:
+            raise ValueError("moving_tie_method must be orb or elastix.")
+        if fixed_tie_method not in {"orb", "elastix"}:
+            raise ValueError("fixed_tie_method must be orb or elastix.")
         if tie_robust_loss not in {"none", "huber", "soft_l1", "cauchy"}:
             raise ValueError("tie_robust_loss must be 'none', 'huber', 'soft_l1', or 'cauchy'.")
         if resampling_method not in {"nearest", "bilinear", "cubic", "lanczos"}:
@@ -415,11 +428,23 @@ class Match:
         pif_method=_UNSET,
         pif_feature_method=_UNSET,
         pif_load_ties=_UNSET,
+        pif_stats_scope=_UNSET,
+        pif_window_size=_UNSET,
         pif_save_inz=_UNSET,
+        skip_overlap_when_not_enough_matches=_UNSET,
     ):
+        if skip_overlap_when_not_enough_matches is not _UNSET and not isinstance(skip_overlap_when_not_enough_matches, bool):
+            raise ValueError("skip_overlap_when_not_enough_matches must be a bool.")
         if pif_method is not _UNSET:
             if pif_method not in {"entire", "flood_from_match_points"}:
                 raise ValueError("pif_method must be 'entire' or 'flood_from_match_points'.")
+        if pif_stats_scope is not _UNSET and pif_stats_scope not in {"overlap", "matched_windows"}:
+            raise ValueError("pif_stats_scope must be 'overlap' or 'matched_windows'.")
+        if pif_window_size is not _UNSET and (
+            isinstance(pif_window_size, bool) or not isinstance(pif_window_size, int)
+            or pif_window_size < 3 or pif_window_size % 2 != 1
+        ):
+            raise ValueError("pif_window_size must be an odd integer >= 3.")
         if pif_feature_method is not _UNSET:
             if pif_feature_method not in {"orb"}:
                 raise ValueError("pif_feature_method must be 'orb'.")

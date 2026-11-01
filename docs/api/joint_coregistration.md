@@ -31,6 +31,19 @@ joint_coregistration(
 )
 ```
 
+## Insufficient matches
+
+`skip_overlap_when_not_enough_matches=False` retains the existing behavior.
+When `True`, a pair with no selected ties is omitted from the alignment graph
+and saved tie cache, with a warning even when debug logging is off. This also
+omits empty cached pairs without recalculating them. All input images remain in
+the output list. If no usable tie-point pairs remain, the calculation raises an
+error. Fixed-image connectivity requirements still apply.
+
+The same option on `global_regression` applies to its PIF matching stage; see
+[PIF sampling](pif.md). In a VHR workflow, use
+`param:skip_overlap_when_not_enough_matches: true` on the matching step.
+
 ## Selected-point cache
 
 JSON saves only selected matches in original zero-based `[column, row]` coordinates, using extension-free image basenames. Matching cached pairs are validated and reused directly, including empty pairs; only absent pairs are calculated. Reloading bypasses ORB, displacement/RANSAC filtering, and per-window selection. The global and local alignment solvers still run with the current settings.
@@ -57,11 +70,12 @@ The vector export can be used independently of JSON saving, even with both align
 
 ## Parameter names
 
-Tie-point options use the `tie_` prefix and appear before the global and local options in the function signature. Update existing calls using these renamed keywords; the previous names are no longer accepted by `joint_coregistration`.
+Matcher choices are `moving_tie_method` and `fixed_tie_method`; other tie-point options use the `tie_` prefix and appear before the global and local options in the function signature. Update existing calls using these renamed keywords; the previous names are no longer accepted by `joint_coregistration`.
 
 | Previous name | Current name |
 | --- | --- |
-| `tie_point_feature_method` | `tie_feature_method` |
+| `tie_point_feature_method` / `tie_feature_method` | `moving_tie_method` |
+| `tie_fixed_feature_method` | `fixed_tie_method` |
 | `tie_point_grid_spacing` | `tie_grid_spacing` |
 | `tie_point_search_radius` | `tie_search_radius` |
 | `tie_point_orb_max_features` | `tie_orb_max_features` |
@@ -102,3 +116,99 @@ joint_coregistration(
 Debug logging prints the resolved global/local strength and movement-penalty weight for every image, including normalized weights used by the solvers. An unmatched strength of 1 preserves the default full-correction behavior; use 0 to apply no correction in that stage. Empty strength mappings (`'{}'`) also use 1 for every image.
 
 ::: spectralmatch.joint_coregistration
+
+## Elastix matching and fixed references
+
+Install `pip install -e '.[elastix]'` from the updated SpectralMatch checkout.
+`moving_tie_method="orb"` controls pairs between non-fixed input images.
+`fixed_tie_method="elastix"` independently controls pairs involving any fixed
+image. Without fixed images this setting is unused, and Elastix is not loaded.
+Both accept `"orb"` and `"elastix"`. Thus the defaults combine ORB between
+moving inputs with Elastix against fixed references, without requiring either
+method keyword. Cached pairs still bypass matching.
+
+Both matchers share the window reader. Each selected raster band is read once
+per pair/window, then reused for validity checks and grayscale conversion.
+Shared masks are also reused within that window. The cache is discarded before
+reading the next window; different image pairs retain their own overlap grids.
+
+Elastix estimates local translations by mutual information on the same overlap
+grid used by ORB. This is a matcher, not another
+alignment solver: it produces one center correspondence per usable window,
+then uses the existing displacement/RANSAC filtering, selected-point cache,
+global model, local deformation mesh and output resampling. Flat, masked or
+failed windows do not contribute ties. The method works with georeferenced
+raster references; it does not assume the raster contains intensity or elevation.
+Inputs still need the common CRS required by joint registration.
+
+```python
+joint_coregistration(
+    input_images=["optical_1.tif", "optical_2.tif"],
+    output_images=["aligned_1.tif", "aligned_2.tif"],
+    fixed_images=["lidar.tif", "reference_2.tif"],
+    input_images_bands=[1],  # One-based; e.g. [5, 3, 2] for a multiband average.
+    fixed_images_bands=[1],
+    # Defaults: ORB between optical inputs, Elastix against either reference.
+    # moving_tie_method="orb",
+    # fixed_tie_method="elastix",
+    tie_grid_spacing=500,
+    tie_search_radius="128px",
+    tie_maximum_displacement=100,
+    global_model="translation",
+    local_model="none",  # or "bilinear" / "piecewise_affine"
+    image_threads=4,
+    tie_save_path="ties.json",
+)
+```
+
+`fixed_images` is a list of existing **reference raster paths**, separate from
+`input_images`. Outputs correspond only to moving inputs, in input order.
+At least one moving raster and two total rasters are required; references
+are optional when two or more moving rasters are provided. Basenames must be
+unique across both lists. Fixed transform parameters and mesh nodes are removed
+from the solve, so they stay exactly zero while moving images receive the
+correction. Several references can define independent anchored groups.
+
+`fixed_on_no_or_partial_overlap` controls incomplete reference coverage:
+
+- `"partial_influence"` (default): keep reference matches only where the fixed
+  endpoint has valid data. This also filters loaded tie caches.
+- `"no_influence"`: drop all **direct** reference matches for a moving image
+  unless its valid pixel centres are completely covered by the union of valid
+  fixed-reference data. Moving-to-moving matches remain; reference influence
+  can still reach that image indirectly through another moving image.
+- `"error"`: raise before matching if any moving image is not fully covered.
+
+Coverage includes NoData holes, explicit masks and alpha; it is not just a
+bounding-box test. NoData margins in moving images do not require coverage.
+Disconnected moving components retain the usual unanchored joint solve.
+If no usable tie pairs remain anywhere, a fixed-image alignment still errors.
+The setting has no effect when no fixed images are supplied. The full moving
+image is still warped: partial influence limits reference constraints, not
+the spatial extent of the resulting global correction or smoothed local warp.
+
+Fixed rasters are read-only inputs: no fixed output rasters or VRT copies are
+created. All moving-image bands are retained in the output.
+
+`input_images_bands` and `fixed_images_bands` are nonempty lists of unique,
+one-based band indices, each defaulting to `[1]`. Each side averages only its
+selected bands into grayscale before the existing percentile contrast stretch.
+Selected NoData and non-finite pixels are excluded from matching. Band indices
+are checked against every original raster before matching, so the synthetic
+alpha band in a temporary overlap VRT cannot be selected accidentally. Band
+choices follow the image role even if basename sorting swaps the pair. Both
+ORB and Elastix use these settings. Changing bands requires recomputing any
+existing selected-point caches to obtain new matches.
+
+Elastix pair jobs use SpectralMatch process executors or a caller-owned executor,
+with one ITK thread per pair. Existing executors and Dask bridges remain usable
+and caller-owned executors remain open. Each worker reads one sampled window
+at a time. A fixed image is the actual target passed to the matcher even when
+its basename sorts after the moving image; saved tie coordinates retain the
+canonical basename order. In `pipeline`, use
+`joint_coregistration_moving_tie_method`,
+`joint_coregistration_fixed_tie_method` and
+`joint_coregistration_fixed_images`. The coverage option is forwarded as
+`joint_coregistration_fixed_on_no_or_partial_overlap`. Matching band lists are
+`joint_coregistration_input_images_bands` and
+`joint_coregistration_fixed_images_bands`.
