@@ -70,6 +70,7 @@ class Seamline:
         image_rank_function: str | None = None,
         image_rank_descending: bool = True,
         extrude_distance: float = 0.0,
+        min_polygon_area: float | None = 1.0,
         image_threads: Universal.Threads = None,
         concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
         dask_scheduler: Universal.DaskScheduler = None,
@@ -101,6 +102,7 @@ class Seamline:
             outline_layer (str | None, optional): Outline layer; None reads the first layer. Requires outline_path. Defaults to None.
             image_rank_function (str | None, optional): SpectralMatch expression with {var:field} and {summary:field} placeholders, e.g. "-{var:view_zenith}". Higher expression values rank on top by default; negate lower-is-better quantities. None preserves overlaps. Defaults to None.
             image_rank_descending (bool, optional): True ranks higher values on top (default); False reverses the order. Ties use image identifier order.
+            min_polygon_area (float | None, optional): Minimum individual owned polygon area in square metres, applied before buffering when coverage controls are used. Pieces smaller than this are removed; None disables filtering. Defaults to 1.0. Raw footprints without coverage controls are unchanged.
             extrude_distance (float, optional): Nonnegative buffer around owned coverage in projected output CRS units, clipped to the original footprint. Extends beneath other images and beyond the outline; empty owners are omitted. Defaults to 0.0.
             image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-image operations; "cpu" uses all CPU cores, an integer sets the worker count, and None disables local parallelism. Local GDAL workers use threads. Defaults to None.
             concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use the local execution backend or an existing Dask cluster; local raster polygonization uses threads under the "process_pool" setting. Defaults to "process_pool".
@@ -139,6 +141,11 @@ class Seamline:
             raise ValueError("image_rank_descending must be a bool.")
         if image_rank_function is not None and (not isinstance(image_rank_function, str) or not image_rank_function.strip()):
             raise ValueError("image_rank_function must be a nonempty field expression or None.")
+        if min_polygon_area is not None and (
+            isinstance(min_polygon_area, bool) or not isinstance(min_polygon_area, (int, float))
+            or not math.isfinite(min_polygon_area) or min_polygon_area < 0
+        ):
+            raise ValueError("min_polygon_area must be finite and nonnegative, or None.")
         if (isinstance(extrude_distance, bool) or not isinstance(extrude_distance, (int, float))
                 or not math.isfinite(extrude_distance) or extrude_distance < 0):
             raise ValueError("extrude_distance must be finite and nonnegative.")
@@ -244,6 +251,7 @@ class Seamline:
                     outline_path=outline_path, outline_layer=outline_layer,
                     image_rank_function=image_rank_function,
                     image_rank_descending=image_rank_descending, extrude_distance=extrude_distance,
+                    min_polygon_area=min_polygon_area,
                 )
                 destination = os.path.join(workdir, "coverage.gpkg")
                 coverage.to_file(destination, layer=output_layer, driver="GPKG", index=False)

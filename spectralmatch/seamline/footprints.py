@@ -109,7 +109,8 @@ def _read_metadata_records(records, names, image_field_name):
 
 
 def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
-                       image_rank_function, image_rank_descending, extrude_distance):
+                       image_rank_function, image_rank_descending, extrude_distance,
+                       min_polygon_area=1.0):
     """Assign unbuffered ownership, then retain margins inside original footprints."""
     bounds = dict(zip(frame[image_field_name], frame.geometry))
     if outline_path is not None:
@@ -126,12 +127,26 @@ def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
         frame = _rank_polygons(frame, image_field_name, image_rank_function, image_rank_descending)
     if extrude_distance and not CRS(frame.crs).is_projected:
         raise ValueError("extrude_distance requires a projected output CRS (set epsg).")
+    crs = CRS(frame.crs)
+    if crs.is_projected:
+        area_scale = crs.axis_info[0].unit_conversion_factor * crs.axis_info[1].unit_conversion_factor
+        polygon_area = lambda polygon: polygon.area * area_scale
+    else:
+        from shapely.geometry.polygon import orient
+
+        geod = crs.get_geod()
+        polygon_area = lambda polygon: abs(geod.geometry_area_perimeter(orient(polygon))[0])
     output = []
     painted = MultiPolygon()
     for _, row in frame.iterrows():
         owned = row.geometry.difference(painted) if image_rank_function is not None else row.geometry
         if image_rank_function is not None:
             painted = painted.union(row.geometry)
+        if min_polygon_area is not None and min_polygon_area > 0:
+            owned = unary_union([
+                polygon for polygon in _polygon_parts(owned)
+                if polygon_area(polygon) >= min_polygon_area
+            ])
         if owned.is_empty or owned.area == 0:
             continue
         if extrude_distance:

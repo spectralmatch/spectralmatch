@@ -46,6 +46,7 @@ Optional coverage controls share this same public function:
 | `outline_path` / `outline_layer` | `None` / `None` | Goal-area polygon file and layer; reprojected before clipping. Without a file, use all image coverage. |
 | `image_rank_function` | `None` | Attribute expression using weighted-seamline syntax. Preferred images own overlaps; `None` retains overlaps. |
 | `image_rank_descending` | `True` | Larger scores win, or smaller scores with `False`. Ties use image identifier order. |
+| `min_polygon_area` | `1.0` | Remove individual owned polygon pieces smaller than this area in square metres before buffering. `None` disables filtering. Applies when outline, ranking or buffering is used; raw footprints are unchanged. |
 | `extrude_distance` | `0.0` | Buffer owned areas in projected output CRS units, clipped to each original footprint. |
 
 Ownership is assigned before buffering, so lower-ranked images retain overlap
