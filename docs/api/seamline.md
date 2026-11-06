@@ -73,20 +73,19 @@ The same expression parser is used by weighted seamlines and Markov image qualit
 Legacy `{field}` attribute references remain supported.
 
 Higher expression values rank on top by default (`image_rank_descending=True`).
-To prefer lower view and solar zenith with equal weight after standardization,
-subtract both z-scores: `-z(view) - z(solar)`. The lowest combined angle score
-therefore produces the highest ranking value:
+To prefer the lowest combined view and solar zenith, negate their raw sum.
+Both angles are in degrees, so each degree contributes equally:
 
 ```python
-angle_score = (
-    "-({var:view_zenith} - {mean:view_zenith}) / max({std:view_zenith}, 1e-12)"
-    " - ({var:solar_zenith} - {mean:solar_zenith}) / max({std:solar_zenith}, 1e-12)"
-)
+angle_score = "-({var:view_zenith} + {var:solar_zenith})"
 # Pass image_rank_function=angle_score and image_rank_descending=True when wanted.
 ```
 
-The denominator guard handles constant fields and single-image sets, which then
-contribute zero to the score. This expression has no cloud-cover term.
+The lowest combined angle gives the highest ranking value. Both angles at zero
+produce the best score, zero; no reciprocal or division is needed. This expression
+has no standardization or cloud-cover term and also handles single-image sets.
+Summary placeholders and the other expression features remain available when a
+different ranking policy needs them.
 `image_rank_function=None` remains the default: ordinary `create_footprints`
 calls retain the complete overlapping outlines and do not evaluate ranking math.
 
