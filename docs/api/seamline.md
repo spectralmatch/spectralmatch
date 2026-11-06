@@ -30,6 +30,35 @@ Pass `metadata_csv` to attach image-level attributes during footprint creation. 
 
 The public functions consistently use `input_layer="footprints"` and `image_field_name="image"` where applicable. Creation and postprocessing write `output_layer="footprints"`; seamline methods write `output_layer="seamlines"`. Pass `input_layer=None` to read the first layer of an external vector file, or supply its actual layer name.
 
+`create_footprints` also accepts `metadata_records`: an ordered list of one
+dictionary per input image, mutually exclusive with `metadata_csv`. Scalar
+attributes are copied, while `geometry` is a GeoJSON polygon input. With
+`footprint_source="metadata"`, these geometries replace raster polygonization;
+no input raster is opened. `metadata_crs="EPSG:4326"` describes their CRS, and
+`epsg=None` preserves the source CRS. Set `epsg` to project either raster or
+metadata footprints. The default `footprint_source="calculate_bounds"` retains
+all valid-data islands and holes from the raster masks.
+
+Optional coverage controls share this same public function:
+
+| Parameter | Default | Effect |
+| --- | --- | --- |
+| `outline_path` / `outline_layer` | `None` / `None` | Goal-area polygon file and layer; reprojected before clipping. Without a file, use all image coverage. |
+| `image_rank_function` | `None` | Attribute expression using weighted-seamline syntax. Preferred images own overlaps; `None` retains overlaps. |
+| `image_rank_descending` | `True` | Larger scores win, or smaller scores with `False`. Ties use image identifier order. |
+| `extrude_distance` | `0.0` | Buffer owned areas in projected output CRS units, clipped to each original footprint. |
+
+Ownership is assigned before buffering, so lower-ranked images retain overlap
+beneath better imagery near their owned boundaries. The buffer can also extend
+outside the outline, providing room for coregistration movement. Images with no
+owned area are omitted, and an outline cannot create missing image coverage.
+Ranking adds `weighted_score` and `weighted_rank` to the saved attributes.
+Outline/ranking/buffering always recomputes the complete coverage, including when
+`resume_from_outputs` requests reuse. The previous output is preserved on failure
+and atomically replaced on success. Raw footprint streaming and resume behavior
+are unchanged. The new options work through Python, `Seamline.create_footprints`,
+and the CLI.
+
 Postprocessing preserves attributes and requires a suitable projected CRS. Distances use that CRS's linear units. Both new functions accept `image_threads`, `concurrent_processing_backend`, `dask_scheduler`, `debug_logs`, and `resume_from_outputs`, following the package's existing execution conventions. Local raster polygonization uses threads, matching the existing raster-to-vector function; local geometry postprocessing uses processes. Dask dispatches both through the shared executor. Workers return geometries; the parent alone writes and flushes each feature as soon as it completes, before logging completion. Parallel outputs are stored in completion order, with attributes attached by input index. Completed features remain readable if another worker fails; an adjacent `.incomplete` marker prevents resume modes from mistaking a partial output for a completed one. Rerunning an incomplete output recomputes the layer.
 
 | Postprocessing parameter | Effect |

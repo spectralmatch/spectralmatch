@@ -2,10 +2,13 @@ from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import reports_progress
 import math
 import os
+from contextlib import ExitStack
 from itertools import combinations
+from tempfile import TemporaryDirectory
 from typing import Literal
 
 import fiona
+import geopandas as gpd
 from osgeo import gdal
 from pyproj import CRS
 from shapely.geometry import LineString, MultiPolygon, Polygon, box, mapping
@@ -58,6 +61,15 @@ class Seamline:
         output_layer: str = "footprints",
         band: int = 1,
         eight_connected: bool = True,
+        metadata_records: list[dict] | None = None,
+        footprint_source: Literal["calculate_bounds", "metadata"] = "calculate_bounds",
+        metadata_crs: str = "EPSG:4326",
+        epsg: int | None = None,
+        outline_path: str | None = None,
+        outline_layer: str | None = None,
+        image_rank_function: str | None = None,
+        image_rank_descending: bool = True,
+        extrude_distance: float = 0.0,
         image_threads: Universal.Threads = None,
         concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
         dask_scheduler: Universal.DaskScheduler = None,
@@ -65,7 +77,7 @@ class Seamline:
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
     ) -> str:
-        """Polygonize valid raster masks into a shared seamline GeoPackage, retaining holes and islands.
+        """Create raw footprints or ranked mosaic coverage from raster masks or metadata.
 
         Args:
             input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"]. Images must have unique basenames and the same CRS.
@@ -76,11 +88,20 @@ class Seamline:
             output_layer (str, optional): Output GeoPackage layer name. Defaults to "footprints".
             band (int, optional): One-based raster band whose GDAL validity mask defines valid pixels; categorical mask values alone do not define validity. Defaults to 1.
             eight_connected (bool, optional): Use 8-connectedness for polygonization; if False, use 4-connectedness. Defaults to True.
+            metadata_records (list[dict] | None, optional): One dictionary per resolved image, in input order. Scalar attributes are copied; geometry is reserved for GeoJSON input. Mutually exclusive with metadata_csv. Defaults to None.
+            footprint_source (str, optional): "calculate_bounds" polygonizes raster validity masks; "metadata" uses each metadata_records entry's geometry without opening rasters. Defaults to "calculate_bounds".
+            metadata_crs (str, optional): CRS of supplied metadata geometry; defaults to "EPSG:4326".
+            epsg (int | None, optional): Output EPSG code. None preserves the raster CRS or metadata_crs. Defaults to None.
+            outline_path (str | None, optional): Goal-area polygon file, reprojected to the output CRS; None uses full image coverage. Defaults to None.
+            outline_layer (str | None, optional): Outline layer; None reads the first layer. Requires outline_path. Defaults to None.
+            image_rank_function (str | None, optional): SpectralMatch field expression, e.g. "-{cloud_cover}". Preferred images own overlaps; None preserves overlaps. Defaults to None.
+            image_rank_descending (bool, optional): Larger scores win when True; smaller scores otherwise. Ties use image identifier order. Defaults to True.
+            extrude_distance (float, optional): Nonnegative buffer around owned coverage in projected output CRS units, clipped to the original footprint. Extends beneath other images and beyond the outline; empty owners are omitted. Defaults to 0.0.
             image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-image operations; "cpu" uses all CPU cores, an integer sets the worker count, and None disables local parallelism. Local GDAL workers use threads. Defaults to None.
             concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use the local execution backend or an existing Dask cluster; local raster polygonization uses threads under the "process_pool" setting. Defaults to "process_pool".
             dask_scheduler (tuple[str, str] | None, optional): Existing Dask scheduler as ("file", path) or ("address", address); required for Dask execution, which requires image_threads=None. Defaults to None.
             debug_logs (Universal.DebugLogs, optional): Enables debug print statements if True; default is False.
-            resume_from_outputs (Literal["no", "yes", "validate"], optional): Recompute outputs with "no", reuse existing outputs with "yes", or validate existing outputs before reusing them with "validate"; incomplete streaming outputs are recomputed. Defaults to "no".
+            resume_from_outputs (Literal["no", "yes", "validate"], optional): Raw footprints can be recomputed, reused or validated. Outline/ranking/buffering always recomputes complete coverage and replaces the output only on success. Defaults to "no".
 
         Returns:
             str: Written output GeoPackage path."""
@@ -97,6 +118,34 @@ class Seamline:
             raise ValueError("band must be a positive integer.")
         if not isinstance(eight_connected, bool):
             raise ValueError("eight_connected must be a bool.")
+        if footprint_source not in {"calculate_bounds", "metadata"}:
+            raise ValueError("footprint_source must be 'calculate_bounds' or 'metadata'.")
+        if metadata_csv is not None and metadata_records is not None:
+            raise ValueError("metadata_csv and metadata_records are mutually exclusive.")
+        if footprint_source == "metadata" and metadata_records is None:
+            raise ValueError("footprint_source='metadata' requires metadata_records with geometry.")
+        if epsg is not None and (type(epsg) is not int or epsg <= 0):
+            raise ValueError("epsg must be a positive EPSG integer or None.")
+        target_crs = CRS.from_epsg(epsg) if epsg is not None else None
+        if footprint_source == "metadata":
+            source_crs = CRS.from_user_input(metadata_crs)
+            target_crs = target_crs or source_crs
+        if not isinstance(image_rank_descending, bool):
+            raise ValueError("image_rank_descending must be a bool.")
+        if image_rank_function is not None and (not isinstance(image_rank_function, str) or not image_rank_function.strip()):
+            raise ValueError("image_rank_function must be a nonempty field expression or None.")
+        if (isinstance(extrude_distance, bool) or not isinstance(extrude_distance, (int, float))
+                or not math.isfinite(extrude_distance) or extrude_distance < 0):
+            raise ValueError("extrude_distance must be finite and nonnegative.")
+        if extrude_distance and target_crs is not None and not target_crs.is_projected:
+            raise ValueError("extrude_distance requires a projected output CRS (set epsg).")
+        if outline_layer is not None and outline_path is None:
+            raise ValueError("outline_layer requires outline_path.")
+        if outline_path is not None and os.path.realpath(outline_path) == os.path.realpath(output_polygons):
+            raise ValueError("output_polygons must differ from outline_path.")
+        if resume_from_outputs not in {"no", "yes", "validate"}:
+            raise ValueError("resume_from_outputs must be 'no', 'yes' or 'validate'.")
+        coverage_requested = outline_path is not None or image_rank_function is not None or extrude_distance > 0
         if (
             not isinstance(image_field_name, str)
             or not image_field_name.strip()
@@ -107,7 +156,7 @@ class Seamline:
             )
         if _footprint_output_is_reusable(
             output_polygons,
-            resume_mode=resume_from_outputs,
+            resume_mode="no" if coverage_requested else resume_from_outputs,
             debug_logs=debug_logs,
             step_name="create_footprints",
             output_layer=output_layer,
@@ -122,9 +171,22 @@ class Seamline:
         names = _resolve_paths("name", paths)
         if len(set(names)) != len(names):
             raise ValueError("Input image basenames must be unique.")
-        metadata_schema, metadata = _read_image_metadata(
-            metadata_csv, metadata_image_field_name, names, image_field_name
-        )
+        if metadata_records is not None:
+            metadata_schema, metadata = _footprints._read_metadata_records(metadata_records, names, image_field_name)
+        else:
+            metadata_schema, metadata = _read_image_metadata(
+                metadata_csv, metadata_image_field_name, names, image_field_name
+            )
+        if footprint_source == "metadata":
+            geometries = [record.get("geometry") for record in metadata_records]
+            # Validate all supplied geometry before opening the output writer.
+            for geometry in geometries:
+                _footprints._footprint_from_metadata(geometry, metadata_crs, epsg)
+            worker = _footprints._footprint_from_metadata
+            tasks = [(geometry, metadata_crs, epsg) for geometry in geometries]
+        else:
+            worker = _footprints._footprint_from_image
+            tasks = [(path, band, eight_connected, epsg) if epsg is not None else (path, band, eight_connected) for path in paths]
         parallel, workers = _resolve_parallel_config(
             image_threads, concurrent_processing_backend, dask_scheduler
         )
@@ -136,7 +198,14 @@ class Seamline:
                 **metadata_schema,
             },
         }
-        with _PolygonWriter(output_polygons, output_layer, schema, None) as writer:
+        with ExitStack() as stack:
+            working_path = output_polygons
+            if coverage_requested:
+                parent = os.path.dirname(os.path.abspath(output_polygons))
+                os.makedirs(parent, exist_ok=True)
+                workdir = stack.enter_context(TemporaryDirectory(prefix=".coverage-", dir=parent))
+                working_path = os.path.join(workdir, "raw.gpkg")
+            writer = _PolygonWriter(working_path, output_layer, schema, None)
 
             def commit(index, result):
                 """Validate each raster CRS and commit its geometry and identifier."""
@@ -155,19 +224,28 @@ class Seamline:
                     },
                 )
 
-            _run_image_tasks(
-                _footprints._footprint_from_image,
-                [(path, band, eight_connected) for path in paths],
-                input_paths=paths,
-                output_paths=[output_polygons] * len(paths),
-                parallel=parallel,
-                backend="thread",
-                workers=workers,
-                concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-                result_callback=commit,
-                collect_results=False,
-            )
+            with writer:
+                _run_image_tasks(
+                    worker, tasks, input_paths=paths,
+                    output_paths=[output_polygons] * len(paths),
+                    parallel=parallel, backend="thread", workers=workers,
+                    concurrent_processing_backend=concurrent_processing_backend,
+                    dask_scheduler=dask_scheduler, result_callback=commit,
+                    collect_results=False,
+                )
+            if coverage_requested:
+                coverage = _footprints._coverage_polygons(
+                    gpd.read_file(working_path, layer=output_layer), image_field_name,
+                    outline_path=outline_path, outline_layer=outline_layer,
+                    image_rank_function=image_rank_function,
+                    image_rank_descending=image_rank_descending, extrude_distance=extrude_distance,
+                )
+                destination = os.path.join(workdir, "coverage.gpkg")
+                coverage.to_file(destination, layer=output_layer, driver="GPKG", index=False)
+                os.replace(destination, output_polygons)
+                marker = output_polygons + ".incomplete"
+                if os.path.exists(marker):
+                    os.remove(marker)
         return output_polygons
 
     @staticmethod

@@ -8,11 +8,11 @@ import fiona
 import geopandas as gpd
 import pandas as pd
 from osgeo import gdal, ogr
-from pyproj import CRS
+from pyproj import CRS, Transformer
 from shapely import make_valid
 from shapely.strtree import STRtree
-from shapely.geometry import LineString, Polygon, MultiPolygon, Point, mapping
-from shapely.ops import nearest_points, polylabel, unary_union
+from shapely.geometry import LineString, Polygon, MultiPolygon, Point, mapping, shape
+from shapely.ops import nearest_points, polylabel, unary_union, transform
 from shapely.wkb import loads
 
 from ..handlers import _resolve_paths, _existing_outputs_are_reusable
@@ -66,7 +66,8 @@ def _read_image_metadata(path, join_field, names, image_field_name):
     attributes = attributes.to_dict("index")
     records = []
     for name in names:
-        matches = _matching_image_rows(frame, join_field, name)
+        # CSV identifiers contain the full current basename, optionally in a path.
+        matches = frame[frame[join_field].map(lambda value: name.casefold() in value.casefold())]
         if len(matches) != 1:
             raise ValueError(
                 f"metadata_csv requires exactly one row in {join_field!r} containing "
@@ -76,6 +77,90 @@ def _read_image_metadata(path, join_field, names, image_field_name):
             )
         records.append(attributes[matches.index[0]])
     return schema, records
+
+
+def _read_metadata_records(records, names, image_field_name):
+    """Read ordered in-memory attributes; geometry is an input rather than a field."""
+    if not isinstance(records, list) or len(records) != len(names) or any(not isinstance(row, dict) for row in records):
+        raise ValueError("metadata_records must contain one dictionary per input image, in input order.")
+    columns = list(dict.fromkeys(key for row in records for key in row if key != "geometry"))
+    if any(not isinstance(key, str) or not key.strip() for key in columns):
+        raise ValueError("metadata_records requires nonempty field names.")
+    if len({key.casefold() for key in columns}) != len(columns):
+        raise ValueError("metadata_records field names must be unique ignoring case.")
+    reserved = {image_field_name.casefold(), "image_path", "geometry", "fid"}
+    if any(key.casefold() in reserved for key in columns):
+        raise ValueError("metadata_records fields conflict with output fields.")
+    schema = {}
+    for key in columns:
+        values = [row[key] for row in records if row.get(key) is not None]
+        if any(not isinstance(value, (str, int, float, bool)) for value in values):
+            raise ValueError(f"metadata_records field {key!r} must contain scalar values or null.")
+        if any(isinstance(value, (int, float)) and not math.isfinite(value) for value in values):
+            raise ValueError(f"metadata_records field {key!r} must contain finite values.")
+        if values and all(isinstance(value, (int, bool)) for value in values):
+            schema[key] = "int64"
+        elif values and all(isinstance(value, (int, float, bool)) for value in values):
+            schema[key] = "float"
+        else:
+            schema[key] = "str"
+    attributes = [{key: row.get(key) for key in columns} for row in records]
+    return schema, attributes
+
+
+def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
+                       image_rank_function, image_rank_descending, extrude_distance):
+    """Assign unbuffered ownership, then retain margins inside original footprints."""
+    bounds = dict(zip(frame[image_field_name], frame.geometry))
+    if outline_path is not None:
+        outline = _read_polygons(outline_path, outline_layer).to_crs(frame.crs)
+        area = outline.geometry.union_all()
+        frame = frame.copy()
+        frame.geometry = frame.geometry.intersection(area).map(lambda geometry: unary_union(_polygon_parts(geometry)))
+    frame = frame[frame.geometry.map(lambda geometry: not geometry.is_empty and geometry.area > 0)]
+    if frame.empty:
+        raise ValueError("No image coverage remains inside the requested outline.")
+    if image_rank_function is not None:
+        from .weighted_seamline import _rank_polygons
+
+        frame = _rank_polygons(frame, image_field_name, image_rank_function, image_rank_descending)
+    if extrude_distance and not CRS(frame.crs).is_projected:
+        raise ValueError("extrude_distance requires a projected output CRS (set epsg).")
+    output = []
+    painted = MultiPolygon()
+    for _, row in frame.iterrows():
+        owned = row.geometry.difference(painted) if image_rank_function is not None else row.geometry
+        if image_rank_function is not None:
+            painted = painted.union(row.geometry)
+        if owned.is_empty or owned.area == 0:
+            continue
+        if extrude_distance:
+            owned = owned.buffer(extrude_distance).intersection(bounds[row[image_field_name]])
+        row = row.copy()
+        row.geometry = unary_union(_polygon_parts(owned))
+        output.append(row)
+    if not output:
+        raise ValueError("No image coverage remains inside the requested outline.")
+    return gpd.GeoDataFrame(output, geometry="geometry", crs=frame.crs)
+
+
+def _project_footprint(geometry, source_crs, epsg):
+    source = CRS.from_user_input(source_crs)
+    target = CRS.from_epsg(epsg) if epsg is not None else source
+    if source != target:
+        geometry = transform(Transformer.from_crs(source, target, always_xy=True).transform, geometry)
+    return geometry, target.to_wkt()
+
+
+def _footprint_from_metadata(geometry, metadata_crs, epsg):
+    """Build a footprint from supplied GeoJSON without opening the input raster."""
+    try:
+        polygon = shape(geometry)
+    except (AttributeError, TypeError, ValueError, KeyError) as exc:
+        raise ValueError("Each metadata footprint requires a GeoJSON polygon geometry.") from exc
+    if polygon.is_empty or not polygon.is_valid or polygon.geom_type not in {"Polygon", "MultiPolygon"}:
+        raise ValueError("Metadata geometry must be a valid nonempty Polygon or MultiPolygon.")
+    return _project_footprint(polygon, metadata_crs, epsg)
 
 
 def _match_footprints(frame, image_field_name, paths=None):
@@ -290,7 +375,7 @@ def _footprint_output_is_reusable(
     return reusable
 
 
-def _footprint_from_image(path, band, eight_connected):
+def _footprint_from_image(path, band, eight_connected, epsg=None):
     """Polygonize a raster band's valid-data mask in map coordinates."""
     dataset = gdal.Open(path, gdal.GA_ReadOnly)
     if dataset is None or not 1 <= band <= dataset.RasterCount:
@@ -316,7 +401,7 @@ def _footprint_from_image(path, band, eight_connected):
         )
     if not parts:
         raise ValueError(f"No valid pixels in {path}.")
-    return unary_union(parts), crs
+    return _project_footprint(unary_union(parts), crs, epsg)
 
 
 def _simplify_inner(polygon, tolerance, area_weight):
