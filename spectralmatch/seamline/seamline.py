@@ -79,6 +79,11 @@ class Seamline:
     ) -> str:
         """Create raw footprints or ranked mosaic coverage from raster masks or metadata.
 
+        Higher expression values rank on top by default (image_rank_descending=True).
+        Negate lower-is-better quantities in image_rank_function to favor them.
+        image_rank_function=None disables ranking. With the default coverage options,
+        raw image outlines are retained.
+
         Args:
             input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"]. Images must have unique basenames and the same CRS.
             output_polygons (str): Output GeoPackage path for the image footprints, including image identifiers and image_path attributes.
@@ -94,8 +99,8 @@ class Seamline:
             epsg (int | None, optional): Output EPSG code. None preserves the raster CRS or metadata_crs. Defaults to None.
             outline_path (str | None, optional): Goal-area polygon file, reprojected to the output CRS; None uses full image coverage. Defaults to None.
             outline_layer (str | None, optional): Outline layer; None reads the first layer. Requires outline_path. Defaults to None.
-            image_rank_function (str | None, optional): SpectralMatch field expression, e.g. "-{cloud_cover}". Preferred images own overlaps; None preserves overlaps. Defaults to None.
-            image_rank_descending (bool, optional): Larger scores win when True; smaller scores otherwise. Ties use image identifier order. Defaults to True.
+            image_rank_function (str | None, optional): SpectralMatch expression with {var:field} and {summary:field} placeholders, e.g. "-{var:view_zenith}". Higher expression values rank on top by default; negate lower-is-better quantities. None preserves overlaps. Defaults to None.
+            image_rank_descending (bool, optional): True ranks higher values on top (default); False reverses the order. Ties use image identifier order.
             extrude_distance (float, optional): Nonnegative buffer around owned coverage in projected output CRS units, clipped to the original footprint. Extends beneath other images and beyond the outline; empty owners are omitted. Defaults to 0.0.
             image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-image operations; "cpu" uses all CPU cores, an integer sets the worker count, and None disables local parallelism. Local GDAL workers use threads. Defaults to None.
             concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use the local execution backend or an existing Dask cluster; local raster polygonization uses threads under the "process_pool" setting. Defaults to "process_pool".
@@ -465,7 +470,7 @@ class Seamline:
             input_layer: Input footprint layer name; None selects the first layer. Defaults to "footprints".
             output_layer: Output polygon layer name; defaults to "seamlines".
             image_field_name: Footprint field containing each input basename without extension as a substring; matching pieces are dissolved using first-match attributes; defaults to "image".
-            image_rank_function: Optional footprint-attribute expression using weighted() syntax, e.g. "{quality} - {cloud_cover}"; None disables quality preference and saves null scores.
+            image_rank_function: Optional footprint expression with {var:field} and {summary:field} placeholders; None disables quality preference and saves null scores.
             image_rank_descending: True favors larger quality scores, False favors smaller scores; defaults to True.
             image_quality_weight: Nonnegative multiplier of assigned area times globally min-max-normalized quality penalty; zero removes quality preference; defaults to 1.
             edge_variables_weights_gsds_bands: Terms [name_or_path, nonnegative weight, GSD selection, band selection]; use [value] for one value or {"average" | "largest" | "smallest": [values]} for two or more; GSDs are positive integers in CRS units or "native", bands are one-based integers; defaults weight difference 1 at "native" and magnitude 0.25 at GSD 100, both on band 1; zero disables a term.

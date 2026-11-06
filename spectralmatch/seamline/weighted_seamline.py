@@ -1,7 +1,9 @@
 from ..utils_progress import reports_progress
+import ast
 import math
 import os
 import re
+import statistics
 
 import geopandas as gpd
 
@@ -22,6 +24,23 @@ _SAFE_FUNCTIONS = {
     "cos": math.cos,
     "tan": math.tan,
 }
+_SUMMARY_FUNCTIONS = {
+    "mean": statistics.mean,
+    "std": statistics.pstdev,
+    "variance": statistics.pvariance,
+    "min": min,
+    "max": max,
+    "median": statistics.median,
+    "sum": math.fsum,
+    "count": len,
+    "range": lambda values: max(values) - min(values),
+}
+_EXPRESSION_NODES = (
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Call, ast.Name, ast.Load, ast.Constant,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow,
+    ast.UAdd, ast.USub, ast.Not, ast.BoolOp, ast.And, ast.Or, ast.IfExp,
+    ast.Compare, ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.keyword,
+)
 
 
 @reports_progress
@@ -39,13 +58,17 @@ def weighted_seamline(
 ) -> str:
     """Generate ranked seamline polygons from input polygons and a score expression.
 
-    Rank function placeholders support field references like ``{cloud_cover}``.
+    Higher expression values rank on top by default (rank_descending=True).
+    Negate lower-is-better quantities in the expression.
+
+    Use ``{var:field}`` for image attributes and ``{mean:field}`` or
+    ``{std:field}`` for summaries across the candidate images.
 
     Args:
         input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one.
         input_images (str | list[str] | None, optional): Optional raster folder, glob or paths for substring matching; None infers basenames from field values.
         output_mask (str): Output GeoPackage path for the ranked seamline polygons.
-        rank_function (str): Ranking expression using field placeholders like ``{cloud_cover}`` or formulas like ``1 / ({sun_elevation} + 1)``.
+        rank_function (str): Arithmetic with ``{var:field}`` and ``{summary:field}`` placeholders. Summaries are mean, std, variance, min, max, median, sum, count and range; std/variance use the population. Legacy ``{field}`` placeholders remain supported.
         image_field_name (str, optional): Field containing each image basename without extension as a substring; matches are dissolved and first-match attributes are ranked. Defaults to "image".
         input_layer (str | None, optional): Input footprint layer name; None selects the first layer. Defaults to "footprints".
         output_layer (str, optional): Output GeoPackage layer name. Defaults to ``"seamlines"``.
@@ -98,9 +121,14 @@ def weighted_seamline(
 
 def _rank_polygons(frame, image_field_name, rank_function, rank_descending):
     """Score footprint attributes with the shared expression evaluator and order images deterministically."""
+    code, variables, summaries = _parse_rank_expression(rank_function)
+    for field in variables.values():
+        if field not in frame.columns:
+            raise ValueError(f"Field '{field}' referenced in rank_function was not found in the input polygons.")
+    summary_values = _rank_summary_values(frame, summaries)
     ranked = frame.copy()
     ranked["weighted_score"] = ranked.apply(
-        lambda row: _evaluate_weighted_expression(row, rank_function), axis=1
+        lambda row: _evaluate_weighted_expression(row, code, variables, summary_values, rank_function), axis=1
     )
     ranked = ranked.sort_values(
         by=["weighted_score", image_field_name],
@@ -111,32 +139,80 @@ def _rank_polygons(frame, image_field_name, rank_function, rank_descending):
     return ranked
 
 
-def _evaluate_weighted_expression(row, expression: str) -> float:
-    placeholders = _FIELD_PATTERN.findall(expression)
+def _parse_rank_expression(expression):
+    """Compile placeholders once, using generated names rather than metadata as code."""
+    if not isinstance(expression, str) or not expression.strip():
+        raise ValueError("rank_function must be a non-empty string.")
+    placeholders = list(dict.fromkeys(_FIELD_PATTERN.findall(expression)))
     if not placeholders:
-        raise ValueError(
-            "rank_function must reference at least one field placeholder like {cloud_cover}."
-        )
+        if "{" in expression or "}" in expression:
+            raise ValueError("Invalid rank_function: unmatched placeholder braces.")
+        raise ValueError("rank_function must reference a placeholder like {var:view_zenith} or {mean:view_zenith}.")
+    variables, summaries = {}, {}
+    rewritten = expression
+    for index, placeholder in enumerate(placeholders):
+        symbol = f"_rank_value_{index}"
+        parts = [part.strip() for part in placeholder.split(":", 1)]
+        if len(parts) == 1 and parts[0]:
+            variables[symbol] = parts[0]  # Backward-compatible {field} spelling.
+        elif len(parts) == 2 and parts[1]:
+            if parts[0] == "var":
+                variables[symbol] = parts[1]
+            elif parts[0] in _SUMMARY_FUNCTIONS:
+                summaries[symbol] = (parts[0], parts[1])
+            else:
+                raise ValueError(f"Unknown summary statistic {parts[0]!r}; choose {', '.join(_SUMMARY_FUNCTIONS)}.")
+        else:
+            raise ValueError(f"Invalid ranking placeholder {{{placeholder}}}; use {{var:field}} or {{summary:field}}.")
+        rewritten = rewritten.replace("{" + placeholder + "}", symbol)
+    try:
+        tree = ast.parse(rewritten, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError(f"Invalid rank_function expression: {exc.msg}") from exc
+    names = {*variables, *summaries, *_SAFE_FUNCTIONS}
+    for node in ast.walk(tree):
+        if not isinstance(node, _EXPRESSION_NODES):
+            raise ValueError("rank_function supports arithmetic, comparisons and the documented math functions only.")
+        if isinstance(node, ast.Name) and node.id not in names:
+            raise ValueError(f"Unknown name {node.id!r} in rank_function; use a field placeholder.")
+        if isinstance(node, ast.Call) and (not isinstance(node.func, ast.Name) or node.func.id not in _SAFE_FUNCTIONS):
+            raise ValueError("rank_function may only call the documented math functions.")
+    return compile(tree, "<rank_function>", "eval"), variables, summaries
 
-    rewritten_expression = expression
-    local_values = {}
-    for field_name in dict.fromkeys(placeholders):
-        if field_name not in row.index:
-            raise ValueError(
-                f"Field '{field_name}' referenced in rank_function was not found in the input polygons."
-            )
-        variable_name = f"field_{field_name}"
-        rewritten_expression = rewritten_expression.replace(
-            f"{{{field_name}}}",
-            variable_name,
-        )
-        local_values[variable_name] = row[field_name]
+
+def _rank_summary_values(frame, summaries):
+    """Compute each requested finite numeric image-level summary once per ranking."""
+    fields, results, values = {}, {}, {}
+    for symbol, (statistic, field) in summaries.items():
+        if field not in fields:
+            if field not in frame.columns:
+                raise ValueError(f"Field '{field}' referenced in rank_function was not found in the input polygons.")
+            try:
+                fields[field] = [float(value) for value in frame[field]]
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(f"Summary field '{field}' must contain finite numeric values for every candidate image.") from exc
+            if not fields[field] or not all(math.isfinite(value) for value in fields[field]):
+                raise ValueError(f"Summary field '{field}' must contain finite numeric values for every candidate image.")
+        key = (statistic, field)
+        if key not in results:
+            try:
+                results[key] = float(_SUMMARY_FUNCTIONS[statistic](fields[field]))
+            except (OverflowError, ValueError) as exc:
+                raise ValueError(f"Summary statistic '{statistic}' for '{field}' must be finite.") from exc
+            if not math.isfinite(results[key]):
+                raise ValueError(f"Summary statistic '{statistic}' for '{field}' must be finite.")
+        values[symbol] = results[key]
+    return values
+
+
+def _evaluate_weighted_expression(row, code, variables, summaries, expression) -> float:
+    local_values = {name: row[field] for name, field in variables.items()}
 
     try:
         result = eval(
-            rewritten_expression,
+            code,
             {"__builtins__": {}},
-            {**_SAFE_FUNCTIONS, **local_values},
+            {**_SAFE_FUNCTIONS, **summaries, **local_values},
         )
     except Exception as exc:
         raise ValueError(

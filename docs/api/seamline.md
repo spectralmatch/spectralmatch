@@ -59,6 +59,37 @@ and atomically replaced on success. Raw footprint streaming and resume behavior
 are unchanged. The new options work through Python, `Seamline.create_footprints`,
 and the CLI.
 
+Ranking expressions use `{var:field}` for the current image's attribute and
+`{summary:field}` for an image-level summary. For example,
+`{mean:view_zenith}` and `{std:view_zenith}` are the mean and population
+standard deviation of the candidate images' view angles. Supported summaries
+are `mean`, `std`, `variance`, `min`, `max`, `median`, `sum`, `count`, and `range`.
+`std` and `variance` use `ddof=0`; `count` is the number of candidate images, and
+`range` is the maximum minus minimum. Referenced summary fields must have finite
+numeric values for every candidate. Summaries are computed once per ranking,
+with equal weight per image. For `create_footprints`, candidates are the images
+intersecting the outline, before ranked ownership removes hidden images.
+The same expression parser is used by weighted seamlines and Markov image quality.
+Legacy `{field}` attribute references remain supported.
+
+Higher expression values rank on top by default (`image_rank_descending=True`).
+To prefer lower view and solar zenith with equal weight after standardization,
+subtract both z-scores: `-z(view) - z(solar)`. The lowest combined angle score
+therefore produces the highest ranking value:
+
+```python
+angle_score = (
+    "-({var:view_zenith} - {mean:view_zenith}) / max({std:view_zenith}, 1e-12)"
+    " - ({var:solar_zenith} - {mean:solar_zenith}) / max({std:solar_zenith}, 1e-12)"
+)
+# Pass image_rank_function=angle_score and image_rank_descending=True when wanted.
+```
+
+The denominator guard handles constant fields and single-image sets, which then
+contribute zero to the score. This expression has no cloud-cover term.
+`image_rank_function=None` remains the default: ordinary `create_footprints`
+calls retain the complete overlapping outlines and do not evaluate ranking math.
+
 Postprocessing preserves attributes and requires a suitable projected CRS. Distances use that CRS's linear units. Both new functions accept `image_threads`, `concurrent_processing_backend`, `dask_scheduler`, `debug_logs`, and `resume_from_outputs`, following the package's existing execution conventions. Local raster polygonization uses threads, matching the existing raster-to-vector function; local geometry postprocessing uses processes. Dask dispatches both through the shared executor. Workers return geometries; the parent alone writes and flushes each feature as soon as it completes, before logging completion. Parallel outputs are stored in completion order, with attributes attached by input index. Completed features remain readable if another worker fails; an adjacent `.incomplete` marker prevents resume modes from mistaking a partial output for a completed one. Rerunning an incomplete output recomputes the layer.
 
 | Postprocessing parameter | Effect |
