@@ -84,7 +84,7 @@ def test_new_and_legacy_fields_share_math_functions_and_support_nonidentifier_na
     ("{mean:}", "Invalid ranking placeholder"),
     ("{var:}", "Invalid ranking placeholder"),
     ("{wrong:view_zenith}", "Unknown summary"),
-    ("{stat:mean:view_zenith}", "Unknown summary"),
+    ("{stat:mean:view_zenith}", "Unknown geometry statistic"),
     ("{var:view_zenith", "Invalid rank_function"),
     ("1 + 2", "placeholder"),
     ("{var:view_zenith} / 0", "Could not evaluate"),

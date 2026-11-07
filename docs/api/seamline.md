@@ -35,9 +35,21 @@ dictionary per input image, mutually exclusive with `metadata_csv`. Scalar
 attributes are copied, while `geometry` is a GeoJSON polygon input. With
 `footprint_source="metadata"`, these geometries replace raster polygonization;
 no input raster is opened. `metadata_crs="EPSG:4326"` describes their CRS, and
-`epsg=None` preserves the source CRS. Set `epsg` to project either raster or
-metadata footprints. The default `footprint_source="calculate_bounds"` retains
+`epsg=None` preserves the source CRS. Set `epsg` to project raster, metadata or vector footprints. The default `footprint_source="calculate_bounds"` retains
 all valid-data islands and holes from the raster masks.
+
+Saved footprints can be reused with `footprint_source="vector_bounds"`, passing
+vector paths directly through `input_images` (folder inputs search `*.gpkg`).
+Each vector file must identify exactly one original image through the configured
+`image_field_name` column and the fixed `image_path` column. The original raster
+need not exist and is not opened. Multiple features in one file are combined,
+preserving holes and disconnected components. Image IDs must be unique across
+input files. `vector_layer=None` reads the first layer, or supply a common name.
+Saved scalar attributes are retained; explicit `metadata_records` or matching CSV
+values override them. CSV matching uses the original image ID, not the vector's
+filename. `epsg` reprojects geometry; otherwise source CRSs must agree. Outputs
+must differ from the input vector files. No separate `input_vectors` argument is
+used by `create_footprints`.
 
 Optional coverage controls share this same public function:
 
@@ -72,6 +84,29 @@ with equal weight per image. For `create_footprints`, candidates are the images
 intersecting the outline, before ranked ownership removes hidden images.
 The same expression parser is used by weighted seamlines and Markov image quality.
 Legacy `{field}` attribute references remain supported.
+
+`{stat:area_crs}` is a calculated geometry statistic, independent of all table
+columns. For coverage and weighted seamlines it ranks each connected Polygon
+separately, exploding MultiPolygons while retaining their original image IDs and
+metadata. Its value is the component's area, minus holes, in squared native CRS
+units. For initial coverage this is measured after outline clipping and before
+ownership subtraction and buffering. No statistic column is required or injected;
+`{var:area_crs}` can still reference an arbitrary user-provided column. Existing
+summary placeholders remain image-weighted and are computed before exploding.
+Expressions without geometry statistics retain image-level ranking.
+
+For metre-based projected output, an area/angle tradeoff can be expressed as:
+
+```text
+5 * log(max({stat:area_crs}, 1) / 1000000) / log(2)
+- ({var:view_zenith} + {var:solar_zenith})
+```
+
+Doubling a connected component's area offsets five degrees of worse combined
+angles. This scores pre-cut components; it does not reevaluate fragments after
+subtracting earlier winners. Markov quality is one scalar per image, so it rejects
+`stat:area_crs` for multipart image footprints rather than silently selecting one
+component's score. Attribute-only Markov expressions are unchanged.
 
 Higher expression values rank on top by default (`image_rank_descending=True`).
 To prefer the lowest combined view and solar zenith, negate their raw sum.

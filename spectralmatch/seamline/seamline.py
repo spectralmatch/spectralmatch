@@ -62,7 +62,8 @@ class Seamline:
         band: int = 1,
         eight_connected: bool = True,
         metadata_records: list[dict] | None = None,
-        footprint_source: Literal["calculate_bounds", "metadata"] = "calculate_bounds",
+        footprint_source: Literal["calculate_bounds", "metadata", "vector_bounds"] = "calculate_bounds",
+        vector_layer: str | None = None,
         metadata_crs: str = "EPSG:4326",
         epsg: int | None = None,
         outline_path: str | None = None,
@@ -78,12 +79,12 @@ class Seamline:
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
     ) -> str:
-        """Create raw footprints or ranked mosaic coverage from raster masks or metadata.
+        """Create raw footprints or ranked mosaic coverage from raster masks, metadata or saved vector geometry.
 
         Higher expression values rank on top by default (image_rank_descending=True).
         Negate lower-is-better quantities in image_rank_function to favor them.
         image_rank_function=None disables ranking. With the default coverage options,
-        raw image outlines are retained.
+        raw image outlines are retained. In vector_bounds mode input_images selects vector files (folder inputs search *.gpkg); raster files are not required or opened.
 
         Args:
             input_images (str | List[str], required): Defines input files from a glob path, folder, or list of paths. Specify like: "/input/files/*.tif", "/input/folder" (assumes *.tif), ["/input/one.tif", "/input/two.tif"]. Images must have unique basenames and the same CRS.
@@ -95,12 +96,13 @@ class Seamline:
             band (int, optional): One-based raster band whose GDAL validity mask defines valid pixels; categorical mask values alone do not define validity. Defaults to 1.
             eight_connected (bool, optional): Use 8-connectedness for polygonization; if False, use 4-connectedness. Defaults to True.
             metadata_records (list[dict] | None, optional): One dictionary per resolved image, in input order. Scalar attributes are copied; geometry is reserved for GeoJSON input. Mutually exclusive with metadata_csv. Defaults to None.
-            footprint_source (str, optional): "calculate_bounds" polygonizes raster validity masks; "metadata" uses each metadata_records entry's geometry without opening rasters. Defaults to "calculate_bounds".
+            footprint_source (str, optional): "calculate_bounds" polygonizes raster validity masks; "metadata" uses each metadata_records entry's geometry; "vector_bounds" reads saved polygon geometry, original image identifiers and attributes from vector files passed as input_images. Metadata and vector modes do not open rasters. Defaults to "calculate_bounds".
+            vector_layer (str | None, optional): Layer to read from vector_bounds input files; None selects the first layer. Each file must contain one image identifier in image_field_name and one original raster image_path. Saved attributes are retained; explicit metadata overrides them. Defaults to None.
             metadata_crs (str, optional): CRS of supplied metadata geometry; defaults to "EPSG:4326".
-            epsg (int | None, optional): Output EPSG code. None preserves the raster CRS or metadata_crs. Defaults to None.
+            epsg (int | None, optional): Output EPSG code. None preserves the raster/vector CRS or metadata_crs. Defaults to None.
             outline_path (str | None, optional): Goal-area polygon file, reprojected to the output CRS; None uses full image coverage. Defaults to None.
             outline_layer (str | None, optional): Outline layer; None reads the first layer. Requires outline_path. Defaults to None.
-            image_rank_function (str | None, optional): SpectralMatch expression with {var:field} and {summary:field} placeholders, e.g. "-{var:view_zenith}". Higher expression values rank on top by default; negate lower-is-better quantities. None preserves overlaps. Defaults to None.
+            image_rank_function (str | None, optional): SpectralMatch expression with {var:field} and {summary:field} placeholders, e.g. "-{var:view_zenith}". Higher expression values rank on top by default; negate lower-is-better quantities. {stat:area_crs} calculates each connected polygon's area in squared CRS units after outline clipping and ranks components separately. None preserves overlaps. Defaults to None.
             image_rank_descending (bool, optional): True ranks higher values on top (default); False reverses the order. Ties use image identifier order.
             min_polygon_area (float | None, optional): Minimum individual owned polygon area in square metres, applied before buffering when coverage controls are used. Pieces smaller than this are removed; None disables filtering. Defaults to 1.0. Raw footprints without coverage controls are unchanged.
             extrude_distance (float, optional): Nonnegative buffer around owned coverage in projected output CRS units, clipped to the original footprint. Extends beneath other images and beyond the outline; empty owners are omitted. Defaults to 0.0.
@@ -125,8 +127,19 @@ class Seamline:
             raise ValueError("band must be a positive integer.")
         if not isinstance(eight_connected, bool):
             raise ValueError("eight_connected must be a bool.")
-        if footprint_source not in {"calculate_bounds", "metadata"}:
-            raise ValueError("footprint_source must be 'calculate_bounds' or 'metadata'.")
+        if footprint_source not in {"calculate_bounds", "metadata", "vector_bounds"}:
+            raise ValueError("footprint_source must be 'calculate_bounds', 'metadata', or 'vector_bounds'.")
+        vector_paths = []
+        if footprint_source == "vector_bounds":
+            vector_paths = _resolve_paths("search", input_images, kwargs={"default_file_pattern": "*.gpkg"})
+            if not vector_paths:
+                raise ValueError("No input vectors found.")
+            if any(os.path.realpath(value) == os.path.realpath(output_polygons) for value in vector_paths):
+                raise ValueError("output_polygons must differ from the input vector files.")
+        elif vector_layer is not None:
+            raise ValueError("vector_layer requires footprint_source='vector_bounds'.")
+        if vector_layer is not None and (not isinstance(vector_layer, str) or not vector_layer.strip()):
+            raise ValueError("vector_layer must be a nonempty string or None.")
         if metadata_csv is not None and metadata_records is not None:
             raise ValueError("metadata_csv and metadata_records are mutually exclusive.")
         if footprint_source == "metadata" and metadata_records is None:
@@ -175,19 +188,27 @@ class Seamline:
             image_field_name=image_field_name,
         ):
             return output_polygons
-        paths = _resolve_paths(
+        paths = vector_paths if footprint_source == "vector_bounds" else _resolve_paths(
             "search", input_images, kwargs={"default_file_pattern": "*.tif"}
         )
         if not paths:
             raise ValueError("No input images found.")
-        names = _resolve_paths("name", paths)
+        vectors = ([_footprints._read_vector_footprint(path, vector_layer, image_field_name) for path in paths]
+                   if footprint_source == "vector_bounds" else None)
+        names = [vector["image"] for vector in vectors] if vectors is not None else _resolve_paths("name", paths)
+        image_paths = [vector["image_path"] for vector in vectors] if vectors is not None else paths
         if len(set(names)) != len(names):
-            raise ValueError("Input image basenames must be unique.")
+            raise ValueError("Input image identifiers must be unique.")
         if metadata_records is not None:
             metadata_schema, metadata = _footprints._read_metadata_records(metadata_records, names, image_field_name)
         else:
             metadata_schema, metadata = _read_image_metadata(
                 metadata_csv, metadata_image_field_name, names, image_field_name
+            )
+        if vectors is not None:
+            metadata_schema, metadata = _footprints._read_metadata_records(
+                [{**vector["attributes"], **record} for vector, record in zip(vectors, metadata)],
+                names, image_field_name,
             )
         if footprint_source == "metadata":
             geometries = [record.get("geometry") for record in metadata_records]
@@ -196,6 +217,9 @@ class Seamline:
                 _footprints._footprint_from_metadata(geometry, metadata_crs, epsg)
             worker = _footprints._footprint_from_metadata
             tasks = [(geometry, metadata_crs, epsg) for geometry in geometries]
+        elif footprint_source == "vector_bounds":
+            worker = _footprints._project_footprint
+            tasks = [(vector["geometry"], vector["crs"], epsg) for vector in vectors]
         else:
             worker = _footprints._footprint_from_image
             tasks = [(path, band, eight_connected, epsg) if epsg is not None else (path, band, eight_connected) for path in paths]
@@ -231,7 +255,7 @@ class Seamline:
                     geometry,
                     {
                         image_field_name: names[index],
-                        "image_path": paths[index],
+                        "image_path": image_paths[index],
                         **metadata[index],
                     },
                 )
@@ -613,7 +637,7 @@ class Seamline:
         quality = dict.fromkeys(paths, 0.0)
         if image_rank_function is not None:
             ranked = _rank_polygons(
-                frame, image_field_name, image_rank_function, image_rank_descending
+                frame, image_field_name, image_rank_function, image_rank_descending, split_components=False
             )
             scores = dict(zip(ranked[image_field_name], ranked.weighted_score))
             lo, hi = min(scores.values()), max(scores.values())

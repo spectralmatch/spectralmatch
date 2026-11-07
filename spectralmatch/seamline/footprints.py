@@ -167,6 +167,26 @@ def _project_footprint(geometry, source_crs, epsg):
     return geometry, target.to_wkt()
 
 
+def _read_vector_footprint(vector_path, vector_layer, image_field_name):
+    """Read one image's geometry, original identifiers and attributes from its vector."""
+    frame = _read_polygons(vector_path, vector_layer, image_field_name)
+    identifiers = frame[image_field_name].astype(str).unique()
+    if len(identifiers) != 1 or not identifiers[0].strip():
+        raise ValueError(f"Each footprint vector must identify exactly one image: {vector_path}")
+    if "image_path" not in frame or any(not isinstance(value, str) or not value.strip()
+                                        for value in frame["image_path"]):
+        raise ValueError(f"Footprint vector requires a nonempty image_path field: {vector_path}")
+    image_paths = frame["image_path"].unique()
+    if len(image_paths) != 1:
+        raise ValueError(f"Each footprint vector must have one original image_path: {vector_path}")
+    reserved = {image_field_name.casefold(), "image_path", "geometry", "fid"}
+    attributes = {key: (None if pd.api.types.is_scalar(value) and pd.isna(value) else value)
+                  for key, value in frame.iloc[0].to_dict().items() if key.casefold() not in reserved}
+    return {"image": identifiers[0], "image_path": image_paths[0],
+            "geometry": unary_union(frame.geometry), "crs": frame.crs.to_wkt(),
+            "attributes": attributes}
+
+
 def _footprint_from_metadata(geometry, metadata_crs, epsg):
     """Build a footprint from supplied GeoJSON without opening the input raster."""
     try:

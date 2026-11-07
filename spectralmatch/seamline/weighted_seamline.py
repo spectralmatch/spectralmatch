@@ -62,7 +62,9 @@ def weighted_seamline(
     Negate lower-is-better quantities in the expression.
 
     Use ``{var:field}`` for image attributes and ``{mean:field}`` or
-    ``{std:field}`` for summaries across the candidate images.
+    ``{std:field}`` for summaries across the candidate images. ``{stat:area_crs}``
+    calculates each connected polygon's area in squared CRS units and ranks
+    components separately without adding a table field.
 
     Args:
         input_polygons (str): Input polygon layer path. Each feature should represent an image footprint or a piece of one.
@@ -119,17 +121,30 @@ def weighted_seamline(
     return output_mask
 
 
-def _rank_polygons(frame, image_field_name, rank_function, rank_descending):
-    """Score footprint attributes with the shared expression evaluator and order images deterministically."""
-    code, variables, summaries = _parse_rank_expression(rank_function)
+def _rank_polygons(frame, image_field_name, rank_function, rank_descending, *, split_components=True):
+    """Rank table attributes and calculated geometry statistics without adding stat columns."""
+    code, variables, summaries, geometry_stats = _parse_rank_expression(rank_function)
     for field in variables.values():
         if field not in frame.columns:
             raise ValueError(f"Field '{field}' referenced in rank_function was not found in the input polygons.")
+    # Existing summaries remain image-level, even when components are ranked separately.
     summary_values = _rank_summary_values(frame, summaries)
     ranked = frame.copy()
-    ranked["weighted_score"] = ranked.apply(
-        lambda row: _evaluate_weighted_expression(row, code, variables, summary_values, rank_function), axis=1
-    )
+    if geometry_stats:
+        if split_components:
+            ranked = ranked.explode(index_parts=False, ignore_index=True)
+        elif any(geometry.geom_type == "MultiPolygon" and len(geometry.geoms) > 1
+                 for geometry in ranked.geometry):
+            raise ValueError("stat:area_crs ranks individual polygon components; image-level quality ranking cannot assign separate scores to a MultiPolygon.")
+    scores = []
+    for _, row in ranked.iterrows():
+        calculated = {symbol: float(row.geometry.area) for symbol in geometry_stats}
+        try:
+            scores.append(_evaluate_weighted_expression(
+                row, code, variables, {**summary_values, **calculated}, rank_function))
+        except ValueError as exc:
+            raise ValueError(f"Cannot rank image {row[image_field_name]!r}: {exc}") from exc
+    ranked["weighted_score"] = scores
     ranked = ranked.sort_values(
         by=["weighted_score", image_field_name],
         ascending=[not rank_descending, True],
@@ -148,7 +163,7 @@ def _parse_rank_expression(expression):
         if "{" in expression or "}" in expression:
             raise ValueError("Invalid rank_function: unmatched placeholder braces.")
         raise ValueError("rank_function must reference a placeholder like {var:view_zenith} or {mean:view_zenith}.")
-    variables, summaries = {}, {}
+    variables, summaries, geometry_stats = {}, {}, {}
     rewritten = expression
     for index, placeholder in enumerate(placeholders):
         symbol = f"_rank_value_{index}"
@@ -158,18 +173,22 @@ def _parse_rank_expression(expression):
         elif len(parts) == 2 and parts[1]:
             if parts[0] == "var":
                 variables[symbol] = parts[1]
+            elif parts[0] == "stat":
+                if parts[1] != "area_crs":
+                    raise ValueError(f"Unknown geometry statistic {parts[1]!r}; choose area_crs.")
+                geometry_stats[symbol] = parts[1]
             elif parts[0] in _SUMMARY_FUNCTIONS:
                 summaries[symbol] = (parts[0], parts[1])
             else:
                 raise ValueError(f"Unknown summary statistic {parts[0]!r}; choose {', '.join(_SUMMARY_FUNCTIONS)}.")
         else:
-            raise ValueError(f"Invalid ranking placeholder {{{placeholder}}}; use {{var:field}} or {{summary:field}}.")
+            raise ValueError(f"Invalid ranking placeholder {{{placeholder}}}; use {{var:field}}, {{summary:field}}, or {{stat:area_crs}}.")
         rewritten = rewritten.replace("{" + placeholder + "}", symbol)
     try:
         tree = ast.parse(rewritten, mode="eval")
     except SyntaxError as exc:
         raise ValueError(f"Invalid rank_function expression: {exc.msg}") from exc
-    names = {*variables, *summaries, *_SAFE_FUNCTIONS}
+    names = {*variables, *summaries, *geometry_stats, *_SAFE_FUNCTIONS}
     for node in ast.walk(tree):
         if not isinstance(node, _EXPRESSION_NODES):
             raise ValueError("rank_function supports arithmetic, comparisons and the documented math functions only.")
@@ -177,7 +196,7 @@ def _parse_rank_expression(expression):
             raise ValueError(f"Unknown name {node.id!r} in rank_function; use a field placeholder.")
         if isinstance(node, ast.Call) and (not isinstance(node.func, ast.Name) or node.func.id not in _SAFE_FUNCTIONS):
             raise ValueError("rank_function may only call the documented math functions.")
-    return compile(tree, "<rank_function>", "eval"), variables, summaries
+    return compile(tree, "<rank_function>", "eval"), variables, summaries, geometry_stats
 
 
 def _rank_summary_values(frame, summaries):
