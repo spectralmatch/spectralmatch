@@ -366,8 +366,16 @@ class _PolygonWriter:
         for key, value in record.items():
             if pd.isna(value):
                 value = None
-            elif hasattr(value, "isoformat"):
-                value = value.isoformat()
+            else:
+                # Fiona can silently write an int as NULL in a float column.
+                # Match the declared schema after merging per-image attributes.
+                field_type = self.schema["properties"][key].split(":", 1)[0]
+                if field_type in {"float", "float32", "float64"}:
+                    value = float(value)
+                elif field_type in {"int", "int32", "int64", "bool"}:
+                    value = int(value)
+                elif hasattr(value, "isoformat"):
+                    value = value.isoformat()
             properties[key] = value
         self.destination.write(
             {"geometry": mapping(geometry), "properties": properties}

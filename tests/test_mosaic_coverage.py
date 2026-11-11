@@ -190,3 +190,47 @@ def test_raster_mode_supports_outline_ranking_and_output_projection(tmp_path):
     assert result.weighted_score.iloc[0] == 4
 
 
+
+
+@pytest.mark.parametrize("source", ["metadata", "calculate_bounds", "vector_bounds"])
+def test_mixed_numeric_angles_survive_writing_and_ranking(tmp_path, source):
+    geometries = [box(0, 0, 10, 10), box(5, 0, 15, 10)]
+    images = [str(tmp_path / f"scene_{i}.tif") for i in range(2)]
+    records = [
+        {"view_zenith": 12, "solar_zenith": 30.5, "flag": True, "optional": None},
+        {"view_zenith": 13.5, "solar_zenith": 31, "flag": False, "optional": 3.5},
+    ]
+    metadata = [{**record, "geometry": mapping(geometry)}
+                for record, geometry in zip(records, geometries)]
+    options = {"metadata_records": metadata, "metadata_crs": "EPSG:3857"}
+    if source == "calculate_bounds":
+        for i, image in enumerate(images):
+            create_dummy_raster(image, width=10, height=10, count=1, crs="EPSG:3857",
+                                transform=(i * 5, 1, 0, 10, 0, -1), fill_value=100)
+    elif source == "vector_bounds":
+        vectors = []
+        for i, image in enumerate(images):
+            vector = str(tmp_path / f"saved_{i}.gpkg")
+            create_footprints([image], vector, footprint_source="metadata",
+                              metadata_records=[metadata[i]], metadata_crs="EPSG:3857")
+            vectors.append(vector)
+        images = vectors
+        options = {"vector_layer": "footprints"}
+    output = str(tmp_path / "ranked.gpkg")
+    create_footprints(
+        images, output, footprint_source=source, epsg=3857,
+        image_rank_function="5 * log(max({stat:area_crs}, 1) / 1000000) / log(2) "
+                            "- ({var:view_zenith} + {var:solar_zenith})",
+        **options,
+    )
+    result = gpd.read_file(output).set_index("image")
+    assert result.loc["scene_0", "view_zenith"] == 12.0
+    assert result.loc["scene_1", "view_zenith"] == 13.5
+    assert result.loc["scene_0", "solar_zenith"] == 30.5
+    assert result.loc["scene_1", "solar_zenith"] == 31.0
+    assert result.loc["scene_0", "flag"] == 1
+    assert result.loc["scene_1", "flag"] == 0
+    assert result.loc["scene_0", "optional"] != result.loc["scene_0", "optional"]  # NULL -> NaN
+    assert result.loc["scene_1", "optional"] == 3.5
+    assert result.loc["scene_0"].geometry.equals(geometries[0])
+    assert result.loc["scene_1"].geometry.equals(box(10, 0, 15, 10))
