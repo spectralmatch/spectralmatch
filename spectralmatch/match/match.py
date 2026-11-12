@@ -505,7 +505,7 @@ Returns:
                 tie_max_matches_per_window=tie_max_matches_per_window,
                 tie_maximum_displacement=tie_maximum_displacement,
                 tie_ransac_reprojection_threshold=tie_ransac_reprojection_threshold,
-                _return_statistics=local_pif_statistics or skip_overlap_when_not_enough_matches,
+                _return_statistics=True,
                 custom_mean_factor=custom_mean_factor,
                 custom_std_factor=custom_std_factor,
                 debug_logs=debug_logs,
@@ -517,14 +517,15 @@ Returns:
                 concurrent_processing_backend=concurrent_processing_backend,
                 dask_scheduler=dask_scheduler,
             )
-            if local_pif_statistics or skip_overlap_when_not_enough_matches:
-                all_params, all_overlap_stats, pif_whole_stats = all_params
-                if local_pif_statistics:
-                    all_whole_stats = pif_whole_stats
-                overlapping_pairs = tuple(
-                    (i, j) for i, j in overlapping_pairs
-                    if j in all_overlap_stats.get(i, {})
-                )
+            # Always use the successfully sampled pairs, including automatic
+            # omission of pairs with no shared valid pixels.
+            all_params, all_overlap_stats, pif_whole_stats = all_params
+            if local_pif_statistics:
+                all_whole_stats = pif_whole_stats
+            overlapping_pairs = tuple(
+                (i, j) for i, j in overlapping_pairs
+                if j in all_overlap_stats.get(i, {})
+            )
         else:
             all_params = _solve_global_model(
                 num_bands,

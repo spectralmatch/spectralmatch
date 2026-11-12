@@ -125,10 +125,11 @@ def test_no_features_stops_at_attempt_limit_and_can_skip(tmp_path, capsys):
     assert 'WARNING: Skipping overlap' in capsys.readouterr().out
 
 
-def test_no_shared_valid_pixels_is_specific_shortage(tmp_path):
+@pytest.mark.parametrize('skip', [False, True])
+def test_no_shared_valid_pixels_skip_without_enabling_match_failure_skip(tmp_path, capsys, skip):
     infos, _ = images(tmp_path, empty=True)
-    with pytest.raises(InsufficientTieSamples, match='no shared valid pixels'):
-        extract(infos)
+    assert extract(infos, skip_overlap_when_not_enough_matches=skip) is None
+    assert 'no shared valid pixels' in capsys.readouterr().out
 
 
 def test_cached_pairs_obey_validity_count_and_cap(tmp_path):

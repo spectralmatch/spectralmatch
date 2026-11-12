@@ -30,9 +30,13 @@ Search continues toward the goal. `tie_max_attempts=None` allows up to
 `max(100, 10 * resolved_goal)` search centers; a positive integer overrides
 that limit. Exhausting valid centers or that budget succeeds if the minimum
 was reached and otherwise raises an insufficient-pairs error. Reaching the
-minimum alone does not stop the search. No shared valid pixels is also an
-insufficient-pairs error. `skip_overlap_when_not_enough_matches=True` can omit
-these failures, but does not suppress I/O or other unrelated errors.
+minimum alone does not stop the search. With `overlap_spread`, pairs with no
+shared valid pixels are always skipped, even when
+`skip_overlap_when_not_enough_matches=False`. This is distinct from an overlap
+with valid pixels but too few accepted matches; that still errors unless the
+skip option is enabled. Skipped pairs are omitted from saved overlap statistics,
+and images without a usable neighbor retain identity corrections. A model still
+requires at least one usable pair overall. I/O and unrelated errors still raise.
 
 These pair quotas are separate from `pif_max_samples` / `pif_min_samples`,
 which still count **stable PIF pixels** after neighborhood and spectral

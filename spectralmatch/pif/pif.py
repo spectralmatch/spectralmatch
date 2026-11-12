@@ -222,7 +222,7 @@ class Pif:
                 raise ValueError(
                     f"Loaded tie-point JSON is missing overlap pair: {name_i} <-> {name_j}."
                 )
-            if load_ties and len(source_ties) < 3:
+            if load_ties and len(source_ties) < 3 and tie_sampling_method != "overlap_spread":
                 _insufficient_pair_result(
                     f"Loaded tie-point pair {name_i} <-> {name_j} must contain at least 3 points.",
                     skip_overlap_when_not_enough_matches,
@@ -287,23 +287,21 @@ class Pif:
             overlapping_pairs=overlapping_pairs,
             debug_logs=debug_logs,
         )
-        if skip_overlap_when_not_enough_matches:
-            # An image disconnected by skipped pairs has no radiometric solution;
-            # preserve its values rather than applying unconstrained zero coefficients.
-            matched_names = {name for pair in overlapping_pairs for name in pair}
-            for index, name in enumerate(input_image_names):
-                if name not in matched_names:
-                    parameters[:, 2 * index, 0] = 1.0
-                    parameters[:, 2 * index + 1, 0] = 0.0
+        # Empty valid overlaps are skipped regardless of the insufficient-match
+        # policy. Preserve images disconnected by either kind of skipped pair.
+        matched_names = {name for pair in overlapping_pairs for name in pair}
+        for index, name in enumerate(input_image_names):
+            if name not in matched_names:
+                parameters[:, 2 * index, 0] = 1.0
+                parameters[:, 2 * index + 1, 0] = 0.0
         if _return_statistics:
             from ..match.global_regression import _finalize_pif_whole_stats
             whole_stats = _finalize_pif_whole_stats(all_whole_stats)
-            if skip_overlap_when_not_enough_matches:
-                for name in input_image_names:
-                    whole_stats.setdefault(name, {
-                        band: {"mean": 0.0, "std": 0.0, "size": 0}
-                        for band in range(num_bands)
-                    })
+            for name in input_image_names:
+                whole_stats.setdefault(name, {
+                    band: {"mean": 0.0, "std": 0.0, "size": 0}
+                    for band in range(num_bands)
+                })
             return parameters, all_overlap_stats, whole_stats
         return parameters
 
@@ -472,7 +470,8 @@ def _calculate_pair_pif_stats(
             tmpdir,
         )
         if overlap is None:
-            raise ValueError(f"No overlap between {reference_path} and {sensed_path}.")
+            _print_line(f"Skipping overlap {reference_name} <-> {sensed_name}: no shared extent.")
+            return {}, {}
         ref_vrt, sensed_vrt, width, height, gt, projection = overlap
 
         options = tie_options or {}
@@ -499,6 +498,8 @@ def _calculate_pair_pif_stats(
                 )
             except InsufficientTieSamples as error:
                 return _insufficient_pair_result(str(error), skip_overlap_when_not_enough_matches)
+            if source_ties is None:  # Pair has no shared valid pixels.
+                return {}, {}
             # _extract_pair_ties returns canonical pixel coordinates.
             if reference_name > sensed_name:
                 source_ties = source_ties[:, [2, 3, 0, 1]]

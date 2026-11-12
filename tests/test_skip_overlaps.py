@@ -179,3 +179,69 @@ def test_joint_registration_errors_if_no_usable_overlap_remains(images, tmp_path
     with pytest.raises(ValueError, match='No usable tie-point overlap pairs remain'):
         joint_coregistration(images[:2], outputs, skip_overlap_when_not_enough_matches=True)
     assert not any(gdal.VSIStatL(path) for path in outputs)
+
+
+def _split_valid_areas(paths):
+    # Identical bounding boxes, but C shares no valid pixels with A or B.
+    for index, path in enumerate(paths):
+        with gdal.Open(path, gdal.GA_Update) as dataset:
+            values = dataset.ReadAsArray()
+            if index < 2:
+                values[:, 60:] = 0
+            else:
+                values[:, :68] = 0
+            dataset.GetRasterBand(1).WriteArray(values)
+    return np.asarray([[15, 25, 15, 25], [45, 25, 45, 25],
+                       [15, 95, 15, 95], [45, 95, 45, 95]], dtype=float)
+
+
+@pytest.mark.parametrize('cached', [False, True])
+@pytest.mark.parametrize('reverse', [False, True])
+def test_empty_valid_pif_overlap_skips_before_match_minimum(images, cached, reverse, capsys):
+    points = _split_valid_areas(images)
+    args = pair_arguments(images)
+    args.update(reference_path=images[0], sensed_path=images[2],
+                reference_name='A', sensed_name='C',
+                source_ties=points[:1] if cached else None,
+                tie_options={'tie_sampling_method':'overlap_spread'})
+    if reverse:
+        args.update(reference_path=images[2], sensed_path=images[0],
+                    reference_name='C', sensed_name='A')
+    assert pif._calculate_pair_pif_stats(**args) == ({}, {})
+    assert 'no shared valid pixels' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize('scope', ['overlap', 'matched_windows'])
+def test_empty_valid_overlaps_skip_by_default_and_isolated_image_is_preserved(images, tmp_path, scope):
+    points = _split_valid_areas(images)
+    ties = tmp_path/'split_ties.json'
+    joint._save_ties(str(ties), {pair:points for pair in [('A','B'),('A','C'),('B','C')]})
+    outputs = [str(tmp_path/f'{name}_matched.tif') for name in ('A','B','C')]
+    model = tmp_path/'model.json'
+    result = Match.global_regression(
+        images, outputs, pif_load_ties=str(ties), pif_stats_scope=scope,
+        pif_window_size=33, estimate_stats=False, pif_inz_threshold=10,
+        save_adjustments=str(model), image_threads=2,
+    )
+    assert result == outputs
+    saved = json.loads(model.read_text())
+    assert set(saved) == {'A','B','C'}
+    assert set(saved['A']['overlap_stats']) == {'B'}
+    assert set(saved['B']['overlap_stats']) == {'A'}
+    assert saved['C']['overlap_stats'] == {}
+    assert saved['C']['adjustments']['band_0'] == {'scale':1., 'offset':0.}
+    with gdal.Open(outputs[2]) as result_ds, gdal.Open(images[2]) as original:
+        np.testing.assert_array_equal(result_ds.ReadAsArray(), original.ReadAsArray())
+
+
+def test_empty_valid_alignment_pairs_are_omitted_from_saved_graph(images, tmp_path):
+    points = _split_valid_areas(images)
+    loaded, saved = tmp_path/'loaded.json', tmp_path/'selected.json'
+    joint._save_ties(str(loaded), {pair:points for pair in [('A','B'),('A','C'),('B','C')]})
+    outputs = [str(tmp_path/f'{name}_aligned.tif') for name in ('A','B','C')]
+    assert joint_coregistration(images, outputs, tie_load_path=str(loaded),
+                               tie_save_path=str(saved), local_model='none') == outputs
+    assert set(joint._load_ties(str(saved))) == {('A','B')}
+    assert all(gdal.Open(path) is not None for path in outputs)
+    with gdal.Open(outputs[2]) as result_ds, gdal.Open(images[2]) as original:
+        np.testing.assert_array_equal(result_ds.ReadAsArray(), original.ReadAsArray())

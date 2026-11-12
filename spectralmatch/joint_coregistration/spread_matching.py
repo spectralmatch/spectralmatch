@@ -69,7 +69,8 @@ def extract_spread_ties(info_i, info_j, feature_method, maximum_displacement, th
     mask, area = _shared_mask(reference, sensed, info_i, info_j, tmpdir)
     try:
         if area == 0:
-            raise InsufficientTieSamples(f'Overlap {info_i.name} <-> {info_j.name} has no shared valid pixels.')
+            _print_line(f'Skipping overlap {info_i.name} <-> {info_j.name}: no shared valid pixels.')
+            return None  # Distinct from an overlap with valid data but insufficient matches.
         goal, required = resolve_sample_limits(area, maximum, minimum, required)
         transform = reference.GetGeoTransform()
         if source_ties is not None:

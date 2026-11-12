@@ -211,7 +211,7 @@ def test_global_regression_forwards_pif_load_ties(tmp_path, monkeypatch):
 
     def fake_flood_from_match_points(**kwargs):
         captured.update(kwargs)
-        return np.asarray([[[1.0], [0.0], [1.0], [0.0]]])
+        return np.asarray([[[1.0], [0.0], [1.0], [0.0]]]), {}, {}
 
     monkeypatch.setattr(
         pif_module.Pif,
@@ -533,7 +533,11 @@ def test_pif_loaded_json_requires_every_processed_overlap_pair(tmp_path):
         )
 
 
-def test_pif_loaded_json_rejects_insufficient_pair_points(tmp_path):
+@pytest.mark.parametrize("method,message", [
+    ("grid", "must contain at least 3 points"),
+    ("overlap_spread", "2 found, 3 required"),
+])
+def test_pif_loaded_json_rejects_insufficient_pair_points(tmp_path, method, message):
     paths, _, _, _ = _make_two_test_rasters(
         tmp_path,
         [("A", 100), ("B", 120)],
@@ -554,11 +558,12 @@ def test_pif_loaded_json_rejects_insufficient_pair_points(tmp_path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="must contain at least 3 points"):
+    with pytest.raises(ValueError, match=message):
         pif_module.Pif.flood_from_match_points(
             input_images=paths,
             overlapping_pairs=(("A", "B"),),
             load_ties=str(tie_path),
+            tie_sampling_method=method,
         )
 
 

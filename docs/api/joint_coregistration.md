@@ -236,3 +236,8 @@ The pipeline exposes these as `joint_coregistration_tie_sampling_method`,
 `joint_coregistration_tie_max_samples`, `joint_coregistration_tie_min_samples`,
 and `joint_coregistration_tie_max_attempts`. Global matching has corresponding
 `global_regression_` parameters and defaults to `overlap_spread`.
+
+With `overlap_spread`, pairs with no shared valid pixels are automatically
+omitted from the alignment graph and saved tie cache. Images remain in the
+output list. This does not require `skip_overlap_when_not_enough_matches=True`;
+that option still controls insufficient matches in a nonempty valid overlap.

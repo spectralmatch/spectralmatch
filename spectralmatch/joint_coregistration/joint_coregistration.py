@@ -661,6 +661,8 @@ def _collect_ties(
         dask_scheduler=dask_scheduler, executor_factory=_get_executor,
     )
     for pair, points, threshold in results:
+        if points is None:  # No shared valid pixels: not an alignment constraint.
+            continue
         if skip_overlap_when_not_enough_matches and not len(points):
             _print_line(f"WARNING: Skipping overlap {pair[0]} <-> {pair[1]}: no selected tie-point matches.")
             continue
@@ -719,7 +721,7 @@ def _extract_pair_ties(
                 raise
             _print_line(f"WARNING: Skipping overlap: {error}")
             points = np.empty((0, 4), dtype=float)
-        if (info_i.name, info_j.name) != pair:
+        if points is not None and (info_i.name, info_j.name) != pair:
             points = points[:, [2, 3, 0, 1]]
         return pair, points, threshold
     try:
