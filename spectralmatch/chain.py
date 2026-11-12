@@ -104,6 +104,10 @@ def pipeline(
     joint_coregistration_fixed_images_bands: list[int] = [1],
     joint_coregistration_fixed_on_no_or_partial_overlap: Literal["error", "no_influence", "partial_influence"] = "partial_influence",
     joint_coregistration_fixed_tie_method: Literal["orb", "elastix"] = "elastix",
+    joint_coregistration_tie_sampling_method: Literal["grid", "overlap_spread"] = "grid",
+    joint_coregistration_tie_max_samples: int | str = "1/30crs",
+    joint_coregistration_tie_min_samples: int | str = "1/500crs",
+    joint_coregistration_tie_max_attempts: int | None = None,
     joint_coregistration_tie_grid_spacing: float = 500.0,
     joint_coregistration_tie_search_radius: str = "128px",
     joint_coregistration_tie_orb_max_features: int = 100,
@@ -139,6 +143,10 @@ def pipeline(
     global_regression_custom_std_factor: float = 1.0,
     global_regression_save_adjustments: str | None = None,
     global_regression_load_adjustments: str | None = None,
+    global_regression_tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
+    global_regression_tie_max_samples: int | str = "1/30crs",
+    global_regression_tie_min_samples: int | str = "1/500crs",
+    global_regression_tie_max_attempts: int | None = None,
     global_regression_pif_method: Literal["entire", "flood_from_match_points"] = "flood_from_match_points",
     global_regression_pif_red_band_index: int | None = None,
     global_regression_pif_nir_band_index: int | None = None,
@@ -262,6 +270,14 @@ def pipeline(
         joint_coregistration_input_images_bands: One-based moving-image matching bands; default [1]. Multiple bands are averaged into grayscale.
         joint_coregistration_fixed_images_bands: One-based reference matching bands; default [1]. Multiple bands are averaged into grayscale.
         joint_coregistration_fixed_on_no_or_partial_overlap: Valid-data coverage policy: partial_influence (default), no_influence, or error.
+        joint_coregistration_tie_sampling_method: Search placement, default 'grid'; 'grid' or 'overlap_spread'.
+        joint_coregistration_tie_max_samples: Accepted matched-pair goal for overlap_spread; default '1/30crs' (one per 30 x 30 square CRS units).
+        joint_coregistration_tie_min_samples: Required accepted matched pairs for overlap_spread; default '1/500crs'.
+        joint_coregistration_tie_max_attempts: Search-center limit; None uses max(100, 10 * resolved goal).
+        global_regression_tie_sampling_method: Search placement, default 'overlap_spread'; 'grid' or 'overlap_spread'.
+        global_regression_tie_max_samples: Accepted matched-pair goal for overlap_spread; default '1/30crs' (one per 30 x 30 square CRS units).
+        global_regression_tie_min_samples: Required accepted matched pairs for overlap_spread; default '1/500crs'.
+        global_regression_tie_max_attempts: Search-center limit; None uses max(100, 10 * resolved goal).
         joint_coregistration_tie_grid_spacing: Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.
         joint_coregistration_tie_search_radius: Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.
         joint_coregistration_tie_orb_max_features: Positive int ORB detection cap per image per window; default 100.
@@ -400,6 +416,10 @@ def pipeline(
                     fixed_images_bands=joint_coregistration_fixed_images_bands,
                     fixed_on_no_or_partial_overlap=joint_coregistration_fixed_on_no_or_partial_overlap,
                     fixed_tie_method=joint_coregistration_fixed_tie_method,
+                    tie_sampling_method=joint_coregistration_tie_sampling_method,
+                    tie_max_samples=joint_coregistration_tie_max_samples,
+                    tie_min_samples=joint_coregistration_tie_min_samples,
+                    tie_max_attempts=joint_coregistration_tie_max_attempts,
                     tie_grid_spacing=joint_coregistration_tie_grid_spacing,
                     tie_search_radius=joint_coregistration_tie_search_radius,
                     tie_orb_max_features=joint_coregistration_tie_orb_max_features,
@@ -472,6 +492,10 @@ def pipeline(
                     custom_std_factor=global_regression_custom_std_factor,
                     save_adjustments=global_regression_save_adjustments,
                     load_adjustments=global_regression_load_adjustments,
+                    tie_sampling_method=global_regression_tie_sampling_method,
+                    tie_max_samples=global_regression_tie_max_samples,
+                    tie_min_samples=global_regression_tie_min_samples,
+                    tie_max_attempts=global_regression_tie_max_attempts,
                     pif_method=global_regression_pif_method,
                     pif_red_band_index=global_regression_pif_red_band_index,
                     pif_nir_band_index=global_regression_pif_nir_band_index,

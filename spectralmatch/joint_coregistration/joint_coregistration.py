@@ -34,6 +34,7 @@ from ..handlers import (
 )
 from ..match.global_regression import _find_overlaps
 from ..types_and_validation import JointCoregistration, Universal
+from ..overlap_sampling import InsufficientTieSamples
 from ..utils import (
     _get_gdal_bounds,
     _resolve_gdal_dtype,
@@ -126,6 +127,10 @@ def joint_coregistration(
     fixed_images_bands: list[int] = [1],
     fixed_on_no_or_partial_overlap: Literal["error", "no_influence", "partial_influence"] = "partial_influence",
     fixed_tie_method: Literal["orb", "elastix"] = "elastix",
+    tie_sampling_method: Literal["grid", "overlap_spread"] = "grid",
+    tie_max_samples: int | str = "1/30crs",
+    tie_min_samples: int | str = "1/500crs",
+    tie_max_attempts: int | None = None,
     tie_grid_spacing: float = 500.0,
     tie_search_radius: str = "128px",
     tie_orb_max_features: int = 100,
@@ -180,6 +185,10 @@ def joint_coregistration(
         fixed_images_bands: Nonempty list of unique one-based reference-image band numbers; default [1]. Multiple selected bands are averaged into grayscale before stretching.
         fixed_on_no_or_partial_overlap: "partial_influence" (default) uses fixed-reference ties only at valid reference pixels. "no_influence" drops direct fixed-reference pairs for moving images not fully covered by the combined valid reference footprint; moving-to-moving ties remain, including indirect reference influence. "error" requires full valid-data coverage. Coverage checks use valid moving pixel centres, not rectangular bounds. Disconnected moving components may align without a reference; a fixed-image alignment with no usable ties at all still errors. Ignored without fixed_images.
         fixed_tie_method: Matcher for pairs involving fixed_images: 'orb' or 'elastix' (default). Unused without fixed_images; it does not load Elastix unless a pair needs matching.
+        tie_sampling_method: Default 'grid' preserves regular search; 'overlap_spread' places centers in shared valid pixels by largest-area subdivision; 'grid' uses tie_grid_spacing.
+        tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer or density, default '1/30crs' (one pair per 30 x 30 square CRS units).
+        tie_min_samples: Required accepted matched pairs for overlap_spread, default '1/500crs'; alignment needs at least one tie.
+        tie_max_attempts: Maximum search centers for overlap_spread; None uses max(100, 10 * resolved tie_max_samples). Exhaustion succeeds only if the minimum was met.
         tie_grid_spacing: Positive CRS-unit distance between search-window centers in each pair's overlap; default 500.0; independent of local_model and local_grid_spacing.
         tie_search_radius: Positive number with a unit suffix, e.g. '100crs' or '128px' (default); square window half-width; 'px' uses the coarser input resolution.
         tie_orb_max_features: Positive int limiting detected ORB features per image per search window; default 100; fewer may be found.
@@ -250,6 +259,9 @@ def joint_coregistration(
         fixed_on_no_or_partial_overlap=fixed_on_no_or_partial_overlap,
         input_images_bands=input_images_bands,
         fixed_images_bands=fixed_images_bands,
+        tie_sampling_method=tie_sampling_method,
+        tie_max_samples=tie_max_samples, tie_min_samples=tie_min_samples,
+        tie_max_attempts=tie_max_attempts,
         tie_grid_spacing=tie_grid_spacing,
         tie_search_radius=tie_search_radius,
         tie_orb_max_features=tie_orb_max_features,
@@ -378,6 +390,9 @@ def joint_coregistration(
             debug_logs,
             concurrent_processing_backend=concurrent_processing_backend,
             dask_scheduler=dask_scheduler,
+            sampling_method=tie_sampling_method,
+            max_samples=tie_max_samples, min_samples=tie_min_samples,
+            max_attempts=tie_max_attempts,
             grid_spacing=tie_grid_spacing,
             search_radius=tie_search_radius,
             tie_orb_max_features=tie_orb_max_features,
@@ -586,6 +601,7 @@ def _collect_ties(
     skip_overlap_when_not_enough_matches=False,
     fixed_images=(),
     fixed_feature_method="elastix",
+    sampling_method="grid", max_samples="1/30crs", min_samples="1/500crs", max_attempts=None,
 ):
     fixed_names = set(fixed_images)
     current_pairs = {_canonical_pair(*pair) for pair in overlaps}
@@ -604,6 +620,10 @@ def _collect_ties(
         thresholds.append(threshold)
 
     missing = [pair for pair in overlaps if _canonical_pair(*pair) not in loaded]
+    if sampling_method == "overlap_spread":
+        # Check cached pairs against the same valid-area quotas as new pairs.
+        missing = list(overlaps)
+        ties, thresholds = {}, []
     if debug_logs:
         print(f"Loaded tie-point pairs: {len(ties)}")
         print(f"Tie-point pairs to calculate: {len(missing)}")
@@ -619,7 +639,10 @@ def _collect_ties(
             search_radius,
             tie_orb_max_features,
             tie_max_matches_per_window,
-        ) + ((tuple(sorted(fixed_names)),) if fixed_names else ())
+        ) + ((tuple(sorted(fixed_names)), sampling_method, max_samples, min_samples, max_attempts,
+              1, loaded.get(_canonical_pair(name_i, name_j)), skip_overlap_when_not_enough_matches)
+             if sampling_method == "overlap_spread" else
+             ((tuple(sorted(fixed_names)),) if fixed_names else ()))
         for name_i, name_j in missing
     ]
     uses_elastix = any(arg[2] == "elastix" for arg in args)
@@ -667,6 +690,8 @@ def _extract_pair_ties(
     info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs,
     grid_spacing=500.0, search_radius="128px",
     tie_orb_max_features=100, tie_max_matches_per_window=1, fixed_images=(),
+    sampling_method="grid", max_samples="1/30crs", min_samples="1/500crs", max_attempts=None,
+    required_ties=1, source_ties=None, skip_overlap_when_not_enough_matches=False,
 ):
     import cv2
 
@@ -677,6 +702,26 @@ def _extract_pair_ties(
     if (second_fixed and not first_fixed) or (first_fixed == second_fixed and pair != (info_i.name, info_j.name)):
         info_i, info_j = info_j, info_i
     threshold = _resolved_ransac_threshold(info_i, info_j, ransac_threshold)
+    if sampling_method == "overlap_spread":
+        from .spread_matching import extract_spread_ties
+        if source_ties is not None and (info_i.name, info_j.name) != pair:
+            source_ties = source_ties[:, [2, 3, 0, 1]]
+        try:
+            with tempfile.TemporaryDirectory(prefix="spectralmatch_spread_") as tmpdir:
+                points = extract_spread_ties(
+                    info_i, info_j, feature_method, maximum_displacement, threshold,
+                    search_radius, tie_orb_max_features, tie_max_matches_per_window,
+                    max_samples, min_samples, max_attempts, required_ties, tmpdir,
+                    debug_logs=debug_logs, source_ties=source_ties,
+                )
+        except InsufficientTieSamples as error:
+            if not skip_overlap_when_not_enough_matches:
+                raise
+            _print_line(f"WARNING: Skipping overlap: {error}")
+            points = np.empty((0, 4), dtype=float)
+        if (info_i.name, info_j.name) != pair:
+            points = points[:, [2, 3, 0, 1]]
+        return pair, points, threshold
     try:
         with tempfile.TemporaryDirectory(prefix="spectralmatch_ties_") as tmpdir:
             ref_vrt, sensed_vrt = _build_pair_overlap_vrts(info_i, info_j, tmpdir)
@@ -779,13 +824,15 @@ def _tie_grid(info_i, info_j, spacing):
     return axes
 
 
-def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, search_radius, feature_method, tie_orb_max_features=100):
+def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, search_radius, feature_method, tie_orb_max_features=100, *, centers=None):
     """Return overlap-pixel matches and their originating window centers in CRS coordinates, reading one window at a time."""
     if feature_method not in {"orb", "elastix"}:
         raise ValueError("feature_method must be orb or elastix")
     import cv2
 
-    xs, ys = _tie_grid(info_i, info_j, spacing)
+    if centers is None:
+        xs, ys = _tie_grid(info_i, info_j, spacing)
+        centers = ((x, y) for y in reversed(ys) for x in xs)
     radius = _resolved_search_radius(info_i, info_j, search_radius)
     transform = reference.GetGeoTransform()
     inverse = gdal.InvGeoTransform(transform)
@@ -796,35 +843,34 @@ def _extract_grid_pixel_matches(reference, sensed, info_i, info_j, spacing, sear
     minimum_size = 2 * detector.getEdgeThreshold() + 1 if detector else 32
     candidates = []
     window_centers = []
-    for y in reversed(ys):
-        for x in xs:
-            # Pair VRTs share a north-up grid at the coarser input resolution.
-            left, top = gdal.ApplyGeoTransform(inverse, x - radius, y + radius)
-            right, bottom = gdal.ApplyGeoTransform(inverse, x + radius, y - radius)
-            xoff, yoff = max(0, math.floor(left)), max(0, math.floor(top))
-            xend, yend = min(width, math.ceil(right)), min(height, math.ceil(bottom))
-            if min(xend - xoff, yend - yoff) < minimum_size:
-                continue
-            window = (xoff, yoff, xend - xoff, yend - yoff)
-            # Discard the cache after this window; both matchers share these reads.
-            window_data = {}
-            valid_mask = _build_overlap_valid_mask(reference, sensed, window,
-                                                   info_i.matching_bands, info_j.matching_bands,
-                                                   window_data=window_data)
-            if not valid_mask.any():
-                continue
-            ref_gray = _read_uint8_gray(reference, valid_mask, window, bands=info_i.matching_bands, window_data=window_data)
-            sensed_gray = _read_uint8_gray(sensed, valid_mask, window, bands=info_j.matching_bands, window_data=window_data)
-            if feature_method == "elastix":
-                from .elastix import match_window
-                points = match_window(ref_gray, sensed_gray, valid_mask)
-            else:
-                points = _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher)
-            if not len(points):
-                continue
-            points += np.asarray([xoff, yoff, xoff, yoff])
-            candidates.append(points)
-            window_centers.append(np.tile((x, y), (len(points), 1)))
+    for x, y in centers:
+        # Pair VRTs share a north-up grid at the coarser input resolution.
+        left, top = gdal.ApplyGeoTransform(inverse, x - radius, y + radius)
+        right, bottom = gdal.ApplyGeoTransform(inverse, x + radius, y - radius)
+        xoff, yoff = max(0, math.floor(left)), max(0, math.floor(top))
+        xend, yend = min(width, math.ceil(right)), min(height, math.ceil(bottom))
+        if min(xend - xoff, yend - yoff) < minimum_size:
+            continue
+        window = (xoff, yoff, xend - xoff, yend - yoff)
+        # Discard the cache after this window; both matchers share these reads.
+        window_data = {}
+        valid_mask = _build_overlap_valid_mask(reference, sensed, window,
+                                               info_i.matching_bands, info_j.matching_bands,
+                                               window_data=window_data)
+        if not valid_mask.any():
+            continue
+        ref_gray = _read_uint8_gray(reference, valid_mask, window, bands=info_i.matching_bands, window_data=window_data)
+        sensed_gray = _read_uint8_gray(sensed, valid_mask, window, bands=info_j.matching_bands, window_data=window_data)
+        if feature_method == "elastix":
+            from .elastix import match_window
+            points = match_window(ref_gray, sensed_gray, valid_mask)
+        else:
+            points = _match_orb_windows(ref_gray, sensed_gray, valid_mask, detector, matcher)
+        if not len(points):
+            continue
+        points += np.asarray([xoff, yoff, xoff, yoff])
+        candidates.append(points)
+        window_centers.append(np.tile((x, y), (len(points), 1)))
     if not candidates:
         return np.empty((0, 4), dtype=float), np.empty((0, 2), dtype=float)
     return np.vstack(candidates), np.vstack(window_centers)
@@ -1966,9 +2012,14 @@ def _build_overlap_valid_mask(reference, sensed, window=None, reference_bands=No
         window = (0, 0, width, height)
     valid = np.ones((window[3], window[2]), dtype=bool)
     for dataset, bands in ((reference, reference_bands), (sensed, sensed_bands)):
+        for index in range(1, dataset.RasterCount + 1):
+            if (dataset.GetRasterBand(index).GetColorInterpretation() == gdal.GCI_AlphaBand
+                    and not dataset.GetRasterBand((bands or (1,))[0]).GetMaskFlags() & gdal.GMF_ALPHA):
+                valid &= _read_window_band(dataset, index, window, window_data) > 0
         for index in bands or (1,):
             band = dataset.GetRasterBand(index)
-            valid &= _read_window_band(dataset, index, window, window_data, mask=True) > 0
+            if not band.GetMaskFlags() & gdal.GMF_ALL_VALID:
+                valid &= _read_window_band(dataset, index, window, window_data, mask=True) > 0
             if bands is not None and valid.any():
                 values = _read_window_band(dataset, index, window, window_data)
                 valid &= np.isfinite(values)

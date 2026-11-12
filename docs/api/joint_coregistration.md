@@ -212,3 +212,22 @@ canonical basename order. In `pipeline`, use
 `joint_coregistration_fixed_on_no_or_partial_overlap`. Matching band lists are
 `joint_coregistration_input_images_bands` and
 `joint_coregistration_fixed_images_bands`.
+
+### Optional valid-overlap search placement
+
+Alignment retains `tie_sampling_method="grid"` as its default. To use the
+same valid-area subdivision as global matching, select `"overlap_spread"`.
+The optional `tie_max_samples="1/30crs"` and `tie_min_samples="1/500crs"`
+count accepted matched-point pairs per valid overlap. `"N/Dcrs"` resolves to
+`ceil(area * N / D**2)`; positive integer counts are also supported. Alignment
+requires at least one pair. `tie_max_attempts=None` uses a finite search-center
+budget of `max(100, 10 * resolved_goal)`; a positive integer overrides it.
+The search aims for the maximum, accepts a result between minimum and maximum,
+and errors below the minimum. Loaded ties obey the same validity and quota
+checks. These options are ignored by grid placement. Both ORB and Elastix can
+use the new placement; matcher choices and deformation models are unchanged.
+
+The pipeline exposes these as `joint_coregistration_tie_sampling_method`,
+`joint_coregistration_tie_max_samples`, `joint_coregistration_tie_min_samples`,
+and `joint_coregistration_tie_max_attempts`. Global matching has corresponding
+`global_regression_` parameters and defaults to `overlap_spread`.

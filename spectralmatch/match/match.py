@@ -189,6 +189,10 @@ class Match:
         pif_load_ties: str | None = None,
         pif_stats_scope: Literal["overlap", "matched_windows"] = "overlap",
         pif_window_size: int = 257,
+        tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
+        tie_max_samples: int | str = "1/30crs",
+        tie_min_samples: int | str = "1/500crs",
+        tie_max_attempts: int | None = None,
         tie_grid_spacing: float = 500.0,
         tie_search_radius: str = "128px",
         tie_orb_max_features: int = 100,
@@ -239,7 +243,11 @@ Args:
     pif_stats_scope: 'overlap' (default) calculates difference mean/std over the whole valid overlap;
         'matched_windows' uses only bounded tie-point windows, including the PIF model statistics.
     pif_window_size: Odd window side length in overlap pixels; default 257. Applies to matched_windows.
-    tie_grid_spacing: Distributed tie search spacing in CRS units; default 500, as in joint_coregistration.
+    tie_sampling_method: 'overlap_spread' places centers in shared valid pixels by largest-area subdivision; 'grid' uses tie_grid_spacing.
+    tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer or density, default '1/30crs' (one pair per 30 x 30 square CRS units).
+    tie_min_samples: Required accepted matched pairs for overlap_spread, default '1/500crs'; PIF extraction always needs at least three ties. These are separate from stable PIF pixel limits.
+    tie_max_attempts: Maximum search centers for overlap_spread; None uses max(100, 10 * resolved tie_max_samples). Exhaustion succeeds only if the minimum was met.
+    tie_grid_spacing: Grid-method search spacing in CRS units; default 500.
     tie_search_radius: Search window half-width; default '128px', as in joint_coregistration.
     tie_orb_max_features: ORB features per search window; default 100.
     tie_max_matches_per_window: Selected geometric inliers per window; default 1, None keeps all.
@@ -488,6 +496,9 @@ Returns:
                 stats_scope=pif_stats_scope,
                 window_size=pif_window_size,
                 estimate_stats=estimate_stats,
+                tie_sampling_method=tie_sampling_method,
+                tie_max_samples=tie_max_samples, tie_min_samples=tie_min_samples,
+                tie_max_attempts=tie_max_attempts,
                 tie_grid_spacing=tie_grid_spacing,
                 tie_search_radius=tie_search_radius,
                 tie_orb_max_features=tie_orb_max_features,

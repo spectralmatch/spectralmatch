@@ -15,6 +15,7 @@ from ..joint_coregistration.joint_coregistration import _coregister_overlap, _lo
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths, _resolve_optional_load_path
 from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal, JointCoregistration
+from ..overlap_sampling import InsufficientTieSamples
 from ..utils import _get_gdal_bounds, _set_gdal_cache, _set_gdal_workers
 from ..utils_multiprocessing import _run_image_tasks, _get_executor, _resolve_parallel_config
 
@@ -48,6 +49,10 @@ class Pif:
         stats_scope: Literal["overlap", "matched_windows"] = "overlap",
         window_size: int = 257,
         estimate_stats: bool = True,
+        tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
+        tie_max_samples: int | str = "1/30crs",
+        tie_min_samples: int | str = "1/500crs",
+        tie_max_attempts: int | None = None,
         tie_grid_spacing: float = 500.0,
         tie_search_radius: str = "128px",
         tie_orb_max_features: int = 100,
@@ -94,7 +99,11 @@ class Pif:
             window_size: Positive odd window side length in overlap pixels; default 257.
                 In matched_windows mode, seed regions are clipped at each window boundary.
             estimate_stats: Use GDAL approximate (True) or exact (False) mean/std throughout.
-            tie_grid_spacing: Distributed search spacing in CRS units; default 500.
+            tie_sampling_method: 'overlap_spread' places centers in shared valid pixels by largest-area subdivision; 'grid' uses tie_grid_spacing.
+            tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer or density, default '1/30crs' (one pair per 30 x 30 square CRS units).
+            tie_min_samples: Required accepted matched pairs for overlap_spread, default '1/500crs'; PIF extraction always needs at least three ties. These are separate from stable PIF pixel limits.
+            tie_max_attempts: Maximum search centers for overlap_spread; None uses max(100, 10 * resolved tie_max_samples). Exhaustion succeeds only if the minimum was met.
+            tie_grid_spacing: Search spacing in CRS units for grid only; default 500.
             tie_search_radius: Search window half-width, e.g. '128px'; same as joint_coregistration.
             tie_orb_max_features: ORB features per search window; default 100.
             tie_max_matches_per_window: Selected inliers per window; default 1, None keeps all.
@@ -133,6 +142,9 @@ class Pif:
         if not isinstance(estimate_stats, bool):
             raise ValueError("estimate_stats must be a bool.")
         tie_options = dict(
+            tie_sampling_method=tie_sampling_method,
+            tie_max_samples=tie_max_samples, tie_min_samples=tie_min_samples,
+            tie_max_attempts=tie_max_attempts,
             tie_grid_spacing=tie_grid_spacing, tie_search_radius=tie_search_radius,
             tie_orb_max_features=tie_orb_max_features,
             tie_max_matches_per_window=tie_max_matches_per_window,
@@ -463,19 +475,31 @@ def _calculate_pair_pif_stats(
             raise ValueError(f"No overlap between {reference_path} and {sensed_path}.")
         ref_vrt, sensed_vrt, width, height, gt, projection = overlap
 
-        if source_ties is None:
+        options = tie_options or {}
+        sampling_method = options.get("tie_sampling_method", "grid")
+        if source_ties is None or sampling_method == "overlap_spread":
             from ..joint_coregistration.joint_coregistration import _read_image_info, _extract_pair_ties
-            options = tie_options or {}
-            _, source_ties, _ = _extract_pair_ties(
-                _read_image_info(reference_name, reference_path),
-                _read_image_info(sensed_name, sensed_path), feature_method,
-                options.get("tie_maximum_displacement"), options.get("tie_ransac_reprojection_threshold"),
-                debug_logs, grid_spacing=options.get("tie_grid_spacing", 500.0),
-                search_radius=options.get("tie_search_radius", "128px"),
-                tie_orb_max_features=options.get("tie_orb_max_features", 100),
-                tie_max_matches_per_window=options.get("tie_max_matches_per_window", 1),
-            )
-            # _extract_pair_ties canonicalizes the pair before returning pixel coordinates.
+            cached = source_ties
+            if cached is not None and reference_name > sensed_name:
+                cached = cached[:, [2, 3, 0, 1]]
+            try:
+                _, source_ties, _ = _extract_pair_ties(
+                    _read_image_info(reference_name, reference_path),
+                    _read_image_info(sensed_name, sensed_path), feature_method,
+                    options.get("tie_maximum_displacement"), options.get("tie_ransac_reprojection_threshold"),
+                    debug_logs, grid_spacing=options.get("tie_grid_spacing", 500.0),
+                    search_radius=options.get("tie_search_radius", "128px"),
+                    tie_orb_max_features=options.get("tie_orb_max_features", 100),
+                    tie_max_matches_per_window=options.get("tie_max_matches_per_window", 1),
+                    sampling_method=sampling_method,
+                    max_samples=options.get("tie_max_samples", "1/30crs"),
+                    min_samples=options.get("tie_min_samples", "1/500crs"),
+                    max_attempts=options.get("tie_max_attempts"), required_ties=3,
+                    source_ties=cached,
+                )
+            except InsufficientTieSamples as error:
+                return _insufficient_pair_result(str(error), skip_overlap_when_not_enough_matches)
+            # _extract_pair_ties returns canonical pixel coordinates.
             if reference_name > sensed_name:
                 source_ties = source_ties[:, [2, 3, 0, 1]]
         point_pairs = _source_ties_to_overlap_pairs(
@@ -826,10 +850,21 @@ def _build_valid_mask_raster(
 ) -> str:
     valid_vrt = os.path.join(tmpdir, "valid_mask.vrt")
     valid_tif = os.path.join(tmpdir, "valid_mask.tif")
+    sources = {"rm": (ref_vrt, "mask,1"), "sm": (sensed_vrt, "mask,1")}
+    conditions = ["rm > 0", "sm > 0"]
+    # Signed/non-byte alpha bands are not always exposed through GetMaskBand.
+    for prefix, path in (("r", ref_vrt), ("s", sensed_vrt)):
+        dataset = gdal.Open(path, gdal.GA_ReadOnly)
+        for index in range(1, dataset.RasterCount + 1):
+            if dataset.GetRasterBand(index).GetColorInterpretation() == gdal.GCI_AlphaBand:
+                name = f"{prefix}alpha{index}"
+                sources[name] = (path, index)
+                conditions.append(f"{name} > 0")
+        dataset = None
     _write_expression_vrt(
         valid_vrt,
-        {"rm": (ref_vrt, "mask,1"), "sm": (sensed_vrt, "mask,1")},
-        "(rm > 0 && sm > 0) ? 1 : 0",
+        sources,
+        "(" + " && ".join(conditions) + ") ? 1 : 0",
         width,
         height,
         gt,
@@ -881,8 +916,10 @@ def _build_inz_stable_mask_raster(
             nodata_value=-999999999,
         )
         diff_ds = gdal.Open(diff_vrt, gdal.GA_ReadOnly)
-        _, _, mean, std = diff_ds.GetRasterBand(1).GetStatistics(int(estimate_stats), 1)
-        diff_ds = None
+        try:
+            _, _, mean, std = _statistics_with_sparse_retry(diff_ds.GetRasterBand(1), estimate_stats)
+        finally:
+            diff_ds = None
         if std == 0:
             std = 1.0
         z_terms.append(f"abs(((s{band_index} - r{band_index}) - {mean}) / {std})")
@@ -1117,6 +1154,16 @@ def _sample_mask_raster(
     return output_path
 
 
+def _statistics_with_sparse_retry(band, estimate_stats):
+    """Approximate reads can miss a small valid island; retry only that case."""
+    try:
+        return band.GetStatistics(int(estimate_stats), 1)
+    except RuntimeError as error:
+        if not estimate_stats or "no valid pixels found in sampling" not in str(error).lower():
+            raise
+        return band.GetStatistics(0, 1)
+
+
 def _masked_band_stats(
     raster_path: str,
     band_index: int,
@@ -1159,14 +1206,7 @@ def _masked_band_stats(
         raise RuntimeError(f"Could not open masked statistics VRT: {stats_vrt}")
     band = stats_ds.GetRasterBand(1)
     try:
-        try:
-            _, _, mean, std = band.GetStatistics(int(estimate_stats), 1)
-        except RuntimeError as error:
-            if not estimate_stats or "no valid pixels found in sampling" not in str(error).lower():
-                raise
-            # Approximate sampling can miss sparse PIF pixels. Retry only this
-            # selected-pixel calculation, retaining GDAL's exact statistics.
-            _, _, mean, std = band.GetStatistics(0, 1)
+        _, _, mean, std = _statistics_with_sparse_retry(band, estimate_stats)
     finally:
         band = None
         stats_ds = None

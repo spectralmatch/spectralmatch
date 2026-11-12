@@ -84,6 +84,7 @@ def test_local_mode_never_materializes_whole_overlap_or_reads_preliminary_statis
     result = Match.global_regression(
         paths, outputs, pif_load_ties=ties(tmp_path), pif_stats_scope='matched_windows',
         pif_window_size=33, estimate_stats=False, pif_inz_threshold=10,
+        tie_sampling_method='grid',  # Legacy cached-window path does not scan overlap masks.
         save_adjustments=str(model),
     )
     assert result == outputs
@@ -183,18 +184,29 @@ def test_selected_pif_statistics_retry_only_empty_approximate_sampling(tmp_path,
     assert calls == expected_calls
 
 
-def test_difference_statistics_do_not_retry_exact_sampling(tmp_path, monkeypatch):
+@pytest.mark.parametrize('estimate,error,expected_calls', [
+    (True, 'Failed to compute statistics, no valid pixels found in sampling.', [1, 0]),
+    (False, 'Failed to compute statistics, no valid pixels found in sampling.', [0]),
+    (True, 'Failed to read source raster block.', [1]),
+])
+def test_difference_statistics_retry_only_missed_approximate_pixels(tmp_path, monkeypatch, estimate, error, expected_calls):
     paths = rasters(tmp_path)
     calls = []
+    original = gdal.Band.GetStatistics
 
     def statistics(band, approx_ok, force, *args):
         calls.append(approx_ok)
-        raise RuntimeError('Failed to compute statistics, no valid pixels found in sampling.')
+        if len(calls) == 1:
+            raise RuntimeError(error)
+        return original(band, approx_ok, force, *args)
 
     monkeypatch.setattr(gdal.Band, 'GetStatistics', statistics)
-    with pytest.raises(RuntimeError, match='no valid pixels found in sampling'):
-        pif.Pif.flood_from_match_points(
-            paths, load_ties=ties(tmp_path), stats_scope='matched_windows',
-            window_size=33, estimate_stats=True,
-        )
-    assert calls == [1]
+    kwargs = dict(load_ties=ties(tmp_path), stats_scope='matched_windows',
+                  window_size=33, estimate_stats=estimate, inz_threshold=10)
+    if expected_calls == [1, 0]:
+        pif.Pif.flood_from_match_points(paths, **kwargs)
+        assert calls[:2] == [1, 0]
+    else:
+        with pytest.raises(RuntimeError, match=error):
+            pif.Pif.flood_from_match_points(paths, **kwargs)
+        assert calls == expected_calls

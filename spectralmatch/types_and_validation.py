@@ -314,7 +314,11 @@ class JointCoregistration:
         fixed_on_no_or_partial_overlap="partial_influence",
         input_images_bands=[1],
         fixed_images_bands=[1],
+        tie_sampling_method="grid",
+        tie_max_samples="1/30crs", tie_min_samples="1/500crs", tie_max_attempts=None,
     ):
+        from .overlap_sampling import validate_sampling
+        validate_sampling(tie_sampling_method, tie_max_samples, tie_min_samples, tie_max_attempts)
         for name, bands in (("input_images_bands", input_images_bands), ("fixed_images_bands", fixed_images_bands)):
             if (not isinstance(bands, list) or not bands
                     or any(isinstance(band, bool) or not isinstance(band, int) or band < 1 for band in bands)

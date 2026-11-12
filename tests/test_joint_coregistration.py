@@ -349,7 +349,7 @@ def test_coregister_overlap_reuses_supplied_ties(tmp_path, monkeypatch):
     )
 
     assert result_path == str(output)
-    assert result_pairs == pytest.approx(pairs)
+    assert np.asarray(result_pairs) == pytest.approx(np.asarray(pairs))
     assert gdal.Open(result_path) is not None
 
 
@@ -613,7 +613,7 @@ def test_joint_coregistration_passes_grid_options_to_parallel_matching(tmp_path,
     selected = {}
 
     def record_extract(*args):
-        grids.append(args[6:])
+        grids.append(args[6:10])
         result = original_extract(*args)
         selected[result[0]] = result[1].copy()
         return result
