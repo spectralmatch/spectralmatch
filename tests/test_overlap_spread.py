@@ -49,6 +49,9 @@ def test_invalid_quotas(value):
 
 
 def test_density_square_units_rounding_and_structural_minimum():
+    assert resolve_sample_limits(1e6, '1/100crs', '1/500crs', 3) == (100, 4)
+    assert resolve_sample_limits(19344.8508, '1/100crs', '1/500crs', 3) == (3, 3)
+    assert resolve_sample_limits(19344.8508, '1/100crs', '1/500crs', 1) == (2, 1)
     assert resolve_sample_limits(19344.8508, '1/30crs', '1/500crs', 3) == (22, 3)
     assert resolve_sample_limits(18, '5/3crs', 1) == (10, 1)
     assert resolve_sample_limits(.1, '1/30crs', '1/500crs', 3) == (3, 3)
@@ -60,11 +63,14 @@ def test_density_square_units_rounding_and_structural_minimum():
 
 
 def test_sampling_validation_and_defaults():
-    assert inspect.signature(joint_coregistration).parameters['tie_sampling_method'].default == 'grid'
-    for f in (global_regression,):
+    from spectralmatch import pipeline
+    assert inspect.signature(pipeline).parameters['joint_coregistration_tie_sampling_method'].default == 'overlap_spread'
+    for prefix in ('joint_coregistration', 'global_regression'):
+        assert inspect.signature(pipeline).parameters[prefix + '_tie_max_samples'].default == '1/100crs'
+    for f in (joint_coregistration, global_regression):
         params = inspect.signature(f).parameters
         assert params['tie_sampling_method'].default == 'overlap_spread'
-        assert params['tie_max_samples'].default == '1/30crs'
+        assert params['tie_max_samples'].default == '1/100crs'
         assert params['tie_min_samples'].default == '1/500crs'
     for args in [('bad', 5, 1, None), ('overlap_spread', 1, 2, None),
                  ('overlap_spread', '1/500crs', '1/30crs', None), ('grid', 10, 1, 0)]:
@@ -203,3 +209,25 @@ def test_search_keeps_trying_past_minimum_and_accepts_short_of_goal_at_budget(tm
     assert len(attempted)==8
     assert 3<=len(selected)<20
     assert all(valid[int(row),int(col)] for row,col in attempted)
+
+
+def test_joint_alignment_dispatches_to_spread_by_default(tmp_path, monkeypatch):
+    infos, _ = images(tmp_path)
+    original = joint._extract_pair_ties
+    methods = []
+    def record(*args, **kwargs):
+        methods.append(args[11])
+        return original(*args, **kwargs)
+    monkeypatch.setattr(joint, '_extract_pair_ties', record)
+    outputs = [str(tmp_path / (info.name + '_aligned.tif')) for info in infos]
+    result = joint_coregistration(
+        [info.path for info in infos], outputs, local_model='none',
+        tie_max_samples=5, tie_min_samples=3, tie_max_attempts=40,
+        tie_search_radius='64px', tie_orb_max_features=500,
+    )
+    assert methods == ['overlap_spread']
+    assert result == outputs
+    for output in outputs:
+        with gdal.Open(output) as dataset:
+            assert dataset.RasterCount == 1
+            assert dataset.GetRasterBand(1).GetMaskBand().ReadAsArray().any()

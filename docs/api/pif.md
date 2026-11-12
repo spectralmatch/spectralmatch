@@ -10,7 +10,7 @@ separate islands are respected; ties in placement use a stable order.
 global_regression(
     input_images, output_images,
     tie_sampling_method="overlap_spread",
-    tie_max_samples="1/30crs",
+    tie_max_samples="1/100crs",
     tie_min_samples="1/500crs",
     pif_region_radius=30,
 )
@@ -21,7 +21,7 @@ validity checks, RANSAC, per-window selection, and duplicate removal.
 `tie_min_samples` is the required minimum. Each accepts a positive integer or
 `"N/Dcrs"`: resolve the latter as `ceil(valid_overlap_area * N / D**2)`.
 Thus `"5/3crs"` means five pairs per 3 x 3 CRS-unit square. Defaults are
-`"1/30crs"` and `"1/500crs"`. PIF's internal alignment always requires at least
+`"1/100crs"` and `"1/500crs"`. PIF's internal alignment always requires at least
 three pairs, so density-derived counts are raised to that floor; an explicit
 integer maximum below the required minimum is an error. Cached pairs are
 checked against the same valid overlap and quotas and capped at the goal.

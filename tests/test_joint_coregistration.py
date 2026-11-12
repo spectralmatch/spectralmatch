@@ -622,7 +622,7 @@ def test_joint_coregistration_passes_grid_options_to_parallel_matching(tmp_path,
     outputs = [str(tmp_path / f"corrected_{name}.tif") for name in ("a", "b")]
     saved = tmp_path / "selected.json"
     joint_coregistration(
-        [info_a.path, info_b.path], outputs, local_model="none", tie_grid_spacing=512, local_grid_spacing=64,
+        [info_a.path, info_b.path], outputs, local_model="none", tie_sampling_method="grid", tie_grid_spacing=512, local_grid_spacing=64,
         tie_maximum_displacement=20,
         tie_ransac_reprojection_threshold=4, tie_save_path=str(saved), image_threads=2,
         tie_orb_max_features=features, tie_max_matches_per_window=keep,
@@ -681,7 +681,7 @@ def test_missing_tie_cache_is_saved_then_reused_without_processing(tmp_path, mon
     outputs = [str(tmp_path / f"output_{name}.tif") for name in ("a", "b")]
     options = dict(
         input_images=[info_a.path, info_b.path], output_images=outputs, local_model="none",
-        tie_grid_spacing=512, tie_load_path=str(cache), tie_save_path=str(cache),
+        tie_sampling_method="grid", tie_grid_spacing=512, tie_load_path=str(cache), tie_save_path=str(cache),
     )
     with pytest.warns(RuntimeWarning, match="file not found"):
         joint_coregistration(**options)
@@ -852,7 +852,7 @@ def test_tie_vector_export_reuses_selected_points_and_keeps_original_positions(t
         raise AssertionError('Exporting cached selected ties must not run ORB')
 
     monkeypatch.setattr(coregistration_module, '_extract_pair_ties', fail_detection)
-    joint_coregistration(inputs, str(tmp_path / 'outputs'), global_model='translation', local_model='none', tie_load_path=cache, tie_save_path=str(saved), tie_save_crs_path=str(output))
+    joint_coregistration(inputs, str(tmp_path / 'outputs'), tie_sampling_method='grid', global_model='translation', local_model='none', tie_load_path=cache, tie_save_path=str(saved), tie_save_crs_path=str(output))
     with fiona.open(output) as source:
         coordinates = {feature['properties']['image']: tuple(feature['geometry']['coordinates']) for feature in source}
     assert coordinates == {'a': (10.5, 13.5), 'b': (12.5, 13.5)}

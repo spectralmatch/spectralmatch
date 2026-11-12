@@ -50,7 +50,7 @@ class Pif:
         window_size: int = 257,
         estimate_stats: bool = True,
         tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
-        tie_max_samples: int | str = "1/30crs",
+        tie_max_samples: int | str = "1/100crs",
         tie_min_samples: int | str = "1/500crs",
         tie_max_attempts: int | None = None,
         tie_grid_spacing: float = 500.0,
@@ -100,7 +100,7 @@ class Pif:
                 In matched_windows mode, seed regions are clipped at each window boundary.
             estimate_stats: Use GDAL approximate (True) or exact (False) mean/std throughout.
             tie_sampling_method: 'overlap_spread' places centers in shared valid pixels by largest-area subdivision; 'grid' uses tie_grid_spacing.
-            tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer or density, default '1/30crs' (one pair per 30 x 30 square CRS units).
+            tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer or density, default '1/100crs' (one pair per 100 x 100 square CRS units).
             tie_min_samples: Required accepted matched pairs for overlap_spread, default '1/500crs'; PIF extraction always needs at least three ties. These are separate from stable PIF pixel limits.
             tie_max_attempts: Maximum search centers for overlap_spread; None uses max(100, 10 * resolved tie_max_samples). Exhaustion succeeds only if the minimum was met.
             tie_grid_spacing: Search spacing in CRS units for grid only; default 500.
@@ -492,7 +492,7 @@ def _calculate_pair_pif_stats(
                     tie_orb_max_features=options.get("tie_orb_max_features", 100),
                     tie_max_matches_per_window=options.get("tie_max_matches_per_window", 1),
                     sampling_method=sampling_method,
-                    max_samples=options.get("tie_max_samples", "1/30crs"),
+                    max_samples=options.get("tie_max_samples", "1/100crs"),
                     min_samples=options.get("tie_min_samples", "1/500crs"),
                     max_attempts=options.get("tie_max_attempts"), required_ties=3,
                     source_ties=cached,

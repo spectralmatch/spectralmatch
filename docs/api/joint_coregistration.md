@@ -1,8 +1,11 @@
 # Joint coregistration
 
-## Grid-distributed ORB matching
+Joint alignment and global matching both default to `tie_sampling_method="overlap_spread"`,
+with `tie_max_samples="1/100crs"` and `tie_min_samples="1/500crs"`.
 
-ORB searches square windows centered on a regular grid inside each pair's overlap. `tie_grid_spacing` sets the distance between search centers in the shared input CRS units, even when `local_model="none"`. An overlap smaller than one grid cell gets a search at its center. `local_grid_spacing` independently controls the local deformation mesh.
+## Optional grid-distributed ORB matching
+
+With `tie_sampling_method="grid"`, ORB searches square windows centered on a regular grid inside each pair's overlap. `tie_grid_spacing` sets the distance between search centers in the shared input CRS units, even when `local_model="none"`. An overlap smaller than one grid cell gets a search at its center. `local_grid_spacing` independently controls the local deformation mesh.
 
 `tie_search_radius` is a positive finite number with one unit suffix:
 
@@ -21,6 +24,7 @@ from spectralmatch import joint_coregistration
 joint_coregistration(
     input_images="input/*.tif",
     output_images="coregistered",
+    tie_sampling_method="grid",
     tie_grid_spacing=500.0,
     tie_search_radius="128px",
     tie_orb_max_features=100,
@@ -213,11 +217,12 @@ canonical basename order. In `pipeline`, use
 `joint_coregistration_input_images_bands` and
 `joint_coregistration_fixed_images_bands`.
 
-### Optional valid-overlap search placement
+### Default valid-overlap search placement
 
-Alignment retains `tie_sampling_method="grid"` as its default. To use the
-same valid-area subdivision as global matching, select `"overlap_spread"`.
-The optional `tie_max_samples="1/30crs"` and `tie_min_samples="1/500crs"`
+Alignment defaults to `tie_sampling_method="overlap_spread"`, using the
+same valid-area subdivision as global matching. Select `"grid"` to restore
+the regular search grid.
+The optional `tie_max_samples="1/100crs"` and `tie_min_samples="1/500crs"`
 count accepted matched-point pairs per valid overlap. `"N/Dcrs"` resolves to
 `ceil(area * N / D**2)`; positive integer counts are also supported. Alignment
 requires at least one pair. `tie_max_attempts=None` uses a finite search-center

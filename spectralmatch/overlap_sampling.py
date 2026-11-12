@@ -23,7 +23,7 @@ def parse_sample_quota(value, name):
             density = count / side / side
             if math.isfinite(density) and density > 0:
                 return count, side
-    raise ValueError(f'{name} must be a positive integer or a density such as "1/30crs" (one pair per 30 x 30 CRS-unit square).')
+    raise ValueError(f'{name} must be a positive integer or a density such as "1/100crs" (one pair per 100 x 100 CRS-unit square).')
 
 
 def validate_sampling(method, maximum, minimum, attempts):
