@@ -11,9 +11,14 @@ from osgeo import gdal
 from pyproj import CRS
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
-from shapely import contains_xy, intersects_xy
+from shapely import (
+    contains_xy,
+    intersects_xy,
+    set_precision,
+    constrained_delaunay_triangles,
+)
 from shapely.geometry import LineString, Polygon, box
-from shapely.ops import polygonize, unary_union
+from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
 try:
@@ -21,9 +26,9 @@ try:
 except ImportError:
     maxflow = None
 try:
-    from shapely import constrained_delaunay_triangles
+    from igl.triangle import triangulate as _triangle_triangulate
 except ImportError:
-    constrained_delaunay_triangles = None
+    _triangle_triangulate = None
 
 from .footprints import _polygon_parts
 from ..utils_logging import _print_line
@@ -31,31 +36,159 @@ from ..utils_logging import _print_line
 _LAPLACIAN_VARIABLES = {"laplacian_difference", "laplacian_magnitude"}
 
 
-def _mesh(coverages, spacing):
-    """Constrain Delaunay triangles to grid cells and all footprint boundaries, retaining holes and islands."""
+_MAX_MESH_TRIANGLES = 1_000_000
+
+
+def _geometry_roundoff(geometry):
+    """Coordinate-scale tolerance for floating-point overlay, not pixel simplification."""
+    return 32 * np.spacing(max(1.0, *map(abs, geometry.bounds)))
+
+
+def _triangulate_polygon(polygon, max_area, min_angle, precision=None):
+    """Refine a polygon with Triangle, preserving its exterior and all holes."""
+    precision = _geometry_roundoff(polygon) if precision is None else precision
+    # Drop only redundant collinear vertices, without approximating the outline.
+    # Overlay can introduce almost coincident backtracking segments. Collapse
+    # only coordinate-roundoff artifacts before passing a PSLG to Triangle.
+    if polygon.area <= _geometry_roundoff(polygon) * polygon.length * 8:
+        # Preserve overlay slivers, but do not try to fit millions of quality
+        # triangles across a width comparable to coordinate roundoff.
+        return list(constrained_delaunay_triangles(polygon).geoms)
+    polygon = set_precision(polygon, precision)
+    if polygon.is_empty:
+        return []
+    if polygon.geom_type != "Polygon":
+        return [
+            face
+            for part in _polygon_parts(polygon)
+            for face in _triangulate_polygon(part, max_area, min_angle, precision)
+        ]
+    polygon = polygon.simplify(0, preserve_topology=True)
+    # A triangular constrained cell already satisfies all attainable angle
+    # constraints: its three corner angles are imposed by the input boundary.
+    # Avoid refining roundoff-width slivers created by overlay intersections.
+    if (
+        not polygon.interiors
+        and len(polygon.exterior.coords) == 4
+        and polygon.area <= max_area
+    ):
+        return [polygon]
+    vertices, segments, holes = [], [], []
+    vertex_ids = {}
+    for ring in [polygon.exterior, *polygon.interiors]:
+        ids = []
+        for coordinate in list(ring.coords)[:-1]:
+            if coordinate not in vertex_ids:
+                vertex_ids[coordinate] = len(vertices)
+                vertices.append(coordinate)
+            ids.append(vertex_ids[coordinate])
+        segments.extend((ids[i], ids[(i + 1) % len(ids)]) for i in range(len(ids)))
+    for ring in polygon.interiors:
+        point = Polygon(ring).representative_point()
+        holes.append((point.x, point.y))
+    if len(vertices) > _MAX_MESH_TRIANGLES:
+        raise ValueError("Footprint boundary exceeds the mesh vertex limit.")
+    # Local coordinates improve refinement precision for large projected offsets.
+    origin = np.asarray(polygon.bounds[:2])
+    points = np.asarray(vertices, dtype=float) - origin
+    hole_points = np.asarray(holes, dtype=float).reshape(-1, 2) - origin
+    # Triangle does not parse scientific notation in numeric switches.
+    area_flag = np.format_float_positional(float(max_area), trim="-")
+    angle_flag = np.format_float_positional(float(min_angle), trim="-")
+    refined, indices, _, _, _ = _triangle_triangulate(
+        points,
+        np.asarray(segments, dtype=np.int64),
+        hole_points,
+        flags=f"q{angle_flag}a{area_flag}QS{_MAX_MESH_TRIANGLES // 2}",
+    )
+    if len(refined) - len(vertices) >= _MAX_MESH_TRIANGLES // 2:
+        raise ValueError(
+            "Triangle refinement reached the vertex limit; increase "
+            "mesh_max_triangle_area or reduce mesh_min_triangle_angle."
+        )
+    faces = [
+        set_precision(Polygon(coords), precision)
+        for coords in (refined + origin)[indices]
+    ]
+    faces = [face for face in faces if not face.is_empty]
+    if not faces or len(faces) > _MAX_MESH_TRIANGLES:
+        raise ValueError("Mesh exceeds triangle limit; increase mesh_max_triangle_area.")
+    if any(face.area > max_area * (1 + 1e-8) for face in faces):
+        raise ValueError(
+            "Triangle refinement could not meet mesh_max_triangle_area within the vertex limit."
+        )
+    return faces
+
+
+def _mesh(coverages, max_area, min_angle=20):
+    """Mesh the coverage union; split internal boundaries only for unowned faces.
+
+    An image is eligible only when it covers the entire face. Other images may
+    partially cover that face without introducing additional mesh constraints.
+    """
     extent = unary_union(coverages)
-    xmin, ymin, xmax, ymax = extent.bounds
-    nx, ny = math.ceil((xmax - xmin) / spacing), math.ceil((ymax - ymin) / spacing)
-    if nx * ny > 1_000_000:
-        raise ValueError("Mesh exceeds one million cells; increase mesh_spacing.")
-    lines = [geometry.boundary for geometry in coverages]
-    lines.extend(
-        LineString([(x, ymin), (x, ymax)]) for x in np.linspace(xmin, xmax, nx + 1)
-    )
-    lines.extend(
-        LineString([(xmin, y), (xmax, y)]) for y in np.linspace(ymin, ymax, ny + 1)
-    )
+    precision = _geometry_roundoff(extent)
+    coverages = [set_precision(coverage, precision) for coverage in coverages]
+    extent = unary_union(coverages)
+    if extent.area / max_area > _MAX_MESH_TRIANGLES:
+        raise ValueError("Mesh exceeds triangle limit; increase mesh_max_triangle_area.")
     tree = STRtree(coverages)
     faces, visibility = [], []
-    for cell in polygonize(unary_union(lines)):
-        owners = tree.query(cell.representative_point(), predicate="covered_by")
-        if len(owners):
-            triangles = list(constrained_delaunay_triangles(cell).geoms)
-            faces.extend(triangles)
-            visible = np.zeros(len(coverages), dtype=bool)
-            visible[owners] = True
-            visibility.extend([visible] * len(triangles))
-    return faces, np.asarray(visibility)
+
+    def owners(face):
+        possible = tree.query(face)
+        # Robust to coordinate roundoff at shared boundaries; never substitute
+        # a centroid test for whole-face coverage.
+        tolerance = precision * face.length
+        return np.asarray(
+            [
+                index for index in possible
+                if coverages[index].covers(face)
+                or face.difference(coverages[index]).area <= tolerance
+            ],
+            dtype=int,
+        )
+
+    def append(face, eligible):
+        if face.area > max_area * (1 + 1e-8):
+            raise ValueError("Refined face exceeds mesh_max_triangle_area.")
+        visible = np.zeros(len(coverages), dtype=bool)
+        visible[eligible] = True
+        faces.append(face)
+        visibility.append(visible)
+        if len(faces) > _MAX_MESH_TRIANGLES:
+            raise ValueError("Mesh exceeds triangle limit; increase mesh_max_triangle_area.")
+
+    for polygon in _polygon_parts(extent):
+        for face in _triangulate_polygon(polygon, max_area, min_angle, precision):
+            eligible = owners(face)
+            if len(eligible):
+                append(face, eligible)
+                continue
+            # Split only unowned faces, using polygon overlay rather than a
+            # separately noded line arrangement. Each piece retains the images
+            # whose intersection created it, including complete overlap choices.
+            cells = [(face, [])]
+            for index in sorted(tree.query(face, predicate="intersects")):
+                split = []
+                for cell, labels in cells:
+                    split.extend(
+                        (part, labels + [index])
+                        for part in _polygon_parts(cell.intersection(coverages[index]))
+                    )
+                    split.extend(
+                        (part, labels)
+                        for part in _polygon_parts(cell.difference(coverages[index]))
+                    )
+                cells = split
+            for cell, eligible in cells:
+                if not eligible:
+                    if cell.area <= _geometry_roundoff(cell) * cell.length * 8:
+                        continue  # Roundoff outside the union, never real coverage.
+                    raise ValueError("Cannot assign a complete source footprint to a mesh cell.")
+                for triangle in _triangulate_polygon(cell, max_area, min_angle, precision):
+                    append(triangle, np.union1d(eligible, owners(triangle)).astype(int))
+    return faces, np.asarray(visibility, dtype=bool)
 
 
 def _adjacency(faces):
@@ -455,7 +588,7 @@ def _edge_samples(segments, spacing):
 # Earlier raster stages can initialize a GDAL thread pool before node workers fork.
 # Keep reads and warps serial inside each node; independent nodes still run in parallel.
 @gdal.config_option("GDAL_NUM_THREADS", "1")
-def _shared_samples(candidates, paths, plans, terms, crs):
+def _shared_samples(candidates, paths, plans, terms, crs, edge_visibility=None):
     """Batch all requested bands and coordinates per raster/GSD, sharing built-in Laplacians and repeated external reads."""
     groups = {}
     for variable, _, _, scales, _, bands in terms:
@@ -487,12 +620,24 @@ def _shared_samples(candidates, paths, plans, terms, crs):
             }
             group["bands"] = {band: i for i, band in enumerate(bands)}
             if source is None:
-                group["values"] = np.asarray(
-                    [
-                        _laplacian(candidate, paths, coordinates, bands, gsd, sampler)
-                        for candidate in candidates
-                    ]
-                )
+                needed = np.ones((len(candidates), len(coordinates)), dtype=bool)
+                if edge_visibility is not None:
+                    needed[:] = False
+                    for spacing in spacings:
+                        indices = group["indices"][spacing]
+                        sample_edges = plans[spacing][1]
+                        for label in range(len(candidates)):
+                            np.logical_or.at(
+                                needed[label], indices, edge_visibility[sample_edges, label]
+                            )
+                values = np.zeros((len(candidates), len(coordinates), len(bands)))
+                for label, candidate in enumerate(candidates):
+                    selected = needed[label]
+                    if selected.any():
+                        values[label, selected] = _laplacian(
+                            candidate, paths, coordinates[selected], bands, gsd, sampler
+                        )
+                group["values"] = values
             else:
                 values = sampler.sample(source, coordinates, bands, gsd)
                 if not np.isfinite(values).all() or np.any(values < 0):
@@ -505,14 +650,14 @@ def _shared_samples(candidates, paths, plans, terms, crs):
     return groups
 
 
-def _edge_costs(candidates, paths, segments, terms, crs):
+def _edge_costs(candidates, paths, segments, terms, crs, edge_visibility=None):
     """Build independent weighted costs from shared samples, reducing bands then scales then maximizing along edges."""
     prepared, upper_bound = [], 0.0
     plans = {
         spacing: _edge_samples(segments, spacing)
         for spacing in {min(term[3]) for term in terms}
     }
-    groups = _shared_samples(candidates, paths, plans, terms, crs)
+    groups = _shared_samples(candidates, paths, plans, terms, crs, edge_visibility)
     for variable, weight, scale_reducer, scales, band_reducer, bands in terms:
         source = None if variable in _LAPLACIAN_VARIABLES else variable
         spacing = min(scales)
@@ -673,7 +818,8 @@ def _alpha_expansion(
 def _solve_node(
     candidates,
     paths,
-    mesh_spacing,
+    mesh_max_triangle_area,
+    mesh_min_triangle_angle,
     terms,
     foreground,
     quality,
@@ -696,7 +842,7 @@ def _solve_node(
 
     progress(f"building mesh for {len(candidates)} candidate images/mosaics")
     coverages = [unary_union(list(candidate.values())) for candidate in candidates]
-    faces, visible = _mesh(coverages, mesh_spacing)
+    faces, visible = _mesh(coverages, mesh_max_triangle_area, mesh_min_triangle_angle)
     progress(f"{len(faces)} triangles; finding shared edges")
     edges, segments = _adjacency(faces)
     progress(f"{len(edges)} shared edges; applying constraints and image quality")
@@ -731,11 +877,22 @@ def _solve_node(
     keep = components[edges[:, 0]] != components[edges[:, 1]]
     edges = components[edges[keep]]
     segments = [segment for segment, retain in zip(segments, keep) if retain]
+    # Edges forced to the same label cannot become seams. Remove them before
+    # generating sample locations or opening any raster costs.
+    can_cut = (
+        np.any(allowed[edges[:, 0]] != allowed[edges[:, 1]], axis=1)
+        | (allowed[edges[:, 0]].sum(axis=1) > 1)
+    )
+    edges = edges[can_cut]
+    segments = [segment for segment, retain in zip(segments, can_cut) if retain]
     if len(edges) and terms:
         progress(
-            f"sampling raster costs for {len(edges)} edges and {len(terms)} variables"
+            f"sampling raster costs for {len(edges)} candidate seam edges and {len(terms)} variables"
         )
-        cost, bound, swap = _edge_costs(candidates, paths, segments, terms, crs)
+        edge_visibility = allowed[edges[:, 0]] | allowed[edges[:, 1]]
+        cost, bound, swap = _edge_costs(
+            candidates, paths, segments, terms, crs, edge_visibility
+        )
         progress("optimizing labels with graph cuts")
         labels = _alpha_expansion(
             allowed, edges, cost, bound, max_iterations, unary=unary, swap=swap

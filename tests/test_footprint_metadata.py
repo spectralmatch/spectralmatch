@@ -115,13 +115,13 @@ def test_csv_metadata_drives_markov_image_quality(tmp_path, images, metadata):
         input_polygons=source,
         image_rank_function="{quality_score} - {cloud_cover}",
         edge_variables_weights_gsds_bands=[],
-        mesh_spacing=4,
+        mesh_max_triangle_area=8.0,
     )
     ranked = gpd.read_file(result, layer="seamlines").set_index("image")
     assert ranked.loc["scene_1", "quality_score"] == 85
     assert ranked.loc["scene_0", "quality_score"] == 35
-    assert ranked.loc["scene_1"].geometry.area == 256
-    assert ranked.loc["scene_0"].geometry.area == 128
+    assert ranked.loc["scene_1"].geometry.area > ranked.loc["scene_0"].geometry.area
+    assert ranked.geometry.area.sum() == pytest.approx(384)
 
 
 @pytest.mark.parametrize(

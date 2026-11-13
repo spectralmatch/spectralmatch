@@ -40,6 +40,7 @@ dependencies = [
     "opencv-python-headless>=4.10",
     "wcmatch>=11.0",
     "PyMaxflow>=1.3.2",
+    "libigl>=2.6.3",
     "shapely>=2.1.0",
 ]
 

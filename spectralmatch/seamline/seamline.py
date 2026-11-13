@@ -479,7 +479,8 @@ class Seamline:
         ],
         foreground_path: str | None = None,
         foreground_layer: str | None = None,
-        mesh_spacing: float = 10,
+        mesh_max_triangle_area: float = 10000,
+        mesh_min_triangle_angle: float = 20,
         quadtree_max_images_per_leaf: int = 16,
         quadtree_overlap: float = 0.1,
         quadtree_max_depth: int = 8,
@@ -508,7 +509,8 @@ class Seamline:
             edge_variables_weights_gsds_bands: Terms [name_or_path, nonnegative weight, GSD selection, band selection]; use [value] for one value or {"average" | "largest" | "smallest": [values]} for two or more; GSDs are positive integers in CRS units or "native", bands are one-based integers; defaults weight difference 1 at "native" and magnitude 0.25 at GSD 100, both on band 1; zero disables a term.
             foreground_path: Optional polygon mask forbidding seams through protected interiors; infeasible coverage raises ValueError.
             foreground_layer: Optional layer in foreground_path; None reads the default layer.
-            mesh_spacing: Positive mesh-cell width in CRS units, independent of cost GSDs; footprint boundaries constrain triangles; defaults to 10.
+            mesh_max_triangle_area: Positive maximum triangle area in squared projected CRS units; defaults to 10000 (square metres in a metre-based CRS).
+            mesh_min_triangle_angle: Minimum triangle angle in degrees, from 0 to 30; defaults to 20. Input boundary angles can be smaller; 0 disables the angle constraint.
             quadtree_max_images_per_leaf: Positive label-count target for quadtree leaves; defaults to 16.
             quadtree_overlap: Child-block overlap fraction in (0, 0.5); defaults to 0.1.
             quadtree_max_depth: Nonnegative quadtree subdivision limit; defaults to 8.
@@ -529,6 +531,8 @@ class Seamline:
             Difference costs reduce absolute inter-image Laplacian differences over bands then scales, then take the maximum sample cost along each edge; magnitude reduces each image's absolute Laplacian identically, then averages the two edge values.
             External rasters supply direct nonnegative finite costs, reduced over bands, scales and edge samples without derivatives; all edge terms are zero for equal labels and their weighted sum is minimized alongside quality penalties.
             Repeat a variable with different GSD lists to weight scales separately; costs retain their numeric units without automatic normalization.
+            The mesh follows the combined footprint without grid lines; only faces lacking a complete source are split along internal image boundaries.
+            Edges forced to one image are not sampled; other edges read costs only for images eligible on either side.
             Alpha expansion finds a move-local minimum; smallest-reduced differences use alpha-beta swaps because their costs need not satisfy the triangle inequality.
         """
         _print_step_start("markov_triangles")
@@ -559,7 +563,8 @@ class Seamline:
                 "image_threads must be a positive integer, 'cpu', or None."
             )
         for name, value, allow_zero in [
-            ("mesh_spacing", mesh_spacing, False),
+            ("mesh_max_triangle_area", mesh_max_triangle_area, False),
+            ("mesh_min_triangle_angle", mesh_min_triangle_angle, True),
             ("quadtree_overlap", quadtree_overlap, False),
             ("image_quality_weight", image_quality_weight, True),
         ]:
@@ -580,6 +585,8 @@ class Seamline:
         ]:
             if type(value) is not int or value < minimum:
                 raise ValueError(f"{name} must be an integer >= {minimum}.")
+        if mesh_min_triangle_angle > 30:
+            raise ValueError("mesh_min_triangle_angle must be between 0 and 30 degrees.")
         if quadtree_overlap >= 0.5:
             raise ValueError("quadtree_overlap must be less than 0.5.")
         _markov._variables(edge_variables_weights_gsds_bands)
@@ -617,9 +624,9 @@ class Seamline:
             image_field_name=image_field_name,
         ):
             return output_mask
-        if _markov.maxflow is None or _markov.constrained_delaunay_triangles is None:
+        if _markov.maxflow is None or _markov._triangle_triangulate is None:
             raise ImportError(
-                "Triangle seamlines require PyMaxflow>=1.3.2 and Shapely>=2.1.0, included in the standard spectralmatch installation."
+                "Triangle seamlines require PyMaxflow>=1.3.2 and libigl>=2.6.3, included in the standard spectralmatch installation."
             )
         frame = _prepare_footprints(
             input_images,
@@ -692,7 +699,8 @@ class Seamline:
                         (
                             source,
                             {name: paths[name] for name in names},
-                            mesh_spacing,
+                            mesh_max_triangle_area,
+                            mesh_min_triangle_angle,
                             terms,
                             foreground.intersection(box(*bounds)),
                             {name: quality[name] for name in names},

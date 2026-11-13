@@ -199,7 +199,7 @@ postprocess_footprints(
 # )
 
 # Option 3: Optimize triangle seamlines using image texture, inter-image differences, and image level metadata.
-# GSDs are positive integer CRS distances (metres here) or "native", independent of mesh_spacing.
+# GSDs are positive integer CRS distances (metres here) or "native", independent of mesh_max_triangle_area.
 # Omit input_polygons to generate valid-data footprints automatically.
 # Single GSDs/bands use [value]; multiple values require a reducer, e.g. {"average": ["native", 4]}.
 markov_triangles(
@@ -208,7 +208,8 @@ markov_triangles(
     input_layer="footprints",
     output_mask=seamlines_path,
     image_field_name="image",
-    mesh_spacing=10,
+    mesh_max_triangle_area=10000,
+    mesh_min_triangle_angle=20,
     edge_variables_weights_gsds_bands=[
         ["laplacian_difference", 0.7, ["native"], [1]],
         ["laplacian_magnitude", 1.0, ["native"], {"largest": [1, 2, 3]}],

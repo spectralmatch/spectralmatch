@@ -138,7 +138,7 @@ def test_other_seamline_methods_share_the_placeholder_evaluator(tmp_path, method
         score = "weighted_score"
     else:
         output = markov_triangles(paths, str(tmp_path / "ranked.gpkg"), input_polygons=raw,
-                                  image_rank_function=ANGLE_EXPRESSION, mesh_spacing=2,
+                                  image_rank_function=ANGLE_EXPRESSION, mesh_max_triangle_area=2.0,
                                   edge_variables_weights_gsds_bands=[])
         score = "quality_score"
     result = gpd.read_file(output)

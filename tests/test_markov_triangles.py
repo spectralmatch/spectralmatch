@@ -138,7 +138,7 @@ def test_raster_sampling_restores_gdal_thread_settings(monkeypatch, fail):
 @pytest.mark.parametrize("debug_logs", [False, True])
 def test_node_progress_reports_stages(tmp_path, capsys, debug_logs):
     source = _inputs(tmp_path)
-    _run(source, str(tmp_path / "out.gpkg"), mesh_spacing=4, debug_logs=debug_logs)
+    _run(source, str(tmp_path / "out.gpkg"), mesh_max_triangle_area=8.0, debug_logs=debug_logs)
     progress = capsys.readouterr().out
     for stage in (
         "building mesh",
@@ -198,7 +198,7 @@ def test_markov_basic_api_and_parallel_hierarchy(tmp_path, workers):
             input_layer="footprints",
             output_mask=output,
             image_field_name="source",
-            mesh_spacing=4,
+            mesh_max_triangle_area=8.0,
             quadtree_max_images_per_leaf=2,
             image_threads=workers,
             debug_logs=True,
@@ -224,7 +224,7 @@ def test_hierarchy_matches_across_serial_process_and_dask(tmp_path, monkeypatch)
         },
     ):
         path = str(tmp_path / f"out{len(outputs)}.gpkg")
-        _run(source, path, mesh_spacing=4, quadtree_max_images_per_leaf=2, **mode)
+        _run(source, path, mesh_max_triangle_area=8.0, quadtree_max_images_per_leaf=2, **mode)
         outputs.append(_assert_partition(source, path).set_index("image"))
     for output in outputs[1:]:
         assert set(output.index) == set(outputs[0].index)
@@ -252,7 +252,7 @@ def test_narrow_islands_holes_and_duplicate_image_ids(tmp_path):
     gpd.GeoDataFrame(pd.concat([frame, duplicate]), crs=frame.crs).to_file(
         source, layer="footprints"
     )
-    output = _run(source, str(tmp_path / "out.gpkg"), mesh_spacing=5)
+    output = _run(source, str(tmp_path / "out.gpkg"), mesh_max_triangle_area=12.5)
     _assert_partition(source, output)
 
 
@@ -271,11 +271,13 @@ def test_divergence_and_low_cost_seam(tmp_path):
         crs="EPSG:32604",
         transform=(8, 1, 0, 16, 0, -1),
     )
-    output = _run(source, str(tmp_path / "out.gpkg"), mesh_spacing=1)
+    output = _run(source, str(tmp_path / "out.gpkg"), mesh_max_triangle_area=0.5)
     result = _assert_partition(source, output).set_index("image")
     seam = result.loc["image0"].geometry.intersection(result.loc["image1"].geometry)
     assert seam.length > 0
-    assert 8 <= seam.bounds[0] <= seam.bounds[2] <= 13
+    # Mesh vertices no longer align with pixel boundaries; the seam remains
+    # inside the quiet six-column corridor (x=8 through x=14).
+    assert 8 <= seam.bounds[0] <= seam.bounds[2] <= 14
 
     quadratic = (np.indices((16, 16))[1] ** 2).astype("float32")
     create_dummy_raster(
@@ -302,19 +304,19 @@ def test_foreground_protection_and_infeasible_constraints(tmp_path):
     protected = box(10, 1, 18, 15)
     gpd.GeoDataFrame(geometry=[protected], crs=32604).to_file(mask)
     output = _run(
-        source, str(tmp_path / "out.gpkg"), mesh_spacing=2, foreground_path=mask
+        source, str(tmp_path / "out.gpkg"), mesh_max_triangle_area=2.0, foreground_path=mask
     )
     result = _assert_partition(source, output).set_index("image")
     assert result.loc["image1"].geometry.covers(protected)
     gpd.GeoDataFrame(geometry=[box(0, 0, 24, 16)], crs=32604).to_file(mask)
     with pytest.raises(ValueError, match="infeasible"):
-        _run(source, str(tmp_path / "bad.gpkg"), mesh_spacing=2, foreground_path=mask)
+        _run(source, str(tmp_path / "bad.gpkg"), mesh_max_triangle_area=2.0, foreground_path=mask)
 
 
 def test_resume_failure_marker_and_input_protection(tmp_path, monkeypatch):
     source = _inputs(tmp_path)
     output = str(tmp_path / "out.gpkg")
-    _run(source, output, mesh_spacing=4)
+    _run(source, output, mesh_max_triangle_area=8.0)
     actual = module._solve_node
     monkeypatch.setattr(
         module,
@@ -328,7 +330,7 @@ def test_resume_failure_marker_and_input_protection(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="worker failed"):
         _run(source, output, resume_from_outputs="yes")
     monkeypatch.setattr(module, "_solve_node", actual)
-    _run(source, output, mesh_spacing=4, resume_from_outputs="yes")
+    _run(source, output, mesh_max_triangle_area=8.0, resume_from_outputs="yes")
     assert not os.path.exists(output + ".incomplete")
     with pytest.raises(ValueError, match="different files"):
         _run(source, source)
@@ -337,8 +339,8 @@ def test_resume_failure_marker_and_input_protection(tmp_path, monkeypatch):
 @pytest.mark.parametrize(
     "params",
     [
-        {"mesh_spacing": 0},
-        {"mesh_spacing": float("nan")},
+        {"mesh_max_triangle_area": 0},
+        {"mesh_max_triangle_area": float("nan")},
         {"image_quality_weight": -1},
         {"image_quality_weight": float("inf")},
         {"quadtree_overlap": 0.5},
@@ -370,7 +372,7 @@ def test_sources_use_inputs_not_path_attributes(tmp_path, monkeypatch):
         lambda *args: pytest.fail("Supplied footprints must not be recalculated"),
     )
     output = markov_triangles(
-        paths, str(tmp_path / "matched.gpkg"), input_polygons=source, mesh_spacing=4
+        paths, str(tmp_path / "matched.gpkg"), input_polygons=source, mesh_max_triangle_area=8.0
     )
     result = gpd.read_file(output)
     assert set(result.image) == {"image0", "image1"}
@@ -401,7 +403,7 @@ def test_real_nodata_hole_boundary_and_rotated_rasters(tmp_path):
         pixels[4:8, 6:8] = 0
         dataset.GetRasterBand(1).WriteArray(pixels)
     create_footprints(paths, source)
-    output = _run(source, str(tmp_path / "hole.gpkg"), mesh_spacing=2)
+    output = _run(source, str(tmp_path / "hole.gpkg"), mesh_max_triangle_area=2.0)
     _assert_partition(source, output)
     for index, path in enumerate(paths):
         create_dummy_raster(
@@ -413,7 +415,7 @@ def test_real_nodata_hole_boundary_and_rotated_rasters(tmp_path):
             transform=(index * 8, 2, 1, 30, 1, -2),
         )
     create_footprints(paths, source)
-    output = _run(source, str(tmp_path / "rotated.gpkg"), mesh_spacing=3)
+    output = _run(source, str(tmp_path / "rotated.gpkg"), mesh_max_triangle_area=4.5)
     _assert_partition(source, output)
 
 
@@ -424,7 +426,7 @@ def test_missing_mask_samples_are_not_silently_used(tmp_path):
     with gdal.Open(path, gdal.GA_Update) as dataset:
         dataset.GetRasterBand(1).Fill(0)
     with pytest.raises(ValueError, match="nodata"):
-        _run(source, str(tmp_path / "out.gpkg"), mesh_spacing=2)
+        _run(source, str(tmp_path / "out.gpkg"), mesh_max_triangle_area=2.0)
 
 
 def test_raster_crs_and_footprint_extent_validation(tmp_path):
@@ -462,7 +464,7 @@ def test_validate_resume_recomputes_wrong_layer(tmp_path):
     gpd.GeoDataFrame({"wrong": ["A"]}, geometry=[box(0, 0, 1, 1)], crs=32604).to_file(
         output, layer="unrelated"
     )
-    _run(source, output, mesh_spacing=4, resume_from_outputs="validate")
+    _run(source, output, mesh_max_triangle_area=8.0, resume_from_outputs="validate")
     result = gpd.read_file(output, layer="seamlines")
     assert "image" in result and sum(result.geometry.area) == pytest.approx(384)
 
@@ -487,13 +489,13 @@ def test_default_band_and_explicit_band_selection(tmp_path, monkeypatch):
         return actual(candidate, paths, coordinates, bands, spacing, sampler)
 
     monkeypatch.setattr(module, "_laplacian", capture)
-    _run(source, str(tmp_path / "rgb.gpkg"), mesh_spacing=4)
+    _run(source, str(tmp_path / "rgb.gpkg"), mesh_max_triangle_area=8.0)
     assert selected and set(selected) == {(1,)}
     selected.clear()
     _run(
         source,
         str(tmp_path / "red.gpkg"),
-        mesh_spacing=4,
+        mesh_max_triangle_area=8.0,
         edge_variables_weights_gsds_bands=[["laplacian_difference", 1, [1], [2]]],
     )
     assert selected and set(selected) == {(2,)}
@@ -503,7 +505,7 @@ def test_validate_resume_replaces_corrupt_output(tmp_path):
     source = _inputs(tmp_path)
     output = tmp_path / "corrupt.gpkg"
     output.write_text("incomplete file")
-    _run(source, str(output), mesh_spacing=4, resume_from_outputs="validate")
+    _run(source, str(output), mesh_max_triangle_area=8.0, resume_from_outputs="validate")
     _assert_partition(source, str(output))
 
 
@@ -632,11 +634,15 @@ def test_quality_prefers_more_area_and_saves_expression(tmp_path, descending):
         image_rank_function="{quality} - {clouds}",
         image_rank_descending=descending,
         image_quality_weight=2,
-        mesh_spacing=3,
+        mesh_max_triangle_area=4.5,
     )
     result = _assert_partition(source, output).set_index("image")
     favored = "image1" if descending else "image0"
-    assert result.loc[favored].geometry.area == pytest.approx(256)
+    # Whole-triangle eligibility may reserve boundary-crossing faces for
+    # the other image; ranking still gives the favored image more area.
+    other = "image0" if descending else "image1"
+    assert result.loc[favored].geometry.area > result.loc[other].geometry.area
+    assert result.loc[favored].geometry.area <= 256 + 1e-7
     assert result.quality_score.to_dict() == {"image0": 8, "image1": 86}
     weighted = Seamline.weighted(
         source,
@@ -652,11 +658,14 @@ def test_quality_prefers_more_area_and_saves_expression(tmp_path, descending):
         edge_variables_weights_gsds_bands=[],
         image_rank_function="{quality}",
         image_quality_weight=0,
-        mesh_spacing=3,
+        mesh_max_triangle_area=4.5,
     )
-    assert gpd.read_file(zero).set_index("image").loc[
-        "image0"
-    ].geometry.area == pytest.approx(256)
+    zero_result = gpd.read_file(zero).set_index("image")
+    assert zero_result.loc["image0"].geometry.area > zero_result.loc["image1"].geometry.area
+    if descending:
+        assert result.loc["image1"].geometry.area > zero_result.loc["image1"].geometry.area
+    else:
+        assert result.loc["image0"].geometry.area == pytest.approx(zero_result.loc["image0"].geometry.area)
 
 
 @pytest.mark.parametrize("swap", [False, True])
@@ -739,12 +748,14 @@ def test_direct_external_costs_route_seam_and_validate_nodata(tmp_path):
         _run(
             source,
             str(tmp_path / "cost.gpkg"),
-            mesh_spacing=1,
+            mesh_max_triangle_area=0.5,
             edge_variables_weights_gsds_bands=variable,
         ),
     ).set_index("image")
     seam = result.loc["image0"].geometry.intersection(result.loc["image1"].geometry)
-    assert seam.length > 0 and 11 <= seam.bounds[0] <= seam.bounds[2] <= 13
+    # Samples are at edge midpoints with spacing <= 1; unstructured edge
+    # endpoints can extend up to half a sampling interval beyond the corridor.
+    assert seam.length > 0 and 10.5 <= seam.bounds[0] <= seam.bounds[2] <= 13.5
     cost, bound, _ = module._edge_costs(
         [{}, {}],
         {},
@@ -816,7 +827,7 @@ def test_scales_are_independent_of_mesh_and_shared_between_terms(tmp_path, monke
         _run(
             source,
             str(tmp_path / f"mesh{spacing}.gpkg"),
-            mesh_spacing=spacing,
+            mesh_max_triangle_area=spacing ** 2 / 2,
             edge_variables_weights_gsds_bands=variables,
         )
         assert sorted(calls) == [
@@ -848,11 +859,13 @@ def test_quality_foreground_hierarchy_preserves_original_scores(tmp_path):
         edge_variables_weights_gsds_bands=[],
         image_rank_function="{quality}",
         quadtree_max_images_per_leaf=2,
-        mesh_spacing=2,
+        mesh_max_triangle_area=2.0,
     )
     result = _assert_partition(source, output).set_index("image")
     assert result.quality_score.to_dict() == dict(zip(frame.image, frame.quality))
-    assert result.loc["image3"].geometry.area == 256
+    # Unique coverage is 160; the preferred image also wins overlap area,
+    # subject to whole-face eligibility at each hierarchy level.
+    assert 160 < result.loc["image3"].geometry.area <= 256 + 1e-7
 
 
 @pytest.mark.parametrize("gsd", [1.0, 0.5, -1, 0, True, None, "auto", "Native", "1"])
@@ -891,7 +904,7 @@ def test_native_defaults_and_mixed_image_resolutions(tmp_path, monkeypatch):
         return actual(candidate, paths, coordinates, bands, gsd, sampler)
 
     monkeypatch.setattr(module, "_laplacian", capture)
-    result = _run(source, str(tmp_path / "native.gpkg"), mesh_spacing=4)
+    result = _run(source, str(tmp_path / "native.gpkg"), mesh_max_triangle_area=8.0)
     _assert_partition(source, result)
     assert calls == [
         ("image0", 0.5, (1,)),
@@ -1093,3 +1106,101 @@ def test_single_selection_is_not_aggregated(monkeypatch):
     assert term[2] is None and term[4] is None
     assert module._reduce(np.array([[7, 9]]), term[2]).tolist() == [7, 9]
     assert module._reduce(np.array([[7], [9]]), term[4], axis=1).tolist() == [7, 9]
+
+
+def _assert_mesh_coverage(coverages, max_area=10000, min_angle=20):
+    faces, visible = module._mesh(coverages, max_area, min_angle)
+    target = unary_union(coverages)
+    assert faces and visible.any(axis=1).all()
+    assert unary_union(faces).symmetric_difference(target).area < 1e-6
+    assert sum(face.area for face in faces) - unary_union(faces).area < 1e-6
+    assert max(face.area for face in faces) <= max_area * (1 + 1e-8)
+    for face, eligible in zip(faces, visible):
+        for index in np.flatnonzero(eligible):
+            assert face.difference(coverages[index]).area < 1e-7
+    return faces, visible
+
+
+def test_area_refinement_preserves_holes_islands_and_projected_offsets():
+    from shapely.affinity import translate
+    outline = Polygon(box(0, 0, 500, 300).exterior.coords,
+                      [box(80, 80, 110, 130).exterior.coords])
+    coverage = translate(MultiPolygon([outline, box(600, 0, 601, 2)]),
+                         xoff=200000, yoff=2200000)
+    _assert_mesh_coverage([coverage], 10000, 20)
+
+
+def test_partial_image_boundary_does_not_split_a_fully_owned_triangle():
+    outline = box(0, 0, 100, 100)
+    small = box(40, 40, 60, 60)
+    faces, visible = _assert_mesh_coverage([outline, small])
+    assert len(faces) == 2
+    assert visible[:, 0].all() and not visible[:, 1].any()
+    assert all(face.intersects(small) for face in faces)
+
+
+def test_unowned_triangles_are_split_without_losing_coverage():
+    a = Polygon([(0, 0), (65, 0), (40, 50), (65, 100), (0, 100)])
+    b = box(35, 0, 100, 100)
+    faces, visible = _assert_mesh_coverage([a, b], 10000)
+    assert len(faces) > 2
+    assert visible[:, 0].any() and visible[:, 1].any()
+
+
+def test_angle_quality_on_unconstrained_interior_triangles():
+    for angle in (0, 20, 30):
+        faces, _ = _assert_mesh_coverage([box(0, 0, 100, 100)], 100, angle)
+        for face in faces:
+            points = np.asarray(face.exterior.coords)[:3]
+            sides = np.roll(points, -1, axis=0) - points
+            cosines = np.sum(-sides * np.roll(sides, 1, axis=0), axis=1) / (
+                np.linalg.norm(sides, axis=1) * np.linalg.norm(np.roll(sides, 1, axis=0), axis=1))
+            assert np.degrees(np.arccos(np.clip(cosines, -1, 1))).min() >= angle - 1e-6
+
+
+def test_no_raster_cost_reads_when_all_edges_have_the_same_forced_image(tmp_path, monkeypatch):
+    source = _inputs(tmp_path, offsets=(0, 40))
+    monkeypatch.setattr(module, '_shared_samples',
+                        lambda *a, **k: pytest.fail('Disjoint images have no seam edges to sample'))
+    _assert_partition(source, _run(source, str(tmp_path/'disjoint.gpkg'),
+                                  mesh_max_triangle_area=8))
+
+
+def test_sampling_only_eligible_labels_preserves_feasible_costs(monkeypatch):
+    calls = []
+    def laplacian(candidate, paths, coordinates, bands, gsd, sampler):
+        label = int(next(iter(candidate)))
+        calls.append((label, coordinates.copy()))
+        return np.column_stack([(label + 1) * coordinates[:, 0] for _ in bands])
+    monkeypatch.setattr(module, '_laplacian', laplacian)
+    candidates = [{str(i): box(0, 0, 100, 100)} for i in range(3)]
+    segments = [LineString([(0, 1), (2, 1)]), LineString([(10, 1), (12, 1)])]
+    terms = module._variables([['laplacian_difference', 1, [1], [1]],
+                              ['laplacian_magnitude', .25, [1], [1]]])
+    eligible = np.array([[True, True, False], [False, True, True]])
+    limited, _, _ = module._edge_costs(candidates, {}, segments, terms, 'EPSG:32604', eligible)
+    assert len(calls) == 3
+    assert len(calls[0][1]) == 2 and np.all(calls[0][1][:, 0] < 2)
+    assert len(calls[1][1]) == 4
+    assert len(calls[2][1]) == 2 and np.all(calls[2][1][:, 0] > 10)
+    full, _, _ = module._edge_costs(candidates, {}, segments, terms, 'EPSG:32604')
+    assert limited(np.array([0, 1]), np.array([1, 2])) == pytest.approx(
+        full(np.array([0, 1]), np.array([1, 2])))
+
+
+@pytest.mark.parametrize('name,value', [
+    ('mesh_max_triangle_area', -1), ('mesh_max_triangle_area', True),
+    ('mesh_max_triangle_area', float('inf')), ('mesh_min_triangle_angle', -1),
+    ('mesh_min_triangle_angle', 31), ('mesh_min_triangle_angle', float('nan')),
+    ('mesh_min_triangle_angle', True),
+])
+def test_triangle_controls_reject_invalid_values(tmp_path, name, value):
+    with pytest.raises(ValueError, match=name):
+        markov_triangles('unused.tif', str(tmp_path/'out.gpkg'), **{name: value})
+
+
+def test_triangle_api_defaults_replace_spacing():
+    params = inspect.signature(markov_triangles).parameters
+    assert 'mesh_spacing' not in params
+    assert params['mesh_max_triangle_area'].default == 10000
+    assert params['mesh_min_triangle_angle'].default == 20
