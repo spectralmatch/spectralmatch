@@ -2,6 +2,7 @@ import os
 import sys
 from contextvars import ContextVar
 from dataclasses import dataclass
+from .utils_output import output_context
 from .utils_progress import current_callback, progress_context, report_phase
 
 
@@ -77,7 +78,7 @@ def _report_image_result(key, value):
         results[key] = value
 
 
-def _run_logged_image(function, input_paths, output_paths, args, progress_callback=None):
+def _run_logged_image(function, input_paths, output_paths, args, progress_callback=None, writing_context=(None, None)):
     """Run an image in an isolated reporting context and return its original result with completion details."""
     # Fork-based external pools can inherit the coordinator's context. A job
     # must never submit nested work back to that same image pool.
@@ -89,7 +90,7 @@ def _run_logged_image(function, input_paths, output_paths, args, progress_callba
         if hasattr(progress_callback, "lifecycle"):
             progress_callback.lifecycle("job_start")
         callback = _SceneReporter(progress_callback, _image_id(input_paths)) if progress_callback is not None else None
-        with progress_context(callback):
+        with progress_context(callback), output_context(*writing_context):
             _print_image_start(input_paths, output_paths)
             result = function(*args)
         if hasattr(progress_callback, "lifecycle"):

@@ -1,3 +1,4 @@
+from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import reports_progress
 import math
@@ -51,6 +52,7 @@ class Seamline:
     @staticmethod
     @reports_progress(worker_progress=True)
     @uses_executor
+    @uses_writing_postfix
     def create_footprints(
         input_images: Universal.SearchFolderOrListFiles,
         output_polygons: str,
@@ -78,6 +80,7 @@ class Seamline:
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
+        validity_writing_postfix: str | None = None,
     ) -> str:
         """Create raw footprints or ranked mosaic coverage from raster masks, metadata or saved vector geometry.
 
@@ -188,106 +191,109 @@ class Seamline:
             image_field_name=image_field_name,
         ):
             return output_polygons
-        paths = vector_paths if footprint_source == "vector_bounds" else _resolve_paths(
-            "search", input_images, kwargs={"default_file_pattern": "*.tif"}
-        )
-        if not paths:
-            raise ValueError("No input images found.")
-        vectors = ([_footprints._read_vector_footprint(path, vector_layer, image_field_name) for path in paths]
-                   if footprint_source == "vector_bounds" else None)
-        names = [vector["image"] for vector in vectors] if vectors is not None else _resolve_paths("name", paths)
-        image_paths = [vector["image_path"] for vector in vectors] if vectors is not None else paths
-        if len(set(names)) != len(names):
-            raise ValueError("Input image identifiers must be unique.")
-        if metadata_records is not None:
-            metadata_schema, metadata = _footprints._read_metadata_records(metadata_records, names, image_field_name)
-        else:
-            metadata_schema, metadata = _read_image_metadata(
-                metadata_csv, metadata_image_field_name, names, image_field_name
+        final_output = output_polygons
+        with writing_outputs(output_polygons) as (output_polygons,):
+            paths = vector_paths if footprint_source == "vector_bounds" else _resolve_paths(
+                "search", input_images, kwargs={"default_file_pattern": "*.tif"}
             )
-        if vectors is not None:
-            metadata_schema, metadata = _footprints._read_metadata_records(
-                [{**vector["attributes"], **record} for vector, record in zip(vectors, metadata)],
-                names, image_field_name,
+            if not paths:
+                raise ValueError("No input images found.")
+            vectors = ([_footprints._read_vector_footprint(path, vector_layer, image_field_name) for path in paths]
+                       if footprint_source == "vector_bounds" else None)
+            names = [vector["image"] for vector in vectors] if vectors is not None else _resolve_paths("name", paths)
+            image_paths = [vector["image_path"] for vector in vectors] if vectors is not None else paths
+            if len(set(names)) != len(names):
+                raise ValueError("Input image identifiers must be unique.")
+            if metadata_records is not None:
+                metadata_schema, metadata = _footprints._read_metadata_records(metadata_records, names, image_field_name)
+            else:
+                metadata_schema, metadata = _read_image_metadata(
+                    metadata_csv, metadata_image_field_name, names, image_field_name
+                )
+            if vectors is not None:
+                metadata_schema, metadata = _footprints._read_metadata_records(
+                    [{**vector["attributes"], **record} for vector, record in zip(vectors, metadata)],
+                    names, image_field_name,
+                )
+            if footprint_source == "metadata":
+                geometries = [record.get("geometry") for record in metadata_records]
+                # Validate all supplied geometry before opening the output writer.
+                for geometry in geometries:
+                    _footprints._footprint_from_metadata(geometry, metadata_crs, epsg)
+                worker = _footprints._footprint_from_metadata
+                tasks = [(geometry, metadata_crs, epsg) for geometry in geometries]
+            elif footprint_source == "vector_bounds":
+                worker = _footprints._project_footprint
+                tasks = [(vector["geometry"], vector["crs"], epsg) for vector in vectors]
+            else:
+                worker = _footprints._footprint_from_image
+                tasks = [(path, band, eight_connected, epsg) if epsg is not None else (path, band, eight_connected) for path in paths]
+            parallel, workers = _resolve_parallel_config(
+                image_threads, concurrent_processing_backend, dask_scheduler
             )
-        if footprint_source == "metadata":
-            geometries = [record.get("geometry") for record in metadata_records]
-            # Validate all supplied geometry before opening the output writer.
-            for geometry in geometries:
-                _footprints._footprint_from_metadata(geometry, metadata_crs, epsg)
-            worker = _footprints._footprint_from_metadata
-            tasks = [(geometry, metadata_crs, epsg) for geometry in geometries]
-        elif footprint_source == "vector_bounds":
-            worker = _footprints._project_footprint
-            tasks = [(vector["geometry"], vector["crs"], epsg) for vector in vectors]
-        else:
-            worker = _footprints._footprint_from_image
-            tasks = [(path, band, eight_connected, epsg) if epsg is not None else (path, band, eight_connected) for path in paths]
-        parallel, workers = _resolve_parallel_config(
-            image_threads, concurrent_processing_backend, dask_scheduler
-        )
-        schema = {
-            "geometry": "Unknown",
-            "properties": {
-                image_field_name: "str",
-                "image_path": "str",
-                **metadata_schema,
-            },
-        }
-        with ExitStack() as stack:
-            working_path = output_polygons
-            if coverage_requested:
-                parent = os.path.dirname(os.path.abspath(output_polygons))
-                os.makedirs(parent, exist_ok=True)
-                workdir = stack.enter_context(TemporaryDirectory(prefix=".coverage-", dir=parent))
-                working_path = os.path.join(workdir, "raw.gpkg")
-            writer = _PolygonWriter(working_path, output_layer, schema, None)
+            schema = {
+                "geometry": "Unknown",
+                "properties": {
+                    image_field_name: "str",
+                    "image_path": "str",
+                    **metadata_schema,
+                },
+            }
+            with ExitStack() as stack:
+                working_path = output_polygons
+                if coverage_requested:
+                    parent = os.path.dirname(os.path.abspath(output_polygons))
+                    os.makedirs(parent, exist_ok=True)
+                    workdir = stack.enter_context(TemporaryDirectory(prefix=".coverage-", dir=parent))
+                    working_path = os.path.join(workdir, "raw.gpkg")
+                writer = _PolygonWriter(working_path, output_layer, schema, None)
 
-            def commit(index, result):
-                """Validate each raster CRS and commit its geometry and identifier."""
-                geometry, crs = result
-                crs = CRS.from_user_input(crs)
-                if writer.crs is None:
-                    writer.crs = crs.to_wkt()
-                elif crs != CRS.from_user_input(writer.crs):
-                    raise ValueError("Input rasters must use the same CRS.")
-                writer.write(
-                    geometry,
-                    {
-                        image_field_name: names[index],
-                        "image_path": image_paths[index],
-                        **metadata[index],
-                    },
-                )
+                def commit(index, result):
+                    """Validate each raster CRS and commit its geometry and identifier."""
+                    geometry, crs = result
+                    crs = CRS.from_user_input(crs)
+                    if writer.crs is None:
+                        writer.crs = crs.to_wkt()
+                    elif crs != CRS.from_user_input(writer.crs):
+                        raise ValueError("Input rasters must use the same CRS.")
+                    writer.write(
+                        geometry,
+                        {
+                            image_field_name: names[index],
+                            "image_path": image_paths[index],
+                            **metadata[index],
+                        },
+                    )
 
-            with writer:
-                _run_image_tasks(
-                    worker, tasks, input_paths=paths,
-                    output_paths=[output_polygons] * len(paths),
-                    parallel=parallel, backend="thread", workers=workers,
-                    concurrent_processing_backend=concurrent_processing_backend,
-                    dask_scheduler=dask_scheduler, result_callback=commit,
-                    collect_results=False,
-                )
-            if coverage_requested:
-                coverage = _footprints._coverage_polygons(
-                    gpd.read_file(working_path, layer=output_layer), image_field_name,
-                    outline_path=outline_path, outline_layer=outline_layer,
-                    image_rank_function=image_rank_function,
-                    image_rank_descending=image_rank_descending, extrude_distance=extrude_distance,
-                    min_polygon_area=min_polygon_area,
-                )
-                destination = os.path.join(workdir, "coverage.gpkg")
-                coverage.to_file(destination, layer=output_layer, driver="GPKG", index=False)
-                os.replace(destination, output_polygons)
-                marker = output_polygons + ".incomplete"
-                if os.path.exists(marker):
-                    os.remove(marker)
-        return output_polygons
+                with writer:
+                    _run_image_tasks(
+                        worker, tasks, input_paths=paths,
+                        output_paths=[output_polygons] * len(paths),
+                        parallel=parallel, backend="thread", workers=workers,
+                        concurrent_processing_backend=concurrent_processing_backend,
+                        dask_scheduler=dask_scheduler, result_callback=commit,
+                        collect_results=False,
+                    )
+                if coverage_requested:
+                    coverage = _footprints._coverage_polygons(
+                        gpd.read_file(working_path, layer=output_layer), image_field_name,
+                        outline_path=outline_path, outline_layer=outline_layer,
+                        image_rank_function=image_rank_function,
+                        image_rank_descending=image_rank_descending, extrude_distance=extrude_distance,
+                        min_polygon_area=min_polygon_area,
+                    )
+                    destination = os.path.join(workdir, "coverage.gpkg")
+                    coverage.to_file(destination, layer=output_layer, driver="GPKG", index=False)
+                    os.replace(destination, output_polygons)
+                    marker = output_polygons + ".incomplete"
+                    if os.path.exists(marker):
+                        os.remove(marker)
+            return final_output
 
     @staticmethod
     @reports_progress(worker_progress=True)
     @uses_executor
+    @uses_writing_postfix
     def postprocess_footprints(
         input_polygons: str,
         output_polygons: str,
@@ -312,6 +318,7 @@ class Seamline:
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
+        validity_writing_postfix: str | None = None,
     ) -> str:
         """Connect nearby holes and edges, then smooth/simplify inward, preserving attributes.
 
@@ -400,68 +407,71 @@ class Seamline:
             step_name="postprocess_footprints",
         ):
             return output_polygons
-        frame = _read_polygons(input_polygons, input_layer)
-        if not frame.crs.is_projected:
-            raise ValueError(
-                "Postprocessing requires a projected CRS; reproject the input first."
-            )
-        parallel, workers = _resolve_parallel_config(
-            image_threads, concurrent_processing_backend, dask_scheduler
-        )
-        args = [
-            (
-                geometry,
-                hole_edge_distance,
-                hole_relative_edge_distance,
-                hole_cut_width,
-                hole_cut_method,
-                simplify_smoothing_radius,
-                simplify_tolerance,
-                simplify_area_weight,
-                filter_area_size,
-                filter_area_rank,
-                hole_to_hole_distance,
-            )
-            for geometry in frame.geometry
-        ]
-        with fiona.open(
-            input_polygons, **({"layer": input_layer} if input_layer else {})
-        ) as source:
-            schema = {
-                "geometry": "Unknown",
-                "properties": dict(source.schema["properties"]),
-            }
-        records = frame.drop(columns=frame.geometry.name).to_dict("records")
-        with _PolygonWriter(
-            output_polygons, output_layer, schema, frame.crs.to_wkt()
-        ) as writer:
-
-            def commit(index, geometry):
-                """Commit each returned geometry with its original input attributes."""
-                writer.write(geometry, records[index])
-
-            _run_image_tasks(
-                _footprints._postprocess_polygon,
-                args,
-                input_paths=[f"{input_polygons}:{index}" for index in frame.index],
-                output_paths=[output_polygons] * len(frame),
-                parallel=parallel,
-                backend="process",
-                workers=workers,
-                concurrent_processing_backend=concurrent_processing_backend,
-                dask_scheduler=dask_scheduler,
-                result_callback=commit,
-                collect_results=False,
-            )
-            if writer.count == 0:
+        final_output = output_polygons
+        with writing_outputs(output_polygons) as (output_polygons,):
+            frame = _read_polygons(input_polygons, input_layer)
+            if not frame.crs.is_projected:
                 raise ValueError(
-                    "Postprocessing removed all polygons; reduce the processing distances or filter_area_size."
+                    "Postprocessing requires a projected CRS; reproject the input first."
                 )
-        return output_polygons
+            parallel, workers = _resolve_parallel_config(
+                image_threads, concurrent_processing_backend, dask_scheduler
+            )
+            args = [
+                (
+                    geometry,
+                    hole_edge_distance,
+                    hole_relative_edge_distance,
+                    hole_cut_width,
+                    hole_cut_method,
+                    simplify_smoothing_radius,
+                    simplify_tolerance,
+                    simplify_area_weight,
+                    filter_area_size,
+                    filter_area_rank,
+                    hole_to_hole_distance,
+                )
+                for geometry in frame.geometry
+            ]
+            with fiona.open(
+                input_polygons, **({"layer": input_layer} if input_layer else {})
+            ) as source:
+                schema = {
+                    "geometry": "Unknown",
+                    "properties": dict(source.schema["properties"]),
+                }
+            records = frame.drop(columns=frame.geometry.name).to_dict("records")
+            with _PolygonWriter(
+                output_polygons, output_layer, schema, frame.crs.to_wkt()
+            ) as writer:
+
+                def commit(index, geometry):
+                    """Commit each returned geometry with its original input attributes."""
+                    writer.write(geometry, records[index])
+
+                _run_image_tasks(
+                    _footprints._postprocess_polygon,
+                    args,
+                    input_paths=[f"{input_polygons}:{index}" for index in frame.index],
+                    output_paths=[output_polygons] * len(frame),
+                    parallel=parallel,
+                    backend="process",
+                    workers=workers,
+                    concurrent_processing_backend=concurrent_processing_backend,
+                    dask_scheduler=dask_scheduler,
+                    result_callback=commit,
+                    collect_results=False,
+                )
+                if writer.count == 0:
+                    raise ValueError(
+                        "Postprocessing removed all polygons; reduce the processing distances or filter_area_size."
+                    )
+            return final_output
 
     @staticmethod
     @reports_progress(worker_progress=True)
     @uses_executor
+    @uses_writing_postfix
     def markov_triangles(
         input_images: Universal.SearchFolderOrListFiles,
         output_mask: str,
@@ -491,6 +501,7 @@ class Seamline:
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
+        validity_writing_postfix: str | None = None,
     ) -> str:
         """Optimize triangle-MRF seamlines through overlapping quadtree mosaics, extending Yang et al. (2022; doi:10.1109/LGRS.2022.3166347).
 
@@ -624,121 +635,124 @@ class Seamline:
             image_field_name=image_field_name,
         ):
             return output_mask
-        if _markov.maxflow is None or _markov._triangle_triangulate is None:
-            raise ImportError(
-                "Triangle seamlines require PyMaxflow>=1.3.2 and libigl>=2.6.3, included in the standard spectralmatch installation."
-            )
-        frame = _prepare_footprints(
-            input_images,
-            input_polygons,
-            input_layer,
-            image_field_name,
-            image_threads,
-            concurrent_processing_backend,
-            dask_scheduler,
-        )
-        candidates, paths, terms = _markov._sources(
-            frame, image_field_name, edge_variables_weights_gsds_bands
-        )
-        scores = dict.fromkeys(paths)
-        quality = dict.fromkeys(paths, 0.0)
-        if image_rank_function is not None:
-            ranked = _rank_polygons(
-                frame, image_field_name, image_rank_function, image_rank_descending, split_components=False
-            )
-            scores = dict(zip(ranked[image_field_name], ranked.weighted_score))
-            lo, hi = min(scores.values()), max(scores.values())
-            if hi > lo:
-                scale = max(abs(lo), abs(hi))
-                lo, hi = lo / scale, hi / scale
-                quality = {
-                    name: (
-                        (hi - score / scale)
-                        if image_rank_descending
-                        else (score / scale - lo)
-                    )
-                    / (hi - lo)
-                    for name, score in scores.items()
-                }
-        foreground = Polygon()
-        if foreground_path is not None:
-            mask = _read_polygons(foreground_path, foreground_layer)
-            if mask.crs != frame.crs:
-                raise ValueError(
-                    "Foreground mask and footprints must have the same CRS."
+        final_output = output_mask
+        with writing_outputs(output_mask) as (output_mask,):
+            if _markov.maxflow is None or _markov._triangle_triangulate is None:
+                raise ImportError(
+                    "Triangle seamlines require PyMaxflow>=1.3.2 and libigl>=2.6.3, included in the standard spectralmatch installation."
                 )
-            foreground = unary_union(list(mask.geometry))
-        levels, children = _markov._quadtree(
-            candidates,
-            quadtree_max_images_per_leaf,
-            quadtree_overlap,
-            quadtree_max_depth,
-        )
-        parallel, workers = _resolve_parallel_config(
-            image_threads, concurrent_processing_backend, dask_scheduler
-        )
-        schema = {
-            "geometry": "MultiPolygon",
-            "properties": {
-                image_field_name: "str",
-                "image_path": "str",
-                "quality_score": "float",
-            },
-        }
-        with _PolygonWriter(
-            output_mask, output_layer, schema, frame.crs.to_wkt()
-        ) as writer:
-            completed = {}
-            for level in reversed(levels):
-                args = []
-                for key, bounds, source in level:
-                    if key in children:
-                        source = [completed.pop(child) for child in children[key]]
-                    names = {name for candidate in source for name in candidate}
-                    args.append(
-                        (
-                            source,
-                            {name: paths[name] for name in names},
-                            mesh_max_triangle_area,
-                            mesh_min_triangle_angle,
-                            terms,
-                            foreground.intersection(box(*bounds)),
-                            {name: quality[name] for name in names},
-                            image_quality_weight,
-                            frame.crs.to_wkt(),
-                            solver_max_iterations,
-                            debug_logs,
+            frame = _prepare_footprints(
+                input_images,
+                input_polygons,
+                input_layer,
+                image_field_name,
+                image_threads,
+                concurrent_processing_backend,
+                dask_scheduler,
+            )
+            candidates, paths, terms = _markov._sources(
+                frame, image_field_name, edge_variables_weights_gsds_bands
+            )
+            scores = dict.fromkeys(paths)
+            quality = dict.fromkeys(paths, 0.0)
+            if image_rank_function is not None:
+                ranked = _rank_polygons(
+                    frame, image_field_name, image_rank_function, image_rank_descending, split_components=False
+                )
+                scores = dict(zip(ranked[image_field_name], ranked.weighted_score))
+                lo, hi = min(scores.values()), max(scores.values())
+                if hi > lo:
+                    scale = max(abs(lo), abs(hi))
+                    lo, hi = lo / scale, hi / scale
+                    quality = {
+                        name: (
+                            (hi - score / scale)
+                            if image_rank_descending
+                            else (score / scale - lo)
                         )
+                        / (hi - lo)
+                        for name, score in scores.items()
+                    }
+            foreground = Polygon()
+            if foreground_path is not None:
+                mask = _read_polygons(foreground_path, foreground_layer)
+                if mask.crs != frame.crs:
+                    raise ValueError(
+                        "Foreground mask and footprints must have the same CRS."
                     )
-                results = _run_image_tasks(
-                    _markov._solve_node,
-                    args,
-                    input_paths=[f"markov_triangles:{node[0]}" for node in level],
-                    output_paths=[output_mask] * len(level),
-                    parallel=parallel,
-                    backend="process",
-                    workers=workers,
-                    concurrent_processing_backend=concurrent_processing_backend,
-                    dask_scheduler=dask_scheduler,
-                )
-                completed.update(
-                    (node[0], result) for node, result in zip(level, results)
-                )
-            for name, geometry in sorted(completed["root"].items()):
-                writer.write(
-                    MultiPolygon(_polygon_parts(geometry)),
-                    {
-                        image_field_name: name,
-                        "image_path": paths[name],
-                        "quality_score": scores[name],
-                    },
-                )
-            if writer.count == 0:
-                raise ValueError("No seamline polygons were generated.")
-        return output_mask
+                foreground = unary_union(list(mask.geometry))
+            levels, children = _markov._quadtree(
+                candidates,
+                quadtree_max_images_per_leaf,
+                quadtree_overlap,
+                quadtree_max_depth,
+            )
+            parallel, workers = _resolve_parallel_config(
+                image_threads, concurrent_processing_backend, dask_scheduler
+            )
+            schema = {
+                "geometry": "MultiPolygon",
+                "properties": {
+                    image_field_name: "str",
+                    "image_path": "str",
+                    "quality_score": "float",
+                },
+            }
+            with _PolygonWriter(
+                output_mask, output_layer, schema, frame.crs.to_wkt()
+            ) as writer:
+                completed = {}
+                for level in reversed(levels):
+                    args = []
+                    for key, bounds, source in level:
+                        if key in children:
+                            source = [completed.pop(child) for child in children[key]]
+                        names = {name for candidate in source for name in candidate}
+                        args.append(
+                            (
+                                source,
+                                {name: paths[name] for name in names},
+                                mesh_max_triangle_area,
+                                mesh_min_triangle_angle,
+                                terms,
+                                foreground.intersection(box(*bounds)),
+                                {name: quality[name] for name in names},
+                                image_quality_weight,
+                                frame.crs.to_wkt(),
+                                solver_max_iterations,
+                                debug_logs,
+                            )
+                        )
+                    results = _run_image_tasks(
+                        _markov._solve_node,
+                        args,
+                        input_paths=[f"markov_triangles:{node[0]}" for node in level],
+                        output_paths=[output_mask] * len(level),
+                        parallel=parallel,
+                        backend="process",
+                        workers=workers,
+                        concurrent_processing_backend=concurrent_processing_backend,
+                        dask_scheduler=dask_scheduler,
+                    )
+                    completed.update(
+                        (node[0], result) for node, result in zip(level, results)
+                    )
+                for name, geometry in sorted(completed["root"].items()):
+                    writer.write(
+                        MultiPolygon(_polygon_parts(geometry)),
+                        {
+                            image_field_name: name,
+                            "image_path": paths[name],
+                            "quality_score": scores[name],
+                        },
+                    )
+                if writer.count == 0:
+                    raise ValueError("No seamline polygons were generated.")
+            return final_output
 
     @staticmethod
     @reports_progress
+    @uses_writing_postfix
     def weighted(
         input_polygons: str,
         output_mask: str,
@@ -751,6 +765,7 @@ class Seamline:
         rank_descending: bool = True,
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+        validity_writing_postfix: str | None = None,
     ) -> str:
         """Generate seamline polygons by ranking image footprints with a weighted expression.
 
@@ -789,23 +804,26 @@ class Seamline:
             step_name="weighted_seamline",
         ):
             return output_mask
-        _print_image_start(input_polygons, output_mask)
-        result = weighted_seamline(
-            input_polygons=input_polygons,
-            output_mask=output_mask,
-            rank_function=rank_function,
-            input_images=input_images,
-            image_field_name=image_field_name,
-            input_layer=input_layer,
-            output_layer=output_layer,
-            rank_descending=rank_descending,
-            debug_logs=debug_logs,
-        )
-        _print_image_completed(input_polygons, 1, 1)
-        return result
+        final_output = output_mask
+        with writing_outputs(output_mask) as (output_mask,):
+            _print_image_start(input_polygons, output_mask)
+            result = weighted_seamline(
+                input_polygons=input_polygons,
+                output_mask=output_mask,
+                rank_function=rank_function,
+                input_images=input_images,
+                image_field_name=image_field_name,
+                input_layer=input_layer,
+                output_layer=output_layer,
+                rank_descending=rank_descending,
+                debug_logs=debug_logs,
+            )
+            _print_image_completed(input_polygons, 1, 1)
+            return final_output
 
     @staticmethod
     @reports_progress
+    @uses_writing_postfix
     def voronoi(
         input_polygons: str,
         output_mask: str,
@@ -820,6 +838,7 @@ class Seamline:
         debug_logs: Universal.DebugLogs = False,
         debug_vectors_path: str | None = None,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
+        validity_writing_postfix: str | None = None,
     ) -> str:
         """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
 
@@ -858,140 +877,142 @@ class Seamline:
             step_name="voronoi_center_seamline",
         ):
             return output_mask
-        SeamlineValidation._validate_voronoi_center_seamline(
-            output_mask=output_mask,
-            aoi_path=aoi_path,
-            image_field_name=image_field_name,
-            min_point_spacing=min_point_spacing,
-            min_cut_length=min_cut_length,
-            debug_vectors_path=debug_vectors_path,
-        )
-        SeamlineValidation._validate_weighted_seamline(
-            input_polygons=input_polygons,
-            input_layer=input_layer,
-            output_layer=output_layer,
-            image_field_name=image_field_name,
-        )
-        frame = _prepare_footprints(
-            input_images, input_polygons, input_layer, image_field_name
-        )
-        crs = frame.crs.to_wkt()
-        emps, input_image_names = [], []
-        for image_name, group in frame.groupby(image_field_name, sort=False):
-            # Process every island independently; merge by image ID when writing.
-            parts = _polygon_parts(unary_union(list(group.geometry)))
-            emps.extend(parts)
-            input_image_names.extend([str(image_name)] * len(parts))
-        input_image_paths = input_image_names
-        for image_name in input_image_names:
-            _print_image_start(f"{input_polygons}:{image_name}", output_mask)
-
-        image_details = [
-            (
-                {"Footprint area": f"{emp.area:.2f}", "Bounds": str(emp.bounds)}
-                if debug_logs
-                else {}
+        final_output = output_mask
+        with writing_outputs(output_mask) as (output_mask,):
+            SeamlineValidation._validate_voronoi_center_seamline(
+                output_mask=output_mask,
+                aoi_path=aoi_path,
+                image_field_name=image_field_name,
+                min_point_spacing=min_point_spacing,
+                min_cut_length=min_cut_length,
+                debug_vectors_path=debug_vectors_path,
             )
-            for emp in emps
-        ]
-
-        if debug_vectors_path:
-            if os.path.exists(debug_vectors_path):
-                os.remove(debug_vectors_path)
-            _save_emp_outlines(
-                emps,
-                input_image_paths,
-                debug_vectors_path,
-                crs,
+            SeamlineValidation._validate_weighted_seamline(
+                input_polygons=input_polygons,
+                input_layer=input_layer,
+                output_layer=output_layer,
                 image_field_name=image_field_name,
             )
+            frame = _prepare_footprints(
+                input_images, input_polygons, input_layer, image_field_name
+            )
+            crs = frame.crs.to_wkt()
+            emps, input_image_names = [], []
+            for image_name, group in frame.groupby(image_field_name, sort=False):
+                # Process every island independently; merge by image ID when writing.
+                parts = _polygon_parts(unary_union(list(group.geometry)))
+                emps.extend(parts)
+                input_image_names.extend([str(image_name)] * len(parts))
+            input_image_paths = input_image_names
+            for image_name in input_image_names:
+                _print_image_start(f"{input_polygons}:{image_name}", output_mask)
 
-        cuts: list[LineString] = []
-        for i, (left, right) in enumerate(combinations(range(len(emps)), 2)):
-            if input_image_names[left] == input_image_names[right]:
-                continue
-            a, b = emps[left], emps[right]
-            ov = a.intersection(b)
-            if debug_logs:
-                print(f"Overlap {i} area: {ov.area:.2f}")
-            if ov.area > 0:
-                if debug_vectors_path:
-                    _save_intersection_points(a, b, debug_vectors_path, crs, f"{i}")
-                cut = _compute_centerline(
-                    a,
-                    b,
-                    min_point_spacing,
-                    min_cut_length,
-                    debug_logs,
-                    crs,
-                    debug_vectors_path,
+            image_details = [
+                (
+                    {"Footprint area": f"{emp.area:.2f}", "Bounds": str(emp.bounds)}
+                    if debug_logs
+                    else {}
                 )
-                cuts.append(cut)
+                for emp in emps
+            ]
 
-        if debug_vectors_path:
-            schema = {"geometry": "LineString", "properties": {"pair_id": "str"}}
+            if debug_vectors_path:
+                if os.path.exists(debug_vectors_path):
+                    os.remove(debug_vectors_path)
+                _save_emp_outlines(
+                    emps,
+                    input_image_paths,
+                    debug_vectors_path,
+                    crs,
+                    image_field_name=image_field_name,
+                )
+
+            cuts: list[LineString] = []
+            for i, (left, right) in enumerate(combinations(range(len(emps)), 2)):
+                if input_image_names[left] == input_image_names[right]:
+                    continue
+                a, b = emps[left], emps[right]
+                ov = a.intersection(b)
+                if debug_logs:
+                    print(f"Overlap {i} area: {ov.area:.2f}")
+                if ov.area > 0:
+                    if debug_vectors_path:
+                        _save_intersection_points(a, b, debug_vectors_path, crs, f"{i}")
+                    cut = _compute_centerline(
+                        a,
+                        b,
+                        min_point_spacing,
+                        min_cut_length,
+                        debug_logs,
+                        crs,
+                        debug_vectors_path,
+                    )
+                    cuts.append(cut)
+
+            if debug_vectors_path:
+                schema = {"geometry": "LineString", "properties": {"pair_id": "str"}}
+                with fiona.open(
+                    debug_vectors_path,
+                    "w",
+                    driver="GPKG",
+                    crs_wkt=crs,
+                    schema=schema,
+                    layer="cutlines",
+                ) as dst:
+                    for idx, line in enumerate(cuts):
+                        dst.write(
+                            {
+                                "geometry": mapping(line),
+                                "properties": {"pair_id": f"{idx}"},
+                            }
+                        )
+
+            segmented: list[Polygon] = []
+            for idx, emp in enumerate(emps):
+                relevant = [cut for cut in cuts if emp.intersects(cut)]
+                seg = _segment_emp(emp, relevant, debug_logs)
+                if debug_logs:
+                    image_details[idx].update(
+                        {"Cuts": len(relevant), "Segmented area": f"{seg.area:.2f}"}
+                    )
+                segmented.append(seg)
+
+            if aoi_path is not None:
+                segmented = _mask_by_aoi(segmented, aoi_path)
+
+            schema = {"geometry": "MultiPolygon", "properties": {image_field_name: "str"}}
             with fiona.open(
-                debug_vectors_path,
+                output_mask,
                 "w",
                 driver="GPKG",
                 crs_wkt=crs,
                 schema=schema,
-                layer="cutlines",
+                layer=output_layer,
             ) as dst:
-                for idx, line in enumerate(cuts):
-                    dst.write(
-                        {
-                            "geometry": mapping(line),
-                            "properties": {"pair_id": f"{idx}"},
-                        }
-                    )
 
-        segmented: list[Polygon] = []
-        for idx, emp in enumerate(emps):
-            relevant = [cut for cut in cuts if emp.intersects(cut)]
-            seg = _segment_emp(emp, relevant, debug_logs)
-            if debug_logs:
-                image_details[idx].update(
-                    {"Cuts": len(relevant), "Segmented area": f"{seg.area:.2f}"}
+                grouped = {}
+                for image_name, poly in zip(input_image_names, segmented):
+                    grouped.setdefault(image_name, []).extend(_polygon_parts(poly))
+                for image_name, parts in grouped.items():
+                    if parts:
+                        dst.write(
+                            {
+                                "geometry": mapping(
+                                    MultiPolygon(_polygon_parts(unary_union(parts)))
+                                ),
+                                "properties": {image_field_name: image_name},
+                            }
+                        )
+
+            for completed, path in enumerate(input_image_paths, 1):
+                _print_image_completed(
+                    path,
+                    completed,
+                    len(input_image_paths),
+                    details=image_details[completed - 1],
                 )
-            segmented.append(seg)
 
-        if aoi_path is not None:
-            segmented = _mask_by_aoi(segmented, aoi_path)
-
-        schema = {"geometry": "MultiPolygon", "properties": {image_field_name: "str"}}
-        with fiona.open(
-            output_mask,
-            "w",
-            driver="GPKG",
-            crs_wkt=crs,
-            schema=schema,
-            layer=output_layer,
-        ) as dst:
-
-            grouped = {}
-            for image_name, poly in zip(input_image_names, segmented):
-                grouped.setdefault(image_name, []).extend(_polygon_parts(poly))
-            for image_name, parts in grouped.items():
-                if parts:
-                    dst.write(
-                        {
-                            "geometry": mapping(
-                                MultiPolygon(_polygon_parts(unary_union(parts)))
-                            ),
-                            "properties": {image_field_name: image_name},
-                        }
-                    )
-
-        for completed, path in enumerate(input_image_paths, 1):
-            _print_image_completed(
-                path,
-                completed,
-                len(input_image_paths),
-                details=image_details[completed - 1],
-            )
-
-        return output_mask
+            return final_output
 
 
 __all__ = ["Seamline"]

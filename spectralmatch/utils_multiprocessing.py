@@ -11,6 +11,7 @@ from .progress_transport import local_worker_progress, dask_worker_progress
 from concurrent.futures import Future, ThreadPoolExecutor, ProcessPoolExecutor, as_completed, wait
 from typing import Tuple, Literal, Callable, Optional
 
+from .utils_output import current_output_context
 from .utils_logging import _print_image_completed, _run_logged_image, _image_id
 from .substeps import substep
 
@@ -99,7 +100,7 @@ def _run_image_tasks(
 
         if not parallel and executor is None:
             for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths)):
-                result, details = _run_logged_image(function, source, destination, arg, phase_row.reporter(callback, index, _image_id(source)))
+                result, details = _run_logged_image(function, source, destination, arg, phase_row.reporter(callback, index, _image_id(source)), current_output_context())
                 commit(index, result, details)
             return results
         factory = executor_factory or _get_executor
@@ -119,7 +120,7 @@ def _run_image_tasks(
             futures = {}
             try:
                 for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths)):
-                    futures[executor.submit(_run_logged_image, function, source, destination, arg, phase_row.reporter(reporter, index, _image_id(source)))] = index
+                    futures[executor.submit(_run_logged_image, function, source, destination, arg, phase_row.reporter(reporter, index, _image_id(source)), current_output_context())] = index
                 for future in as_completed(futures):
                     index = futures.pop(future)
                     result, details = future.result()

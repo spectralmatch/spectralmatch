@@ -1,3 +1,4 @@
+from ..utils_output import writing_outputs
 from ..utils_progress import gdal_progress
 import os
 import numpy as np
@@ -314,93 +315,95 @@ def _apply_adjustments_process_image(
         step_name="global_regression",
     ):
         return
-    # VRT wrapper of the input
-    with tempfile.TemporaryDirectory(prefix="spectralmatch_adjust_") as tmpdir:
-        vrt_path = os.path.join(tmpdir, f"{image_name}_linear.vrt")
+    final_output = output_image_path
+    with writing_outputs(output_image_path) as (output_image_path,):
+        # VRT wrapper of the input
+        with tempfile.TemporaryDirectory(prefix="spectralmatch_adjust_") as tmpdir:
+            vrt_path = os.path.join(tmpdir, f"{image_name}_linear.vrt")
 
-        window_size = _resolve_window_size(window_size, input_image_path, debug_logs)
+            window_size = _resolve_window_size(window_size, input_image_path, debug_logs)
 
-        ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
-        w, h = ds.RasterXSize, ds.RasterYSize
-        srs = ds.GetProjectionRef() or ""
-        gt = ds.GetGeoTransform()
-        ds = None
+            ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
+            w, h = ds.RasterXSize, ds.RasterYSize
+            srs = ds.GetProjectionRef() or ""
+            gt = ds.GetGeoTransform()
+            ds = None
 
-        bands_xml = []
-        for i in range(1, num_bands + 1):
-            if nodata_val is None: expr = f"{float(scale[i - 1])}*B1 + {float(offset[i - 1])}"
-            else: expr = f"(B1=={nodata_val}) ? {nodata_val} : ({float(scale[i-1])}*B1 + {float(offset[i-1])})"
+            bands_xml = []
+            for i in range(1, num_bands + 1):
+                if nodata_val is None: expr = f"{float(scale[i - 1])}*B1 + {float(offset[i - 1])}"
+                else: expr = f"(B1=={nodata_val}) ? {nodata_val} : ({float(scale[i-1])}*B1 + {float(offset[i-1])})"
 
-            bands_xml.append(
-                f'  <VRTRasterBand dataType="{calculation_dtype}" band="{i}" subClass="VRTDerivedRasterBand">\n' +
-                (f"    <NoDataValue>{nodata_val}</NoDataValue>\n" if nodata_val is not None else "") +
-                "    <PixelFunctionType>expression</PixelFunctionType>\n"
-                f'    <PixelFunctionArguments dialect="muparser" expression="{expr}"/>\n' +
-                "    <SimpleSource>\n"
-                f'      <SourceFilename relativeToVRT="0">{input_image_path}</SourceFilename>\n' +
-                f'      <SourceBand>{i}</SourceBand>\n' +
-                f'      <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>\n' +
-                f'      <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>\n' +
-                "    </SimpleSource>\n"
-                "  </VRTRasterBand>"
+                bands_xml.append(
+                    f'  <VRTRasterBand dataType="{calculation_dtype}" band="{i}" subClass="VRTDerivedRasterBand">\n' +
+                    (f"    <NoDataValue>{nodata_val}</NoDataValue>\n" if nodata_val is not None else "") +
+                    "    <PixelFunctionType>expression</PixelFunctionType>\n"
+                    f'    <PixelFunctionArguments dialect="muparser" expression="{expr}"/>\n' +
+                    "    <SimpleSource>\n"
+                    f'      <SourceFilename relativeToVRT="0">{input_image_path}</SourceFilename>\n' +
+                    f'      <SourceBand>{i}</SourceBand>\n' +
+                    f'      <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>\n' +
+                    f'      <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>\n' +
+                    "    </SimpleSource>\n"
+                    "  </VRTRasterBand>"
+                )
+
+            vrt_xml = (
+                    f'<VRTDataset rasterXSize="{w}" rasterYSize="{h}">\n' +
+                    f'  <SRS>{srs}</SRS>\n' +
+                    f'  <GeoTransform>{", ".join(str(v) for v in gt)}</GeoTransform>\n' +
+                    "\n".join(bands_xml) + "\n</VRTDataset>\n"
             )
 
-        vrt_xml = (
-                f'<VRTDataset rasterXSize="{w}" rasterYSize="{h}">\n' +
-                f'  <SRS>{srs}</SRS>\n' +
-                f'  <GeoTransform>{", ".join(str(v) for v in gt)}</GeoTransform>\n' +
-                "\n".join(bands_xml) + "\n</VRTDataset>\n"
-        )
+            with open(vrt_path, "w", encoding="utf-8") as f:
+                f.write(vrt_xml)
 
-        with open(vrt_path, "w", encoding="utf-8") as f:
-            f.write(vrt_xml)
+            # Materialize to output with UNscale=True (applies band Scale/Offset in C++)
+            driver_name = "COG" if (bool(save_as_cog)) else "GTiff"
 
-        # Materialize to output with UNscale=True (applies band Scale/Offset in C++)
-        driver_name = "COG" if (bool(save_as_cog)) else "GTiff"
+            co = []
+            if driver_name == "COG":
+                co = [
+                    "COMPRESS=ZSTD",
+                    "LEVEL=9",
+                    f"BLOCKSIZE={window_size}",
+                    "OVERVIEWS=AUTO",
+                    "RESAMPLING=NEAREST"
+                ]
+            else:
+                # Tiled GeoTIFF
+                co = [
+                    "TILED=YES",
+                    "COMPRESS=DEFLATE",
+                    "PREDICTOR=2",
+                    "ZLEVEL=6",
+                    "BIGTIFF=IF_SAFER",
+                    f"BLOCKXSIZE={window_size}",
+                    f"BLOCKYSIZE={window_size}",
+                ]
+                if tile_thread_on: co.append(f"NUM_THREADS={tile_thread_workers}")
 
-        co = []
-        if driver_name == "COG":
-            co = [
-                "COMPRESS=ZSTD",
-                "LEVEL=9",
-                f"BLOCKSIZE={window_size}",
-                "OVERVIEWS=AUTO",
-                "RESAMPLING=NEAREST"
-            ]
-        else:
-            # Tiled GeoTIFF
-            co = [
-                "TILED=YES",
-                "COMPRESS=DEFLATE",
-                "PREDICTOR=2",
-                "ZLEVEL=6",
-                "BIGTIFF=IF_SAFER",
-                f"BLOCKXSIZE={window_size}",
-                f"BLOCKYSIZE={window_size}",
-            ]
-            if tile_thread_on: co.append(f"NUM_THREADS={tile_thread_workers}")
+            try:
+                if os.path.exists(output_image_path):
+                    gdal.Unlink(output_image_path)
+            except Exception:
+                pass
 
-        try:
-            if os.path.exists(output_image_path):
-                gdal.Unlink(output_image_path)
-        except Exception:
-            pass
-
-        out_ds = gdal.Translate(
-            output_image_path,
-            vrt_path,
-            options=gdal.TranslateOptions(
-                format=driver_name,
-                creationOptions=co,
-                bandList=list(range(1, num_bands + 1)),
-                noData=nodata_val if nodata_val is not None else None,
-                outputType=gdal.GetDataTypeByName(output_dtype),
-                callback=gdal_progress("Writing raster"),
+            out_ds = gdal.Translate(
+                output_image_path,
+                vrt_path,
+                options=gdal.TranslateOptions(
+                    format=driver_name,
+                    creationOptions=co,
+                    bandList=list(range(1, num_bands + 1)),
+                    noData=nodata_val if nodata_val is not None else None,
+                    outputType=gdal.GetDataTypeByName(output_dtype),
+                    callback=gdal_progress("Writing raster"),
+                )
             )
-        )
-        if out_ds is None:
-            raise RuntimeError("gdal.Translate failed to write adjusted image")
-        out_ds = None
+            if out_ds is None:
+                raise RuntimeError("gdal.Translate failed to write adjusted image")
+            out_ds = None
 
 
 

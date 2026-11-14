@@ -1,3 +1,4 @@
+from .utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor, current_executor
 from .utils_progress import gdal_progress
 from .utils_progress import phase, progress, reports_progress
@@ -31,12 +32,14 @@ from .utils_multiprocessing import _get_executor, _resolve_parallel_config
 
 
 @reports_progress
+@uses_writing_postfix
 def merge_vectors(
     input_vectors: Universal.SearchFolderOrListFiles,
     merged_vector_path: str,
     method: Literal["intersection", "union", "keep"],
     debug_logs: bool = False,
     create_name_attribute: Optional[Tuple[str, str]] = None,
+    validity_writing_postfix: str | None = None,
 ) -> None:
     """
     Merge multiple vector files using the specified geometric method.
@@ -51,66 +54,69 @@ def merge_vectors(
     Returns:
         None
     """
-    _print_step_start("merge_vectors")
+    final_output = merged_vector_path
+    with writing_outputs(merged_vector_path) as (merged_vector_path,):
+        _print_step_start("merge_vectors")
 
-    os.makedirs(os.path.dirname(merged_vector_path), exist_ok=True)
-    input_vector_paths = _resolve_paths(
-        "search", input_vectors, kwargs={"default_file_pattern": "*.gpkg"}
-    )
-
-    geoms = []
-    input_names = []
-
-    for path in input_vector_paths:
-        _print_image_start(path, merged_vector_path)
-        gdf = gpd.read_file(path)
-        if create_name_attribute:
-            name = os.path.splitext(os.path.basename(path))[0]
-            input_names.append(name)
-        geoms.append(gdf)
-
-    combined_name_value = None
-    if create_name_attribute:
-        field_name, sep = create_name_attribute
-        combined_name_value = sep.join(input_names)
-
-    if method == "keep":
-        merged_dfs = []
-        field_name = create_name_attribute[0] if create_name_attribute else None
-        for path in input_vector_paths:
-            gdf = gpd.read_file(path)
-            if field_name:
-                name = os.path.splitext(os.path.basename(path))[0]
-                gdf[field_name] = name
-            merged_dfs.append(gdf)
-        merged = gpd.GeoDataFrame(
-            pd.concat(merged_dfs, ignore_index=True), crs=merged_dfs[0].crs
+        os.makedirs(os.path.dirname(merged_vector_path), exist_ok=True)
+        input_vector_paths = _resolve_paths(
+            "search", input_vectors, kwargs={"default_file_pattern": "*.gpkg"}
         )
 
-    elif method == "union":
-        merged = gpd.GeoDataFrame(pd.concat(geoms, ignore_index=True), crs=geoms[0].crs)
+        geoms = []
+        input_names = []
+
+        for path in input_vector_paths:
+            _print_image_start(path, merged_vector_path)
+            gdf = gpd.read_file(path)
+            if create_name_attribute:
+                name = os.path.splitext(os.path.basename(path))[0]
+                input_names.append(name)
+            geoms.append(gdf)
+
+        combined_name_value = None
         if create_name_attribute:
-            merged[field_name] = combined_name_value
+            field_name, sep = create_name_attribute
+            combined_name_value = sep.join(input_names)
 
-    elif method == "intersection":
-        merged = geoms[0]
-        for gdf in geoms[1:]:
-            shared_cols = set(merged.columns).intersection(gdf.columns) - {"geometry"}
-            gdf = gdf.drop(columns=shared_cols)
-            merged = gpd.overlay(merged, gdf, how="intersection", keep_geom_type=True)
-        if create_name_attribute:
-            merged[field_name] = combined_name_value
+        if method == "keep":
+            merged_dfs = []
+            field_name = create_name_attribute[0] if create_name_attribute else None
+            for path in input_vector_paths:
+                gdf = gpd.read_file(path)
+                if field_name:
+                    name = os.path.splitext(os.path.basename(path))[0]
+                    gdf[field_name] = name
+                merged_dfs.append(gdf)
+            merged = gpd.GeoDataFrame(
+                pd.concat(merged_dfs, ignore_index=True), crs=merged_dfs[0].crs
+            )
 
-    else:
-        raise ValueError(f"Unsupported merge method: {method}")
+        elif method == "union":
+            merged = gpd.GeoDataFrame(pd.concat(geoms, ignore_index=True), crs=geoms[0].crs)
+            if create_name_attribute:
+                merged[field_name] = combined_name_value
 
-    merged.to_file(merged_vector_path)
-    for completed, path in enumerate(input_vector_paths, 1):
-        _print_image_completed(path, completed, len(input_vector_paths))
+        elif method == "intersection":
+            merged = geoms[0]
+            for gdf in geoms[1:]:
+                shared_cols = set(merged.columns).intersection(gdf.columns) - {"geometry"}
+                gdf = gdf.drop(columns=shared_cols)
+                merged = gpd.overlay(merged, gdf, how="intersection", keep_geom_type=True)
+            if create_name_attribute:
+                merged[field_name] = combined_name_value
+
+        else:
+            raise ValueError(f"Unsupported merge method: {method}")
+
+        merged.to_file(merged_vector_path)
+        for completed, path in enumerate(input_vector_paths, 1):
+            _print_image_completed(path, completed, len(input_vector_paths))
 
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def align_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -128,6 +134,7 @@ def align_rasters(
     dask_scheduler: Universal.DaskScheduler = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     executor=None,
+    validity_writing_postfix: str | None = None,
 ) -> None:
     """
     Aligns multiple rasters to a common resolution and grid using specified resampling.
@@ -291,72 +298,74 @@ def _align_process_image(
         step_name="align_rasters",
     ):
         return
-    window_size = max(16, int(math.ceil(window_size / 16)) * 16)
+    final_output = out_path
+    with writing_outputs(out_path) as (out_path,):
+        window_size = max(16, int(math.ceil(window_size / 16)) * 16)
 
-    # Resolve metadata (extent, transform) via GDAL
-    ds = gdal.Open(in_path, gdal.GA_ReadOnly)
-    proj_wkt = ds.GetProjectionRef()
-    transform = ds.GetGeoTransform()
-    ds = None
+        # Resolve metadata (extent, transform) via GDAL
+        ds = gdal.Open(in_path, gdal.GA_ReadOnly)
+        proj_wkt = ds.GetProjectionRef()
+        transform = ds.GetGeoTransform()
+        ds = None
 
-    # Writer creation options
-    co = [
-        "TILED=YES",
-        "BIGTIFF=IF_SAFER",
-        "COMPRESS=DEFLATE",
-        "PREDICTOR=2",
-        "ZLEVEL=6",
-        f"BLOCKXSIZE={window_size}",
-        f"BLOCKYSIZE={window_size}",
-    ]
-    if tile_threads is not None and str(tile_threads).strip():
-        co.append(f"NUM_THREADS={tile_threads}")
+        # Writer creation options
+        co = [
+            "TILED=YES",
+            "BIGTIFF=IF_SAFER",
+            "COMPRESS=DEFLATE",
+            "PREDICTOR=2",
+            "ZLEVEL=6",
+            f"BLOCKXSIZE={window_size}",
+            f"BLOCKYSIZE={window_size}",
+        ]
+        if tile_threads is not None and str(tile_threads).strip():
+            co.append(f"NUM_THREADS={tile_threads}")
 
-    # Resampling map
-    resamp = {
-        "nearest": gdal.GRIORA_NearestNeighbour,
-        "bilinear": gdal.GRIORA_Bilinear,
-        "cubic": gdal.GRIORA_Cubic,
-    }[resampling_method]
+        # Resampling map
+        resamp = {
+            "nearest": gdal.GRIORA_NearestNeighbour,
+            "bilinear": gdal.GRIORA_Bilinear,
+            "cubic": gdal.GRIORA_Cubic,
+        }[resampling_method]
 
-    # Perform alignment with GDAL Warp
-    try:
-        if os.path.exists(out_path):
-            gdal.Unlink(out_path)
-    except Exception:
-        pass
+        # Perform alignment with GDAL Warp
+        try:
+            if os.path.exists(out_path):
+                gdal.Unlink(out_path)
+        except Exception:
+            pass
 
-    if target_res is None and not tap:
-        ods = gdal.Translate(
-            out_path,
-            in_path,
-            options=gdal.TranslateOptions(format="GTiff", creationOptions=co, callback=gdal_progress("Writing raster")),
-        )
-    else:
-        xres, yres = target_res or (
-            math.hypot(transform[1], transform[4]),
-            math.hypot(transform[2], transform[5]),
-        )
-        ods = gdal.Warp(
-            out_path,
-            in_path,
-            options=gdal.WarpOptions(
-                format="GTiff",
-                xRes=float(xres),
-                yRes=float(yres),
-                dstSRS=proj_wkt or None,
-                resampleAlg=resamp,
-                targetAlignedPixels=tap,
-                creationOptions=co,
-                multithread=True,
-                warpOptions=(["SKIP_NOSOURCE=YES"]),
-                callback=gdal_progress("Warping raster"),
+        if target_res is None and not tap:
+            ods = gdal.Translate(
+                out_path,
+                in_path,
+                options=gdal.TranslateOptions(format="GTiff", creationOptions=co, callback=gdal_progress("Writing raster")),
             )
-        )
+        else:
+            xres, yres = target_res or (
+                math.hypot(transform[1], transform[4]),
+                math.hypot(transform[2], transform[5]),
+            )
+            ods = gdal.Warp(
+                out_path,
+                in_path,
+                options=gdal.WarpOptions(
+                    format="GTiff",
+                    xRes=float(xres),
+                    yRes=float(yres),
+                    dstSRS=proj_wkt or None,
+                    resampleAlg=resamp,
+                    targetAlignedPixels=tap,
+                    creationOptions=co,
+                    multithread=True,
+                    warpOptions=(["SKIP_NOSOURCE=YES"]),
+                    callback=gdal_progress("Warping raster"),
+                )
+            )
 
-    if ods is None:
-        raise RuntimeError(f"gdal.Warp failed for {in_path}")
-    ods = None
+        if ods is None:
+            raise RuntimeError(f"gdal.Warp failed for {in_path}")
+        ods = None
 
 
 @reports_progress
@@ -386,6 +395,7 @@ def compute_resolution(
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def merge_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_image_path: str,
@@ -410,6 +420,7 @@ def merge_rasters(
     dask_scheduler: Universal.DaskScheduler = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     executor=None,
+    validity_writing_postfix: str | None = None,
 ) -> str:
     """
     Merge rasters into one GeoTIFF or a folder of GeoTIFF tiles using gdal_retile.
@@ -479,137 +490,141 @@ def merge_rasters(
         step_name="merge_rasters",
     ):
         return output_image_path
+    final_output = output_image_path
+    with writing_outputs(*([] if output_tiles else [output_image_path])) as destinations:
+        if destinations:
+            output_image_path = destinations[0]
 
-    # Setup parallel
-    tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
+        # Setup parallel
+        tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
-    input_image_paths = _resolve_paths(
-        "search", input_images, kwargs={"default_file_pattern": "*.tif"}
-    )
-    if not input_image_paths:
-        raise ValueError("No input rasters found to merge.")
-    input_image_paths = [os.path.abspath(path) for path in input_image_paths]
-    _print_image_start(input_image_paths, output_image_path, image_id=os.path.basename(output_image_path.rstrip(os.sep)))
+        input_image_paths = _resolve_paths(
+            "search", input_images, kwargs={"default_file_pattern": "*.tif"}
+        )
+        if not input_image_paths:
+            raise ValueError("No input rasters found to merge.")
+        input_image_paths = [os.path.abspath(path) for path in input_image_paths]
+        _print_image_start(input_image_paths, output_image_path, image_id=os.path.basename(output_image_path.rstrip(os.sep)))
 
-    # Dtype
-    output_dtype = _gdal_dtype_str_to_enum(_resolve_gdal_dtype(output_dtype, input_image_paths[0]))
+        # Dtype
+        output_dtype = _gdal_dtype_str_to_enum(_resolve_gdal_dtype(output_dtype, input_image_paths[0]))
 
-    _set_gdal_cache(cache, debug_logs)
-    _set_gdal_workers(io_threads, debug_logs)
+        _set_gdal_cache(cache, debug_logs)
+        _set_gdal_workers(io_threads, debug_logs)
 
-    if debug_logs:
-        print(f"Building VRT from {len(input_image_paths)} rasters")
+        if debug_logs:
+            print(f"Building VRT from {len(input_image_paths)} rasters")
 
-    numeric_resolution = isinstance(resolution, (int, float))
-    vrt_opts = gdal.BuildVRTOptions(
-        resolution="user" if numeric_resolution else resolution,
-        xRes=float(resolution) if numeric_resolution else None,
-        yRes=float(resolution) if numeric_resolution else None,
-        srcNodata=custom_nodata_value,
-        VRTNodata=custom_nodata_value,
-        resampleAlg=resampling_method,
-        callback=gdal_progress("Building mosaic"),
-    )
+        numeric_resolution = isinstance(resolution, (int, float))
+        vrt_opts = gdal.BuildVRTOptions(
+            resolution="user" if numeric_resolution else resolution,
+            xRes=float(resolution) if numeric_resolution else None,
+            yRes=float(resolution) if numeric_resolution else None,
+            srcNodata=custom_nodata_value,
+            VRTNodata=custom_nodata_value,
+            resampleAlg=resampling_method,
+            callback=gdal_progress("Building mosaic"),
+        )
 
-    vrt_ds = gdal.BuildVRT("", input_image_paths, options=vrt_opts)
-    if vrt_ds is None:
-        raise RuntimeError("GDAL could not build the merge mosaic VRT.")
+        vrt_ds = gdal.BuildVRT("", input_image_paths, options=vrt_opts)
+        if vrt_ds is None:
+            raise RuntimeError("GDAL could not build the merge mosaic VRT.")
 
-    creation_options = [
-        "TILED=YES",
-        "BIGTIFF=YES",
-        "COMPRESS=ZSTD",
-    ]
-
-    if window_size and not output_tiles:
-        creation_options += [
-            f"BLOCKXSIZE={window_size}",
-            f"BLOCKYSIZE={window_size}",
+        creation_options = [
+            "TILED=YES",
+            "BIGTIFF=YES",
+            "COMPRESS=ZSTD",
         ]
 
-    if tile_thread_workers is not None and str(tile_thread_workers).strip():
-        creation_options.append(f"NUM_THREADS={tile_thread_workers}")
-
-    if output_tiles:
-        os.makedirs(output_image_path, exist_ok=True)
-        if resume_from_outputs == "validate":
-            existing_tiles = [
-                os.path.join(output_image_path, name)
-                for name in os.listdir(output_image_path)
-                if name.lower().endswith((".tif", ".tiff"))
+        if window_size and not output_tiles:
+            creation_options += [
+                f"BLOCKXSIZE={window_size}",
+                f"BLOCKYSIZE={window_size}",
             ]
-            reusable = _resolve_reusable_output_paths(
-                existing_tiles, resume_mode="validate", debug_logs=debug_logs,
-                step_name="merge_rasters",
-            )
-            for path in existing_tiles:
-                if path not in reusable:
-                    os.remove(path)
-                    for suffix in (".aux.xml", ".ovr", ".msk"):
-                        if os.path.isfile(path + suffix):
-                            os.remove(path + suffix)
 
-        # Store the VRT on the shared output filesystem so process/Dask workers
-        # can open it independently. Its stable basename preserves resume names.
-        with tempfile.TemporaryDirectory(prefix=".merge_rasters-", dir=os.path.abspath(output_image_path)) as temp_dir:
-            vrt_path = os.path.join(temp_dir, "mosaic.vrt")
-            saved_vrt = gdal.Translate(vrt_path, vrt_ds, format="VRT")
-            saved_vrt = None
-            argv = [
-                "gdal_retile", "-of", "GTiff", "-ot", gdal.GetDataTypeName(output_dtype),
-                "-ps", str(window_size or 256), str(window_size or 256),
-                "-overlap", str(overlap),
-                "-r", "near" if resampling_method == "nearest" else resampling_method,
-                "-targetDir", os.path.abspath(output_image_path),
-            ]
-            for option in creation_options:
-                argv.extend(["-co", option])
-            if debug_logs:
-                argv.append("-v")
-            if custom_tiles_csv is not None:
-                argv.extend(["-csv", custom_tiles_csv])
-            if resume_from_outputs != "no":
-                argv.append("-resume")
-            argv.append(vrt_path)
-            _run_gdal_retile(
-                argv, image_threads, concurrent_processing_backend or "process_pool",
-                dask_scheduler, cache, io_threads, debug_logs,
-            )
-        _create_tile_vrt(output_image_path, create_vrts, vrt_ds, window_size or 256, overlap, resampling_method, window_scales if build_overviews else (), tile_thread_workers)
-        vrt_ds = None
-        _print_image_completed(input_image_paths, 1, 1, image_id=os.path.basename(output_image_path.rstrip(os.sep)))
-        return output_image_path
+        if tile_thread_workers is not None and str(tile_thread_workers).strip():
+            creation_options.append(f"NUM_THREADS={tile_thread_workers}")
 
-    translate_opts = gdal.TranslateOptions(
-        format="GTiff",
-        outputType=output_dtype,
-        noData=custom_nodata_value,
-        creationOptions=creation_options,
-        resampleAlg=resampling_method,
-        callback=gdal_progress("Writing raster"),
-    )
+        if output_tiles:
+            os.makedirs(output_image_path, exist_ok=True)
+            if resume_from_outputs == "validate":
+                existing_tiles = [
+                    os.path.join(output_image_path, name)
+                    for name in os.listdir(output_image_path)
+                    if name.lower().endswith((".tif", ".tiff"))
+                ]
+                reusable = _resolve_reusable_output_paths(
+                    existing_tiles, resume_mode="validate", debug_logs=debug_logs,
+                    step_name="merge_rasters",
+                )
+                for path in existing_tiles:
+                    if path not in reusable:
+                        os.remove(path)
+                        for suffix in (".aux.xml", ".ovr", ".msk"):
+                            if os.path.isfile(path + suffix):
+                                os.remove(path + suffix)
 
-    merged_dataset = gdal.Translate(
-        destName=output_image_path,
-        srcDS=vrt_ds,
-        options=translate_opts,
-    )
-    if merged_dataset is None:
-        raise RuntimeError(f"GDAL could not write the merged raster: {output_image_path}")
-    merged_dataset = None
+            # Store the VRT on the shared output filesystem so process/Dask workers
+            # can open it independently. Its stable basename preserves resume names.
+            with tempfile.TemporaryDirectory(prefix=".merge_rasters-", dir=os.path.abspath(output_image_path)) as temp_dir:
+                vrt_path = os.path.join(temp_dir, "mosaic.vrt")
+                saved_vrt = gdal.Translate(vrt_path, vrt_ds, format="VRT")
+                saved_vrt = None
+                argv = [
+                    "gdal_retile", "-of", "GTiff", "-ot", gdal.GetDataTypeName(output_dtype),
+                    "-ps", str(window_size or 256), str(window_size or 256),
+                    "-overlap", str(overlap),
+                    "-r", "near" if resampling_method == "nearest" else resampling_method,
+                    "-targetDir", os.path.abspath(output_image_path),
+                ]
+                for option in creation_options:
+                    argv.extend(["-co", option])
+                if debug_logs:
+                    argv.append("-v")
+                if custom_tiles_csv is not None:
+                    argv.extend(["-csv", custom_tiles_csv])
+                if resume_from_outputs != "no":
+                    argv.append("-resume")
+                argv.append(vrt_path)
+                _run_gdal_retile(
+                    argv, image_threads, concurrent_processing_backend or "process_pool",
+                    dask_scheduler, cache, io_threads, debug_logs,
+                )
+            _create_tile_vrt(output_image_path, create_vrts, vrt_ds, window_size or 256, overlap, resampling_method, window_scales if build_overviews else (), tile_thread_workers)
+            vrt_ds = None
+            _print_image_completed(input_image_paths, 1, 1, image_id=os.path.basename(output_image_path.rstrip(os.sep)))
+            return final_output
 
-    vrt_ds = None
-
-    if build_overviews and window_scales: compute_overviews(
-        input_images_paths=output_image_path,
-        window_scales=window_scales,
-        cache=cache,
-        io_threads=io_threads,
-        tile_threads=tile_threads,
-        debug_logs=debug_logs,
+        translate_opts = gdal.TranslateOptions(
+            format="GTiff",
+            outputType=output_dtype,
+            noData=custom_nodata_value,
+            creationOptions=creation_options,
+            resampleAlg=resampling_method,
+            callback=gdal_progress("Writing raster"),
         )
-    _print_image_completed(input_image_paths, 1, 1, image_id=os.path.basename(output_image_path))
-    return output_image_path
+
+        merged_dataset = gdal.Translate(
+            destName=output_image_path,
+            srcDS=vrt_ds,
+            options=translate_opts,
+        )
+        if merged_dataset is None:
+            raise RuntimeError(f"GDAL could not write the merged raster: {output_image_path}")
+        merged_dataset = None
+
+        vrt_ds = None
+
+        if build_overviews and window_scales: compute_overviews(
+            input_images_paths=output_image_path,
+            window_scales=window_scales,
+            cache=cache,
+            io_threads=io_threads,
+            tile_threads=tile_threads,
+            debug_logs=debug_logs,
+            )
+        _print_image_completed(input_image_paths, 1, 1, image_id=os.path.basename(output_image_path))
+        return final_output
 
 
 def _create_tile_vrt(output_folder, filename, mosaic, tile_size, overlap, resampling_method, window_scales, tile_workers):
@@ -804,6 +819,7 @@ def _retile_process_tile(
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def mask_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -821,6 +837,7 @@ def mask_rasters(
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     *,
     executor=None,
+    validity_writing_postfix: str | None = None,
     ) -> list:
     """
     Applies a vector-based mask to one or more rasters using GDAL Warp.
@@ -962,35 +979,37 @@ def _mask_raster_process_image(
         step_name="mask_rasters",
     ):
         return
+    final_output = output_image_path
+    with writing_outputs(output_image_path) as (output_image_path,):
 
-    warp_options = {
-        "format": "GTiff",
-        "dstNodata": custom_nodata_value if custom_nodata_value is not None else None,
-        "warpOptions": [
-            "SKIP_NOSOURCE=YES",
-            "UNIFIED_SRC_NODATA=YES",
-        ],
-    }
+        warp_options = {
+            "format": "GTiff",
+            "dstNodata": custom_nodata_value if custom_nodata_value is not None else None,
+            "warpOptions": [
+                "SKIP_NOSOURCE=YES",
+                "UNIFIED_SRC_NODATA=YES",
+            ],
+        }
 
-    if tile_thread_on:
-        warp_options["multithread"] = True
-        warp_options["warpOptions"].append(f"NUM_THREADS={tile_threads}")
+        if tile_thread_on:
+            warp_options["multithread"] = True
+            warp_options["warpOptions"].append(f"NUM_THREADS={tile_threads}")
 
-    mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
-    if cutline_options:
-        invert = (mode == "exclude")
-        warp_options.update({
-            **cutline_options,
-            "cropToCutline": not invert,
-            "cutlineBlend": 0,
-            "dstAlpha": False,
-            "copyMetadata": True,
-        })
-        if include_touched_pixels:
-            warp_options["warpOptions"].append("CUTLINE_ALL_TOUCHED=TRUE")
-    # Else no cutline for this image
+        mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
+        if cutline_options:
+            invert = (mode == "exclude")
+            warp_options.update({
+                **cutline_options,
+                "cropToCutline": not invert,
+                "cutlineBlend": 0,
+                "dstAlpha": False,
+                "copyMetadata": True,
+            })
+            if include_touched_pixels:
+                warp_options["warpOptions"].append("CUTLINE_ALL_TOUCHED=TRUE")
+        # Else no cutline for this image
 
-    gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options, callback=gdal_progress("Warping raster")))
+        gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options, callback=gdal_progress("Warping raster")))
 
 
 def _create_masked_vrt(
@@ -1234,6 +1253,7 @@ def _get_valid_count(
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def compute_overviews(
     input_images_paths: Universal.SearchFolderOrListFiles,
     *,
@@ -1247,6 +1267,7 @@ def compute_overviews(
     dask_scheduler: Universal.DaskScheduler = None,
     debug_logs: bool = False,
     executor=None,
+    validity_writing_postfix: str | None = None,
 ):
     """
     Compute and attach GDAL overviews for one or more raster images.
@@ -1328,14 +1349,16 @@ def compute_overviews(
 
 def _copy_and_compute_overviews(source, target, window_scales, tile_threads_on, tile_workers, debug_logs):
     """Copy an image if needed and build its overviews within one logged image task."""
-    if os.path.abspath(source) != os.path.abspath(target):
-        os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
-        dataset = gdal.Translate(target, source)
-        if dataset is None:
-            raise RuntimeError(f"Failed copying {source} to {target}")
-        dataset = None
-    if window_scales:
-        _process_image_overview(target, window_scales, tile_threads_on, tile_workers, debug_logs)
+    final_output = target
+    with writing_outputs(target) as (target,):
+        if os.path.abspath(source) != os.path.abspath(target):
+            os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
+            dataset = gdal.Translate(target, source)
+            if dataset is None:
+                raise RuntimeError(f"Failed copying {source} to {target}")
+            dataset = None
+        if window_scales:
+            _process_image_overview(target, window_scales, tile_threads_on, tile_workers, debug_logs)
 
 
 def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, debug_logs):

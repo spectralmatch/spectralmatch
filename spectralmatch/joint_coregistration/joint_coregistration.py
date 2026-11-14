@@ -1,6 +1,7 @@
 """Joint global and locally varying coregistration of overlapping rasters."""
 
 from __future__ import annotations
+from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
@@ -116,6 +117,7 @@ class _SparseEquations:
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def joint_coregistration(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -170,6 +172,7 @@ def joint_coregistration(
     debug_logs: Universal.DebugLogs = False,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     executor=None,
+    validity_writing_postfix: str | None = None,
 ) -> list[str]:
     """Coregister overlapping rasters with a joint global transform and local deformation mesh.
 
@@ -1456,60 +1459,62 @@ def _apply_alignment_process_image(
         step_name="joint_coregistration",
     ):
         return
-    if fixed:
-        # Fixed references retain native pixels, CRS, extent, resolution and nodata.
-        driver = "VRT" if os.path.splitext(output_path)[1].lower() == ".vrt" else ("COG" if save_as_cog else "GTiff")
-        output = gdal.Translate(output_path, info.path, format=driver)
+    final_output = output_path
+    with writing_outputs(output_path) as (output_path,):
+        if fixed:
+            # Fixed references retain native pixels, CRS, extent, resolution and nodata.
+            driver = "VRT" if os.path.splitext(output_path)[1].lower() == ".vrt" else ("COG" if save_as_cog else "GTiff")
+            output = gdal.Translate(output_path, info.path, format=driver)
+            if output is None:
+                raise RuntimeError(f"Could not copy fixed image: {info.path}")
+            output = None
+            return
+        resolved_window = _resolve_window_size(window_size, info.path, debug_logs) or 256
+        resolved_window = max(16, int(math.ceil(resolved_window / 16)) * 16)
+        driver, creation_options = _output_creation_options(
+            save_as_cog, resolved_window, tile_thread_on, tile_thread_workers
+        )
+        local_is_zero = mesh is None or np.allclose(mesh.displacement, 0, atol=1e-10)
+        _validate_corrected_geotransform(info, global_parameters, global_model)
+        with tempfile.TemporaryDirectory(prefix="spectralmatch_joint_coregistration_") as tmpdir:
+            if local_is_zero:
+                output = _write_global_affine_output(
+                    info,
+                    output_path,
+                    global_model,
+                    global_parameters,
+                    output_dtype,
+                    nodata_value,
+                    driver,
+                    creation_options,
+                    tmpdir,
+                    resampling_method,
+                    target_resolution,
+                    tap,
+                    tile_thread_on,
+                    tile_thread_workers,
+                )
+            else:
+                output = _write_local_warp_output(
+                    info,
+                    output_path,
+                    global_model,
+                    global_parameters,
+                    local_model,
+                    mesh,
+                    resampling_method,
+                    output_dtype,
+                    nodata_value,
+                    driver,
+                    creation_options,
+                    tile_thread_on,
+                    tile_thread_workers,
+                    tmpdir,
+                    target_resolution,
+                    tap,
+                )
         if output is None:
-            raise RuntimeError(f"Could not copy fixed image: {info.path}")
-        output = None
-        return
-    resolved_window = _resolve_window_size(window_size, info.path, debug_logs) or 256
-    resolved_window = max(16, int(math.ceil(resolved_window / 16)) * 16)
-    driver, creation_options = _output_creation_options(
-        save_as_cog, resolved_window, tile_thread_on, tile_thread_workers
-    )
-    local_is_zero = mesh is None or np.allclose(mesh.displacement, 0, atol=1e-10)
-    _validate_corrected_geotransform(info, global_parameters, global_model)
-    with tempfile.TemporaryDirectory(prefix="spectralmatch_joint_coregistration_") as tmpdir:
-        if local_is_zero:
-            output = _write_global_affine_output(
-                info,
-                output_path,
-                global_model,
-                global_parameters,
-                output_dtype,
-                nodata_value,
-                driver,
-                creation_options,
-                tmpdir,
-                resampling_method,
-                target_resolution,
-                tap,
-                tile_thread_on,
-                tile_thread_workers,
-            )
-        else:
-            output = _write_local_warp_output(
-                info,
-                output_path,
-                global_model,
-                global_parameters,
-                local_model,
-                mesh,
-                resampling_method,
-                output_dtype,
-                nodata_value,
-                driver,
-                creation_options,
-                tile_thread_on,
-                tile_thread_workers,
-                tmpdir,
-                target_resolution,
-                tap,
-            )
-    if output is None:
-        raise RuntimeError(f"Failed to write coregistered image: {output_path}")
+            raise RuntimeError(f"Failed to write coregistered image: {output_path}")
 
 
 def _output_creation_options(save_as_cog, window_size, tile_thread_on, tile_thread_workers):

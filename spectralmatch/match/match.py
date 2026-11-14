@@ -1,3 +1,4 @@
+from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import reports_progress
 import json
@@ -153,6 +154,7 @@ class Match:
     @staticmethod
     @reports_progress(worker_progress=True)
     @uses_executor
+    @uses_writing_postfix
     def global_regression(
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,
@@ -204,6 +206,7 @@ class Match:
         window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
+        validity_writing_postfix: str | None = None,
     ) -> list:
         """Performs global radiometric normalization across overlapping images using least squares regression.
 
@@ -601,6 +604,7 @@ Returns:
     @staticmethod
     @reports_progress(worker_progress=True)
     @uses_executor
+    @uses_writing_postfix
     def local_block_adjustment(
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,
@@ -630,6 +634,7 @@ Returns:
         window_scales: tuple[int, ...] | None = (2, 4, 8, 16, 32),
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
+        validity_writing_postfix: str | None = None,
     ) -> list:
         """Performs local radiometric adjustment on a set of raster images using block-based statistics.
 

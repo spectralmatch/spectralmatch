@@ -1,3 +1,4 @@
+from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
@@ -23,6 +24,7 @@ from ..utils import _set_gdal_cache, _set_gdal_workers, _resolve_gdal_dtype, _re
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def create_cloud_mask_with_omnicloudmask(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -37,6 +39,7 @@ def create_cloud_mask_with_omnicloudmask(
     dask_scheduler: Universal.DaskScheduler = None,
     omnicloud_kwargs: dict | None = None,
     executor=None,
+    validity_writing_postfix: str | None = None,
 ) -> list[str]:
     """
     Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
@@ -143,56 +146,59 @@ def _process_cloud_mask_image(
     Raises:
         Exception: If any step in reading, prediction, or writing fails.
     """
-    if omnicloud_kwargs is None:
-        omnicloud_kwargs = {}
+    final_output = output_mask_path
+    with writing_outputs(output_mask_path) as (output_mask_path,):
+        if omnicloud_kwargs is None:
+            omnicloud_kwargs = {}
 
-    ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
-    gt = ds.GetGeoTransform()
-    left, top = gt[0], gt[3]
-    px_w, px_h = abs(gt[1]), abs(gt[5])  # pixel sizes
-    width, height = ds.RasterXSize, ds.RasterYSize
+        ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
+        gt = ds.GetGeoTransform()
+        left, top = gt[0], gt[3]
+        px_w, px_h = abs(gt[1]), abs(gt[5])  # pixel sizes
+        width, height = ds.RasterXSize, ds.RasterYSize
 
-    # Compute output dimensions and transform if downsampling
-    if down_sample_m:
-        right = left + width * gt[1]
-        bottom = top + height * gt[5]
-        new_width = max(1, int((right - left) / down_sample_m))
-        new_height = max(1, int((top - bottom) / down_sample_m))
-        out_gt = (left, down_sample_m, 0.0, top, 0.0, -down_sample_m)
-        # Read and resample each band
-        read_kwargs = {"buf_xsize": new_width, "buf_ysize": new_height}
-        red = ds.GetRasterBand(red_band_index).ReadAsArray(**read_kwargs)
-        green = ds.GetRasterBand(green_band_index).ReadAsArray(**read_kwargs)
-        nir = ds.GetRasterBand(nir_band_index).ReadAsArray(**read_kwargs)
-    else:
-        out_gt = gt
-        new_width, new_height = width, height
-        red = ds.GetRasterBand(red_band_index).ReadAsArray()
-        green = ds.GetRasterBand(green_band_index).ReadAsArray()
-        nir = ds.GetRasterBand(nir_band_index).ReadAsArray()
+        # Compute output dimensions and transform if downsampling
+        if down_sample_m:
+            right = left + width * gt[1]
+            bottom = top + height * gt[5]
+            new_width = max(1, int((right - left) / down_sample_m))
+            new_height = max(1, int((top - bottom) / down_sample_m))
+            out_gt = (left, down_sample_m, 0.0, top, 0.0, -down_sample_m)
+            # Read and resample each band
+            read_kwargs = {"buf_xsize": new_width, "buf_ysize": new_height}
+            red = ds.GetRasterBand(red_band_index).ReadAsArray(**read_kwargs)
+            green = ds.GetRasterBand(green_band_index).ReadAsArray(**read_kwargs)
+            nir = ds.GetRasterBand(nir_band_index).ReadAsArray(**read_kwargs)
+        else:
+            out_gt = gt
+            new_width, new_height = width, height
+            red = ds.GetRasterBand(red_band_index).ReadAsArray()
+            green = ds.GetRasterBand(green_band_index).ReadAsArray()
+            nir = ds.GetRasterBand(nir_band_index).ReadAsArray()
 
-    # Run the OmniCloudMask model
-    band_array = np.stack([red, green, nir], axis=0)
-    pred_mask = predict_from_array(band_array, **omnicloud_kwargs).squeeze().astype(np.uint8)
+        # Run the OmniCloudMask model
+        band_array = np.stack([red, green, nir], axis=0)
+        pred_mask = predict_from_array(band_array, **omnicloud_kwargs).squeeze().astype(np.uint8)
 
-    # Write the mask using GDAL
-    driver = gdal.GetDriverByName("GTiff")
-    out_ds = driver.Create(output_mask_path, new_width, new_height, 1, gdal.GDT_Byte)
-    if out_ds is None:
-        raise RuntimeError(f"Unable to create output: {output_mask_path}")
-    out_ds.SetGeoTransform(out_gt)
-    out_ds.SetProjection(ds.GetProjection())
-    out_band = out_ds.GetRasterBand(1)
-    out_band.SetNoDataValue(0)
-    out_band.WriteArray(pred_mask)
-    out_band.FlushCache()
-    out_ds = None
-    ds = None
+        # Write the mask using GDAL
+        driver = gdal.GetDriverByName("GTiff")
+        out_ds = driver.Create(output_mask_path, new_width, new_height, 1, gdal.GDT_Byte)
+        if out_ds is None:
+            raise RuntimeError(f"Unable to create output: {output_mask_path}")
+        out_ds.SetGeoTransform(out_gt)
+        out_ds.SetProjection(ds.GetProjection())
+        out_band = out_ds.GetRasterBand(1)
+        out_band.SetNoDataValue(0)
+        out_band.WriteArray(pred_mask)
+        out_band.FlushCache()
+        out_ds = None
+        ds = None
 
 
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def band_math(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -210,6 +216,7 @@ def band_math(
     custom_output_dtype: Universal.CustomOutputDtype = None,
     calculation_dtype: Universal.CalculationDtype = "float32",
     executor=None,
+    validity_writing_postfix: str | None = None,
 ) -> List[str]:
     """
     Applies a thresholding operation to input raster images using a mathematical expression string.
@@ -358,117 +365,119 @@ def _band_math_process_image(
     Returns:
         None
     """
+    final_output = output_image_path
+    with writing_outputs(output_image_path) as (output_image_path,):
 
-    ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
+        ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
 
-    # Metadata
-    xsize = ds.RasterXSize
-    ysize = ds.RasterYSize
-    num_bands = ds.RasterCount
-    geotransform = ds.GetGeoTransform()
-    projection = ds.GetProjectionRef() or ""
+        # Metadata
+        xsize = ds.RasterXSize
+        ysize = ds.RasterYSize
+        num_bands = ds.RasterCount
+        geotransform = ds.GetGeoTransform()
+        projection = ds.GetProjectionRef() or ""
 
-    # Substitute percentile references (e.g. 5%b1) with numeric thresholds
-    percent_pattern = re.compile(r"(\d+(\.\d+)?)%B(\d+)")
+        # Substitute percentile references (e.g. 5%b1) with numeric thresholds
+        percent_pattern = re.compile(r"(\d+(\.\d+)?)%B(\d+)")
 
-    def replace_percent_with_threshold(match):
-        percent, _, band_num = match.groups()
-        value = _calculate_threshold_from_percent(
-            input_image_path=input_image_path,
-            threshold=percent,
-            band_index=int(band_num),
-            debug_logs=debug_logs,
-            nodata_value=nodata_value,
+        def replace_percent_with_threshold(match):
+            percent, _, band_num = match.groups()
+            value = _calculate_threshold_from_percent(
+                input_image_path=input_image_path,
+                threshold=percent,
+                band_index=int(band_num),
+                debug_logs=debug_logs,
+                nodata_value=nodata_value,
+            )
+            return str(value)
+
+        evaluated_threshold_math = percent_pattern.sub(
+            replace_percent_with_threshold, threshold_math
         )
-        return str(value)
 
-    evaluated_threshold_math = percent_pattern.sub(
-        replace_percent_with_threshold, threshold_math
-    )
+        # The expression is already in muparser syntax – use it directly
+        expr = evaluated_threshold_math
 
-    # The expression is already in muparser syntax – use it directly
-    expr = evaluated_threshold_math
+        # Optionally wrap with a nodata guard
+        if nodata_value is not None:
+            nodata_checks = " || ".join([f"(B{i}=={nodata_value})" for i in range(1, num_bands + 1)])
+            final_expr = f"({nodata_checks}) ? {nodata_value} : ({expr})"
+        else:
+            final_expr = expr
 
-    # Optionally wrap with a nodata guard
-    if nodata_value is not None:
-        nodata_checks = " || ".join([f"(B{i}=={nodata_value})" for i in range(1, num_bands + 1)])
-        final_expr = f"({nodata_checks}) ? {nodata_value} : ({expr})"
-    else:
-        final_expr = expr
+        # Escape XML characters when embedding in the VRT
+        xml_final_expr = final_expr.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-    # Escape XML characters when embedding in the VRT
-    xml_final_expr = final_expr.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        # Create a temporary VRT
+        tmpdir = tempfile.mkdtemp(prefix="threshold_")
+        vrt_path = os.path.join(tmpdir, f"{name}_threshold.vrt")
 
-    # Create a temporary VRT
-    tmpdir = tempfile.mkdtemp(prefix="threshold_")
-    vrt_path = os.path.join(tmpdir, f"{name}_threshold.vrt")
-
-    # Build the list of SimpleSource entries in one shot
-    vrt_xml = (
-            f"<VRTDataset rasterXSize=\"{xsize}\" rasterYSize=\"{ysize}\">\n"
-            f"  <SRS>{projection}</SRS>\n"
-            f"  <GeoTransform>{', '.join(str(v) for v in geotransform)}</GeoTransform>\n"
-            f"  <VRTRasterBand dataType=\"{calculation_dtype}\" band=\"1\" subClass=\"VRTDerivedRasterBand\">\n"
-            + (f"    <NoDataValue>{nodata_value}</NoDataValue>\n" if nodata_value is not None else "")
-            + "    <PixelFunctionType>expression</PixelFunctionType>\n"
-            + f"    <PixelFunctionArguments dialect=\"muparser\" expression=\"{xml_final_expr}\"/>\n"
-            + "\n".join(
-        f"    <SimpleSource>\n"
-        f"      <SourceFilename relativeToVRT=\"0\">{input_image_path}</SourceFilename>\n"
-        f"      <SourceBand>{i}</SourceBand>\n"
-        f"      <SrcRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
-        f"      <DstRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
-        f"    </SimpleSource>"
-        for i in range(1, num_bands + 1)
-    ) + "\n"
-            + "  </VRTRasterBand>\n"
-            + "</VRTDataset>\n"
-    )
-
-    # Write the VRT to disk
-    with open(vrt_path, "w", encoding="utf-8") as f:
-        f.write(vrt_xml)
-
-    # Determine block size for output tiling
-    window_size = _resolve_window_size(window_size, input_image_path, debug_logs)
-
-    # Assemble creation options and include block sizes and thread count if needed
-    creation_options = [
-        "TILED=YES",
-        "COMPRESS=DEFLATE",
-        "PREDICTOR=2",
-        "ZLEVEL=6",
-        "BIGTIFF=IF_SAFER",
-    ]
-    if window_size:
-        creation_options += [f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"]
-    if tile_threads_on:
-        creation_options.append(f"NUM_THREADS={tile_thread_workers}")
-
-    # Remove pre‑existing output file, if any
-    if os.path.exists(output_image_path):
-        try:
-            gdal.Unlink(output_image_path)
-        except Exception:
-            pass
-
-    # Translate VRT to a tiled GeoTIFF
-    out_ds = gdal.Translate(
-        output_image_path,
-        vrt_path,
-        options=gdal.TranslateOptions(
-            format="GTiff",
-            creationOptions=creation_options,
-            bandList=[1],
-            noData=nodata_value if nodata_value is not None else None,
-            outputType=gdal.GetDataTypeByName(output_dtype),
-            callback=gdal_progress("Writing raster"),
+        # Build the list of SimpleSource entries in one shot
+        vrt_xml = (
+                f"<VRTDataset rasterXSize=\"{xsize}\" rasterYSize=\"{ysize}\">\n"
+                f"  <SRS>{projection}</SRS>\n"
+                f"  <GeoTransform>{', '.join(str(v) for v in geotransform)}</GeoTransform>\n"
+                f"  <VRTRasterBand dataType=\"{calculation_dtype}\" band=\"1\" subClass=\"VRTDerivedRasterBand\">\n"
+                + (f"    <NoDataValue>{nodata_value}</NoDataValue>\n" if nodata_value is not None else "")
+                + "    <PixelFunctionType>expression</PixelFunctionType>\n"
+                + f"    <PixelFunctionArguments dialect=\"muparser\" expression=\"{xml_final_expr}\"/>\n"
+                + "\n".join(
+            f"    <SimpleSource>\n"
+            f"      <SourceFilename relativeToVRT=\"0\">{input_image_path}</SourceFilename>\n"
+            f"      <SourceBand>{i}</SourceBand>\n"
+            f"      <SrcRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
+            f"      <DstRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
+            f"    </SimpleSource>"
+            for i in range(1, num_bands + 1)
+        ) + "\n"
+                + "  </VRTRasterBand>\n"
+                + "</VRTDataset>\n"
         )
-    )
 
-    out_ds = None
-    ds = None
-    shutil.rmtree(tmpdir, ignore_errors=True)
+        # Write the VRT to disk
+        with open(vrt_path, "w", encoding="utf-8") as f:
+            f.write(vrt_xml)
+
+        # Determine block size for output tiling
+        window_size = _resolve_window_size(window_size, input_image_path, debug_logs)
+
+        # Assemble creation options and include block sizes and thread count if needed
+        creation_options = [
+            "TILED=YES",
+            "COMPRESS=DEFLATE",
+            "PREDICTOR=2",
+            "ZLEVEL=6",
+            "BIGTIFF=IF_SAFER",
+        ]
+        if window_size:
+            creation_options += [f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"]
+        if tile_threads_on:
+            creation_options.append(f"NUM_THREADS={tile_thread_workers}")
+
+        # Remove pre‑existing output file, if any
+        if os.path.exists(output_image_path):
+            try:
+                gdal.Unlink(output_image_path)
+            except Exception:
+                pass
+
+        # Translate VRT to a tiled GeoTIFF
+        out_ds = gdal.Translate(
+            output_image_path,
+            vrt_path,
+            options=gdal.TranslateOptions(
+                format="GTiff",
+                creationOptions=creation_options,
+                bandList=[1],
+                noData=nodata_value if nodata_value is not None else None,
+                outputType=gdal.GetDataTypeByName(output_dtype),
+                callback=gdal_progress("Writing raster"),
+            )
+        )
+
+        out_ds = None
+        ds = None
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 

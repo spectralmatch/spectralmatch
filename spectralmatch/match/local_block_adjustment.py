@@ -1,3 +1,4 @@
+from ..utils_output import writing_outputs
 from ..utils_progress import gdal_progress
 import math
 import tempfile
@@ -221,199 +222,200 @@ def _apply_adjustment_process_image(
         step_name="local_block_adjustment",
     ):
         return
+    with writing_outputs(out_path) as (out_path,):
 
-    # Open once to grab size & georef
-    src = gdal.Open(img_path, gdal.GA_ReadOnly)
-    if src is None:
-        raise RuntimeError(f"Could not open {img_path}")
-    w, h = src.RasterXSize, src.RasterYSize
-    proj_wkt = src.GetProjectionRef()
-    gt = src.GetGeoTransform()
-    src = None
+        # Open once to grab size & georef
+        src = gdal.Open(img_path, gdal.GA_ReadOnly)
+        if src is None:
+            raise RuntimeError(f"Could not open {img_path}")
+        w, h = src.RasterXSize, src.RasterYSize
+        proj_wkt = src.GetProjectionRef()
+        gt = src.GetGeoTransform()
+        src = None
 
-    xmin, ymin, xmax, ymax = bounds_canvas_coords
-    tmpdir = tempfile.mkdtemp(prefix="spectralmatch_adjust_local_")
+        xmin, ymin, xmax, ymax = bounds_canvas_coords
+        tmpdir = tempfile.mkdtemp(prefix="spectralmatch_adjust_local_")
 
-    # Helpers
-    def _write_block_raster(arr2d: np.ndarray, path: str, dtype=gdal.GDT_Float32):
-        drv = gdal.GetDriverByName("GTiff")
-        ds = drv.Create(
-            path, num_col, num_row, 1, dtype,
-            options=["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6"]
-        )
-        gtx = (xmin, (xmax - xmin) / num_col, 0.0, ymax, 0.0, - (ymax - ymin) / num_row)
-        ds.SetGeoTransform(gtx)
-        if proj_wkt:
-            srs = osr.SpatialReference(); srs.ImportFromWkt(proj_wkt)
-            ds.SetProjection(srs.ExportToWkt())
-        ds.GetRasterBand(1).WriteArray(arr2d.astype(np.float32))
-        ds.GetRasterBand(1).SetNoDataValue(np.nan)
-        ds = None
+        # Helpers
+        def _write_block_raster(arr2d: np.ndarray, path: str, dtype=gdal.GDT_Float32):
+            drv = gdal.GetDriverByName("GTiff")
+            ds = drv.Create(
+                path, num_col, num_row, 1, dtype,
+                options=["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6"]
+            )
+            gtx = (xmin, (xmax - xmin) / num_col, 0.0, ymax, 0.0, - (ymax - ymin) / num_row)
+            ds.SetGeoTransform(gtx)
+            if proj_wkt:
+                srs = osr.SpatialReference(); srs.ImportFromWkt(proj_wkt)
+                ds.SetProjection(srs.ExportToWkt())
+            ds.GetRasterBand(1).WriteArray(arr2d.astype(np.float32))
+            ds.GetRasterBand(1).SetNoDataValue(np.nan)
+            ds = None
 
-    def _warp_to_image_grid(src_path: str, dst_path: str):
-        ds_out = gdal.Warp(
-            dst_path, src_path,
-            options=gdal.WarpOptions(
-                format="VRT",
-                dstSRS=proj_wkt or None,
-                outputBounds=(gt[0], gt[3] + gt[5]*h, gt[0] + gt[1]*w, gt[3]),
-                width=w, height=h,
-                resampleAlg=gdal.GRIORA_Bilinear,
-                multithread=tile_thread_on,
-                warpOptions=(["SKIP_NOSOURCE=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
-                callback=gdal_progress("Warping raster"),
+        def _warp_to_image_grid(src_path: str, dst_path: str):
+            ds_out = gdal.Warp(
+                dst_path, src_path,
+                options=gdal.WarpOptions(
+                    format="VRT",
+                    dstSRS=proj_wkt or None,
+                    outputBounds=(gt[0], gt[3] + gt[5]*h, gt[0] + gt[1]*w, gt[3]),
+                    width=w, height=h,
+                    resampleAlg=gdal.GRIORA_Bilinear,
+                    multithread=tile_thread_on,
+                    warpOptions=(["SKIP_NOSOURCE=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
+                    callback=gdal_progress("Warping raster"),
+                )
+            )
+            if ds_out is None:
+                raise RuntimeError("Warp failed building parameter surface")
+
+        # Build offset if enabled
+        if correction_method == "offset":
+            global_min = np.inf
+            src = gdal.Open(img_path, gdal.GA_ReadOnly)
+            for b in range(1, num_bands + 1):
+                band = src.GetRasterBand(b)
+                min_val, _, _, _ = band.GetStatistics(1 if estimate_stats else 0, 1)
+                global_min = min(global_min, min_val)
+            src = None
+            global_min = min(
+                global_min,
+                np.nanmin(block_reference_mean),
+                np.nanmin(block_local_mean),
+            )
+            offset = abs(global_min) + 1.0 if global_min <= 0 else 0.0
+            offsets = [offset] * num_bands
+
+        # Build full-resolution *single* parameter surfaces
+        param_surfaces = []  # per-band path to VRT of G (linear) or GG (gamma)
+        for b in range(num_bands):
+            ref_blk = block_reference_mean[:, :, b].astype(np.float32, copy=False)
+            loc_blk = block_local_mean[:, :, b].astype(np.float32, copy=False)
+
+            if correction_method == "linear":
+                # G = r / l ; invalid when l==0 or NaN
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    param_blk = ref_blk / loc_blk
+            elif correction_method == "gamma":
+                # GG = log(r) / log(l) ; invalid when r<=0 or l<=0
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    param_blk = np.log(ref_blk) / np.log(loc_blk)
+            elif correction_method == "offset":
+                offset = offsets[b]
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    param_blk = np.log(ref_blk + offset) / np.log(loc_blk + offset)
+
+            # keep invalids as NaN so they propagate
+            param_blk[~np.isfinite(param_blk)] = np.nan
+
+            # write block grid, then warp to image grid
+            param_blk_tif = os.path.join(tmpdir, f"param_block_b{b + 1}.tif")
+            _write_block_raster(param_blk, param_blk_tif)
+            param_full_vrt = os.path.join(tmpdir, f"param_full_b{b + 1}.vrt")
+            _warp_to_image_grid(param_blk_tif, param_full_vrt)
+            param_surfaces.append(param_full_vrt)
+
+            # Debug full resolution adjustments per pixel
+            # gdal.Translate(
+            #     f"/path/to/test/FullResMap_{name}_b{b + 1}.tif",
+            #     param_full_vrt,
+            #     options=gdal.TranslateOptions(format="GTiff")
+            # )
+
+        # --- VRT using the built-in expression pixel function --------------------
+        out_vrt = os.path.join(tmpdir, f"{name}_local_adjust.vrt")
+        calc_dtype_enum = _gdal_dtype_str_to_enum(calculation_dtype)
+        calc_dtype_name = gdal.GetDataTypeName(calc_dtype_enum)
+
+        bands_xml = []
+        for b in range(1, num_bands + 1):
+            if correction_method == "linear":
+                if nodata_val is None:
+                    expr = "(v * P)"
+                else:
+                    expr = f"(m==0) ? {nodata_val} : (v * P)"
+            elif correction_method == "gamma":  # "gamma"
+                if nodata_val is None:
+                    expr = f"({alpha} * (v^P))"
+                else:
+                    expr = f"(m==0) ? {nodata_val} : ({alpha} * (v^P))"
+            elif correction_method == "offset":
+                # Apply offset to each band
+                offset = offsets[b - 1]
+                if nodata_val is None:
+                    expr = f"({alpha} * ((v + {offset}) ^ P) - {offset})"
+                else:
+                    expr = f"(m==0) ? {nodata_val} : ({alpha} * ((v + {offset}) ^ P) - {offset})"
+
+            bands_xml.append(f"""
+            <VRTRasterBand dataType="{calc_dtype_name}" subClass="VRTDerivedRasterBand" band="{b}">
+              <PixelFunctionType>expression</PixelFunctionType>
+              <PixelFunctionArguments dialect="muparser" expression="{expr}"/>
+              {f"<NoDataValue>{nodata_val}</NoDataValue>" if nodata_val is not None else ""}
+              <!-- input band v -->
+              <SimpleSource name="v">
+                <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
+                <SourceBand>{b}</SourceBand>
+                <SourceTransferType>{calc_dtype_name}</SourceTransferType>
+                <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+                <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+              </SimpleSource>
+              <!-- parameter surface P: G (linear) or GG (gamma) -->
+              <SimpleSource name="P">
+                <SourceFilename relativeToVRT="0">{param_surfaces[b-1]}</SourceFilename>
+                <SourceBand>1</SourceBand>
+                <SourceTransferType>{calc_dtype_name}</SourceTransferType>
+                <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+                <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+              </SimpleSource>
+              <!-- input mask m (0 = invalid) -->
+              <SimpleSource name="m">
+                <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
+                <SourceBand>mask</SourceBand>
+                <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+                <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
+              </SimpleSource>
+            </VRTRasterBand>""")
+
+        vrt_xml = f"""<VRTDataset rasterXSize="{w}" rasterYSize="{h}">
+        <SRS>{proj_wkt or ''}</SRS>
+        <GeoTransform>{gt[0]}, {gt[1]}, {gt[2]}, {gt[3]}, {gt[4]}, {gt[5]}</GeoTransform>
+        {''.join(bands_xml)}
+        </VRTDataset>"""
+
+        with open(out_vrt, "w", encoding="utf-8") as f:
+            f.write(vrt_xml)
+
+        # --- translate to output -------------------------------------------------
+        if os.path.exists(out_path):
+            try:
+                gdal.Unlink(out_path)
+            except Exception:
+                pass
+
+        window_size = _resolve_window_size(window_size, img_path, debug_logs)
+        driver_name = "COG" if save_as_cog and gdal.GetDriverByName("COG") else "GTiff"
+        co = (["COMPRESS=ZSTD", "LEVEL=9", f"BLOCKSIZE={window_size}", "OVERVIEWS=AUTO", "RESAMPLING=NEAREST"]
+              if driver_name == "COG" else
+              ["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6", "BIGTIFF=IF_SAFER",
+               f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"])
+        if tile_thread_on and driver_name == "GTiff":
+            co.append(f"NUM_THREADS={tile_thread_workers}")
+
+        ods = gdal.Translate(
+            out_path, out_vrt,
+            options=gdal.TranslateOptions(
+                outputType=output_dtype,
+                format=driver_name,
+                creationOptions=co,
+                noData=nodata_val if nodata_val is not None else None,
+                callback=gdal_progress("Writing raster"),
             )
         )
-        if ds_out is None:
-            raise RuntimeError("Warp failed building parameter surface")
-
-    # Build offset if enabled
-    if correction_method == "offset":
-        global_min = np.inf
-        src = gdal.Open(img_path, gdal.GA_ReadOnly)
-        for b in range(1, num_bands + 1):
-            band = src.GetRasterBand(b)
-            min_val, _, _, _ = band.GetStatistics(1 if estimate_stats else 0, 1)
-            global_min = min(global_min, min_val)
-        src = None
-        global_min = min(
-            global_min,
-            np.nanmin(block_reference_mean),
-            np.nanmin(block_local_mean),
-        )
-        offset = abs(global_min) + 1.0 if global_min <= 0 else 0.0
-        offsets = [offset] * num_bands
-
-    # Build full-resolution *single* parameter surfaces
-    param_surfaces = []  # per-band path to VRT of G (linear) or GG (gamma)
-    for b in range(num_bands):
-        ref_blk = block_reference_mean[:, :, b].astype(np.float32, copy=False)
-        loc_blk = block_local_mean[:, :, b].astype(np.float32, copy=False)
-
-        if correction_method == "linear":
-            # G = r / l ; invalid when l==0 or NaN
-            with np.errstate(divide="ignore", invalid="ignore"):
-                param_blk = ref_blk / loc_blk
-        elif correction_method == "gamma":
-            # GG = log(r) / log(l) ; invalid when r<=0 or l<=0
-            with np.errstate(divide="ignore", invalid="ignore"):
-                param_blk = np.log(ref_blk) / np.log(loc_blk)
-        elif correction_method == "offset":
-            offset = offsets[b]
-            with np.errstate(divide="ignore", invalid="ignore"):
-                param_blk = np.log(ref_blk + offset) / np.log(loc_blk + offset)
-
-        # keep invalids as NaN so they propagate
-        param_blk[~np.isfinite(param_blk)] = np.nan
-
-        # write block grid, then warp to image grid
-        param_blk_tif = os.path.join(tmpdir, f"param_block_b{b + 1}.tif")
-        _write_block_raster(param_blk, param_blk_tif)
-        param_full_vrt = os.path.join(tmpdir, f"param_full_b{b + 1}.vrt")
-        _warp_to_image_grid(param_blk_tif, param_full_vrt)
-        param_surfaces.append(param_full_vrt)
-
-        # Debug full resolution adjustments per pixel
-        # gdal.Translate(
-        #     f"/path/to/test/FullResMap_{name}_b{b + 1}.tif",
-        #     param_full_vrt,
-        #     options=gdal.TranslateOptions(format="GTiff")
-        # )
-
-    # --- VRT using the built-in expression pixel function --------------------
-    out_vrt = os.path.join(tmpdir, f"{name}_local_adjust.vrt")
-    calc_dtype_enum = _gdal_dtype_str_to_enum(calculation_dtype)
-    calc_dtype_name = gdal.GetDataTypeName(calc_dtype_enum)
-
-    bands_xml = []
-    for b in range(1, num_bands + 1):
-        if correction_method == "linear":
-            if nodata_val is None:
-                expr = "(v * P)"
-            else:
-                expr = f"(m==0) ? {nodata_val} : (v * P)"
-        elif correction_method == "gamma":  # "gamma"
-            if nodata_val is None:
-                expr = f"({alpha} * (v^P))"
-            else:
-                expr = f"(m==0) ? {nodata_val} : ({alpha} * (v^P))"
-        elif correction_method == "offset":
-            # Apply offset to each band
-            offset = offsets[b - 1]
-            if nodata_val is None:
-                expr = f"({alpha} * ((v + {offset}) ^ P) - {offset})"
-            else:
-                expr = f"(m==0) ? {nodata_val} : ({alpha} * ((v + {offset}) ^ P) - {offset})"
-
-        bands_xml.append(f"""
-        <VRTRasterBand dataType="{calc_dtype_name}" subClass="VRTDerivedRasterBand" band="{b}">
-          <PixelFunctionType>expression</PixelFunctionType>
-          <PixelFunctionArguments dialect="muparser" expression="{expr}"/>
-          {f"<NoDataValue>{nodata_val}</NoDataValue>" if nodata_val is not None else ""}
-          <!-- input band v -->
-          <SimpleSource name="v">
-            <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
-            <SourceBand>{b}</SourceBand>
-            <SourceTransferType>{calc_dtype_name}</SourceTransferType>
-            <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-            <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-          </SimpleSource>
-          <!-- parameter surface P: G (linear) or GG (gamma) -->
-          <SimpleSource name="P">
-            <SourceFilename relativeToVRT="0">{param_surfaces[b-1]}</SourceFilename>
-            <SourceBand>1</SourceBand>
-            <SourceTransferType>{calc_dtype_name}</SourceTransferType>
-            <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-            <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-          </SimpleSource>
-          <!-- input mask m (0 = invalid) -->
-          <SimpleSource name="m">
-            <SourceFilename relativeToVRT="0">{img_path}</SourceFilename>
-            <SourceBand>mask</SourceBand>
-            <SrcRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-            <DstRect xOff="0" yOff="0" xSize="{w}" ySize="{h}"/>
-          </SimpleSource>
-        </VRTRasterBand>""")
-
-    vrt_xml = f"""<VRTDataset rasterXSize="{w}" rasterYSize="{h}">
-    <SRS>{proj_wkt or ''}</SRS>
-    <GeoTransform>{gt[0]}, {gt[1]}, {gt[2]}, {gt[3]}, {gt[4]}, {gt[5]}</GeoTransform>
-    {''.join(bands_xml)}
-    </VRTDataset>"""
-
-    with open(out_vrt, "w", encoding="utf-8") as f:
-        f.write(vrt_xml)
-
-    # --- translate to output -------------------------------------------------
-    if os.path.exists(out_path):
-        try:
-            gdal.Unlink(out_path)
-        except Exception:
-            pass
-
-    window_size = _resolve_window_size(window_size, img_path, debug_logs)
-    driver_name = "COG" if save_as_cog and gdal.GetDriverByName("COG") else "GTiff"
-    co = (["COMPRESS=ZSTD", "LEVEL=9", f"BLOCKSIZE={window_size}", "OVERVIEWS=AUTO", "RESAMPLING=NEAREST"]
-          if driver_name == "COG" else
-          ["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6", "BIGTIFF=IF_SAFER",
-           f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"])
-    if tile_thread_on and driver_name == "GTiff":
-        co.append(f"NUM_THREADS={tile_thread_workers}")
-
-    ods = gdal.Translate(
-        out_path, out_vrt,
-        options=gdal.TranslateOptions(
-            outputType=output_dtype,
-            format=driver_name,
-            creationOptions=co,
-            noData=nodata_val if nodata_val is not None else None,
-            callback=gdal_progress("Writing raster"),
-        )
-    )
-    if ods is None:
-        raise RuntimeError("Failed to write adjusted image")
-    ods = None
-    shutil.rmtree(tmpdir, ignore_errors=True)
+        if ods is None:
+            raise RuntimeError("Failed to write adjusted image")
+        ods = None
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def _get_bounding_rectangle(

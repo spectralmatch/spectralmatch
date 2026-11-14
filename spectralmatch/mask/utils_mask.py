@@ -1,3 +1,4 @@
+from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
@@ -21,6 +22,7 @@ from ..utils import _set_gdal_cache, _set_gdal_workers
 
 @reports_progress(worker_progress=True)
 @uses_executor
+@uses_writing_postfix
 def process_raster_values_to_vector_polygons(
     input_images: Universal.SearchFolderOrListFiles,
     output_vectors: Universal.CreateInFolderOrListFiles,
@@ -40,6 +42,7 @@ def process_raster_values_to_vector_polygons(
     value_mapping: dict | None = None,
     estimate_statistics: bool = True,
     executor=None,
+    validity_writing_postfix: str | None = None,
 ):
     """
     Converts raster values into vector polygons based on an expression and optional filtering logic.
@@ -164,142 +167,144 @@ def _process_image_to_polygons(
         tile_thread_on (bool): Whether to use tiled processing.
         tile_thread_workers (int): Number of worker threads to use for tiled processing.
     """
+    final_output = output_vector_path
+    with writing_outputs(output_vector_path) as (output_vector_path,):
 
 
-    # Open dataset
-    ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
-    xsize, ysize = ds.RasterXSize, ds.RasterYSize
-    gt, srs_wkt = ds.GetGeoTransform(), ds.GetProjectionRef() or ""
-    num_bands = ds.RasterCount
+        # Open dataset
+        ds = gdal.Open(input_image_path, gdal.GA_ReadOnly)
+        xsize, ysize = ds.RasterXSize, ds.RasterYSize
+        gt, srs_wkt = ds.GetGeoTransform(), ds.GetProjectionRef() or ""
+        num_bands = ds.RasterCount
 
-    # Percent substitution: e.g. "5%B1" -> numeric threshold
-    patt = re.compile(r"(\d+(?:\.\d+)?)%B(\d+)")
-    def _sub(m):
-        v = _calculate_threshold_from_percent(
-            input_image_path=input_image_path,
-            threshold=float(m.group(1)),
-            band_index=int(m.group(2)),
-            debug_logs=debug_logs,
-            nodata_value=custom_nodata_value,
-            estimate_statistics=estimate_statistics,
+        # Percent substitution: e.g. "5%B1" -> numeric threshold
+        patt = re.compile(r"(\d+(?:\.\d+)?)%B(\d+)")
+        def _sub(m):
+            v = _calculate_threshold_from_percent(
+                input_image_path=input_image_path,
+                threshold=float(m.group(1)),
+                band_index=int(m.group(2)),
+                debug_logs=debug_logs,
+                nodata_value=custom_nodata_value,
+                estimate_statistics=estimate_statistics,
+            )
+            return str(v)
+        expr_eval = patt.sub(_sub, extraction_expression)
+
+        # VRT with muparser expression
+        xml_expr = (expr_eval.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"))
+        sources = "\n".join(
+            f"    <SimpleSource>\n"
+            f"      <SourceFilename relativeToVRT=\"0\">{input_image_path}</SourceFilename>\n"
+            f"      <SourceBand>{i}</SourceBand>\n"
+            f"      <SrcRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
+            f"      <DstRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
+            f"    </SimpleSource>"
+            for i in range(1, num_bands+1)
         )
-        return str(v)
-    expr_eval = patt.sub(_sub, extraction_expression)
+        vrt_xml = (
+            f"<VRTDataset rasterXSize=\"{xsize}\" rasterYSize=\"{ysize}\">\n"
+            f"  <SRS>{srs_wkt}</SRS>\n"
+            f"  <GeoTransform>{', '.join(str(v) for v in gt)}</GeoTransform>\n"
+            f"  <VRTRasterBand dataType=\"Byte\" band=\"1\" subClass=\"VRTDerivedRasterBand\">\n"
+            + (f"    <NoDataValue>{custom_nodata_value}</NoDataValue>\n" if custom_nodata_value is not None else "")
+            + "    <PixelFunctionType>expression</PixelFunctionType>\n"
+            + f"    <PixelFunctionArguments dialect=\"muparser\" expression=\"{xml_expr}\"/>\n"
+            + sources + "\n  </VRTRasterBand>\n</VRTDataset>\n"
+        )
 
-    # VRT with muparser expression
-    xml_expr = (expr_eval.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"))
-    sources = "\n".join(
-        f"    <SimpleSource>\n"
-        f"      <SourceFilename relativeToVRT=\"0\">{input_image_path}</SourceFilename>\n"
-        f"      <SourceBand>{i}</SourceBand>\n"
-        f"      <SrcRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
-        f"      <DstRect xOff=\"0\" yOff=\"0\" xSize=\"{xsize}\" ySize=\"{ysize}\"/>\n"
-        f"    </SimpleSource>"
-        for i in range(1, num_bands+1)
-    )
-    vrt_xml = (
-        f"<VRTDataset rasterXSize=\"{xsize}\" rasterYSize=\"{ysize}\">\n"
-        f"  <SRS>{srs_wkt}</SRS>\n"
-        f"  <GeoTransform>{', '.join(str(v) for v in gt)}</GeoTransform>\n"
-        f"  <VRTRasterBand dataType=\"Byte\" band=\"1\" subClass=\"VRTDerivedRasterBand\">\n"
-        + (f"    <NoDataValue>{custom_nodata_value}</NoDataValue>\n" if custom_nodata_value is not None else "")
-        + "    <PixelFunctionType>expression</PixelFunctionType>\n"
-        + f"    <PixelFunctionArguments dialect=\"muparser\" expression=\"{xml_expr}\"/>\n"
-        + sources + "\n  </VRTRasterBand>\n</VRTDataset>\n"
-    )
+        tmpdir = tempfile.mkdtemp(prefix="poly_")
+        vrt_path = os.path.join(tmpdir, "mask.vrt")
+        with open(vrt_path, "w", encoding="utf-8") as f: f.write(vrt_xml)
 
-    tmpdir = tempfile.mkdtemp(prefix="poly_")
-    vrt_path = os.path.join(tmpdir, "mask.vrt")
-    with open(vrt_path, "w", encoding="utf-8") as f: f.write(vrt_xml)
+        # Translate mask
+        co = ["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6", "BIGTIFF=IF_SAFER"]
+        if tile_thread_on:
+            co.append(f"NUM_THREADS={tile_thread_workers}")
 
-    # Translate mask
-    co = ["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6", "BIGTIFF=IF_SAFER"]
-    if tile_thread_on:
-        co.append(f"NUM_THREADS={tile_thread_workers}")
+        mask_tif = os.path.join(tmpdir, "mask.tif")
+        if os.path.exists(mask_tif):
+            try:
+                gdal.Unlink(mask_tif)
+            except:
+                pass
 
-    mask_tif = os.path.join(tmpdir, "mask.tif")
-    if os.path.exists(mask_tif):
-        try:
-            gdal.Unlink(mask_tif)
-        except:
-            pass
+        out_ds = gdal.Translate(
+            mask_tif, vrt_path,
+            options=gdal.TranslateOptions(
+                format="GTiff",
+                creationOptions=co,
+                bandList=[1],
+                noData=0 if custom_nodata_value is None else custom_nodata_value,
+                outputType=gdal.GDT_Byte,
+                callback=gdal_progress("Writing raster"),
+            ),
+        )
 
-    out_ds = gdal.Translate(
-        mask_tif, vrt_path,
-        options=gdal.TranslateOptions(
-            format="GTiff",
-            creationOptions=co,
-            bandList=[1],
-            noData=0 if custom_nodata_value is None else custom_nodata_value,
-            outputType=gdal.GDT_Byte,
-            callback=gdal_progress("Writing raster"),
-        ),
-    )
+        if out_ds is None: raise RuntimeError("Failed to materialize mask")
+        out_ds = None
 
-    if out_ds is None: raise RuntimeError("Failed to materialize mask")
-    out_ds = None
+        # Polygonize non-zero values; write to GPKG
+        if os.path.exists(output_vector_path):
+            try: os.remove(output_vector_path)
+            except: pass
 
-    # Polygonize non-zero values; write to GPKG
-    if os.path.exists(output_vector_path):
-        try: os.remove(output_vector_path)
-        except: pass
+        drv = ogr.GetDriverByName("GPKG")
+        vds = drv.CreateDataSource(output_vector_path)
+        srs = osr.SpatialReference()
+        if srs_wkt: srs.ImportFromWkt(srs_wkt)
+        layer = vds.CreateLayer("mask", srs=srs, geom_type=ogr.wkbPolygon)
+        layer.CreateField(ogr.FieldDefn("value", ogr.OFTInteger))
 
-    drv = ogr.GetDriverByName("GPKG")
-    vds = drv.CreateDataSource(output_vector_path)
-    srs = osr.SpatialReference()
-    if srs_wkt: srs.ImportFromWkt(srs_wkt)
-    layer = vds.CreateLayer("mask", srs=srs, geom_type=ogr.wkbPolygon)
-    layer.CreateField(ogr.FieldDefn("value", ogr.OFTInteger))
+        rds = gdal.Open(mask_tif, gdal.GA_ReadOnly)
+        band = rds.GetRasterBand(1)
+        gdal.Polygonize(srcBand=band, maskBand=None, outLayer=layer, iPixValField=layer.GetLayerDefn().GetFieldIndex("value"), callback=gdal_progress("Polygonizing raster"))
 
-    rds = gdal.Open(mask_tif, gdal.GA_ReadOnly)
-    band = rds.GetRasterBand(1)
-    gdal.Polygonize(srcBand=band, maskBand=None, outLayer=layer, iPixValField=layer.GetLayerDefn().GetFieldIndex("value"), callback=gdal_progress("Polygonizing raster"))
+        # Area filter
+        def _apply_mapping_feat(feat):
+            if not value_mapping: return True
+            val = feat.GetField("value")
+            if val in value_mapping:
+                new = value_mapping[val]
+                if new is None: return False
+                feat.SetField("value", int(new))
+            return True
 
-    # Area filter
-    def _apply_mapping_feat(feat):
-        if not value_mapping: return True
-        val = feat.GetField("value")
-        if val in value_mapping:
-            new = value_mapping[val]
-            if new is None: return False
-            feat.SetField("value", int(new))
-        return True
+        def _area_ok(geom_area, areas):
+            if not filter_by_polygon_size: return True
+            m = re.match(r"([<>]=?|==|!=)\s*(\d+(?:\.\d+)?%?)", filter_by_polygon_size.strip())
+            if not m: raise ValueError(f"Invalid filter_by_polygon_size: {filter_by_polygon_size}")
+            op, raw = m.groups()
+            thr = np.percentile(areas, float(raw[:-1])) if raw.endswith("%") else float(raw)
+            return {
+                "<":  lambda a: a <  thr, "<=": lambda a: a <= thr,
+                ">":  lambda a: a >  thr, ">=": lambda a: a >= thr,
+                "==": lambda a: a == thr, "!=": lambda a: a != thr,
+            }[op](geom_area)
 
-    def _area_ok(geom_area, areas):
-        if not filter_by_polygon_size: return True
-        m = re.match(r"([<>]=?|==|!=)\s*(\d+(?:\.\d+)?%?)", filter_by_polygon_size.strip())
-        if not m: raise ValueError(f"Invalid filter_by_polygon_size: {filter_by_polygon_size}")
-        op, raw = m.groups()
-        thr = np.percentile(areas, float(raw[:-1])) if raw.endswith("%") else float(raw)
-        return {
-            "<":  lambda a: a <  thr, "<=": lambda a: a <= thr,
-            ">":  lambda a: a >  thr, ">=": lambda a: a >= thr,
-            "==": lambda a: a == thr, "!=": lambda a: a != thr,
-        }[op](geom_area)
+        # Precompute areas for percentile filter
+        areas = []
+        if filter_by_polygon_size:
+            for f in layer:
+                g = f.GetGeometryRef()
+                if g: areas.append(g.GetArea())
+            layer.ResetReading()
 
-    # Precompute areas for percentile filter
-    areas = []
-    if filter_by_polygon_size:
+        del_ids = []
         for f in layer:
             g = f.GetGeometryRef()
-            if g: areas.append(g.GetArea())
+            if g is None: del_ids.append(f.GetFID()); continue
+            # drop zeros
+            if f.GetField("value") == 0: del_ids.append(f.GetFID()); continue
+            if not _apply_mapping_feat(f): del_ids.append(f.GetFID()); continue
+            if filter_by_polygon_size and not _area_ok(g.GetArea(), areas): del_ids.append(f.GetFID()); continue
+            if polygon_buffer:
+                buf = g.Buffer(polygon_buffer)
+                if buf is None or buf.IsEmpty(): del_ids.append(f.GetFID()); continue
+                f.SetGeometry(buf)
+            layer.SetFeature(f)
         layer.ResetReading()
+        for fid in del_ids: layer.DeleteFeature(fid)
 
-    del_ids = []
-    for f in layer:
-        g = f.GetGeometryRef()
-        if g is None: del_ids.append(f.GetFID()); continue
-        # drop zeros
-        if f.GetField("value") == 0: del_ids.append(f.GetFID()); continue
-        if not _apply_mapping_feat(f): del_ids.append(f.GetFID()); continue
-        if filter_by_polygon_size and not _area_ok(g.GetArea(), areas): del_ids.append(f.GetFID()); continue
-        if polygon_buffer:
-            buf = g.Buffer(polygon_buffer)
-            if buf is None or buf.IsEmpty(): del_ids.append(f.GetFID()); continue
-            f.SetGeometry(buf)
-        layer.SetFeature(f)
-    layer.ResetReading()
-    for fid in del_ids: layer.DeleteFeature(fid)
-
-    rds = None; vds = None; ds = None
-    shutil.rmtree(tmpdir, ignore_errors=True)
+        rds = None; vds = None; ds = None
+        shutil.rmtree(tmpdir, ignore_errors=True)
