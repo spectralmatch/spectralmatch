@@ -315,7 +315,7 @@ class JointCoregistration:
         input_images_bands=[1],
         fixed_images_bands=[1],
         tie_sampling_method="overlap_spread",
-        tie_max_samples="1/100crs", tie_min_samples="1/500crs", tie_max_attempts=None,
+        tie_max_samples="500crs", tie_min_samples="1000crs", tie_max_attempts=None,
     ):
         from .overlap_sampling import validate_sampling
         validate_sampling(tie_sampling_method, tie_max_samples, tie_min_samples, tie_max_attempts)

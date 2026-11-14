@@ -15,15 +15,19 @@ def parse_sample_quota(value, name):
     """Return an absolute count or (count, square side length) density."""
     if isinstance(value, int) and not isinstance(value, bool) and value > 0:
         return value
+    text = value.strip() if isinstance(value, str) else ""
+    count_match = re.fullmatch(r'([0-9]+)cnt', text)
+    if count_match and int(count_match[1]) > 0:
+        return int(count_match[1])
     number = r'(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?'
-    match = re.fullmatch(rf'({number})/({number})crs', value.strip()) if isinstance(value, str) else None
+    match = re.fullmatch(rf'({number})crs', text)
     if match:
-        count, side = map(float, match.groups())
+        count, side = 1.0, float(match[1])
         if all(math.isfinite(v) and v > 0 for v in (count, side)):
             density = count / side / side
             if math.isfinite(density) and density > 0:
                 return count, side
-    raise ValueError(f'{name} must be a positive integer or a density such as "1/100crs" (one pair per 100 x 100 CRS-unit square).')
+    raise ValueError(f'{name} must be a positive integer, a count such as "1cnt", or a density such as "500crs" (one pair per 500 x 500 CRS-unit square).')
 
 
 def validate_sampling(method, maximum, minimum, attempts):

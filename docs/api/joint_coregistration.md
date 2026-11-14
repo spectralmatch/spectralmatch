@@ -1,7 +1,7 @@
 # Joint coregistration
 
 Joint alignment and global matching both default to `tie_sampling_method="overlap_spread"`,
-with `tie_max_samples="1/100crs"` and `tie_min_samples="1/500crs"`.
+with `tie_max_samples="500crs"` and `tie_min_samples="1000crs"`.
 
 ## Optional grid-distributed ORB matching
 
@@ -222,9 +222,11 @@ canonical basename order. In `pipeline`, use
 Alignment defaults to `tie_sampling_method="overlap_spread"`, using the
 same valid-area subdivision as global matching. Select `"grid"` to restore
 the regular search grid.
-The optional `tie_max_samples="1/100crs"` and `tie_min_samples="1/500crs"`
-count accepted matched-point pairs per valid overlap. `"N/Dcrs"` resolves to
-`ceil(area * N / D**2)`; positive integer counts are also supported. Alignment
+The optional `tie_max_samples="500crs"` and `tie_min_samples="1000crs"`
+count accepted matched-point pairs per valid overlap. `"500crs"` resolves to
+`ceil(valid_overlap_area / 500**2)`; `"1cnt"` specifies a fixed count of one.
+Positive integer counts are also supported. Fraction-form strings are rejected.
+Alignment
 requires at least one pair. `tie_max_attempts=None` uses a finite search-center
 budget of `max(100, 10 * resolved_goal)`; a positive integer overrides it.
 The search aims for the maximum, accepts a result between minimum and maximum,

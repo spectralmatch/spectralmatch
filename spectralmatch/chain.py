@@ -105,8 +105,8 @@ def pipeline(
     joint_coregistration_fixed_on_no_or_partial_overlap: Literal["error", "no_influence", "partial_influence"] = "partial_influence",
     joint_coregistration_fixed_tie_method: Literal["orb", "elastix"] = "elastix",
     joint_coregistration_tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
-    joint_coregistration_tie_max_samples: int | str = "1/100crs",
-    joint_coregistration_tie_min_samples: int | str = "1/500crs",
+    joint_coregistration_tie_max_samples: int | str = "500crs",
+    joint_coregistration_tie_min_samples: int | str = "1000crs",
     joint_coregistration_tie_max_attempts: int | None = None,
     joint_coregistration_tie_grid_spacing: float = 500.0,
     joint_coregistration_tie_search_radius: str = "128px",
@@ -144,8 +144,8 @@ def pipeline(
     global_regression_save_adjustments: str | None = None,
     global_regression_load_adjustments: str | None = None,
     global_regression_tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
-    global_regression_tie_max_samples: int | str = "1/100crs",
-    global_regression_tie_min_samples: int | str = "1/500crs",
+    global_regression_tie_max_samples: int | str = "500crs",
+    global_regression_tie_min_samples: int | str = "1000crs",
     global_regression_tie_max_attempts: int | None = None,
     global_regression_pif_method: Literal["entire", "flood_from_match_points"] = "flood_from_match_points",
     global_regression_pif_red_band_index: int | None = None,
@@ -271,12 +271,12 @@ def pipeline(
         joint_coregistration_fixed_images_bands: One-based reference matching bands; default [1]. Multiple bands are averaged into grayscale.
         joint_coregistration_fixed_on_no_or_partial_overlap: Valid-data coverage policy: partial_influence (default), no_influence, or error.
         joint_coregistration_tie_sampling_method: Search placement, default 'overlap_spread'; 'grid' or 'overlap_spread'.
-        joint_coregistration_tie_max_samples: Accepted matched-pair goal for overlap_spread; default '1/100crs' (one per 100 x 100 square CRS units).
-        joint_coregistration_tie_min_samples: Required accepted matched pairs for overlap_spread; default '1/500crs'.
+        joint_coregistration_tie_max_samples: Accepted matched-pair goal for overlap_spread; default '500crs' (one per 500 x 500 square CRS units).
+        joint_coregistration_tie_min_samples: Required accepted matched pairs for overlap_spread; default '1000crs'.
         joint_coregistration_tie_max_attempts: Search-center limit; None uses max(100, 10 * resolved goal).
         global_regression_tie_sampling_method: Search placement, default 'overlap_spread'; 'grid' or 'overlap_spread'.
-        global_regression_tie_max_samples: Accepted matched-pair goal for overlap_spread; default '1/100crs' (one per 100 x 100 square CRS units).
-        global_regression_tie_min_samples: Required accepted matched pairs for overlap_spread; default '1/500crs'.
+        global_regression_tie_max_samples: Accepted matched-pair goal for overlap_spread; default '500crs' (one per 500 x 500 square CRS units).
+        global_regression_tie_min_samples: Required accepted matched pairs for overlap_spread; default '1000crs'.
         global_regression_tie_max_attempts: Search-center limit; None uses max(100, 10 * resolved goal).
         joint_coregistration_tie_grid_spacing: Positive CRS-unit distance between ORB search centers; default 500.0; independent of joint_coregistration_local_grid_spacing.
         joint_coregistration_tie_search_radius: Square ORB read-window half-width as a positive number followed by 'crs' or 'px'. Default '128px' uses the coarser input resolution, giving approximately 256-by-256-pixel windows before overlap clipping.

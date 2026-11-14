@@ -128,8 +128,8 @@ def joint_coregistration(
     fixed_on_no_or_partial_overlap: Literal["error", "no_influence", "partial_influence"] = "partial_influence",
     fixed_tie_method: Literal["orb", "elastix"] = "elastix",
     tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
-    tie_max_samples: int | str = "1/100crs",
-    tie_min_samples: int | str = "1/500crs",
+    tie_max_samples: int | str = "500crs",
+    tie_min_samples: int | str = "1000crs",
     tie_max_attempts: int | None = None,
     tie_grid_spacing: float = 500.0,
     tie_search_radius: str = "128px",
@@ -186,8 +186,8 @@ def joint_coregistration(
         fixed_on_no_or_partial_overlap: "partial_influence" (default) uses fixed-reference ties only at valid reference pixels. "no_influence" drops direct fixed-reference pairs for moving images not fully covered by the combined valid reference footprint; moving-to-moving ties remain, including indirect reference influence. "error" requires full valid-data coverage. Coverage checks use valid moving pixel centres, not rectangular bounds. Disconnected moving components may align without a reference; a fixed-image alignment with no usable ties at all still errors. Ignored without fixed_images.
         fixed_tie_method: Matcher for pairs involving fixed_images: 'orb' or 'elastix' (default). Unused without fixed_images; it does not load Elastix unless a pair needs matching.
         tie_sampling_method: Default 'overlap_spread' places centers in shared valid pixels by largest-area subdivision; 'grid' uses tie_grid_spacing.
-        tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer or density, default '1/100crs' (one pair per 100 x 100 square CRS units).
-        tie_min_samples: Required accepted matched pairs for overlap_spread, default '1/500crs'; alignment needs at least one tie.
+        tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer, count string (e.g. 1cnt), or density, default '500crs' (one pair per 500 x 500 square CRS units).
+        tie_min_samples: Required accepted matched pairs for overlap_spread, default '1000crs'; alignment needs at least one tie.
         tie_max_attempts: Maximum search centers for overlap_spread; None uses max(100, 10 * resolved tie_max_samples). Exhaustion succeeds only if the minimum was met.
         tie_grid_spacing: Positive CRS-unit distance between search-window centers in each pair's overlap; default 500.0; independent of local_model and local_grid_spacing.
         tie_search_radius: Positive number with a unit suffix, e.g. '100crs' or '128px' (default); square window half-width; 'px' uses the coarser input resolution.
@@ -601,7 +601,7 @@ def _collect_ties(
     skip_overlap_when_not_enough_matches=False,
     fixed_images=(),
     fixed_feature_method="elastix",
-    sampling_method="grid", max_samples="1/100crs", min_samples="1/500crs", max_attempts=None,
+    sampling_method="grid", max_samples="500crs", min_samples="1000crs", max_attempts=None,
 ):
     fixed_names = set(fixed_images)
     current_pairs = {_canonical_pair(*pair) for pair in overlaps}
@@ -692,7 +692,7 @@ def _extract_pair_ties(
     info_i, info_j, feature_method, maximum_displacement, ransac_threshold, debug_logs,
     grid_spacing=500.0, search_radius="128px",
     tie_orb_max_features=100, tie_max_matches_per_window=1, fixed_images=(),
-    sampling_method="grid", max_samples="1/100crs", min_samples="1/500crs", max_attempts=None,
+    sampling_method="grid", max_samples="500crs", min_samples="1000crs", max_attempts=None,
     required_ties=1, source_ties=None, skip_overlap_when_not_enough_matches=False,
 ):
     import cv2

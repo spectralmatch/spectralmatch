@@ -190,8 +190,8 @@ class Match:
         pif_stats_scope: Literal["overlap", "matched_windows"] = "overlap",
         pif_window_size: int = 257,
         tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
-        tie_max_samples: int | str = "1/100crs",
-        tie_min_samples: int | str = "1/500crs",
+        tie_max_samples: int | str = "500crs",
+        tie_min_samples: int | str = "1000crs",
         tie_max_attempts: int | None = None,
         tie_grid_spacing: float = 500.0,
         tie_search_radius: str = "128px",
@@ -244,8 +244,8 @@ Args:
         'matched_windows' uses only bounded tie-point windows, including the PIF model statistics.
     pif_window_size: Odd window side length in overlap pixels; default 257. Applies to matched_windows.
     tie_sampling_method: 'overlap_spread' places centers in shared valid pixels by largest-area subdivision; 'grid' uses tie_grid_spacing.
-    tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer or density, default '1/100crs' (one pair per 100 x 100 square CRS units).
-    tie_min_samples: Required accepted matched pairs for overlap_spread, default '1/500crs'; PIF extraction always needs at least three ties. These are separate from stable PIF pixel limits.
+    tie_max_samples: Accepted matched-pair goal for overlap_spread; positive integer, count string (e.g. 1cnt), or density, default '500crs' (one pair per 500 x 500 square CRS units).
+    tie_min_samples: Required accepted matched pairs for overlap_spread, default '1000crs'; PIF extraction always needs at least three ties. These are separate from stable PIF pixel limits.
     tie_max_attempts: Maximum search centers for overlap_spread; None uses max(100, 10 * resolved tie_max_samples). Exhaustion succeeds only if the minimum was met.
     tie_grid_spacing: Grid-method search spacing in CRS units; default 500.
     tie_search_radius: Search window half-width; default '128px', as in joint_coregistration.

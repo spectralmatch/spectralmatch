@@ -1,12 +1,14 @@
 """Match windows placed by largest-valid-area subdivision."""
 import math
 import os
+from time import monotonic
 
 import numpy as np
 from osgeo import gdal
 
 from ..overlap_sampling import InsufficientTieSamples, resolve_sample_limits, spread_centers
 from ..utils_logging import _print_line
+from ..utils_progress import current_callback, progress, progress_context
 
 
 def _shared_mask(reference, sensed, info_i, info_j, tmpdir):
@@ -15,12 +17,15 @@ def _shared_mask(reference, sensed, info_i, info_j, tmpdir):
     height = min(reference.RasterYSize, sensed.RasterYSize)
     mask = np.memmap(os.path.join(tmpdir, 'shared_valid.bin'), mode='w+', dtype=np.bool_, shape=(height, width))
     count = 0
-    for y in range(0, height, 512):
-        for x in range(0, width, 1024):
-            window = (x, y, min(1024, width - x), min(512, height - y))
-            valid = _build_overlap_valid_mask(reference, sensed, window, info_i.matching_bands, info_j.matching_bands)
-            mask[y:y + window[3], x:x + window[2]] = valid
-            count += int(np.count_nonzero(valid))
+    with progress(total=math.ceil(height / 512) * math.ceil(width / 1024),
+                  desc="Reading valid overlap", unit="blocks") as bar:
+        for y in range(0, height, 512):
+            for x in range(0, width, 1024):
+                window = (x, y, min(1024, width - x), min(512, height - y))
+                valid = _build_overlap_valid_mask(reference, sensed, window, info_i.matching_bands, info_j.matching_bands)
+                mask[y:y + window[3], x:x + window[2]] = valid
+                count += int(np.count_nonzero(valid))
+                bar.update(1)
     transform = reference.GetGeoTransform()
     pixel_area = abs(transform[1] * transform[5] - transform[2] * transform[4])
     return mask, count * pixel_area
@@ -72,50 +77,67 @@ def extract_spread_ties(info_i, info_j, feature_method, maximum_displacement, th
             _print_line(f'Skipping overlap {info_i.name} <-> {info_j.name}: no shared valid pixels.')
             return None  # Distinct from an overlap with valid data but insufficient matches.
         goal, required = resolve_sample_limits(area, maximum, minimum, required)
-        transform = reference.GetGeoTransform()
-        if source_ties is not None:
-            selected = _drop_duplicate_ties(_valid_endpoints(np.asarray(source_ties, dtype=float).reshape(-1, 4), mask, transform, info_i, info_j))
-            attempts, reason = 0, 'loaded tie cache'
-        else:
-            # A finite retry budget keeps featureless overlaps from searching
-            # billions of pixel centers. It is independent of accepted quotas.
-            budget = max_attempts if max_attempts is not None else max(100, 10 * goal)
-            candidates, centers = [], []
-            selected = np.empty((0, 4), dtype=float)
-            attempts, reason = 0, 'valid search centers exhausted'
-            batch = max(1, min(1024, goal // 4))
-            sizes = (math.hypot(transform[1], transform[4]), math.hypot(transform[2], transform[5]))
-            for row, col in spread_centers(mask, sizes):
-                x, y = gdal.ApplyGeoTransform(transform, col + .5, row + .5)
-                points, windows = _extract_grid_pixel_matches(
-                    reference, sensed, info_i, info_j, 500, search_radius,
-                    feature_method, max_features, centers=[(x, y)],
-                )
-                attempts += 1
-                if len(points):
-                    original = _overlap_to_original_pixels(points, transform, info_i, info_j)
-                    original = _valid_endpoints(original, mask, transform, info_i, info_j)
-                    if len(original):
-                        candidates.append(original)
-                        centers.append(np.tile((x, y), (len(original), 1)))
-                if attempts % batch == 0 or attempts == budget:
-                    selected = _accepted(candidates, centers, info_i, info_j, maximum_displacement, threshold, per_window)
-                    if len(selected) >= goal:
-                        reason = 'target reached'
-                        break
-                if attempts >= budget:
-                    reason = f'attempt limit {budget} reached'
-                    break
+        callback = current_callback()
+        def report(**stats):
+            # Average accepted-pair throughput includes rejected/slow searches.
+            stats["rate"] = stats["n"] / stats["elapsed"] if stats["n"] and stats["elapsed"] else None
+            callback(**stats)
+        with progress(total=goal, desc="Accepted tie pairs", unit="pairs",
+                      callback=report if callback is not None else None) as bar:
+            # Window warps/Elastix report their own 0..100% operations. Keep them
+            # from replacing the enclosing pair quota in the active-job display.
+            transform = reference.GetGeoTransform()
+            if source_ties is not None:
+                selected = _drop_duplicate_ties(_valid_endpoints(np.asarray(source_ties, dtype=float).reshape(-1, 4), mask, transform, info_i, info_j))
+                attempts, reason = 0, 'loaded tie cache'
             else:
-                selected = _accepted(candidates, centers, info_i, info_j, maximum_displacement, threshold, per_window)
-        found = len(selected)
-        if debug_logs or found < goal:
-            _print_line(f'overlap_spread {info_i.name} <-> {info_j.name}: {min(found, goal)}/{goal} accepted pairs, '
-                        f'minimum {required}, {attempts} searches, {area:g} square CRS units; {reason}.')
-        if found < required:
-            raise InsufficientTieSamples(f'Not enough overlap_spread matched pairs between {info_i.name} and {info_j.name}: '
-                                         f'{found} found, {required} required (target {goal}; {reason}).')
-        return selected[:goal]
+                # A finite retry budget keeps featureless overlaps from searching
+                # billions of pixel centers. It is independent of accepted quotas.
+                budget = max_attempts if max_attempts is not None else max(100, 10 * goal)
+                candidates, centers = [], []
+                selected = np.empty((0, 4), dtype=float)
+                attempts, reason = 0, 'valid search centers exhausted'
+                batch = max(1, min(1024, goal // 4))
+                last_check = monotonic()
+                sizes = (math.hypot(transform[1], transform[4]), math.hypot(transform[2], transform[5]))
+                for row, col in spread_centers(mask, sizes):
+                    x, y = gdal.ApplyGeoTransform(transform, col + .5, row + .5)
+                    with progress_context(None):
+                        points, windows = _extract_grid_pixel_matches(
+                            reference, sensed, info_i, info_j, 500, search_radius,
+                            feature_method, max_features, centers=[(x, y)],
+                        )
+                    attempts += 1
+                    if len(points):
+                        original = _overlap_to_original_pixels(points, transform, info_i, info_j)
+                        original = _valid_endpoints(original, mask, transform, info_i, info_j)
+                        if len(original):
+                            candidates.append(original)
+                            centers.append(np.tile((x, y), (len(original), 1)))
+                    if attempts % batch == 0 or attempts == budget or monotonic() - last_check >= 1:
+                        selected = _accepted(candidates, centers, info_i, info_j, maximum_displacement, threshold, per_window)
+                        last_check = monotonic()
+                        bar.n = min(len(selected), goal)
+                        bar.refresh()
+                        if len(selected) >= goal:
+                            reason = 'target reached'
+                            break
+                    bar.refresh()  # Include time spent on rejected search windows.
+                    if attempts >= budget:
+                        reason = f'attempt limit {budget} reached'
+                        break
+                else:
+                    selected = _accepted(candidates, centers, info_i, info_j, maximum_displacement, threshold, per_window)
+            found = len(selected)
+            bar.n = min(found, goal)
+            bar.refresh()
+            if debug_logs or found < goal:
+                _print_line(f'overlap_spread {info_i.name} <-> {info_j.name}: {min(found, goal)}/{goal} accepted pairs, '
+                            f'minimum {required}, {attempts} searches, {area:g} square CRS units; {reason}.')
+            if found < required:
+                raise InsufficientTieSamples(f'Not enough overlap_spread matched pairs between {info_i.name} and {info_j.name}: '
+                                             f'{found} found, {required} required (target {goal}; {reason}).')
+            return selected[:goal]
     finally:
         # Close before the temporary directory is removed (also on Windows).
         mask._mmap.close()

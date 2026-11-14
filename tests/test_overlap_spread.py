@@ -42,38 +42,38 @@ def test_spread_empty_single_pixel_and_memmap(tmp_path):
     mask._mmap.close()
 
 
-@pytest.mark.parametrize('value', [0, -1, True, 1.5, None, '1/0crs', '0/30crs', '1/30m', '1/NaNcrs', '1/1e999crs', 'spam'])
+@pytest.mark.parametrize('value', [0, -1, True, 1.5, None, '1/0crs', '0/30crs', '1/30m', '1/NaNcrs', '1/1e999crs', 'spam', '1/500crs', '5/3crs', '0cnt', '1.5cnt', '-1cnt', '0crs'])
 def test_invalid_quotas(value):
     with pytest.raises(ValueError, match='tie_max_samples'):
         parse_sample_quota(value, 'tie_max_samples')
 
 
 def test_density_square_units_rounding_and_structural_minimum():
-    assert resolve_sample_limits(1e6, '1/100crs', '1/500crs', 3) == (100, 4)
-    assert resolve_sample_limits(19344.8508, '1/100crs', '1/500crs', 3) == (3, 3)
-    assert resolve_sample_limits(19344.8508, '1/100crs', '1/500crs', 1) == (2, 1)
-    assert resolve_sample_limits(19344.8508, '1/30crs', '1/500crs', 3) == (22, 3)
-    assert resolve_sample_limits(18, '5/3crs', 1) == (10, 1)
-    assert resolve_sample_limits(.1, '1/30crs', '1/500crs', 3) == (3, 3)
+    assert resolve_sample_limits(1e6, '100crs', '500crs', 3) == (100, 4)
+    assert resolve_sample_limits(19344.8508, '100crs', '500crs', 3) == (3, 3)
+    assert resolve_sample_limits(19344.8508, '100crs', '500crs', 1) == (2, 1)
+    assert resolve_sample_limits(19344.8508, '30crs', '500crs', 3) == (22, 3)
+    assert resolve_sample_limits(18, '3crs', '1cnt') == (2, 1)
+    assert resolve_sample_limits(.1, '30crs', '500crs', 3) == (3, 3)
     assert resolve_sample_limits(1000, 12, 4) == (12, 4)
     with pytest.raises(ValueError, match='below'):
         resolve_sample_limits(1000, 2, 1, 3)
     with pytest.raises(ValueError, match='below'):
-        resolve_sample_limits(1e6, 5, '1/30crs')
+        resolve_sample_limits(1e6, 5, '30crs')
 
 
 def test_sampling_validation_and_defaults():
     from spectralmatch import pipeline
     assert inspect.signature(pipeline).parameters['joint_coregistration_tie_sampling_method'].default == 'overlap_spread'
     for prefix in ('joint_coregistration', 'global_regression'):
-        assert inspect.signature(pipeline).parameters[prefix + '_tie_max_samples'].default == '1/100crs'
+        assert inspect.signature(pipeline).parameters[prefix + '_tie_max_samples'].default == '500crs'
     for f in (joint_coregistration, global_regression):
         params = inspect.signature(f).parameters
         assert params['tie_sampling_method'].default == 'overlap_spread'
-        assert params['tie_max_samples'].default == '1/100crs'
-        assert params['tie_min_samples'].default == '1/500crs'
+        assert params['tie_max_samples'].default == '500crs'
+        assert params['tie_min_samples'].default == '1000crs'
     for args in [('bad', 5, 1, None), ('overlap_spread', 1, 2, None),
-                 ('overlap_spread', '1/500crs', '1/30crs', None), ('grid', 10, 1, 0)]:
+                 ('overlap_spread', '500crs', '30crs', None), ('grid', 10, 1, 0)]:
         with pytest.raises(ValueError):
             validate_sampling(*args)
 
@@ -188,7 +188,7 @@ def test_pipeline_forwards_placement_and_pair_quotas(tmp_path,monkeypatch,step):
         monkeypatch.setattr(chain,'joint_coregistration',capture)
     else:
         monkeypatch.setattr(chain.Match,'global_regression',capture)
-    supplied={f'{step}_tie_sampling_method':'overlap_spread',f'{step}_tie_max_samples':'5/3crs',
+    supplied={f'{step}_tie_sampling_method':'overlap_spread',f'{step}_tie_max_samples':'500crs',
               f'{step}_tie_min_samples':3,f'{step}_tie_max_attempts':19}
     chain.pipeline(shared_input_images=[i.path for i in infos],shared_output_image_path=str(tmp_path/'out'),
                    shared_temp_dir=str(tmp_path/'work'),steps=(step,),**supplied)
@@ -232,3 +232,53 @@ def test_joint_alignment_dispatches_to_spread_by_default(tmp_path, monkeypatch):
         with gdal.Open(output) as dataset:
             assert dataset.RasterCount == 1
             assert dataset.GetRasterBand(1).GetMaskBand().ReadAsArray().any()
+
+
+@pytest.mark.parametrize('text,expected', [('500crs', (1.0, 500.0)), ('1000crs', (1.0, 1000.0)),
+    ('2.5crs', (1.0, 2.5)), ('1cnt', 1), ('24cnt', 24), (7, 7)])
+def test_short_density_and_count_syntax(text, expected):
+    assert parse_sample_quota(text, 'tie_max_samples') == expected
+
+
+def test_default_quota_is_an_area_total_not_a_per_cell_requirement():
+    assert resolve_sample_limits(1_000_000, '500crs', '1000crs') == (4, 1)
+    assert resolve_sample_limits(1_000_000, '500crs', '1000crs', required=3) == (4, 3)
+    assert resolve_sample_limits(100_000, '500crs', '1000crs', required=3) == (3, 3)
+
+
+def test_accepted_ties_report_live_quota_without_nested_raster_percentages(tmp_path):
+    from spectralmatch.utils_progress import progress_context
+    infos, _ = images(tmp_path)
+    updates = []
+    with progress_context(lambda **stats: updates.append(stats)):
+        result = extract(infos)
+    first = next(i for i, v in enumerate(updates) if v['prefix'] == 'Accepted tie pairs')
+    matching = updates[first:]
+    assert matching[0]['n'] == 0 and matching[-1]['n'] == len(result) == 5
+    assert any(0 < item['n'] < 5 for item in matching)
+    assert all(item['prefix'] == 'Accepted tie pairs' and item['total'] == 5 and item['unit'] == 'pairs'
+               for item in matching)
+    assert all(item['rate'] is None if item['n'] == 0 else item['rate'] > 0 for item in matching)
+
+
+def test_rejected_searches_do_not_advance_accepted_pair_progress(tmp_path):
+    from spectralmatch.utils_progress import progress_context
+    infos, _ = images(tmp_path, constant=True)
+    updates = []
+    with progress_context(lambda **stats: updates.append(stats)):
+        with pytest.raises(InsufficientTieSamples):
+            extract(infos, max_attempts=4)
+    matching = [s for s in updates if s['prefix'] == 'Accepted tie pairs']
+    assert len(matching) >= 4
+    assert all(s['n'] == 0 and s['total'] == 5 and s['rate'] is None for s in matching)
+
+
+def test_cached_ties_short_of_target_keep_actual_count(tmp_path):
+    from spectralmatch.utils_progress import progress_context
+    infos, _ = images(tmp_path)
+    updates = []
+    source = np.array([[50, 50, 50, 50], [180, 50, 180, 50], [50, 200, 50, 200]], dtype=float)
+    with progress_context(lambda **stats: updates.append(stats)):
+        result = extract(infos, source_ties=source, max_samples='8cnt', min_samples='3cnt')
+    assert len(result) == 3
+    assert updates[-1]['n'] == 3 and updates[-1]['total'] == 8
