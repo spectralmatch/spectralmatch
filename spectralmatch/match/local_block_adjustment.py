@@ -570,6 +570,7 @@ def _calculate_block_process_image(
             vector_mask=vector_mask, nodata_value=nodata_value,
             out_dir=tmpdir, debug_logs=debug_logs,
             create_vrt=_create_masked_vrt,
+            tile_threads=tile_thread_workers if tile_thread_on else None,
         )
         return _calculate_blocks_from_masked_image(
             name, masked_path, bounds_canvas_coords, num_row, num_col, num_bands,

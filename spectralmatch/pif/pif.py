@@ -1,4 +1,5 @@
 from spectralmatch.utils_multiprocessing import uses_executor
+from .mask_windows import seed_mask, sample_mask
 from ..utils_progress import gdal_progress
 from ..utils_progress import reports_progress
 import os
@@ -584,6 +585,7 @@ def _calculate_pair_pif_stats(
                 gt,
                 projection,
                 tmpdir,
+                count=pif_count,
             )
             pif_count = _count_mask_pixels(pif_mask_path)
         if debug_logs:
@@ -1040,39 +1042,10 @@ def _build_seed_mask_raster(
 ) -> str:
     if seed_points.size == 0:
         raise ValueError("No conjugate seed points available for PIF extraction.")
-    import cv2
-
-    mask = np.zeros((height, width), dtype=np.uint8)
-    valid_rows = (seed_points[:, 0] >= 0) & (seed_points[:, 0] < height)
-    valid_cols = (seed_points[:, 1] >= 0) & (seed_points[:, 1] < width)
-    valid_points = seed_points[valid_rows & valid_cols]
-    if valid_points.size == 0:
-        raise ValueError("Conjugate seed points fall outside the overlap raster.")
-    mask[valid_points[:, 0], valid_points[:, 1]] = 1
-
-    radius = max(0, int(radius))
-    if radius > 0:
-        kernel = np.ones((2 * radius + 1, 2 * radius + 1), dtype=np.uint8)
-        mask = cv2.dilate(mask, kernel, iterations=1)
-
-    output_path = os.path.join(tmpdir, "seed_mask.tif")
-    driver = gdal.GetDriverByName("GTiff")
-    ds = driver.Create(
-        output_path,
-        width,
-        height,
-        1,
-        gdal.GDT_Byte,
-        options=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+    return seed_mask(
+        seed_points, width, height, gt, projection, radius,
+        os.path.join(tmpdir, "seed_windows.json"), os.path.join(tmpdir, "seed_mask.tif"),
     )
-    if ds is None:
-        raise RuntimeError(f"Failed to create seed mask raster: {output_path}")
-    ds.SetGeoTransform(gt)
-    if projection:
-        ds.SetProjection(projection)
-    ds.GetRasterBand(1).WriteArray(mask)
-    ds = None
-    return output_path
 
 
 def _combine_masks_raster(
@@ -1128,35 +1101,13 @@ def _sample_mask_raster(
     gt,
     projection: str,
     tmpdir: str,
+    *,
+    count: int | None = None,
 ) -> str:
-    mask = _read_mask(mask_path)
-    valid_indices = np.flatnonzero(mask)
-    if valid_indices.size <= max_samples:
-        return mask_path
-
-    sampled = np.zeros(mask.size, dtype=np.uint8)
-    keep_positions = np.linspace(0, valid_indices.size - 1, max_samples, dtype=int)
-    sampled[valid_indices[keep_positions]] = 1
-    sampled = sampled.reshape(mask.shape)
-
-    output_path = os.path.join(tmpdir, "sampled_pif_mask.tif")
-    driver = gdal.GetDriverByName("GTiff")
-    ds = driver.Create(
-        output_path,
-        width,
-        height,
-        1,
-        gdal.GDT_Byte,
-        options=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+    return sample_mask(
+        mask_path, max_samples, os.path.join(tmpdir, "sampled_pif_windows.json"),
+        os.path.join(tmpdir, "sampled_pif_mask.tif"), count=count,
     )
-    if ds is None:
-        raise RuntimeError(f"Failed to create sampled PIF mask: {output_path}")
-    ds.SetGeoTransform(gt)
-    if projection:
-        ds.SetProjection(projection)
-    ds.GetRasterBand(1).WriteArray(sampled)
-    ds = None
-    return output_path
 
 
 def _statistics_with_sparse_retry(band, estimate_stats):

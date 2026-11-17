@@ -700,6 +700,7 @@ def _overlap_stats_process_image(
             step_name="global_regression", vector_mask=vector_mask,
             nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
             create_vrt=_create_masked_vrt,
+            tile_threads=tile_thread_workers if tile_thread_on else None,
         )
         return _overlap_stats_from_masked_images(
             tile_thread_on, tile_thread_workers, num_bands, masked_i, masked_j,
@@ -913,6 +914,7 @@ def _whole_stats_process_image(
             step_name="global_regression", vector_mask=vector_mask,
             nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
             create_vrt=_create_masked_vrt,
+            tile_threads=tile_thread_worker if tile_thread_on else None,
         )
         return _whole_stats_from_masked_image(
             tile_thread_on, tile_thread_worker, masked_path, num_bands,

@@ -95,3 +95,28 @@ option; the `entire` method is unaffected.
 The live accepted-tie bar reports accepted pairs / resolved maximum for each overlap.
 Rejected searches do not advance it. A successful overlap may finish below the
 maximum when it meets the minimum and exhausts the search budget.
+
+
+### Sparse PIF masks and memory use
+
+Seed masks are stored as pixel-offset rectangles in temporary `seed_windows.json`.
+Sampling scans bounded row-major windows and keeps the same evenly spaced PIF
+pixel ranks as before; it writes `sampled_pif_windows.json` when subsampling is
+needed. Raster masks remain sparse tiled TIFFs for GDAL statistics. Neither seed
+creation nor sampling allocates a NumPy array for the entire overlap. This does
+not change `stats_scope`: overlap statistics still describe the whole overlap.
+
+`from spectralmatch.pif import save_mask_windows, load_mask_windows` provides
+`save_mask_windows(mask_path, json_path)` and
+`load_mask_windows(json_path, output_path)` for saving/restoring binary masks.
+JSON is an array: grid metadata first, then nonempty windows with `x_offset`,
+`y_offset`, `width`, `height`, and a bit-packed base64 `grid` (big bit order).
+Constant seed rectangles use `fill: 1`. Overlapping windows are unioned.
+Offsets use the saved mask grid; the header includes its transform and CRS.
+For `matched_windows`, that is the packed diagnostic grid, not source-image
+coordinates. Readers/writers stream records rather than loading all grids.
+Temporary JSON files follow the pair's existing temporary-directory lifetime;
+these helpers do not enable automatic resume or change output reuse policy.
+
+Masked VRTs in global and local statistics now honor `tile_threads`, including
+an active thread-balancing budget, instead of unconditionally using all CPUs.

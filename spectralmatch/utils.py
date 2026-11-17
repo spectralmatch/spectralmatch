@@ -1025,8 +1025,10 @@ def _create_masked_vrt(
     nodata_value: Optional[float] = None,
     out_dir: str,
     debug_logs: bool = False,
+    tile_threads: Universal.Threads = None,
 ) -> str:
 
+    _, workers = _resolve_parallel_config(current_tile_threads(tile_threads))
     workdir = out_dir
 
     # Pre-parse mask configuration once
@@ -1046,10 +1048,10 @@ def _create_masked_vrt(
         "dstNodata": nodata_value,
         "cropToCutline": False,
         "resampleAlg": gdal.GRA_NearestNeighbour,
-        "multithread": True,
+        "multithread": workers > 1,
         "warpOptions": [
             "SKIP_NOSOURCE=YES",
-            "NUM_THREADS=ALL_CPUS",
+            f"NUM_THREADS={workers}",
             "UNIFIED_SRC_NODATA=YES",
         ],
     }
@@ -1066,11 +1068,11 @@ def _create_masked_vrt(
     return vrt_path
 
 
-def _create_masked_vrts(image_names, image_paths, *, step_name, vector_mask=None, nodata_value=None, out_dir, debug_logs=False, create_vrt=None):
+def _create_masked_vrts(image_names, image_paths, *, step_name, vector_mask=None, nodata_value=None, out_dir, debug_logs=False, create_vrt=None, tile_threads=None):
     """Create temporary masked VRTs as a named image-processing substep inside the current worker."""
     _print_step_start(f"{step_name} masking")
     output_paths = [os.path.join(out_dir, f"vrt_{name}.vrt") for name in image_names]
-    create = partial(create_vrt or _create_masked_vrt, vector_mask=vector_mask, nodata_value=nodata_value, out_dir=out_dir, debug_logs=debug_logs)
+    create = partial(create_vrt or _create_masked_vrt, vector_mask=vector_mask, nodata_value=nodata_value, out_dir=out_dir, debug_logs=debug_logs, tile_threads=tile_threads)
     return _run_image_tasks(
         create, list(zip(image_names, image_paths)),
         input_paths=image_paths, output_paths=output_paths,
