@@ -1,3 +1,4 @@
+from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
@@ -220,7 +221,7 @@ def _process_image_to_polygons(
         # Translate mask
         co = ["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6", "BIGTIFF=IF_SAFER"]
         if tile_thread_on:
-            co.append(f"NUM_THREADS={tile_thread_workers}")
+            co.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
 
         mask_tif = os.path.join(tmpdir, "mask.tif")
         if os.path.exists(mask_tif):

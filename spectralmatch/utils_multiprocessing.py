@@ -1,3 +1,4 @@
+import inspect
 import multiprocessing as mp
 import os
 import sys
@@ -11,6 +12,7 @@ from .progress_transport import local_worker_progress, dask_worker_progress
 from concurrent.futures import Future, ThreadPoolExecutor, ProcessPoolExecutor, as_completed, wait
 from typing import Tuple, Literal, Callable, Optional
 
+from .utils_thread_balance import current_tile_threads
 from .utils_output import current_output_context
 from .utils_logging import _print_image_completed, _run_logged_image, _image_id
 from .substeps import substep
@@ -51,6 +53,24 @@ def uses_executor(function):
     return wrapped
 
 
+
+def _balanced_task_args(function, args, executor, remaining):
+    """Allocate threads at dispatch, including workers with pre-resolved flags."""
+    allocate = getattr(executor, "tile_threads_for_jobs", None)
+    if allocate is None:
+        return args
+    signature = inspect.signature(function)
+    bound = signature.bind(*args)
+    bound.apply_defaults()
+    for name in ("tile_threads", "tile_thread_workers", "tile_workers"):
+        if name not in bound.arguments:
+            continue
+        if name in ("tile_thread_workers", "tile_workers") and (bound.arguments.get("tile_thread_on") is False or bound.arguments.get("tile_threads_on") is False):
+            continue
+        bound.arguments[name] = allocate(bound.arguments[name], remaining)
+    return bound.args
+
+
 def _run_image_tasks(
     function,
     args,
@@ -73,6 +93,8 @@ def _run_image_tasks(
     """Run tasks, optionally commit each result in a parent callback before logging completion, and collect results in input order."""
     executor = executor if executor is not None else current_executor()
     total = len(args)
+    make_budget = getattr(executor, "image_thread_budget", None)
+    thread_budget = make_budget(total) if make_budget is not None else None
     if len(input_paths) != total or len(output_paths) != total:
         raise ValueError(
             "Each image task must have matching input and output progress paths."
@@ -94,6 +116,8 @@ def _run_image_tasks(
             if collect_results:
                 results[index] = result
             completed += 1
+            if thread_budget is not None:
+                thread_budget.completed()
             phase_row.commit(str(index))
             bar.update(1)
             _print_image_completed(input_paths[index], completed, total, details=details)
@@ -119,9 +143,21 @@ def _run_image_tasks(
                 reporter = stack.enter_context(dask_worker_progress(callback, executor._client))
             futures = {}
             try:
-                for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths)):
-                    futures[executor.submit(_run_logged_image, function, source, destination, arg, phase_row.reporter(reporter, index, _image_id(source)), current_output_context())] = index
-                for future in as_completed(futures):
+                # Keep balancing queues bounded so later jobs receive capacity
+                # released by earlier completions, using this phase's real task count.
+                limit = getattr(executor, "image_worker_limit", total) or total
+                next_index = 0
+                while next_index < total or futures:
+                    while next_index < total and len(futures) < limit:
+                        index = next_index
+                        next_index += 1
+                        source, destination = input_paths[index], output_paths[index]
+                        arg = args[index] if thread_budget is not None else _balanced_task_args(function, args[index], executor, total - completed)
+                        task = (function, source, destination, arg, phase_row.reporter(reporter, index, _image_id(source)), current_output_context())
+                        if thread_budget is not None:
+                            task += (thread_budget,)
+                        futures[executor.submit(_run_logged_image, *task)] = index
+                    future = next(as_completed(futures))
                     index = futures.pop(future)
                     result, details = future.result()
                     commit(index, result, details)
@@ -234,6 +270,7 @@ def _get_executor(
     if concurrent_processing_backend == "dask":
         return _DaskExecutor(dask_scheduler)
 
+    max_workers = current_tile_threads(max_workers)
     if backend == "process":
         return ProcessPoolExecutor(
             max_workers=max_workers,

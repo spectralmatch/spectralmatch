@@ -37,8 +37,8 @@ joint_coregistration(
 
 ## Insufficient matches
 
-`skip_overlap_when_not_enough_matches=False` retains the existing behavior.
-When `True`, a pair with no selected ties is omitted from the alignment graph
+`skip_overlap_when_not_enough_matches=True` is the default.
+Set it to `False` to retain errors for insufficient matches. When `True`, a pair with no selected ties is omitted from the alignment graph
 and saved tie cache, with a warning even when debug logging is off. This also
 omits empty cached pairs without recalculating them. All input images remain in
 the output list. If no usable tie-point pairs remain, the calculation raises an

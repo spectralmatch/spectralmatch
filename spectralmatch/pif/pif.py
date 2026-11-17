@@ -11,7 +11,7 @@ from osgeo import gdal
 
 from ..utils_logging import _print_step_start, _report_image_result, _print_line
 
-from ..joint_coregistration.joint_coregistration import _coregister_overlap, _load_ties
+from ..joint_coregistration.joint_coregistration import _coregister_overlap, _drop_duplicate_point_pairs, _load_ties
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths, _resolve_optional_load_path
 from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal, JointCoregistration
@@ -41,7 +41,7 @@ class Pif:
         region_radius: int = 5,
         max_samples: int | None = 1000,
         min_samples: int | None = 10,
-        skip_overlap_when_not_enough_matches: bool = False,
+        skip_overlap_when_not_enough_matches: bool = True,
         custom_mean_factor: float = 1.0,
         custom_std_factor: float = 1.0,
         feature_method: Literal["orb"] = "orb",
@@ -89,7 +89,7 @@ class Pif:
             region_radius: Integer PIF seed-growth radius in pixels; default 5.
             max_samples: Positive int maximum sampled PIF pixels or None for all; default 1000.
             min_samples: Positive int required PIF pixels or None to disable the minimum; default 10.
-            skip_overlap_when_not_enough_matches: bool, default False; warn and drop only pairs with fewer than three usable ties or insufficient selected PIF samples. Other errors still raise.
+            skip_overlap_when_not_enough_matches: bool, default True; warn and drop only pairs with fewer than three usable ties or insufficient selected PIF samples. Other errors still raise.
             custom_mean_factor: Numeric mean-constraint weight; default 1.0.
             custom_std_factor: Numeric standard-deviation-constraint weight; default 1.0.
             feature_method: 'orb', currently the only feature matcher.
@@ -461,7 +461,7 @@ def _calculate_pair_pif_stats(
     window_size: int = 257,
     estimate_stats: bool = True,
     tie_options: dict | None = None,
-    skip_overlap_when_not_enough_matches: bool = False,
+    skip_overlap_when_not_enough_matches: bool = True,
 ) -> tuple[dict, dict[str, dict[int, dict[str, float | int]]]]:
     with tempfile.TemporaryDirectory(prefix="spectralmatch_pif_") as tmpdir:
         overlap = _build_overlap_vrts(
@@ -506,10 +506,14 @@ def _calculate_pair_pif_stats(
         point_pairs = _source_ties_to_overlap_pairs(
             source_ties, reference_path, sensed_path, ref_vrt, sensed_vrt, None,
         )
+        # Conversion to the overlap grid can collapse distinct subpixel ties.
+        # Apply the warp's uniqueness rule before deciding whether to skip this pair.
+        point_pairs = _drop_duplicate_point_pairs(point_pairs)
         if len(point_pairs) < 3:
             return _insufficient_pair_result(
                 f"Tie-point pair {reference_name} <-> {sensed_name} has fewer than "
-                "3 usable points after overlap validation.",
+                f"3 usable points after overlap validation and duplicate removal "
+                f"({len(point_pairs)} remain).",
                 skip_overlap_when_not_enough_matches,
             )
         seed_mask_override = None

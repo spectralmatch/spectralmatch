@@ -34,8 +34,8 @@ was reached and otherwise raises an insufficient-pairs error. Reaching the
 minimum alone does not stop the search. With `overlap_spread`, pairs with no
 shared valid pixels are always skipped, even when
 `skip_overlap_when_not_enough_matches=False`. This is distinct from an overlap
-with valid pixels but too few accepted matches; that still errors unless the
-skip option is enabled. Skipped pairs are omitted from saved overlap statistics,
+with valid pixels but too few accepted matches; that errors when the
+skip option is disabled. Skipped pairs are omitted from saved overlap statistics,
 and images without a usable neighbor retain identity corrections. A model still
 requires at least one usable pair overall. I/O and unrelated errors still raise.
 
@@ -78,10 +78,10 @@ coordinates in this mode, rather than geographic mosaic coordinates.
 For direct `Pif.flood_from_match_points` calls, the corresponding names are
 `stats_scope`, `window_size` and `estimate_stats`.
 
-Set `skip_overlap_when_not_enough_matches=True` on `global_regression` or
-`Pif.flood_from_match_points` to warn and omit pairs with fewer than three
-usable tie points or fewer than the required PIF samples. The default is
-`False`, which preserves the existing errors. Skipped pairs contribute neither
+`skip_overlap_when_not_enough_matches=True` is the default on `global_regression` and
+`Pif.flood_from_match_points`: warn and omit pairs with fewer than three
+unique usable tie points (after overlap-grid conversion and duplicate removal)
+or fewer than the required PIF samples. Set `False` to raise on these shortages. Skipped pairs contribute neither
 pair statistics nor model constraints and do not appear in saved overlap
 statistics. Their images remain available to other overlaps; images without
 any usable pair keep identity corrections. If no usable pairs remain, the

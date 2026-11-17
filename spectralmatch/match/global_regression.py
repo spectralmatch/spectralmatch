@@ -1,3 +1,4 @@
+from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import writing_outputs
 from ..utils_progress import gdal_progress
 import os
@@ -381,7 +382,7 @@ def _apply_adjustments_process_image(
                     f"BLOCKXSIZE={window_size}",
                     f"BLOCKYSIZE={window_size}",
                 ]
-                if tile_thread_on: co.append(f"NUM_THREADS={tile_thread_workers}")
+                if tile_thread_on: co.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
 
             try:
                 if os.path.exists(output_image_path):
@@ -780,7 +781,7 @@ def _overlap_stats_from_masked_images(
                 xRes=px_w_i, yRes=px_h_i,
                 resampleAlg=gdal.GRIORA_NearestNeighbour,
                 multithread=tile_thread_on,
-                warpOptions=(["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
+                warpOptions=(["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"] + ([f"NUM_THREADS={current_tile_threads(tile_thread_workers)}"] if tile_thread_on else [])),
                 callback=gdal_progress("Warping raster"),
             ),
         )

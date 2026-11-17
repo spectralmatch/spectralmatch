@@ -1,6 +1,7 @@
 """Joint global and locally varying coregistration of overlapping rasters."""
 
 from __future__ import annotations
+from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
@@ -123,7 +124,7 @@ def joint_coregistration(
     output_images: Universal.CreateInFolderOrListFiles,
     *,
     moving_tie_method: Literal["orb", "elastix"] = "orb",
-    skip_overlap_when_not_enough_matches: bool = False,
+    skip_overlap_when_not_enough_matches: bool = True,
     fixed_images: list[str] | None = None,
     input_images_bands: list[int] = [1],
     fixed_images_bands: list[int] = [1],
@@ -182,7 +183,7 @@ def joint_coregistration(
         input_images: Folder (searches '*.tif'), wcmatch.glob pattern such as 'input/**/*.{tif,tiff}', or list[str] of literal paths; moving rasters with unique basenames and a shared CRS. Requires at least one moving raster and two total rasters including fixed_images.
         output_images: Folder (writes '$_Coregistered.tif'), '$' basename template, or list[str] matching input order and length; output paths must be unique and differ from inputs.
         moving_tie_method: Matcher for pairs between non-fixed input images: 'orb' (default) or 'elastix'. Elastix requires spectralmatch[elastix].
-        skip_overlap_when_not_enough_matches: bool, default False; warn and omit pairs with no selected ties from the alignment graph and saved tie cache. Images remain in the output list.
+        skip_overlap_when_not_enough_matches: bool, default True; warn and omit pairs with no selected ties from the alignment graph and saved tie cache. Images remain in the output list.
         fixed_images: List of existing reference raster paths held fixed in both solvers, supplied separately from input_images. References are read-only inputs and have no output entries. None keeps unanchored joint behavior.
         input_images_bands: Nonempty list of unique one-based moving-image band numbers; default [1]. Multiple selected bands are averaged into grayscale before stretching. All output bands are retained.
         fixed_images_bands: Nonempty list of unique one-based reference-image band numbers; default [1]. Multiple selected bands are averaged into grayscale before stretching.
@@ -1536,7 +1537,7 @@ def _output_creation_options(save_as_cog, window_size, tile_thread_on, tile_thre
         f"BLOCKYSIZE={window_size}",
     ]
     if tile_thread_on:
-        options.append(f"NUM_THREADS={tile_thread_workers}")
+        options.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
     return "GTiff", options
 
 
@@ -1589,7 +1590,7 @@ def _write_global_affine_output(
         )
         warp_options = ["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"]
         if tile_thread_on:
-            warp_options.append(f"NUM_THREADS={tile_thread_workers}")
+            warp_options.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
         output = gdal.Warp(
             output_path,
             vrt_path,
@@ -1710,7 +1711,7 @@ def _write_local_warp_output(
     )
     warp_options = ["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"]
     if tile_thread_on:
-        warp_options.append(f"NUM_THREADS={tile_thread_workers}")
+        warp_options.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
     _unlink_output(output_path)
     output = gdal.Warp(
         output_path,
@@ -1896,7 +1897,7 @@ def _coregister_overlap(
         format_name = _infer_gdal_format(output_raster_path)
         warp_options = ["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"]
         if tile_thread_on:
-            warp_options.append(f"NUM_THREADS={tile_thread_workers}")
+            warp_options.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
         corrected = gdal.Warp(
             output_raster_path,
             gcp_vrt,

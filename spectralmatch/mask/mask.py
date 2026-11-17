@@ -1,3 +1,4 @@
+from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import gdal_progress
@@ -452,7 +453,7 @@ def _band_math_process_image(
         if window_size:
             creation_options += [f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"]
         if tile_threads_on:
-            creation_options.append(f"NUM_THREADS={tile_thread_workers}")
+            creation_options.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
 
         # Remove pre‑existing output file, if any
         if os.path.exists(output_image_path):

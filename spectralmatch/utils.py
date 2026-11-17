@@ -1,3 +1,4 @@
+from spectralmatch.utils_thread_balance import current_tile_threads
 from .utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor, current_executor
 from .utils_progress import gdal_progress
@@ -319,7 +320,7 @@ def _align_process_image(
             f"BLOCKYSIZE={window_size}",
         ]
         if tile_threads is not None and str(tile_threads).strip():
-            co.append(f"NUM_THREADS={tile_threads}")
+            co.append(f"NUM_THREADS={current_tile_threads(tile_threads)}")
 
         # Resampling map
         resamp = {
@@ -495,6 +496,10 @@ def merge_rasters(
         if destinations:
             output_image_path = destinations[0]
 
+        # A single-file merge is one job, regardless of its number of inputs.
+        allocate = getattr(current_executor(), "tile_threads_for_jobs", None)
+        if allocate is not None and not output_tiles:
+            tile_threads = allocate(tile_threads, 1)
         # Setup parallel
         tile_thread_on, tile_thread_workers = _resolve_parallel_config(tile_threads)
 
@@ -543,7 +548,7 @@ def merge_rasters(
             ]
 
         if tile_thread_workers is not None and str(tile_thread_workers).strip():
-            creation_options.append(f"NUM_THREADS={tile_thread_workers}")
+            creation_options.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
 
         if output_tiles:
             os.makedirs(output_image_path, exist_ok=True)
@@ -656,7 +661,7 @@ def _create_tile_vrt(output_folder, filename, mosaic, tile_size, overlap, resamp
         dataset = gdal.Open(vrt_path, gdal.GA_ReadOnly)
         options = ["COMPRESS_OVERVIEW=ZSTD", "BIGTIFF_OVERVIEW=IF_SAFER"]
         if tile_workers is not None:
-            options.append(f"NUM_THREADS={tile_workers}")
+            options.append(f"NUM_THREADS={current_tile_threads(tile_workers)}")
         result = dataset.BuildOverviews(
             resampling_method, list(window_scales), options=options,
             callback=gdal_progress("Building overviews"),
@@ -993,7 +998,7 @@ def _mask_raster_process_image(
 
         if tile_thread_on:
             warp_options["multithread"] = True
-            warp_options["warpOptions"].append(f"NUM_THREADS={tile_threads}")
+            warp_options["warpOptions"].append(f"NUM_THREADS={current_tile_threads(tile_threads)}")
 
         mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
         if cutline_options:
@@ -1366,7 +1371,7 @@ def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, 
     dataset = gdal.Open(path, gdal.GA_Update)
     if dataset is None:
         raise RuntimeError(f"Cannot open {path}")
-    options = [f"NUM_THREADS={tile_workers}"] if tile_threads_on else []
+    options = [f"NUM_THREADS={current_tile_threads(tile_workers)}"] if tile_threads_on else []
     dataset.BuildOverviews("AVERAGE", window_scales, options=options, callback=gdal_progress("Building overviews"))
     dataset = None
     if debug_logs:

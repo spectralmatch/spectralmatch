@@ -186,7 +186,7 @@ class Match:
         pif_region_radius: int = 5,
         pif_max_samples: int | None = 10000,
         pif_min_samples: int | None = 10,
-        skip_overlap_when_not_enough_matches: bool = False,
+        skip_overlap_when_not_enough_matches: bool = True,
         pif_feature_method: Literal["orb"] = "orb",
         pif_load_ties: str | None = None,
         pif_stats_scope: Literal["overlap", "matched_windows"] = "overlap",
@@ -240,7 +240,7 @@ Args:
     pif_region_radius (int, optional): Radius used to expand matched points into PIF seed areas. Defaults to 5.
     pif_max_samples (int | None, optional): Maximum number of PIF samples to keep. Defaults to 10000.
     pif_min_samples (int | None, optional): Minimum number of PIF samples required. Defaults to 10.
-    skip_overlap_when_not_enough_matches (bool, optional): Warn and omit PIF overlaps with insufficient ties or samples, retaining all images. Defaults to False, preserving errors; applies only to flood_from_match_points.
+    skip_overlap_when_not_enough_matches (bool, optional): Warn and omit PIF overlaps with insufficient ties or samples, retaining all images. Defaults to True; set False to raise on insufficient matches. Applies only to flood_from_match_points.
     pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".
     pif_load_ties (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.
     pif_stats_scope: 'overlap' (default) calculates difference mean/std over the whole valid overlap;

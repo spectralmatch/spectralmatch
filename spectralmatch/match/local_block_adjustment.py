@@ -1,3 +1,4 @@
+from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import writing_outputs
 from ..utils_progress import gdal_progress
 import math
@@ -262,7 +263,7 @@ def _apply_adjustment_process_image(
                     width=w, height=h,
                     resampleAlg=gdal.GRIORA_Bilinear,
                     multithread=tile_thread_on,
-                    warpOptions=(["SKIP_NOSOURCE=YES"] + ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else [])),
+                    warpOptions=(["SKIP_NOSOURCE=YES"] + ([f"NUM_THREADS={current_tile_threads(tile_thread_workers)}"] if tile_thread_on else [])),
                     callback=gdal_progress("Warping raster"),
                 )
             )
@@ -400,7 +401,7 @@ def _apply_adjustment_process_image(
               ["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6", "BIGTIFF=IF_SAFER",
                f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"])
         if tile_thread_on and driver_name == "GTiff":
-            co.append(f"NUM_THREADS={tile_thread_workers}")
+            co.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
 
         ods = gdal.Translate(
             out_path, out_vrt,
@@ -639,7 +640,7 @@ def _calculate_blocks_from_masked_image(
         "resampleAlg": gdal.GRIORA_Average,
         "outputType": _gdal_dtype_str_to_enum(calculation_dtype),
         "dstNodata": nodata_value,
-        "warpOptions": ([f"NUM_THREADS={tile_thread_workers}"] if tile_thread_on else []),
+        "warpOptions": ([f"NUM_THREADS={current_tile_threads(tile_thread_workers)}"] if tile_thread_on else []),
         "multithread": tile_thread_on,
     }
     mem_ds = gdal.Warp("", image_path, options=gdal.WarpOptions(**warp_kwargs, callback=gdal_progress("Warping raster")))
