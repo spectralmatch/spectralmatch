@@ -6,8 +6,9 @@ import re
 import statistics
 
 import geopandas as gpd
+import shapely
 
-from .footprints import _prepare_footprints
+from .footprints import _prepare_footprints, _polygon_parts
 from ..types_and_validation import Universal
 
 _FIELD_PATTERN = re.compile(r"\{([^{}]+)\}")
@@ -123,12 +124,10 @@ def weighted_seamline(
 
 def _rank_polygons(frame, image_field_name, rank_function, rank_descending, *, split_components=True):
     """Rank table attributes and calculated geometry statistics without adding stat columns."""
-    code, variables, summaries, geometry_stats = _parse_rank_expression(rank_function)
-    for field in variables.values():
-        if field not in frame.columns:
-            raise ValueError(f"Field '{field}' referenced in rank_function was not found in the input polygons.")
+    code, variables, summary_values, geometry_stats = _rank_context(frame, rank_function)
+    if "gap_coverage_fraction" in geometry_stats.values():
+        raise ValueError("stat:gap_coverage_fraction requires create_footprints coverage ranking.")
     # Existing summaries remain image-level, even when components are ranked separately.
-    summary_values = _rank_summary_values(frame, summaries)
     ranked = frame.copy()
     if geometry_stats:
         if split_components:
@@ -154,6 +153,82 @@ def _rank_polygons(frame, image_field_name, rank_function, rank_descending, *, s
     return ranked
 
 
+def _rank_gap_polygons(frame, image_field_name, rank_function, rank_descending):
+    """Yield owners ranked against the largest remaining connected coverage gap.
+
+    The first owner uses a zero gap fraction, preserving the expression's initial
+    area/metadata preference. Area statistics stay attached to original clipped
+    components; summaries stay attached to the original candidate images.
+    """
+    code, variables, summary_values, geometry_stats = _rank_context(frame, rank_function)
+    candidates = (frame.explode(index_parts=False, ignore_index=True)
+                  if "area_crs" in geometry_stats.values() else frame.reset_index(drop=True))
+    rows = [row for _, row in candidates.iterrows()]
+    available = set(range(len(rows)))
+    spatial_index = candidates.sindex
+    remaining = candidates.geometry.union_all()
+    selection = 0
+    while available and not remaining.is_empty:
+        if selection == 0:
+            fractions = {index: 0.0 for index in available}
+        else:
+            parts = _polygon_parts(remaining)
+            if not parts:
+                break
+            # Bounds break equal-area ties independently of GEOS component order.
+            gap = min(parts, key=lambda polygon: (-polygon.area, polygon.bounds))
+            indexes = [int(index) for index in spatial_index.query(gap, predicate="intersects")
+                       if index in available]
+            areas = _gap_intersection_areas(candidates.geometry.iloc[indexes].array, gap)
+            fractions = {index: min(1.0, max(0.0, float(area / gap.area)))
+                         for index, area in zip(indexes, areas) if area > 0}
+            if not fractions:
+                # Ignore numerical remnants with no contributing candidate.
+                remaining = remaining.difference(gap)
+                continue
+        best = None
+        for index, fraction in fractions.items():
+            row = rows[index]
+            calculated = {symbol: (float(row.geometry.area) if statistic == "area_crs" else fraction)
+                          for symbol, statistic in geometry_stats.items()}
+            try:
+                score = _evaluate_weighted_expression(
+                    row, code, variables, {**summary_values, **calculated}, rank_function)
+            except ValueError as exc:
+                raise ValueError(f"Cannot rank image {row[image_field_name]!r}: {exc}") from exc
+            key = (-score if rank_descending else score, str(row[image_field_name]), index)
+            if best is None or key < best[0]:
+                best = key, index, score
+        _, index, score = best
+        selection += 1
+        row = rows[index].copy()
+        row["weighted_score"] = score
+        row["weighted_rank"] = selection
+        yield row
+        available.remove(index)
+        # Only unbuffered source geometry affects subsequent gaps.
+        remaining = remaining.difference(row.geometry)
+
+
+def _gap_intersection_areas(geometries, gap):
+    """Reuse full component areas when they lie wholly inside a complex gap."""
+    shapely.prepare(gap)
+    contained = shapely.covers(gap, geometries)
+    areas = shapely.area(geometries)
+    crossing = ~contained
+    areas[crossing] = shapely.area(shapely.intersection(geometries[crossing], gap))
+    return areas
+
+
+def _rank_context(frame, expression):
+    """Compile an expression and freeze summaries before splitting/filtering candidates."""
+    code, variables, summaries, geometry_stats = _parse_rank_expression(expression)
+    for field in variables.values():
+        if field not in frame.columns:
+            raise ValueError(f"Field '{field}' referenced in rank_function was not found in the input polygons.")
+    return code, variables, _rank_summary_values(frame, summaries), geometry_stats
+
+
 def _parse_rank_expression(expression):
     """Compile placeholders once, using generated names rather than metadata as code."""
     if not isinstance(expression, str) or not expression.strip():
@@ -174,8 +249,8 @@ def _parse_rank_expression(expression):
             if parts[0] == "var":
                 variables[symbol] = parts[1]
             elif parts[0] == "stat":
-                if parts[1] != "area_crs":
-                    raise ValueError(f"Unknown geometry statistic {parts[1]!r}; choose area_crs.")
+                if parts[1] not in {"area_crs", "gap_coverage_fraction"}:
+                    raise ValueError(f"Unknown geometry statistic {parts[1]!r}; choose area_crs or gap_coverage_fraction.")
                 geometry_stats[symbol] = parts[1]
             elif parts[0] in _SUMMARY_FUNCTIONS:
                 summaries[symbol] = (parts[0], parts[1])

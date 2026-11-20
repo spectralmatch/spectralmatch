@@ -93,7 +93,7 @@ units. For initial coverage this is measured after outline clipping and before
 ownership subtraction and buffering. No statistic column is required or injected;
 `{var:area_crs}` can still reference an arbitrary user-provided column. Existing
 summary placeholders remain image-weighted and are computed before exploding.
-Expressions without geometry statistics retain image-level ranking.
+Expressions without the area statistic retain image-level ranking.
 
 For metre-based projected output, an area/angle tradeoff can be expressed as:
 
@@ -107,6 +107,36 @@ angles. This scores pre-cut components; it does not reevaluate fragments after
 subtracting earlier winners. Markov quality is one scalar per image, so it rejects
 `stat:area_crs` for multipart image footprints rather than silently selecting one
 component's score. Attribute-only Markov expressions are unchanged.
+
+For iterative gap filling, add `{stat:gap_coverage_fraction}` to
+`create_footprints`'s `image_rank_function`:
+
+```text
+5 * log(max({stat:area_crs}, 1) / 1000000) / log(2)
++ 200 * {stat:gap_coverage_fraction}
+- ({var:view_zenith} + {var:solar_zenith})
+```
+
+The first owner uses a gap fraction of zero, retaining the initial area/quality
+preference. After each selection, the largest connected gap in the remaining
+available coverage is chosen. Each intersecting candidate is rescored with the
+fraction of that gap it covers (intersection area / gap area, from 0 to 1).
+The winner receives all its still-uncovered geometry, potentially filling other
+gaps as well. Outline areas with no source coverage are not treated as fillable
+gaps. Equal-area gaps use bounds order, and equal scores use image identifier
+order. `image_rank_descending` still determines the preferred score direction.
+
+With weight 200, 100% rather than 80% coverage adds 40 points, offsetting 40 degrees
+of worse combined angles when the other terms are equal. `stat:area_crs` stays
+attached to the original clipped component, and summaries stay image-weighted
+over the initial candidates. Ownership uses unbuffered geometry; margins never
+affect the fractions. Scores saved as `weighted_score` reflect the selection's
+gap, so they can increase with `weighted_rank`, which records selection order.
+No statistic columns are injected, and `var:gap_coverage_fraction` remains an
+ordinary input column. Existing expressions without this statistic retain their
+one-time ranking. This weighted heuristic does not guarantee the minimum number
+of images. Weighted seamlines and Markov image-quality ranking reject the gap
+statistic because they lack iterative coverage context.
 
 Higher expression values rank on top by default (`image_rank_descending=True`).
 To prefer the lowest combined view and solar zenith, negate their raw sum.

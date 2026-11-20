@@ -121,10 +121,15 @@ def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
     frame = frame[frame.geometry.map(lambda geometry: not geometry.is_empty and geometry.area > 0)]
     if frame.empty:
         raise ValueError("No image coverage remains inside the requested outline.")
+    rows = None
     if image_rank_function is not None:
-        from .weighted_seamline import _rank_polygons
+        from .weighted_seamline import _rank_polygons, _rank_gap_polygons, _parse_rank_expression
 
-        frame = _rank_polygons(frame, image_field_name, image_rank_function, image_rank_descending)
+        _, _, _, geometry_stats = _parse_rank_expression(image_rank_function)
+        if "gap_coverage_fraction" in geometry_stats.values():
+            rows = _rank_gap_polygons(frame, image_field_name, image_rank_function, image_rank_descending)
+        else:
+            frame = _rank_polygons(frame, image_field_name, image_rank_function, image_rank_descending)
     if extrude_distance and not CRS(frame.crs).is_projected:
         raise ValueError("extrude_distance requires a projected output CRS (set epsg).")
     crs = CRS(frame.crs)
@@ -138,7 +143,9 @@ def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
         polygon_area = lambda polygon: abs(geod.geometry_area_perimeter(orient(polygon))[0])
     output = []
     painted = MultiPolygon()
-    for _, row in frame.iterrows():
+    if rows is None:
+        rows = (row for _, row in frame.iterrows())
+    for row in rows:
         owned = row.geometry.difference(painted) if image_rank_function is not None else row.geometry
         if image_rank_function is not None:
             painted = painted.union(row.geometry)
