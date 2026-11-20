@@ -373,7 +373,11 @@ Returns:
         all_bounds = {name: _get_gdal_bounds(path) for name, path in input_image_path_pairs.items()}
         overlapping_pairs = _find_overlaps(all_bounds)
 
-        local_pif_statistics = pif_method == "flood_from_match_points" and pif_stats_scope == "matched_windows"
+        uses_pif = pif_method == "flood_from_match_points"
+        local_pif_statistics = uses_pif and pif_stats_scope == "matched_windows"
+        # PIF solves its own overlap/anchor statistics. Preserve traditional
+        # whole-image statistics only when the caller actually saves them.
+        need_whole_statistics = not uses_pif or (bool(save_adjustments) and not local_pif_statistics)
         all_overlap_stats = {}
         if load_adjustments:
             for name_i, model_entry in loaded_model.items():
@@ -408,12 +412,13 @@ Returns:
                 debug_logs,
             )
             for name_i, name_j in overlapping_pairs
-            if not local_pif_statistics and (
+            if not uses_pif and (
                 name_i not in loaded_model
                 or name_j not in loaded_model.get(name_i, {}).get("overlap_stats", {})
             )
         ]
-        _print_step_start("global_regression overlap statistics")
+        if parallel_args:
+            _print_step_start("global_regression overlap statistics")
         overlap_statistics = _run_image_tasks(
             _overlap_stats_process_image, parallel_args,
             input_paths=[(arg[3], arg[4]) for arg in parallel_args], output_paths=[None for arg in parallel_args],
@@ -451,9 +456,10 @@ Returns:
                 debug_logs,
             )
             for image_name, image_path in input_image_path_pairs.items()
-            if not local_pif_statistics and image_name not in loaded_model
+            if need_whole_statistics and image_name not in loaded_model
         ]
-        _print_step_start("global_regression image statistics")
+        if parallel_args:
+            _print_step_start("global_regression image statistics")
         whole_statistics = _run_image_tasks(
             _whole_stats_process_image, parallel_args,
             input_paths=[arg[2] for arg in parallel_args], output_paths=[None for arg in parallel_args],

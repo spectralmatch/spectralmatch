@@ -102,7 +102,7 @@ maximum when it meets the minimum and exhausts the search budget.
 Seed masks are stored as pixel-offset rectangles in temporary `seed_windows.json`.
 Sampling scans bounded row-major windows and keeps the same evenly spaced PIF
 pixel ranks as before; it writes `sampled_pif_windows.json` when subsampling is
-needed. Raster masks remain sparse tiled TIFFs for GDAL statistics. Neither seed
+needed. Raster masks remain sparse tiled TIFFs for bounded statistics reads. Neither seed
 creation nor sampling allocates a NumPy array for the entire overlap. This does
 not change `stats_scope`: overlap statistics still describe the whole overlap.
 
@@ -120,3 +120,34 @@ these helpers do not enable automatic resume or change output reuse policy.
 
 Masked VRTs in global and local statistics now honor `tile_threads`, including
 an active thread-balancing budget, instead of unconditionally using all CPUs.
+
+
+In `global_regression`, PIF mode skips preliminary ordinary overlap statistics:
+the PIF solver computes the overlap statistics it actually uses. Traditional
+whole-image statistics are retained only when required by a requested saved
+adjustment file in `overlap` mode. `entire` mode still computes both ordinary
+statistics passes. These shortcuts do not change `pif_stats_scope`, PIF
+selection, or the fitted correction.
+
+`overlap_spread` builds a compact block-count index during its shared-valid-pixel
+scan. Region counts and exact nearest-center searches use this index without
+repeated full-region scans. Actual pixel validity, valid-area quotas,
+subdivision priorities, and row/column tie-breaking are unchanged.
+
+
+PIF difference normalization still uses the valid whole-overlap population
+(or the explicitly selected `matched_windows` population). Difference and final
+PIF statistics read bands together in bounded windows. Approximate mode keeps
+the expression-VRT block sampling layout used by GDAL; channels with no sampled
+valid pixels retry exact statistics. Blockwise pooled moments can differ in
+floating-point rounding from GDAL's accumulation, without changing the sampled
+population. Read errors are never treated as empty samples.
+
+After normalization, INZ and vegetation eligibility are evaluated only in seed
+regions. The score is rounded to Float32 before thresholding, as before. The
+pipeline writes the final binary PIF mask directly and counts selected pixels
+while writing; it no longer materializes intermediate INZ/stability TIFFs.
+Requesting `pif_save_inz` still writes the full score grid, including outside seed
+regions. Zero in this binary mask means excluded, not zero-valued image data:
+valid zero-valued image samples remain eligible. Capped PIF selection retains
+the same evenly spaced row-major pixel ranks.

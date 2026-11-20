@@ -60,7 +60,8 @@ def test_pair_shortages_raise_by_default_or_warn_and_return_no_statistics(
         args['min_samples'] = 100000
         message = 'Not enough flood_from_match_points PIF samples'
     else:
-        monkeypatch.setattr(pif, '_masked_band_stats', lambda *a, **kw: dict(mean=1., std=1., size=1))
+        monkeypatch.setattr(pif, '_selected_pair_statistics',
+                            lambda *a, **kw: [dict(mean=1., std=1., size=1)] * 2)
         message = 'Band 1 has 1 flood_from_match_points PIF samples'
     if skip:
         assert pif._calculate_pair_pif_stats(**args) == ({}, {})

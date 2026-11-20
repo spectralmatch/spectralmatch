@@ -6,6 +6,7 @@ from time import monotonic
 import numpy as np
 from osgeo import gdal
 
+from ..valid_mask_index import ValidMaskIndex
 from ..overlap_sampling import InsufficientTieSamples, resolve_sample_limits, spread_centers
 from ..utils_logging import _print_line
 from ..utils_progress import current_callback, progress, progress_context
@@ -16,7 +17,7 @@ def _shared_mask(reference, sensed, info_i, info_j, tmpdir):
     width = min(reference.RasterXSize, sensed.RasterXSize)
     height = min(reference.RasterYSize, sensed.RasterYSize)
     mask = np.memmap(os.path.join(tmpdir, 'shared_valid.bin'), mode='w+', dtype=np.bool_, shape=(height, width))
-    count = 0
+    index = ValidMaskIndex(mask)
     with progress(total=math.ceil(height / 512) * math.ceil(width / 1024),
                   desc="Reading valid overlap", unit="blocks") as bar:
         for y in range(0, height, 512):
@@ -24,11 +25,12 @@ def _shared_mask(reference, sensed, info_i, info_j, tmpdir):
                 window = (x, y, min(1024, width - x), min(512, height - y))
                 valid = _build_overlap_valid_mask(reference, sensed, window, info_i.matching_bands, info_j.matching_bands)
                 mask[y:y + window[3], x:x + window[2]] = valid
-                count += int(np.count_nonzero(valid))
+                index.add_window(x, y, valid)
                 bar.update(1)
     transform = reference.GetGeoTransform()
     pixel_area = abs(transform[1] * transform[5] - transform[2] * transform[4])
-    return mask, count * pixel_area
+    index.finish()
+    return mask, int(index.prefix[-1, -1]) * pixel_area, index
 
 
 def _valid_endpoints(points, mask, transform, info_i, info_j):
@@ -71,7 +73,7 @@ def extract_spread_ties(info_i, info_j, feature_method, maximum_displacement, th
     )
     ref_path, sensed_path = _build_pair_overlap_vrts(info_i, info_j, tmpdir)
     reference, sensed = gdal.Open(ref_path), gdal.Open(sensed_path)
-    mask, area = _shared_mask(reference, sensed, info_i, info_j, tmpdir)
+    mask, area, index = _shared_mask(reference, sensed, info_i, info_j, tmpdir)
     try:
         if area == 0:
             _print_line(f'Skipping overlap {info_i.name} <-> {info_j.name}: no shared valid pixels.')
@@ -100,7 +102,7 @@ def extract_spread_ties(info_i, info_j, feature_method, maximum_displacement, th
                 batch = max(1, min(1024, goal // 4))
                 last_check = monotonic()
                 sizes = (math.hypot(transform[1], transform[4]), math.hypot(transform[2], transform[5]))
-                for row, col in spread_centers(mask, sizes):
+                for row, col in spread_centers(mask, sizes, index=index):
                     x, y = gdal.ApplyGeoTransform(transform, col + .5, row + .5)
                     with progress_context(None):
                         points, windows = _extract_grid_pixel_matches(

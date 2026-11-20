@@ -539,23 +539,6 @@ def _calculate_pair_pif_stats(
             projection,
             tmpdir,
         )
-        stable_mask_path = _build_inz_stable_mask_raster(
-            ref_vrt=ref_vrt,
-            sensed_vrt=corrected_sensed_path,
-            valid_mask_path=corrected_valid_mask_path,
-            width=width,
-            height=height,
-            gt=gt,
-            projection=projection,
-            num_bands=num_bands,
-            red_band_index=red_band_index,
-            nir_band_index=nir_band_index,
-            vegetation_threshold=vegetation_threshold,
-            inz_threshold=inz_threshold,
-            tmpdir=tmpdir,
-            save_inz_path=save_inz_path,
-            estimate_stats=estimate_stats,
-        )
         seed_points = _reference_seed_points_from_pairs(point_pairs, height, width)
         seed_mask_path = seed_mask_override or _build_seed_mask_raster(
             seed_points,
@@ -566,16 +549,11 @@ def _calculate_pair_pif_stats(
             region_radius,
             tmpdir,
         )
-        pif_mask_path = _combine_masks_raster(
-            stable_mask_path,
-            seed_mask_path,
-            width,
-            height,
-            gt,
-            projection,
-            tmpdir,
+        pif_mask_path, pif_count = _seed_pif_mask(
+            ref_vrt, corrected_sensed_path, corrected_valid_mask_path, seed_mask_path,
+            width, height, gt, projection, num_bands, red_band_index, nir_band_index,
+            vegetation_threshold, inz_threshold, tmpdir, estimate_stats, save_inz_path,
         )
-        pif_count = _count_mask_pixels(pif_mask_path)
         if max_samples is not None and pif_count > max_samples:
             pif_mask_path = _sample_mask_raster(
                 pif_mask_path,
@@ -587,7 +565,7 @@ def _calculate_pair_pif_stats(
                 tmpdir,
                 count=pif_count,
             )
-            pif_count = _count_mask_pixels(pif_mask_path)
+            pif_count = max_samples
         if debug_logs:
             _report_image_result("PIF pixels", pif_count)
         if min_samples is not None and pif_count < min_samples:
@@ -599,13 +577,11 @@ def _calculate_pair_pif_stats(
 
         pair_stats = {reference_name: {sensed_name: {}}, sensed_name: {reference_name: {}}}
         whole_updates = {reference_name: {}, sensed_name: {}}
+        statistics = _selected_pair_statistics(ref_vrt, corrected_sensed_path,
+                                               pif_mask_path, num_bands, pif_count, estimate_stats)
         for band_index in range(num_bands):
-            ref_stats = _masked_band_stats(
-                ref_vrt, band_index + 1, pif_mask_path, pif_count, estimate_stats=estimate_stats
-            )
-            sensed_stats = _masked_band_stats(
-                corrected_sensed_path, band_index + 1, pif_mask_path, pif_count, estimate_stats=estimate_stats
-            )
+            ref_stats = statistics[band_index]
+            sensed_stats = statistics[num_bands + band_index]
             if min_samples is not None and ref_stats["size"] < min_samples:
                 return _insufficient_pair_result(
                     f"Band {band_index + 1} has {ref_stats['size']} flood_from_match_points PIF "
@@ -1175,3 +1151,98 @@ def _masked_band_stats(
             else _count_mask_pixels(mask_path)
         ),
     }
+
+def _seed_pif_mask(ref_path, sensed_path, valid_path, seed_path, width, height, gt, projection,
+                   num_bands, red_band_index, nir_band_index, vegetation_threshold,
+                   inz_threshold, tmpdir, estimate_stats, save_inz_path=None):
+    """Normalize on the overlap; evaluate eligibility only in seed-containing tiles."""
+    from .window_statistics import difference_statistics, read_bands
+    from .mask_windows import _records
+    reference, sensed, valid_ds, seed_ds = [gdal.Open(p) for p in (ref_path, sensed_path, valid_path, seed_path)]
+    means, stds = difference_statistics(reference, sensed, valid_ds, num_bands, width, height, estimate_stats)
+    stds[stds == 0] = 1
+    if red_band_index is not None and nir_band_index is not None:
+        if not (1 <= red_band_index <= num_bands and 1 <= nir_band_index <= num_bands):
+            raise ValueError('red_band_index and nir_band_index must be valid 1-based band indices.')
+    output = os.path.join(tmpdir, 'pif_mask.tif')
+    driver = gdal.GetDriverByName('GTiff')
+    mask_ds = driver.Create(output, width, height, 1, gdal.GDT_Byte,
+                           options=['TILED=YES', 'COMPRESS=DEFLATE', 'SPARSE_OK=YES', 'BIGTIFF=IF_SAFER'])
+    mask_ds.SetGeoTransform(gt); mask_ds.SetProjection(projection)
+    score_ds = None
+    if save_inz_path:
+        os.makedirs(os.path.dirname(os.path.abspath(save_inz_path)), exist_ok=True)
+        score_ds = driver.Create(save_inz_path, width, height, 1, gdal.GDT_Float32,
+                                options=['TILED=YES', 'COMPRESS=DEFLATE', 'BIGTIFF=IF_SAFER'])
+        score_ds.SetGeoTransform(gt); score_ds.SetProjection(projection)
+        score_ds.GetRasterBand(1).SetNoDataValue(-999999999)
+    count = 0
+    # Ordinary overlap mode already stores seed rectangles. Avoid even scanning
+    # empty seed-mask tiles; packed matched-window VRTs retain the bounded scan.
+    seed_json = os.path.join(tmpdir, 'seed_windows.json')
+    tiles = None
+    if score_ds is None and os.path.basename(seed_path) == 'seed_mask.tif' and os.path.exists(seed_json):
+        tiles = set()
+        records = _records(seed_json)
+        try:
+            next(records)
+            for record in records:
+                x, y, w, h = (record[k] for k in ('x_offset','y_offset','width','height'))
+                for ty in range(y//256, (y+h-1)//256+1):
+                    for tx in range(x//256, (x+w-1)//256+1):
+                        tiles.add((ty*256, tx*256))
+        finally:
+            records.close()
+    windows = sorted(tiles) if tiles is not None else (
+        (y,x) for y in range(0,height,256) for x in range(0,width,256))
+    try:
+        for y, x in windows:
+            window = (x, y, min(256, width-x), min(256, height-y))
+            seeds = seed_ds.GetRasterBand(1).ReadAsArray(*window) > 0
+            if not seeds.any() and score_ds is None:
+                continue
+            valid = valid_ds.GetRasterBand(1).ReadAsArray(*window) > 0
+            if not valid.any():
+                if score_ds is not None:
+                    score_ds.GetRasterBand(1).WriteArray(np.full((window[3], window[2]), -999999999, dtype=np.float32), x, y)
+                continue
+            ref = read_bands(reference, list(range(1,num_bands+1)), window)
+            sen = read_bands(sensed, list(range(1,num_bands+1)), window)
+            evaluate = valid if score_ds is not None else valid & seeds
+            ref, sen = ref[:, evaluate], sen[:, evaluate]
+            score = np.zeros(int(np.count_nonzero(evaluate)), dtype=np.float64)
+            for b in range(num_bands):
+                score += np.abs(((sen[b].astype(np.float64)-ref[b])-means[b])/stds[b])
+            score = (score/num_bands).astype(np.float32)
+            if score_ds is not None:
+                saved = np.full(valid.shape, np.float32(-999999999), dtype=np.float32)
+                saved[evaluate] = score
+                score_ds.GetRasterBand(1).WriteArray(saved, x, y)
+            eligible = score <= inz_threshold
+            if red_band_index is not None and nir_band_index is not None:
+                for values in (ref, sen):
+                    red, nir = values[red_band_index-1].astype(np.float64), values[nir_band_index-1].astype(np.float64)
+                    denominator = nir+red
+                    ndvi = np.divide(nir-red, denominator, out=np.zeros_like(red), where=denominator!=0)
+                    eligible &= ndvi <= vegetation_threshold
+            selected = np.zeros(valid.shape, dtype=bool)
+            selected[evaluate] = eligible
+            selected &= seeds
+            n = int(np.count_nonzero(selected))
+            if n:
+                mask_ds.GetRasterBand(1).WriteArray(selected.astype(np.uint8), x, y)
+                count += n
+    finally:
+        mask_ds = score_ds = reference = sensed = valid_ds = seed_ds = None
+    return output, count
+
+
+def _selected_pair_statistics(ref_path, sensed_path, mask_path, num_bands, count, estimate_stats):
+    from .window_statistics import selected_statistics
+    reference, sensed, mask = [gdal.Open(p) for p in (ref_path, sensed_path, mask_path)]
+    try:
+        means, stds = selected_statistics(reference, sensed, mask, num_bands,
+                                         mask.RasterXSize, mask.RasterYSize, estimate_stats)
+        return [dict(mean=float(mean), std=float(std), size=int(count)) for mean,std in zip(means,stds)]
+    finally:
+        reference = sensed = mask = None

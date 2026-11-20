@@ -6,6 +6,8 @@ import re
 
 import numpy as np
 
+from .valid_mask_index import ValidMaskIndex
+
 
 class InsufficientTieSamples(ValueError):
     """A readable overlap could not supply the required accepted matched pairs."""
@@ -103,25 +105,28 @@ def _nearest_valid_center(mask, bounds, pixel_size):
     return point
 
 
-def spread_centers(valid_mask, pixel_size=(1.0, 1.0)):
+def spread_centers(valid_mask, pixel_size=(1.0, 1.0), *, index=None):
     """Center first, then bisect the region containing the largest valid area.
 
     Each split follows the longest CRS dimension. Snap each region's center
     into its valid pixels; never yield a pixel twice. Equal areas use insertion
     order and equal distances use row/column order. Disk-backed boolean masks
-    are supported, and temporary array memory is bounded by row blocks.
+    are supported. A compact block-count index skips interior rescans while
+    exact boundary queries and nearest-point searches retain the same order.
+    Pass an index built during raster scanning to avoid a second build pass.
     """
     if valid_mask.ndim != 2 or valid_mask.dtype != np.bool_:
         raise ValueError('valid_mask must be a two-dimensional boolean array.')
     if len(pixel_size) != 2 or any(not math.isfinite(v) or v <= 0 for v in pixel_size):
         raise ValueError('pixel_size must contain two positive finite lengths.')
+    index = ValidMaskIndex.build(valid_mask) if index is None else index
     serial = itertools.count()
-    count, bounds = _occupied_cell(valid_mask, (0, 0, valid_mask.shape[1], valid_mask.shape[0]))
+    count, bounds = index.occupied((0, 0, valid_mask.shape[1], valid_mask.shape[0]))
     heap = [(-count, next(serial), bounds)] if count else []
     seen = set()
     while heap:
         _, _, bounds = heapq.heappop(heap)
-        point = _nearest_valid_center(valid_mask, bounds, pixel_size)
+        point = index.nearest(bounds, pixel_size)
         if point not in seen:
             seen.add(point)
             yield point
@@ -135,6 +140,6 @@ def spread_centers(valid_mask, pixel_size=(1.0, 1.0)):
             middle = (y0 + y1) // 2
             children = ((x0, y0, x1, middle), (x0, middle, x1, y1))
         for child in children:
-            count, occupied = _occupied_cell(valid_mask, child)
+            count, occupied = index.occupied(child)
             if count:
                 heapq.heappush(heap, (-count, next(serial), occupied))

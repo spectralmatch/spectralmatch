@@ -40,24 +40,22 @@ def ties(tmp_path):
 
 @pytest.mark.parametrize('scope', ['overlap', 'matched_windows'])
 @pytest.mark.parametrize('estimate', [False, True])
-def test_gdal_statistics_flag_reaches_difference_and_pif_statistics(tmp_path, monkeypatch, scope, estimate):
+def test_statistics_mode_reaches_both_batched_passes(tmp_path, monkeypatch, scope, estimate):
+    from spectralmatch.pif import window_statistics
     paths = rasters(tmp_path)
     flags = []
-    original = gdal.Band.GetStatistics
-
-    def statistics(band, approx_ok, force, *args):
-        flags.append(approx_ok)
-        return original(band, approx_ok, force, *args)
-
-    monkeypatch.setattr(gdal.Band, 'GetStatistics', statistics)
+    original = window_statistics.batched_statistics
+    def statistics(width,height,channels,reader,approximate):
+        flags.append(approximate)
+        return original(width,height,channels,reader,approximate)
+    monkeypatch.setattr(window_statistics,'batched_statistics',statistics)
     parameters = pif.Pif.flood_from_match_points(
         paths, load_ties=ties(tmp_path), stats_scope=scope, window_size=33,
         estimate_stats=estimate, inz_threshold=10, region_radius=5,
     )
-    assert parameters.shape == (1, 4, 1)
+    assert parameters.shape == (1,4,1)
     assert np.isfinite(parameters).all()
-    assert len(flags) >= 3  # Difference mean/std, reference PIF and sensed PIF.
-    assert set(flags) == {int(estimate)}
+    assert flags == [estimate,estimate]
 
 
 def test_local_mode_never_materializes_whole_overlap_or_reads_preliminary_statistics(tmp_path, monkeypatch):
@@ -201,12 +199,16 @@ def test_difference_statistics_retry_only_missed_approximate_pixels(tmp_path, mo
         return original(band, approx_ok, force, *args)
 
     monkeypatch.setattr(gdal.Band, 'GetStatistics', statistics)
-    kwargs = dict(load_ties=ties(tmp_path), stats_scope='matched_windows',
-                  window_size=33, estimate_stats=estimate, inz_threshold=10)
+    ds=gdal.Open(paths[0]);gt=ds.GetGeoTransform();crs=ds.GetProjection();ds=None
+    valid=pif._build_valid_mask_raster(*paths,128,128,gt,crs,str(tmp_path))
+    kwargs=dict(ref_vrt=paths[0],sensed_vrt=paths[1],valid_mask_path=valid,
+                width=128,height=128,gt=gt,projection=crs,num_bands=1,
+                red_band_index=None,nir_band_index=None,vegetation_threshold=.2,
+                inz_threshold=10,tmpdir=str(tmp_path),estimate_stats=estimate)
     if expected_calls == [1, 0]:
-        pif.Pif.flood_from_match_points(paths, **kwargs)
+        pif._build_inz_stable_mask_raster(**kwargs)
         assert calls[:2] == [1, 0]
     else:
         with pytest.raises(RuntimeError, match=error):
-            pif.Pif.flood_from_match_points(paths, **kwargs)
+            pif._build_inz_stable_mask_raster(**kwargs)
         assert calls == expected_calls
