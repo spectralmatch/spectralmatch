@@ -60,7 +60,7 @@ def test_overlap_pif_only_calculates_needed_preliminary_statistics(tmp_path, mon
     outputs = [str(tmp_path/f'{name}_global.tif') for name in ('A','B')]
     result = Match.global_regression(
         paths, outputs, pif_load_ties=ties(tmp_path), tie_sampling_method='grid',
-        pif_stats_scope='overlap', pif_inz_threshold=10, estimate_stats=False,
+        pif_stats_scope='overlap', pif_inz_threshold=10, estimate_stats=False, pif_coregister=True,
         save_adjustments=str(tmp_path/'adjustments.json') if save else None,
     )
     assert result == outputs

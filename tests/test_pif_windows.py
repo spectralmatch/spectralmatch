@@ -81,7 +81,7 @@ def test_local_mode_never_materializes_whole_overlap_or_reads_preliminary_statis
     model = tmp_path / 'adjustments.json'
     result = Match.global_regression(
         paths, outputs, pif_load_ties=ties(tmp_path), pif_stats_scope='matched_windows',
-        pif_window_size=33, estimate_stats=False, pif_inz_threshold=10,
+        pif_window_size=33, estimate_stats=False, pif_inz_threshold=10, pif_coregister=True,
         tie_sampling_method='grid',  # Legacy cached-window path does not scan overlap masks.
         save_adjustments=str(model),
     )

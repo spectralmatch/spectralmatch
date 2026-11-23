@@ -135,6 +135,7 @@ global_regression(
     save_as_cog=True,
     # custom_nodata_value=-9999,
     pif_method="flood_from_match_points",
+    pif_coregister=False,  # Already joint-aligned; keep PIF selection without another correction warp.
     estimate_stats=True,
     # specify_model_images=("include", ['Worldview_2016-09-22']), # Global matching all input images to the spectral profile of any number of specified images (regression will still be based on overlapping areas, however, only the *included* images statistics will influence the solution)
     # custom_mean_factor=3, # Default is 1; 3 often works better to 'move' the spectral mean of images closer together (applied when creating model)

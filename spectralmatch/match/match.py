@@ -193,6 +193,7 @@ class Match:
         pif_feature_method: Literal["orb"] = "orb",
         pif_load_ties: str | None = None,
         pif_stats_scope: Literal["overlap", "matched_windows"] = "overlap",
+        pif_coregister: bool = False,
         pif_window_size: int = 257,
         tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
         tie_max_samples: int | str = "500crs",
@@ -248,6 +249,7 @@ Args:
     skip_overlap_when_not_enough_matches (bool, optional): Warn and omit PIF overlaps with insufficient ties or samples, retaining all images. Defaults to True; set False to raise on insufficient matches. Applies only to flood_from_match_points.
     pif_feature_method (Literal["orb"], optional): Feature matching method used for flood_from_match_points. Defaults to "orb".
     pif_load_ties (str | None): Path to joint_coregistration selected-point JSON with matching basenames and original pixel grids; requires pif_method='flood_from_match_points'; a missing file warns and detects matches normally; existing files require three usable points per processed pair.
+    pif_coregister: bool, default False. Temporarily align each moving overlap using the fixed-reference joint model. False preserves existing alignment; PIF seed matching and radiometric correction still run.
     pif_stats_scope: 'overlap' (default) calculates difference mean/std over the whole valid overlap;
         'matched_windows' uses only bounded tie-point windows, including the PIF model statistics.
     pif_window_size: Odd window side length in overlap pixels; default 257. Applies to matched_windows.
@@ -282,6 +284,7 @@ Returns:
             pif_feature_method=pif_feature_method,
             pif_load_ties=pif_load_ties,
             pif_stats_scope=pif_stats_scope,
+            pif_coregister=pif_coregister,
             pif_window_size=pif_window_size,
             pif_save_inz=pif_save_inz,
             skip_overlap_when_not_enough_matches=skip_overlap_when_not_enough_matches,
@@ -513,6 +516,7 @@ Returns:
                 feature_method=pif_feature_method,
                 load_ties=pif_load_ties,
                 stats_scope=pif_stats_scope,
+                coregister=pif_coregister,
                 window_size=pif_window_size,
                 estimate_stats=estimate_stats,
                 tie_sampling_method=tie_sampling_method,

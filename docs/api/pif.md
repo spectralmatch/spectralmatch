@@ -22,7 +22,7 @@ validity checks, RANSAC, per-window selection, and duplicate removal.
 `"Ncnt"` for a fixed count, or `"Dcrs"` for a density. The density resolves to
 `ceil(valid_overlap_area / D**2)` across the whole valid overlap; it does not
 require a match in each D × D square. Defaults are `"500crs"` and `"1000crs"`.
-Fraction-form strings are rejected. PIF's internal alignment always requires at least
+Fraction-form strings are rejected. PIF seed selection requires at least
 three pairs, so density-derived counts are raised to that floor; an explicit
 integer maximum below the required minimum is an error. Cached pairs are
 checked against the same valid overlap and quotas and capped at the goal.
@@ -54,7 +54,7 @@ because density quotas require the actual shared valid area.
 
 With `global_regression(pif_method="flood_from_match_points")`,
 `pif_stats_scope="overlap"` is the default: difference mean/std come from the
-whole valid overlap. Set `pif_stats_scope="matched_windows"` to warp only
+whole valid overlap. Set `pif_stats_scope="matched_windows"` to process only
 `pif_window_size`-pixel windows around accepted distributed tie points (default
 257, an odd side length). Difference statistics are pooled across those windows;
 overlapping source pixels are counted once. Seed regions retain the existing
@@ -76,7 +76,7 @@ statistics pass. Optional `pif_save_inz` diagnostics use packed window
 coordinates in this mode, rather than geographic mosaic coordinates.
 
 For direct `Pif.flood_from_match_points` calls, the corresponding names are
-`stats_scope`, `window_size` and `estimate_stats`.
+`stats_scope`, `window_size`, `coregister` and `estimate_stats`.
 
 `skip_overlap_when_not_enough_matches=True` is the default on `global_regression` and
 `Pif.flood_from_match_points`: warn and omit pairs with fewer than three
@@ -151,3 +151,31 @@ Requesting `pif_save_inz` still writes the full score grid, including outside se
 regions. Zero in this binary mask means excluded, not zero-valued image data:
 valid zero-valued image samples remain eligible. Capped PIF selection retains
 the same evenly spaced row-major pixel ranks.
+
+## Optional residual alignment
+
+`global_regression(pif_coregister=False)` is the default for already aligned
+imagery. The two overlap views share the reference's exact pixel grid using
+lazy GDAL VRTs; no tie-derived correction warp or corrected overlap TIFF is
+created. Feature matching still selects PIF seed locations, and INZ filtering,
+full-overlap normalization statistics, sampling, and radiometric correction
+remain enabled. This option does not disable the separate joint-coregistration
+workflow step or switch to `pif_method="entire"`.
+
+Set `pif_coregister=True` to correct remaining misalignment for PIF comparisons.
+Each pair holds the reference fixed and fits the moving image with joint
+coregistration's global translation and regularized piecewise-affine local grid,
+using Huber weighting, 500-CRS-unit grid spacing and anchor falloff, and unit
+smoothing/bending weights. The former TPS transform is no longer used. Three
+collinear matches can support a translation without an unconstrained 2D TPS
+fit. Local deformation is constrained by the shared solver's regularization
+and foldover checks. This is not a guarantee that inaccurate matches are safe.
+
+Only the moving comparison view is warped, with bilinear resampling and an
+alpha validity band, onto the unchanged reference grid. Both images' PIF
+statistics are calculated from that one alignment and shared PIF mask. Saved
+input rasters are never repositioned. `matched_windows` fits the model once
+per pair and reuses it for each bounded output window.
+
+The direct PIF API uses `Pif.flood_from_match_points(coregister=False)`;
+`pipeline` uses `global_regression_pif_coregister=False`.

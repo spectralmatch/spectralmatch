@@ -1668,24 +1668,8 @@ def _validate_corrected_geotransform(info, parameters, model):
         raise ValueError(f"Global alignment for {info.name} creates an invalid image transform.")
 
 
-def _write_local_warp_output(
-    info,
-    output_path,
-    global_model,
-    global_parameters,
-    local_model,
-    mesh,
-    resampling_method,
-    output_dtype,
-    nodata_value,
-    driver,
-    creation_options,
-    tile_thread_on,
-    tile_thread_workers,
-    tmpdir,
-    target_resolution=None,
-    tap=False,
-):
+def _local_alignment_source(info, global_parameters, global_model, mesh, local_model, tmpdir):
+    """Build the shared GDAL geolocation view without reading raster pixels."""
     x_path = os.path.join(tmpdir, "geolocation_x.tif")
     y_path = os.path.join(tmpdir, "geolocation_y.tif")
     vrt_path = os.path.join(tmpdir, "geolocated_source.vrt")
@@ -1716,6 +1700,31 @@ def _write_local_warp_output(
         "GEOLOCATION",
     )
     source = None
+
+    return vrt_path, x_values, y_values
+
+
+def _write_local_warp_output(
+    info,
+    output_path,
+    global_model,
+    global_parameters,
+    local_model,
+    mesh,
+    resampling_method,
+    output_dtype,
+    nodata_value,
+    driver,
+    creation_options,
+    tile_thread_on,
+    tile_thread_workers,
+    tmpdir,
+    target_resolution=None,
+    tap=False,
+):
+    vrt_path, x_values, y_values = _local_alignment_source(
+        info, global_parameters, global_model, mesh, local_model, tmpdir
+    )
 
     native_x_resolution, native_y_resolution = _transform_resolution(info.transform)
     x_resolution, y_resolution = target_resolution or (
@@ -1836,6 +1845,49 @@ def _unlink_output(path):
         gdal.Unlink(path)
 
 
+def _prepare_overlap_alignment(reference_path, sensed_path, point_pairs, tmpdir, debug_logs=False):
+    """Fit a fixed-reference translation plus regularized piecewise-affine grid.
+
+    Use joint alignment's default model, robustness and regularization. Only
+    the moving image gets a temporary corrected georeferencing view; original
+    pixel values stay in GDAL until the final reference-grid warp.
+    """
+    infos = {"reference": _read_image_info("reference", reference_path),
+             "moving": _read_image_info("moving", sensed_path)}
+    # PIF tuples are row/column; joint solvers consume column/row pixel centers.
+    ties = {("reference", "moving"): np.asarray(point_pairs, dtype=float)[:, [1, 0, 3, 2]]}
+    weights = dict.fromkeys(infos, 1.0)
+    fixed = ("reference",)
+    robust_scale = 3 * max(info.pixel_size for info in infos.values())
+    parameters = _solve_global_alignment(
+        infos, ties, "translation", weights, 1.0, "huber", robust_scale, debug_logs, fixed
+    )
+    meshes = _solve_local_alignment(
+        infos, ties, "translation", parameters, "piecewise_affine", weights, 1.0,
+        500.0, 1.0, 1.0, 500.0, "huber", robust_scale, debug_logs, fixed,
+    )
+    info, mesh = infos["moving"], meshes["moving"]
+    os.makedirs(tmpdir, exist_ok=True)
+    if np.allclose(mesh.displacement, 0, atol=1e-10):
+        path = os.path.join(tmpdir, "translated_source.vrt")
+        source = gdal.Translate(path, sensed_path, format="VRT")
+        if source is None:
+            raise RuntimeError("Failed to create overlap alignment source.")
+        source.SetGeoTransform(_corrected_geotransform(info, parameters["moving"], "translation"))
+        source = None
+        return path, False
+    path, _, _ = _local_alignment_source(
+        info, parameters["moving"], "translation", mesh, "piecewise_affine", tmpdir
+    )
+    # _geolocation_grid evaluates pixel centers. Register those centers exactly
+    # on the fixed PIF grid rather than shifting the comparison by half a pixel.
+    source = gdal.Open(path, gdal.GA_Update)
+    source.SetMetadataItem("PIXEL_OFFSET", "0.5", "GEOLOCATION")
+    source.SetMetadataItem("LINE_OFFSET", "0.5", "GEOLOCATION")
+    source = None
+    return path, True
+
+
 def _coregister_overlap(
     reference_overlap_vrt: str,
     sensed_overlap_vrt: str,
@@ -1845,13 +1897,14 @@ def _coregister_overlap(
     tie_pairs: list[tuple[float, float, float, float]] | None = None,
     output_window: tuple[int, int, int, int] | None = None,
     sparse_output: bool = False,
+    _alignment_source: tuple[str, bool] | None = None,
     feature_method: Literal["orb"] = "orb",
     cache: Universal.Cache = None,
     io_threads: Universal.Threads = None,
     tile_threads: Universal.Threads = None,
     debug_logs: Universal.DebugLogs = False,
 ) -> tuple[str, list[tuple[float, float, float, float]]]:
-    """Coregister an overlap raster using conjugate points.
+    """Correct residual overlap alignment using the fixed-reference joint model.
 
     Returns the corrected raster path and matched ``(reference_row, reference_column, sensed_row, sensed_column)`` pairs used by the PIF workflow; supplied selected points bypass ORB and RANSAC.
     output_window optionally limits the warp to (column, row, width, height)
@@ -1887,24 +1940,12 @@ def _coregister_overlap(
     output_dir = os.path.dirname(output_raster_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="spectralmatch_gcps_") as tmpdir:
-        gcp_vrt = os.path.join(tmpdir, "sensed_gcps.vrt")
-        gcp_dataset = gdal.Translate(gcp_vrt, sensed_overlap_vrt, options=gdal.TranslateOptions(format="VRT", callback=gdal_progress("Writing raster")))
-        if gcp_dataset is None:
-            raise RuntimeError("Failed to create temporary VRT for overlap coregistration.")
+    with tempfile.TemporaryDirectory(prefix="spectralmatch_pair_alignment_") as tmpdir:
+        alignment_source, geoloc = _alignment_source or _prepare_overlap_alignment(
+            reference_overlap_vrt, sensed_overlap_vrt, point_pairs, tmpdir, debug_logs
+        )
         reference_transform = reference.GetGeoTransform()
         projection = reference.GetProjectionRef()
-        gcps = [
-            gdal.GCP(
-                *_pixel_to_map_coords(reference_transform, ref_row, ref_col),
-                0.0,
-                float(sensed_col),
-                float(sensed_row),
-            )
-            for ref_row, ref_col, sensed_row, sensed_col in point_pairs
-        ]
-        gcp_dataset.SetGCPs(gcps, projection)
-        gcp_dataset = None
         bounds = _get_bounds_from_gt(reference_transform, reference.RasterXSize, reference.RasterYSize)
         width, height = reference.RasterXSize, reference.RasterYSize
         if output_window is not None:
@@ -1918,28 +1959,30 @@ def _coregister_overlap(
         warp_options = ["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"]
         if tile_thread_on:
             warp_options.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
-        corrected = gdal.Warp(
-            output_raster_path,
-            gcp_vrt,
-            options=gdal.WarpOptions(
-                format=format_name,
-                tps=True,
-                dstSRS=projection or None,
-                outputBounds=bounds,
-                width=width,
-                height=height,
-                resampleAlg=gdal.GRIORA_Bilinear,
-                dstAlpha=True,
-                multithread=tile_thread_on,
-                warpOptions=warp_options,
-                creationOptions=raster_creation_options(
-                    _get_creation_options(format_name) +
-                    (["SPARSE_OK=YES", "INTERLEAVE=BAND"] if sparse_output and format_name == "GTiff" else []),
-                    format_name,
+        with gdal.config_option("CPL_TMPDIR", tmpdir):
+            corrected = gdal.Warp(
+                output_raster_path,
+                alignment_source,
+                options=gdal.WarpOptions(
+                    format=format_name,
+                    geoloc=geoloc,
+                    errorThreshold=0.0,
+                    dstSRS=projection or None,
+                    outputBounds=bounds,
+                    width=width,
+                    height=height,
+                    resampleAlg=gdal.GRIORA_Bilinear,
+                    dstAlpha=True,
+                    multithread=tile_thread_on,
+                    warpOptions=warp_options,
+                    creationOptions=raster_creation_options(
+                        _get_creation_options(format_name) +
+                        (["SPARSE_OK=YES", "INTERLEAVE=BAND"] if sparse_output and format_name == "GTiff" else []),
+                        format_name,
+                    ),
+                    callback=gdal_progress("Warping raster"),
                 ),
-                callback=gdal_progress("Warping raster"),
-            ),
-        )
+            )
         if corrected is None:
             raise RuntimeError("Failed to warp overlap raster for coregistration.")
         corrected = None

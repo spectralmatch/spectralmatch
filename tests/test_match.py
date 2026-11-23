@@ -200,7 +200,8 @@ def test_global_regression_method_level_shared_params(tmp_path):
     assert all(os.path.exists(p) for p in result)
 
 
-def test_global_regression_forwards_pif_load_ties(tmp_path, monkeypatch):
+@pytest.mark.parametrize("coregister", [False, True])
+def test_global_regression_forwards_pif_load_ties(tmp_path, monkeypatch, coregister):
     paths, output_paths, _, _ = _make_two_test_rasters(
         tmp_path,
         [("A", 100), ("B", 120)],
@@ -224,10 +225,12 @@ def test_global_regression_forwards_pif_load_ties(tmp_path, monkeypatch):
         output_images=output_paths,
         pif_method="flood_from_match_points",
         pif_load_ties=tie_path,
+        pif_coregister=coregister,
     )
 
     assert result == output_paths
     assert captured["load_ties"] == tie_path
+    assert captured["coregister"] is coregister
 
 
 # local_block_adjustment

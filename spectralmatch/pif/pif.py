@@ -13,7 +13,7 @@ from osgeo import gdal
 
 from ..utils_logging import _print_step_start, _report_image_result, _print_line
 
-from ..joint_coregistration.joint_coregistration import _coregister_overlap, _drop_duplicate_point_pairs, _load_ties
+from ..joint_coregistration.joint_coregistration import _coregister_overlap, _prepare_overlap_alignment, _drop_duplicate_point_pairs, _load_ties
 from ..handlers import _check_raster_requirements, _resolve_nodata_value, _resolve_paths, _resolve_optional_load_path
 from ..match.global_regression import _solve_pif_global_model
 from ..types_and_validation import Universal, JointCoregistration
@@ -51,6 +51,7 @@ class Pif:
         feature_method: Literal["orb"] = "orb",
         load_ties: str | None = None,
         stats_scope: Literal["overlap", "matched_windows"] = "overlap",
+        coregister: bool = False,
         window_size: int = 257,
         estimate_stats: bool = True,
         tie_sampling_method: Literal["grid", "overlap_spread"] = "overlap_spread",
@@ -100,6 +101,7 @@ class Pif:
             custom_std_factor: Numeric standard-deviation-constraint weight; default 1.0.
             feature_method: 'orb', currently the only feature matcher.
             load_ties: str path to joint_coregistration selected-point JSON or None; basenames and original pixel grids must match; existing files require at least three usable points per processed pair; a missing file warns and uses normal feature detection.
+            coregister: bool, default False. Enable temporary fixed-reference translation and regularized local alignment before PIF statistics. False keeps existing alignment; seed matching still runs.
             stats_scope: 'overlap' (default) uses the whole valid overlap for difference statistics;
                 'matched_windows' warps only bounded matched windows and pools their difference statistics.
             window_size: Positive odd window side length in overlap pixels; default 257.
@@ -130,6 +132,8 @@ class Pif:
             np.ndarray: Shape (num_bands, 2 * num_images, 1); each image has scale then offset, with corrected = scale * image + offset.
         """
         _print_step_start("flood_from_match_points")
+        if not isinstance(coregister, bool):
+            raise ValueError("coregister must be a bool.")
         if not isinstance(skip_overlap_when_not_enough_matches, bool):
             raise ValueError("skip_overlap_when_not_enough_matches must be a bool.")
         input_image_paths = _resolve_paths(
@@ -266,6 +270,7 @@ class Pif:
                     tie_options,
                     skip_overlap_when_not_enough_matches,
                     (footprints.get(image_path_pairs[name_i]), footprints.get(image_path_pairs[name_j])),
+                    coregister,
                 )
             )
 
@@ -473,6 +478,7 @@ def _calculate_pair_pif_stats(
     tie_options: dict | None = None,
     skip_overlap_when_not_enough_matches: bool = True,
     footprints=None,
+    coregister: bool = False,
 ) -> tuple[dict, dict[str, dict[int, dict[str, float | int]]]]:
     with tempfile.TemporaryDirectory(prefix="spectralmatch_pif_") as tmpdir:
         from ..footprint_reads import sparse_footprint_vrt
@@ -535,15 +541,18 @@ def _calculate_pair_pif_stats(
         seed_mask_override = None
         if stats_scope == "matched_windows":
             ref_vrt, corrected_sensed_path, width, height, gt, projection, seed_mask_override = _build_matched_window_stack(
-                ref_vrt, sensed_vrt, point_pairs, num_bands, window_size, tmpdir, region_radius=region_radius,
+                ref_vrt, sensed_vrt, point_pairs, num_bands, window_size, tmpdir, region_radius=region_radius, coregister=coregister,
                 cache=cache, io_threads=io_threads, tile_threads=tile_threads, debug_logs=debug_logs,
             )
-        else:
+        elif coregister:
             corrected_sensed_path, point_pairs = _coregister_overlap(
                 ref_vrt, sensed_vrt, os.path.join(tmpdir, "sensed_overlap_corrected.tif"),
                 tie_pairs=point_pairs, feature_method=feature_method, sparse_output=True,
                 cache=cache, io_threads=io_threads, tile_threads=tile_threads, debug_logs=debug_logs,
             )
+
+        else:
+            corrected_sensed_path = sensed_vrt
 
         corrected_valid_mask_path = _build_valid_mask_raster(
             ref_vrt,
@@ -621,7 +630,7 @@ def _calculate_pair_pif_stats(
 
 
 def _build_matched_window_stack(
-    ref_vrt, sensed_vrt, point_pairs, num_bands, window_size, tmpdir, *, region_radius=5, **warp_options,
+    ref_vrt, sensed_vrt, point_pairs, num_bands, window_size, tmpdir, *, region_radius=5, coregister=False, **warp_options,
 ):
     """Warp bounded windows, mask duplicate source pixels, and pack lazy VRTs.
 
@@ -637,6 +646,9 @@ def _build_matched_window_stack(
     radius = window_size // 2
     region_radius = max(0, int(region_radius))
     windows, seed_windows, rectangles = [], [], []
+    alignment = (_prepare_overlap_alignment(ref_vrt, sensed_vrt, point_pairs,
+                 os.path.join(tmpdir, "alignment"), warp_options.get("debug_logs", False))
+                 if coregister else None)
     for index, (rr, rc, _, _) in enumerate(point_pairs):
         rr, rc = int(round(rr)), int(round(rc))
         xoff, yoff = max(0, rc - radius), max(0, rr - radius)
@@ -647,10 +659,16 @@ def _build_matched_window_stack(
         patch = gdal.Translate(ref_patch, ref_vrt, format="VRT", srcWin=[xoff, yoff, w, h])
         patch_gt = patch.GetGeoTransform()
         patch = None
-        sensed_patch, _ = _coregister_overlap(
-            ref_vrt, sensed_vrt, os.path.join(folder, "sensed.tif"),
-            tie_pairs=point_pairs, output_window=(xoff, yoff, w, h), **warp_options,
-        )
+        if coregister:
+            sensed_patch, _ = _coregister_overlap(
+                ref_vrt, sensed_vrt, os.path.join(folder, "sensed.tif"),
+                tie_pairs=point_pairs, output_window=(xoff, yoff, w, h),
+                _alignment_source=alignment, **warp_options,
+            )
+        else:
+            sensed_patch = os.path.join(folder, "sensed.vrt")
+            patch = gdal.Translate(sensed_patch, sensed_vrt, format="VRT", srcWin=[xoff, yoff, w, h])
+            patch = None
         mask_path = _build_valid_mask_raster(ref_patch, sensed_patch, w, h, patch_gt, projection, folder)
         mask_ds = gdal.Open(mask_path, gdal.GA_Update)
         mask = mask_ds.GetRasterBand(1).ReadAsArray()
@@ -738,9 +756,6 @@ def _build_overlap_vrts(
 
     ref_ds = gdal.Open(reference_path, gdal.GA_ReadOnly)
     projection = ref_ds.GetProjectionRef()
-    ref_gt = ref_ds.GetGeoTransform()
-    x_res = abs(ref_gt[1])
-    y_res = abs(ref_gt[5])
     ref_ds = None
 
     ref_vrt = os.path.join(tmpdir, "reference_overlap.vrt")
@@ -756,7 +771,10 @@ def _build_overlap_vrts(
     )
     if ref_crop is None:
         raise RuntimeError("Failed to crop reference image for PIF extraction.")
+    width, height = ref_crop.RasterXSize, ref_crop.RasterYSize
+    gt = ref_crop.GetGeoTransform()
     ref_crop = None
+    right, bottom = gdal.ApplyGeoTransform(gt, width, height)
 
     sensed_warp = gdal.Warp(
         sensed_vrt,
@@ -764,9 +782,9 @@ def _build_overlap_vrts(
         options=gdal.WarpOptions(
             format="VRT",
             dstSRS=projection or None,
-            outputBounds=(x_min, y_min, x_max, y_max),
-            xRes=x_res,
-            yRes=y_res,
+            outputBounds=(gt[0], bottom, right, gt[3]),
+            width=width,
+            height=height,
             resampleAlg=gdal.GRIORA_Bilinear,
             dstAlpha=True,
             warpOptions=["SKIP_NOSOURCE=YES", "UNIFIED_SRC_NODATA=YES"],

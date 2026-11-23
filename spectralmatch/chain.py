@@ -148,6 +148,7 @@ def pipeline(
     global_regression_tie_min_samples: int | str = "1000crs",
     global_regression_tie_max_attempts: int | None = None,
     global_regression_pif_method: Literal["entire", "flood_from_match_points"] = "flood_from_match_points",
+    global_regression_pif_coregister: bool = False,
     global_regression_pif_red_band_index: int | None = None,
     global_regression_pif_nir_band_index: int | None = None,
     global_regression_pif_vegetation_threshold: float = 0.2,
@@ -234,6 +235,7 @@ def pipeline(
         shared_concurrent_processing_backend: Shared process_pool or dask backend; forwarded to merge only with merge_rasters_output_tiles=True.
         shared_dask_scheduler: Shared Dask scheduler; forwarded to merge only with merge_rasters_output_tiles=True.
         shared_resume_from_steps: Shared resume mode: "no" overwrites, "yes" skips existing outputs, and "validate" checks existing outputs before reuse; tiled merge applies this to existing tiles in the output folder.
+        global_regression_pif_coregister: Enable residual pair alignment before PIF statistics; default False for already aligned imagery.
         global_regression_pif_method: PIF selection method, default "flood_from_match_points", matching Match.global_regression.
         global_regression_pif_max_samples: Maximum number of PIF samples, default 10000; None disables the cap.
         global_regression_pif_min_samples: Minimum number of PIF samples, default 10.
@@ -499,6 +501,7 @@ def pipeline(
                     tie_min_samples=global_regression_tie_min_samples,
                     tie_max_attempts=global_regression_tie_max_attempts,
                     pif_method=global_regression_pif_method,
+                    pif_coregister=global_regression_pif_coregister,
                     pif_red_band_index=global_regression_pif_red_band_index,
                     pif_nir_band_index=global_regression_pif_nir_band_index,
                     pif_vegetation_threshold=global_regression_pif_vegetation_threshold,

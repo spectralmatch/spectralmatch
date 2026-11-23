@@ -433,6 +433,7 @@ class Match:
         pif_feature_method=_UNSET,
         pif_load_ties=_UNSET,
         pif_stats_scope=_UNSET,
+        pif_coregister=_UNSET,
         pif_window_size=_UNSET,
         pif_save_inz=_UNSET,
         skip_overlap_when_not_enough_matches=_UNSET,
@@ -442,6 +443,8 @@ class Match:
         if pif_method is not _UNSET:
             if pif_method not in {"entire", "flood_from_match_points"}:
                 raise ValueError("pif_method must be 'entire' or 'flood_from_match_points'.")
+        if pif_coregister is not _UNSET and not isinstance(pif_coregister, bool):
+            raise ValueError("pif_coregister must be a bool.")
         if pif_stats_scope is not _UNSET and pif_stats_scope not in {"overlap", "matched_windows"}:
             raise ValueError("pif_stats_scope must be 'overlap' or 'matched_windows'.")
         if pif_window_size is not _UNSET and (
