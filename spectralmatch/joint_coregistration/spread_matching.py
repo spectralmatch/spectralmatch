@@ -1,7 +1,6 @@
 """Match windows placed by largest-valid-area subdivision."""
 import math
 import os
-from time import monotonic
 
 import numpy as np
 from osgeo import gdal
@@ -18,11 +17,21 @@ def _shared_mask(reference, sensed, info_i, info_j, tmpdir):
     height = min(reference.RasterYSize, sensed.RasterYSize)
     mask = np.memmap(os.path.join(tmpdir, 'shared_valid.bin'), mode='w+', dtype=np.bool_, shape=(height, width))
     index = ValidMaskIndex(mask)
+    from ..footprint_reads import FootprintWindows
+    footprint_windows = FootprintWindows(
+        [getattr(info_i, "footprint", None), getattr(info_j, "footprint", None)],
+        reference.GetGeoTransform(),
+    )
     with progress(total=math.ceil(height / 512) * math.ceil(width / 1024),
                   desc="Reading valid overlap", unit="blocks") as bar:
         for y in range(0, height, 512):
             for x in range(0, width, 1024):
                 window = (x, y, min(1024, width - x), min(512, height - y))
+                # Scheduling guard only: retain boundary windows for GDAL bilinear
+                # support and fractional grid alignment. Never expand validity.
+                if not footprint_windows.intersects(window, padding=2):
+                    bar.update(1)
+                    continue
                 valid = _build_overlap_valid_mask(reference, sensed, window, info_i.matching_bands, info_j.matching_bands)
                 mask[y:y + window[3], x:x + window[2]] = valid
                 index.add_window(x, y, valid)
@@ -99,8 +108,9 @@ def extract_spread_ties(info_i, info_j, feature_method, maximum_displacement, th
                 candidates, centers = [], []
                 selected = np.empty((0, 4), dtype=float)
                 attempts, reason = 0, 'valid search centers exhausted'
+                # Algorithm decisions must not depend on elapsed time or worker load.
+                # Progress can refresh independently; filter/stop only at fixed counts.
                 batch = max(1, min(1024, goal // 4))
-                last_check = monotonic()
                 sizes = (math.hypot(transform[1], transform[4]), math.hypot(transform[2], transform[5]))
                 for row, col in spread_centers(mask, sizes, index=index):
                     x, y = gdal.ApplyGeoTransform(transform, col + .5, row + .5)
@@ -116,9 +126,8 @@ def extract_spread_ties(info_i, info_j, feature_method, maximum_displacement, th
                         if len(original):
                             candidates.append(original)
                             centers.append(np.tile((x, y), (len(original), 1)))
-                    if attempts % batch == 0 or attempts == budget or monotonic() - last_check >= 1:
+                    if attempts % batch == 0 or attempts == budget:
                         selected = _accepted(candidates, centers, info_i, info_j, maximum_displacement, threshold, per_window)
-                        last_check = monotonic()
                         bar.n = min(len(selected), goal)
                         bar.refresh()
                         if len(selected) >= goal:

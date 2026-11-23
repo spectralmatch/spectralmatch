@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import uses_compression, raster_creation_options
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import reports_progress
@@ -53,6 +54,7 @@ class Seamline:
     @reports_progress(worker_progress=True)
     @uses_executor
     @uses_writing_postfix
+    @uses_compression
     def create_footprints(
         input_images: Universal.SearchFolderOrListFiles,
         output_polygons: str,
@@ -81,6 +83,7 @@ class Seamline:
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
         validity_writing_postfix: str | None = None,
+        compression: bool = True,
     ) -> str:
         """Create raw footprints or ranked mosaic coverage from raster masks, metadata or saved vector geometry.
 
@@ -294,6 +297,7 @@ class Seamline:
     @reports_progress(worker_progress=True)
     @uses_executor
     @uses_writing_postfix
+    @uses_compression
     def postprocess_footprints(
         input_polygons: str,
         output_polygons: str,
@@ -319,6 +323,7 @@ class Seamline:
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
         validity_writing_postfix: str | None = None,
+        compression: bool = True,
     ) -> str:
         """Connect nearby holes and edges, then smooth/simplify inward, preserving attributes.
 
@@ -472,11 +477,13 @@ class Seamline:
     @reports_progress(worker_progress=True)
     @uses_executor
     @uses_writing_postfix
+    @uses_compression
     def markov_triangles(
         input_images: Universal.SearchFolderOrListFiles,
         output_mask: str,
         *,
         input_polygons: str | None = None,
+        input_footprints: str | None = None,
         input_layer: str | None = "footprints",
         output_layer: str = "seamlines",
         image_field_name: str = "image",
@@ -502,6 +509,7 @@ class Seamline:
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
         validity_writing_postfix: str | None = None,
+        compression: bool = True,
     ) -> str:
         """Optimize triangle-MRF seamlines through overlapping quadtree mosaics, extending Yang et al. (2022; doi:10.1109/LGRS.2022.3166347).
 
@@ -510,7 +518,8 @@ class Seamline:
         Args:
             input_images: Raster folder, glob or path list; basenames without extensions must be unique.
             output_mask: Output GeoPackage path, distinct from input vectors; stores image identifiers, image_path and raw quality_score.
-            input_polygons: Optional valid-data footprints; None polygonizes band-1 GDAL masks, while supplied polygons must match every image and are never regenerated.
+            input_footprints: Optional current valid-data footprint file; preferred common name.
+            input_polygons: Legacy alias for input_footprints. Optional valid-data footprints; None polygonizes band-1 GDAL masks, while supplied polygons must match every image and are never regenerated.
             input_layer: Input footprint layer name; None selects the first layer. Defaults to "footprints".
             output_layer: Output polygon layer name; defaults to "seamlines".
             image_field_name: Footprint field containing each input basename without extension as a substring; matching pieces are dissolved using first-match attributes; defaults to "image".
@@ -546,6 +555,10 @@ class Seamline:
             Edges forced to one image are not sampled; other edges read costs only for images eligible on either side.
             Alpha expansion finds a move-local minimum; smallest-reduced differences use alpha-beta swaps because their costs need not satisfy the triangle inequality.
         """
+        if input_footprints is not None:
+            if input_polygons is not None:
+                raise ValueError("Pass input_footprints or the legacy input_polygons, not both")
+            input_polygons = input_footprints
         _print_step_start("markov_triangles")
         _validate_polygon_output(output_mask, output_layer)
         Universal._validate(
@@ -753,6 +766,7 @@ class Seamline:
     @staticmethod
     @reports_progress
     @uses_writing_postfix
+    @uses_compression
     def weighted(
         input_polygons: str,
         output_mask: str,
@@ -766,6 +780,7 @@ class Seamline:
         debug_logs: Universal.DebugLogs = False,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         validity_writing_postfix: str | None = None,
+        compression: bool = True,
     ) -> str:
         """Generate seamline polygons by ranking image footprints with a weighted expression.
 
@@ -824,6 +839,7 @@ class Seamline:
     @staticmethod
     @reports_progress
     @uses_writing_postfix
+    @uses_compression
     def voronoi(
         input_polygons: str,
         output_mask: str,
@@ -839,6 +855,7 @@ class Seamline:
         debug_vectors_path: str | None = None,
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         validity_writing_postfix: str | None = None,
+        compression: bool = True,
     ) -> str:
         """Generates a Voronoi-based seamline mask from edge-matching polygons (EMPs) and writes the result to a vector file.
 

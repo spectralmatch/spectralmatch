@@ -33,7 +33,10 @@ global_folder = os.path.join(working_directory, "GlobalMatch")
 local_folder = os.path.join(working_directory, "LocalMatch")
 clipped_folder = os.path.join(working_directory, "Clipped")
 stats_folder = os.path.join(working_directory, "Stats")
-footprints_path = os.path.join(working_directory, "Footprints.gpkg")
+temp_folder = os.path.join(working_directory, "Temp")
+os.makedirs(temp_folder, exist_ok=True)
+input_footprints_path = os.path.join(temp_folder, "InputFootprints.gpkg")
+footprints_path = os.path.join(temp_folder, "AlignedFootprints.gpkg")
 metadata_csv_path = os.path.join(input_folder, "ImageMetadata.csv")
 smoothed_footprints_path = os.path.join(working_directory, "SmoothedFootprints.gpkg")
 seamlines_path = os.path.join(working_directory, "ImageMasks.gpkg")
@@ -47,10 +50,23 @@ debug_mode = True
 concurrent_processing_backend = "process_pool"  # process_pool | dask
 dask_scheduler = None  # None | ("file", f"/tmp/spectralmatch-dask-1.json") | ("address", "tcp://scheduler:8786")
 
+# %% Cache exact input validity footprints (holes and islands retained)
+create_footprints(
+    compression=False,
+    input_images=input_folder,
+    output_polygons=input_footprints_path,
+    footprint_source="calculate_bounds",
+    image_threads=image_threads,
+    concurrent_processing_backend=concurrent_processing_backend,
+    dask_scheduler=dask_scheduler,
+)
+
 # %% Joint coregistration
 joint_coregistration(
+    compression=False,  # Uncompressed intermediates; compress only the final mosaic.
     input_images=input_folder,
     output_images=coregistration_folder,
+    input_footprints=input_footprints_path,
     tap=True,
     resolution="highest",
     debug_logs=debug_mode,
@@ -65,6 +81,7 @@ joint_coregistration(
 # %% Align rasters (or skip this step if images are already aligned or this is set in the joint_coregistration step)
 
 # align_rasters(
+#     compression=False,
 #     input_images=input_folder,
 #     output_images=coregistration_folder,
 #     tap=True,
@@ -78,12 +95,36 @@ joint_coregistration(
 #     dask_scheduler=dask_scheduler,
 # )
 
+# %% Rebuild footprints after alignment
+# Alignment changes the validity geometry; subsequent radiometry preserves it.
+# Reuse this file through global/local matching and seamline preparation.
+# GDAL's validity mask defines valid pixels. Apply cloud masks as nodata or a raster validity mask before this step; cloud class values alone do not mark pixels invalid.
+# ImageMetadata.csv contains illustrative scores (0–100), cloud percentages and sun/off-nadir angles in degrees; replace them with measured metadata for your images.
+# Its image column includes the full later LocalMatch basename, e.g. Worldview_20160922_Coregistered_Global_Local; .tif is optional.
+create_footprints(
+    compression=False,
+    input_images=coregistration_folder,
+    output_polygons=footprints_path,
+    metadata_csv=metadata_csv_path,
+    metadata_image_field_name="image",  # The example CSV includes the aligned basename followed by radiometric suffixes.
+    image_field_name="image",
+    output_layer="footprints",
+    band=1,
+    eight_connected=True,
+    image_threads=image_threads,
+    concurrent_processing_backend=concurrent_processing_backend,
+    dask_scheduler=dask_scheduler,
+    debug_logs=debug_mode,
+)
+
 # %% Global matching
 inz_output_path = os.path.join(global_folder, "INZ", "$_to_$_INZ.tif")
 
 global_regression(
+    compression=False,  # Uncompressed intermediates; compress only the final mosaic.
     input_images=coregistration_folder, # Automatically searches for all *.tif files if passed this way
     output_images=global_folder,
+    input_footprints=footprints_path,
     debug_logs=debug_mode,
     window_size=window_size,
     image_threads=image_threads,
@@ -112,8 +153,10 @@ local_maps_path = os.path.join(local_folder, "LocalBlockMap", "$_LocalBlockMap.t
 # searched_paths = search_paths(os.path.join(local_folder, "LocalBlockMap", "*.tif"))
 
 local_block_adjustment(
+    compression=False,  # Uncompressed intermediates; compress only the final mosaic.
     input_images=global_folder,
     output_images=local_folder,
+    input_footprints=footprints_path,
     debug_logs=debug_mode,
     window_size=window_size,
     image_threads=image_threads,
@@ -130,30 +173,11 @@ local_block_adjustment(
     # load_block_maps=(reference_map_path, searched_paths), # Local match from saved block maps (this code just passes in local maps, but if a reference map is passed in, it will match images to the reference map without recomputing it)
 )
 
-# %% Polygonize valid-pixel footprints
-# Use the locally matched images so footprint identifiers match the images clipped below.
-# GDAL's validity mask defines valid pixels. Apply cloud masks as nodata or a raster validity mask before this step; cloud class values alone do not mark pixels invalid.
-# ImageMetadata.csv contains illustrative scores (0–100), cloud percentages and sun/off-nadir angles in degrees; replace them with measured metadata for your images.
-# Its image column includes the full LocalMatch basename, e.g. Worldview_20160922_Coregistered_Global_Local; .tif is optional.
-create_footprints(
-    input_images=local_folder,
-    output_polygons=footprints_path,
-    metadata_csv=metadata_csv_path,
-    metadata_image_field_name="image",  # CSV values must contain the full current basename, including processing suffixes.
-    image_field_name="image",
-    output_layer="footprints",
-    band=1,
-    eight_connected=True,
-    image_threads=image_threads,
-    concurrent_processing_backend=concurrent_processing_backend,
-    dask_scheduler=dask_scheduler,
-    debug_logs=debug_mode,
-)
-
 # %% Cut edge holes and smooth footprints
 # Input polygons must use a suitable projected CRS; distances below use its linear units (metres for the example imagery).
 # These are starting values to tune for your imagery. Cuts use the original outer ring to select holes, and processing cannot expand the valid area.
 postprocess_footprints(
+    compression=False,
     input_polygons=footprints_path,
     output_polygons=smoothed_footprints_path,
     input_layer="footprints",
@@ -200,11 +224,12 @@ postprocess_footprints(
 
 # Option 3: Optimize triangle seamlines using image texture, inter-image differences, and image level metadata.
 # GSDs are positive integer CRS distances (metres here) or "native", independent of mesh_max_triangle_area.
-# Omit input_polygons to generate valid-data footprints automatically.
+# Omit input_footprints to generate valid-data footprints automatically.
 # Single GSDs/bands use [value]; multiple values require a reducer, e.g. {"average": ["native", 4]}.
 markov_triangles(
+    compression=False,
     input_images=local_folder,
-    input_polygons=smoothed_footprints_path,
+    input_footprints=smoothed_footprints_path,
     input_layer="footprints",
     output_mask=seamlines_path,
     image_field_name="image",
@@ -229,6 +254,7 @@ markov_triangles(
 # %% Clip
 
 mask_rasters(
+    compression=False,  # Uncompressed intermediates; compress only the final mosaic.
     input_images=local_folder,
     output_images=clipped_folder,
     vector_mask=("include", seamlines_path, "image"),
@@ -244,6 +270,7 @@ mask_rasters(
 # %% Merge rasters
 
 merge_rasters(
+    compression=True,  # Final mosaic and its overviews.
     input_images=clipped_folder,
     # output_image_path=os.path.join(working_directory, "MergedImage.tif"), # Use this for single tif output and set output_tiles=False
     output_image_path=os.path.join(working_directory, "MergedImage"),

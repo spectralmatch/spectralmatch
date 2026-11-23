@@ -78,11 +78,12 @@ def _report_image_result(key, value):
         results[key] = value
 
 
-def _run_logged_image(function, input_paths, output_paths, args, progress_callback=None, writing_context=(None, None), thread_budget=None):
+def _run_logged_image(function, input_paths, output_paths, args, progress_callback=None, writing_context=(None, None), thread_budget=None, compression=True):
     """Run an image in an isolated reporting context and return its original result with completion details."""
     # Fork-based external pools can inherit the coordinator's context. A job
     # must never submit nested work back to that same image pool.
     from .utils_multiprocessing import _IMAGE_EXECUTOR, _balanced_task_args
+    from .utils_compression import compression_context
     from .utils_thread_balance import tile_thread_budget
     executor_token = _IMAGE_EXECUTOR.set(None)
     details = {}
@@ -91,7 +92,7 @@ def _run_logged_image(function, input_paths, output_paths, args, progress_callba
         if hasattr(progress_callback, "lifecycle"):
             progress_callback.lifecycle("job_start")
         callback = _SceneReporter(progress_callback, _image_id(input_paths)) if progress_callback is not None else None
-        with progress_context(callback), output_context(*writing_context), tile_thread_budget(thread_budget):
+        with progress_context(callback), output_context(*writing_context), tile_thread_budget(thread_budget), compression_context(compression):
             if thread_budget is not None:
                 args = _balanced_task_args(function, args, thread_budget, 0)
             _print_image_start(input_paths, output_paths)

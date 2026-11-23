@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import raster_creation_options
 from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import writing_outputs
 from ..utils_progress import gdal_progress
@@ -286,6 +287,7 @@ def _apply_adjustments_process_image(
     save_as_cog,
     debug_logs: bool,
     resume_from_outputs: str,
+    footprint=None,
 ):
     """
     Applies per-band linear radiometric adjustments to an image using GDAL VRT metadata and materializes the result as a GeoTIFF or COG. Each band is transformed according to: y = a * x + b, where `a` = scale and `b` = offset.
@@ -320,6 +322,8 @@ def _apply_adjustments_process_image(
     with writing_outputs(output_image_path) as (output_image_path,):
         # VRT wrapper of the input
         with tempfile.TemporaryDirectory(prefix="spectralmatch_adjust_") as tmpdir:
+            from ..footprint_reads import sparse_footprint_vrt
+            input_image_path = sparse_footprint_vrt(input_image_path, footprint, os.path.join(tmpdir, "source.vrt"))
             vrt_path = os.path.join(tmpdir, f"{image_name}_linear.vrt")
 
             window_size = _resolve_window_size(window_size, input_image_path, debug_logs)
@@ -390,12 +394,14 @@ def _apply_adjustments_process_image(
             except Exception:
                 pass
 
+            # Avoid evaluating expressions for wholly empty output blocks.
+            vrt_path = sparse_footprint_vrt(vrt_path, footprint, os.path.join(tmpdir, "output_sparse.vrt"), preserve_masks=False)
             out_ds = gdal.Translate(
                 output_image_path,
                 vrt_path,
                 options=gdal.TranslateOptions(
                     format=driver_name,
-                    creationOptions=co,
+                    creationOptions=raster_creation_options(co, driver_name),
                     bandList=list(range(1, num_bands + 1)),
                     noData=nodata_val if nodata_val is not None else None,
                     outputType=gdal.GetDataTypeByName(output_dtype),
@@ -692,6 +698,7 @@ def _overlap_stats_process_image(
     vector_mask=None,
     nodata_value=None,
     debug_logs: bool = False,
+    footprints=None,
 ) -> Dict[str, Dict[str, Dict[int, Dict[str, float]]]]:
     """Create worker-local masked VRTs and calculate one overlap pair."""
     with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
@@ -699,7 +706,7 @@ def _overlap_stats_process_image(
             [name_i, name_j], [input_image_path_i, input_image_path_j],
             step_name="global_regression", vector_mask=vector_mask,
             nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
-            create_vrt=_create_masked_vrt,
+            create_vrt=_create_masked_vrt, footprints=footprints,
             tile_threads=tile_thread_workers if tile_thread_on else None,
         )
         return _overlap_stats_from_masked_images(
@@ -906,6 +913,7 @@ def _whole_stats_process_image(
     vector_mask=None,
     nodata_value=None,
     debug_logs: bool = False,
+    footprint=None,
 ) -> Dict[str, Dict[int, Dict[str, float]]]:
     """Create one worker-local masked VRT and calculate whole-image statistics."""
     with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
@@ -913,7 +921,7 @@ def _whole_stats_process_image(
             [image_name], [input_image_path],
             step_name="global_regression", vector_mask=vector_mask,
             nodata_value=nodata_value, out_dir=tmpdir, debug_logs=debug_logs,
-            create_vrt=_create_masked_vrt,
+            create_vrt=_create_masked_vrt, footprints=[footprint],
             tile_threads=tile_thread_worker if tile_thread_on else None,
         )
         return _whole_stats_from_masked_image(

@@ -104,3 +104,27 @@ There are two types of block maps, although their format is exactly the same:
  - **Reference Block Map:** Each block is the mean of all images means for its boundary; simply the mean of all local block maps.
 
 Both block maps have the shape: `num_row, num_col, num_bands`, however, there are multiple (one for each image) local block maps and only one reference block map. Once a reference block map is created it is unique to its input images and cannot be accurately modified to add additional images. However, images can be 'brought' to a reference block map even if they were not involved in its creation as long as it covers that image.
+
+
+## Raster compression
+
+Raster-writing functions accept `compression: bool = True`. Use
+`compression=False` for uncompressed intermediate TIFFs, and leave the final
+mosaic compressed. This applies to newly written outputs, internal TIFFs
+(including PIF masks and correction maps), and overviews. COG output remains a
+COG with uncompressed tiles when compression is disabled. Image workers inherit
+the enclosing function's setting; nested calls can explicitly override it.
+
+```python
+global_regression(inputs, corrected, compression=False)
+local_block_adjustment(corrected, adjusted, compression=False)
+merge_rasters(adjusted, "mosaic.tif", compression=True)
+```
+
+Compression is independent of output dtype, matching parameters, validity checks,
+and writing-postfix publication. Reused outputs are not rewritten to change
+compression. `compute_overviews` updates only the overviews when run in place;
+its compression setting also applies to the base image if a separate output is
+requested. VRT, in-memory datasets and vector files have no TIFF compression.
+Uncompressed files require more disk space and transfer bandwidth; the benefit
+is reduced codec work, not elimination of GDAL block reads.

@@ -1,6 +1,7 @@
 """Joint global and locally varying coregistration of overlapping rasters."""
 
 from __future__ import annotations
+from spectralmatch.utils_compression import uses_compression, raster_creation_options
 from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
@@ -64,6 +65,7 @@ class _ImageInfo:
     center: tuple[float, float]
     coordinate_scale: float
     matching_bands: tuple[int, ...] = (1,)
+    footprint: bytes | None = None
 
 
 @dataclass
@@ -119,10 +121,12 @@ class _SparseEquations:
 @reports_progress(worker_progress=True)
 @uses_executor
 @uses_writing_postfix
+@uses_compression
 def joint_coregistration(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
     *,
+    input_footprints: str | list[str] | None = None,
     moving_tie_method: Literal["orb", "elastix"] = "orb",
     skip_overlap_when_not_enough_matches: bool = True,
     fixed_images: list[str] | None = None,
@@ -174,6 +178,7 @@ def joint_coregistration(
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     executor=None,
     validity_writing_postfix: str | None = None,
+    compression: bool = True,
 ) -> list[str]:
     """Coregister overlapping rasters with a joint global transform and local deformation mesh.
 
@@ -182,6 +187,7 @@ def joint_coregistration(
     Args:
         input_images: Folder (searches '*.tif'), wcmatch.glob pattern such as 'input/**/*.{tif,tiff}', or list[str] of literal paths; moving rasters with unique basenames and a shared CRS. Requires at least one moving raster and two total rasters including fixed_images.
         output_images: Folder (writes '$_Coregistered.tif'), '$' basename template, or list[str] matching input order and length; output paths must be unique and differ from inputs.
+        input_footprints: Optional exact valid-data vector file(s), standard image IDs; None retains raster scanning. Fixed-reference footprints are optional. Regenerate after geometric changes.
         moving_tie_method: Matcher for pairs between non-fixed input images: 'orb' (default) or 'elastix'. Elastix requires spectralmatch[elastix].
         skip_overlap_when_not_enough_matches: bool, default True; warn and omit pairs with no selected ties from the alignment graph and saved tie cache. Images remain in the output list.
         fixed_images: List of existing reference raster paths held fixed in both solvers, supplied separately from input_images. References are read-only inputs and have no output entries. None keeps unanchored joint behavior.
@@ -345,11 +351,15 @@ def joint_coregistration(
     _set_gdal_workers(io_threads, debug_logs)
     target_resolution = compute_resolution(input_paths, resolution)
 
+    from ..footprint_reads import load_footprints, footprint_pairs
+    footprints = load_footprints(input_footprints, input_paths,
+                                 optional_paths=[path for name, path in zip(names, input_paths) if name in fixed_names])
     infos = _use_common_coordinate_frame(
-        {name: _read_image_info(name, path, fixed_images_bands if name in fixed_names else input_images_bands)
+        {name: _read_image_info(name, path, fixed_images_bands if name in fixed_names else input_images_bands, footprints.get(path))
          for name, path in zip(names, input_paths)}
     )
-    overlaps = _find_overlaps({name: info.bounds for name, info in infos.items()})
+    overlaps = footprint_pairs(_find_overlaps({name: info.bounds for name, info in infos.items()}),
+                               dict(zip(names, input_paths)), footprints)
     reusable = _resolve_reusable_output_paths(
         output_paths,
         resume_mode=resume_from_outputs,
@@ -543,7 +553,7 @@ def _normalize_image_weights(weights: dict[str, float]) -> dict[str, float]:
     return {name: value / mean for name, value in scaled.items()}
 
 
-def _read_image_info(name: str, path: str, matching_bands=(1,)) -> _ImageInfo:
+def _read_image_info(name: str, path: str, matching_bands=(1,), footprint=None) -> _ImageInfo:
     dataset = gdal.Open(path, gdal.GA_ReadOnly)
     if dataset is None:
         raise RuntimeError(f"Could not open raster: {path}")
@@ -559,7 +569,7 @@ def _read_image_info(name: str, path: str, matching_bands=(1,)) -> _ImageInfo:
     center = ((bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2)
     pixel_size = max(math.hypot(transform[1], transform[4]), math.hypot(transform[2], transform[5]))
     coordinate_scale = max(bounds[2] - bounds[0], bounds[3] - bounds[1], pixel_size)
-    return _ImageInfo(name, path, transform, projection, width, height, bounds, pixel_size, center, coordinate_scale, tuple(matching_bands))
+    return _ImageInfo(name, path, transform, projection, width, height, bounds, pixel_size, center, coordinate_scale, tuple(matching_bands), footprint)
 
 
 def _use_common_coordinate_frame(infos: dict[str, _ImageInfo]) -> dict[str, _ImageInfo]:
@@ -582,6 +592,7 @@ def _use_common_coordinate_frame(infos: dict[str, _ImageInfo]) -> dict[str, _Ima
             center,
             scale,
             info.matching_bands,
+            info.footprint,
         )
         for name, info in infos.items()
     }
@@ -761,7 +772,10 @@ def _build_pair_overlap_vrts(info_i, info_j, tmpdir):
         raise ValueError("Images do not overlap.")
     resolution = max(info_i.pixel_size, info_j.pixel_size)
     paths = (os.path.join(tmpdir, "reference.vrt"), os.path.join(tmpdir, "sensed.vrt"))
-    for source, destination in zip((info_i.path, info_j.path), paths):
+    from ..footprint_reads import sparse_footprint_vrt
+    for index, (info, destination) in enumerate(zip((info_i, info_j), paths)):
+        source = sparse_footprint_vrt(info.path, info.footprint,
+                                      os.path.join(tmpdir, f"source_{index}.vrt"))
         dataset = gdal.Warp(
             destination,
             source,
@@ -1465,7 +1479,7 @@ def _apply_alignment_process_image(
         if fixed:
             # Fixed references retain native pixels, CRS, extent, resolution and nodata.
             driver = "VRT" if os.path.splitext(output_path)[1].lower() == ".vrt" else ("COG" if save_as_cog else "GTiff")
-            output = gdal.Translate(output_path, info.path, format=driver)
+            output = gdal.Translate(output_path, info.path, format=driver, creationOptions=raster_creation_options([], driver))
             if output is None:
                 raise RuntimeError(f"Could not copy fixed image: {info.path}")
             output = None
@@ -1478,6 +1492,11 @@ def _apply_alignment_process_image(
         local_is_zero = mesh is None or np.allclose(mesh.displacement, 0, atol=1e-10)
         _validate_corrected_geotransform(info, global_parameters, global_model)
         with tempfile.TemporaryDirectory(prefix="spectralmatch_joint_coregistration_") as tmpdir:
+            if not output_path.lower().endswith('.vrt'):
+                from dataclasses import replace
+                from ..footprint_reads import sparse_footprint_vrt
+                info = replace(info, path=sparse_footprint_vrt(info.path, info.footprint,
+                               os.path.join(tmpdir, "source.vrt")))
             if local_is_zero:
                 output = _write_global_affine_output(
                     info,
@@ -1580,7 +1599,7 @@ def _write_global_affine_output(
                 format=driver,
                 outputType=gdal.GetDataTypeByName(output_dtype),
                 noData=nodata_value,
-                creationOptions=creation_options,
+                creationOptions=raster_creation_options(creation_options, driver),
                 callback=gdal_progress("Writing raster"),
             ),
         )
@@ -1606,7 +1625,7 @@ def _write_global_affine_output(
                 dstNodata=nodata_value,
                 multithread=tile_thread_on,
                 warpOptions=warp_options,
-                creationOptions=creation_options,
+                creationOptions=raster_creation_options(creation_options, driver),
                 callback=gdal_progress("Warping raster"),
             ),
         )
@@ -1732,7 +1751,7 @@ def _write_local_warp_output(
             dstNodata=nodata_value,
             multithread=tile_thread_on,
             warpOptions=warp_options,
-            creationOptions=creation_options,
+            creationOptions=raster_creation_options(creation_options, driver),
             callback=gdal_progress("Warping raster"),
         ),
     )
@@ -1793,7 +1812,7 @@ def _write_coordinate_raster(path, values, projection):
         rows,
         1,
         gdal.GDT_Float64,
-        options=["TILED=YES", "COMPRESS=DEFLATE"],
+        options=raster_creation_options(["TILED=YES", "COMPRESS=DEFLATE"], "GTiff"),
     )
     if dataset is None:
         raise RuntimeError("Failed to create temporary geolocation raster.")
@@ -1825,6 +1844,7 @@ def _coregister_overlap(
     valid_mask_path: str | None = None,
     tie_pairs: list[tuple[float, float, float, float]] | None = None,
     output_window: tuple[int, int, int, int] | None = None,
+    sparse_output: bool = False,
     feature_method: Literal["orb"] = "orb",
     cache: Universal.Cache = None,
     io_threads: Universal.Threads = None,
@@ -1912,7 +1932,11 @@ def _coregister_overlap(
                 dstAlpha=True,
                 multithread=tile_thread_on,
                 warpOptions=warp_options,
-                creationOptions=_get_creation_options(format_name),
+                creationOptions=raster_creation_options(
+                    _get_creation_options(format_name) +
+                    (["SPARSE_OK=YES", "INTERLEAVE=BAND"] if sparse_output and format_name == "GTiff" else []),
+                    format_name,
+                ),
                 callback=gdal_progress("Warping raster"),
             ),
         )

@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import uses_compression
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
 from ..utils_progress import reports_progress
@@ -155,6 +156,7 @@ class Match:
     @reports_progress(worker_progress=True)
     @uses_executor
     @uses_writing_postfix
+    @uses_compression
     def global_regression(
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,
@@ -162,6 +164,7 @@ class Match:
         calculation_dtype: Universal.CalculationDtype = "float32",
         output_dtype: Universal.CustomOutputDtype = None,
         vector_mask: Universal.VectorMask = None,
+        input_footprints: str | list[str] | None = None,
         debug_logs: Universal.DebugLogs = False,
         custom_nodata_value: Universal.CustomNodataValue = None,
         cache: Universal.Cache = None,
@@ -207,6 +210,7 @@ class Match:
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
         validity_writing_postfix: str | None = None,
+        compression: bool = True,
     ) -> list:
         """Performs global radiometric normalization across overlapping images using least squares regression.
 
@@ -215,6 +219,7 @@ Args:
     output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
     calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
     output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    input_footprints: Optional exact valid-data vector file(s) with image IDs. None keeps existing reads; regenerate after geometric changes.
     vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
     debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
     custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
@@ -313,6 +318,8 @@ Returns:
         image_thread_workers = setup["image_thread_workers"]
         tile_thread_on = setup["tile_thread_on"]
         tile_thread_workers = setup["tile_thread_workers"]
+        from ..footprint_reads import load_footprints, footprint_pairs
+        footprints = load_footprints(input_footprints, input_image_paths)
         reusable_output_paths = _resolve_reusable_output_paths(
             output_image_paths,
             resume_mode=resume_from_outputs,
@@ -371,7 +378,7 @@ Returns:
             print("Calculating statistics")
         num_bands = gdal.Open(next(iter(input_image_path_pairs.values()))).RasterCount
         all_bounds = {name: _get_gdal_bounds(path) for name, path in input_image_path_pairs.items()}
-        overlapping_pairs = _find_overlaps(all_bounds)
+        overlapping_pairs = footprint_pairs(_find_overlaps(all_bounds), input_image_path_pairs, footprints)
 
         uses_pif = pif_method == "flood_from_match_points"
         local_pif_statistics = uses_pif and pif_stats_scope == "matched_windows"
@@ -410,6 +417,7 @@ Returns:
                 vector_mask,
                 nodata_val,
                 debug_logs,
+                (footprints.get(input_image_path_pairs[name_i]), footprints.get(input_image_path_pairs[name_j])),
             )
             for name_i, name_j in overlapping_pairs
             if not uses_pif and (
@@ -454,6 +462,7 @@ Returns:
                 vector_mask,
                 nodata_val,
                 debug_logs,
+                footprints.get(image_path),
             )
             for image_name, image_path in input_image_path_pairs.items()
             if need_whole_statistics and image_name not in loaded_model
@@ -487,6 +496,7 @@ Returns:
                 print("Using flood_from_match_points PIF adjustment parameters")
             all_params = Pif.flood_from_match_points(
                 input_images=input_image_paths,
+                input_footprints=input_footprints,
                 input_image_names=input_image_names,
                 included_names=included_names,
                 overlapping_pairs=overlapping_pairs,
@@ -579,6 +589,7 @@ Returns:
                 save_as_cog,
                 debug_logs,
                 resume_from_outputs,
+                footprints.get(img_path),
             )
             for idx, (name, img_path) in enumerate(input_image_path_pairs.items())
         ]
@@ -611,6 +622,7 @@ Returns:
     @reports_progress(worker_progress=True)
     @uses_executor
     @uses_writing_postfix
+    @uses_compression
     def local_block_adjustment(
         input_images: Universal.SearchFolderOrListFiles,
         output_images: Universal.CreateInFolderOrListFiles,
@@ -618,6 +630,7 @@ Returns:
         calculation_dtype: Universal.CalculationDtype = "float32",
         output_dtype: Universal.CustomOutputDtype = None,
         vector_mask: Universal.VectorMask = None,
+        input_footprints: str | list[str] | None = None,
         debug_logs: Universal.DebugLogs = False,
         custom_nodata_value: Universal.CustomNodataValue = None,
         cache: Universal.Cache = None,
@@ -641,6 +654,7 @@ Returns:
         resume_from_outputs: Literal["no", "yes", "validate"] = "no",
         executor=None,
         validity_writing_postfix: str | None = None,
+        compression: bool = True,
     ) -> list:
         """Performs local radiometric adjustment on a set of raster images using block-based statistics.
 
@@ -649,6 +663,7 @@ Args:
     output_images (str | List[str], required): Defines output files from a template path, folder, or list of paths (with the same length as the input). Specify like: "/input/files/$.tif", "/input/folder" (assumes $_Global.tif), ["/input/one.tif", "/input/two.tif"].
     calculation_dtype (str, optional): Precision for internal calculations. Defaults to "float32".
     output_dtype (str | None, optional): Data type for output rasters. Defaults to input image dtype.
+    input_footprints: Optional exact valid-data vector file(s) with image IDs. None keeps existing reads; regenerate after geometric changes.
     vector_mask (Tuple[Literal["include", "exclude"], str, Optional[str]] | None): Mask to limit stats calculation to specific areas in the format of a tuple with two or three items: literal "include" or "exclude" the mask area, str path to the vector file, optional str of field name in vector file that *includes* (can be substring) input image name to filter geometry by. Loaded stats won't have this applied to them. The matching solution is still applied to these areas in the output. Defaults to None for no mask.
     debug_logs (bool, optional): If True, prints debug info and progress. Defaults to False.
     custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
@@ -713,6 +728,8 @@ Returns:
         image_thread_workers = setup["image_thread_workers"]
         tile_thread_on = setup["tile_thread_on"]
         tile_thread_workers = setup["tile_thread_workers"]
+        from ..footprint_reads import load_footprints, footprint_pairs
+        footprints = load_footprints(input_footprints, input_image_paths)
         reusable_output_paths = _resolve_reusable_output_paths(
             output_image_paths,
             resume_mode=resume_from_outputs,
@@ -825,6 +842,7 @@ Returns:
                     tile_thread_on,
                     tile_thread_workers,
                     vector_mask,
+                    footprints.get(path),
                 )
                 for name, path in local_blocks_to_calculate.items()
             ]
@@ -904,6 +922,8 @@ Returns:
                 tile_thread_workers,
                 save_as_cog,
                 resume_from_outputs,
+                False,
+                footprints.get(input_image_path_pairs[name]),
             )
             for name in input_image_path_pairs
         ]

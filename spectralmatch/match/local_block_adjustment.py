@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import raster_creation_options
 from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import writing_outputs
 from ..utils_progress import gdal_progress
@@ -188,6 +189,7 @@ def _apply_adjustment_process_image(
     save_as_cog: bool,
     resume_from_outputs: str = "no",
     estimate_stats: bool = False,
+    footprint=None,
 ):
     """
     Apply local radiometric adjustment (linear or gamma) to a raster image using block-based reference and local mean surfaces. Builds parameter surfaces as rasters, warps them to the image grid, and creates a VRT with per-pixel expressions, then materializes the output as GTiff or COG.
@@ -236,13 +238,15 @@ def _apply_adjustment_process_image(
 
         xmin, ymin, xmax, ymax = bounds_canvas_coords
         tmpdir = tempfile.mkdtemp(prefix="spectralmatch_adjust_local_")
+        from ..footprint_reads import sparse_footprint_vrt
+        img_path = sparse_footprint_vrt(img_path, footprint, os.path.join(tmpdir, "source.vrt"))
 
         # Helpers
         def _write_block_raster(arr2d: np.ndarray, path: str, dtype=gdal.GDT_Float32):
             drv = gdal.GetDriverByName("GTiff")
             ds = drv.Create(
                 path, num_col, num_row, 1, dtype,
-                options=["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6"]
+                options=raster_creation_options(["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=6"], "GTiff")
             )
             gtx = (xmin, (xmax - xmin) / num_col, 0.0, ymax, 0.0, - (ymax - ymin) / num_row)
             ds.SetGeoTransform(gtx)
@@ -402,13 +406,14 @@ def _apply_adjustment_process_image(
                f"BLOCKXSIZE={window_size}", f"BLOCKYSIZE={window_size}"])
         if tile_thread_on and driver_name == "GTiff":
             co.append(f"NUM_THREADS={current_tile_threads(tile_thread_workers)}")
-
+        # Wrap the derived result, so empty blocks never evaluate adjustments.
+        out_vrt = sparse_footprint_vrt(out_vrt, footprint, os.path.join(tmpdir, "output_sparse.vrt"), preserve_masks=False)
         ods = gdal.Translate(
             out_path, out_vrt,
             options=gdal.TranslateOptions(
                 outputType=output_dtype,
                 format=driver_name,
-                creationOptions=co,
+                creationOptions=raster_creation_options(co, driver_name),
                 noData=nodata_val if nodata_val is not None else None,
                 callback=gdal_progress("Writing raster"),
             )
@@ -562,6 +567,7 @@ def _calculate_block_process_image(
     tile_thread_on: bool,
     tile_thread_workers: int,
     vector_mask=None,
+    footprint=None,
     ):
     """Create one worker-local masked VRT and calculate its block statistics."""
     with tempfile.TemporaryDirectory(prefix="spectralmatch_masks_") as tmpdir:
@@ -569,13 +575,13 @@ def _calculate_block_process_image(
             [name], [image_path], step_name="local_block_adjustment",
             vector_mask=vector_mask, nodata_value=nodata_value,
             out_dir=tmpdir, debug_logs=debug_logs,
-            create_vrt=_create_masked_vrt,
+            create_vrt=_create_masked_vrt, footprints=[footprint],
             tile_threads=tile_thread_workers if tile_thread_on else None,
         )
         return _calculate_blocks_from_masked_image(
             name, masked_path, bounds_canvas_coords, num_row, num_col, num_bands,
             debug_logs, nodata_value, calculation_dtype, tile_thread_on,
-            tile_thread_workers,
+            tile_thread_workers, footprint=footprint,
         )
 
 
@@ -591,6 +597,7 @@ def _calculate_blocks_from_masked_image(
     calculation_dtype: str,
     tile_thread_on: bool,
     tile_thread_workers: int,
+    footprint=None,
     ):
     """
     Compute area-weighted block means over a target grid using GDAL Warp.
@@ -629,32 +636,36 @@ def _calculate_blocks_from_masked_image(
         return name, block_mean
 
     row_start, row_end, col_start, col_end, sub_bounds = block_window
-    sub_num_row = row_end - row_start
-    sub_num_col = col_end - col_start
-
-    warp_kwargs = {
-        "format": "MEM",
-        "dstSRS": proj_wkt or None,
-        "outputBounds": sub_bounds,
-        "width": sub_num_col,
-        "height": sub_num_row,
-        "resampleAlg": gdal.GRIORA_Average,
-        "outputType": _gdal_dtype_str_to_enum(calculation_dtype),
-        "dstNodata": nodata_value,
-        "warpOptions": ([f"NUM_THREADS={current_tile_threads(tile_thread_workers)}"] if tile_thread_on else []),
-        "multithread": tile_thread_on,
-    }
-    mem_ds = gdal.Warp("", image_path, options=gdal.WarpOptions(**warp_kwargs, callback=gdal_progress("Warping raster")))
-    if mem_ds is None:
-        raise RuntimeError("Warp failed computing block means")
-
-    for b in range(1, num_bands + 1):
-        arr = mem_ds.GetRasterBand(b).ReadAsArray().astype(calculation_dtype, copy=False)
-        if nodata_value is not None:
-            arr[arr == nodata_value] = np.nan
-        block_mean[row_start:row_end, col_start:col_end, b - 1] = arr
-
-    mem_ds = None
+    from ..footprint_reads import FootprintWindows, occupied_rectangles
+    xmin, ymin, xmax, ymax = bounds_canvas_coords
+    dx, dy = (xmax-xmin)/num_col, (ymax-ymin)/num_row
+    grid_transform = (xmin, dx, 0, ymax, 0, -dy)
+    if footprint is None:
+        windows = [(col_start, row_start, col_end-col_start, row_end-row_start)]
+    else:
+        index = FootprintWindows([footprint], grid_transform)
+        windows = occupied_rectangles(index, col_start, row_start,
+                                      col_end-col_start, row_end-row_start)
+    for col, row, cols, rows in windows:
+        bounds = (xmin+col*dx, ymax-(row+rows)*dy, xmin+(col+cols)*dx, ymax-row*dy)
+        warp_kwargs = {
+            "format": "MEM", "dstSRS": proj_wkt or None,
+            "outputBounds": bounds, "width": cols, "height": rows,
+            "resampleAlg": gdal.GRIORA_Average,
+            "outputType": _gdal_dtype_str_to_enum(calculation_dtype),
+            "dstNodata": nodata_value,
+            "warpOptions": ([f"NUM_THREADS={current_tile_threads(tile_thread_workers)}"] if tile_thread_on else []),
+            "multithread": tile_thread_on,
+        }
+        mem_ds = gdal.Warp("", image_path, options=gdal.WarpOptions(**warp_kwargs, callback=gdal_progress("Warping raster")))
+        if mem_ds is None:
+            raise RuntimeError("Warp failed computing block means")
+        for b in range(1, num_bands+1):
+            arr = mem_ds.GetRasterBand(b).ReadAsArray().astype(calculation_dtype, copy=False)
+            if nodata_value is not None:
+                arr[arr == nodata_value] = np.nan
+            block_mean[row:row+rows, col:col+cols, b-1] = arr
+        mem_ds = None
     return name, block_mean
 
 
@@ -756,7 +767,7 @@ def _download_block_map(
         drv = gdal.GetDriverByName("GTiff")
         ds = drv.Create(
             output_image_path, width, height, nb, gdal_dtype,
-            options=["TILED=YES","COMPRESS=DEFLATE","PREDICTOR=2","ZLEVEL=6","BIGTIFF=IF_SAFER"]
+            options=raster_creation_options(["TILED=YES","COMPRESS=DEFLATE","PREDICTOR=2","ZLEVEL=6","BIGTIFF=IF_SAFER"], "GTiff")
         )
         ds.SetGeoTransform(gt)
         if srs:

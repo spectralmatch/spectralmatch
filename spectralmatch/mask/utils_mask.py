@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import raster_creation_options
 from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
@@ -234,7 +235,7 @@ def _process_image_to_polygons(
             mask_tif, vrt_path,
             options=gdal.TranslateOptions(
                 format="GTiff",
-                creationOptions=co,
+                creationOptions=raster_creation_options(co, "GTiff"),
                 bandList=[1],
                 noData=0 if custom_nodata_value is None else custom_nodata_value,
                 outputType=gdal.GDT_Byte,

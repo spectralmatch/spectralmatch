@@ -6,6 +6,7 @@ Readers and writers stream records; no full-overlap NumPy array is required.
 Offsets refer to the overlap grid (or packed grid for matched_windows), whose
 transform and CRS are in the header, not necessarily the original image grid.
 """
+from spectralmatch.utils_compression import raster_creation_options
 import base64
 import json
 import math
@@ -120,7 +121,7 @@ def load_mask_windows(json_path, output_path):
     if not isinstance(width, int) or not isinstance(height, int) or min(width, height) < 1:
         raise ValueError('Invalid mask grid dimensions.')
     ds = gdal.GetDriverByName('GTiff').Create(str(output_path), width, height, 1, gdal.GDT_Byte,
-        options=['TILED=YES', 'COMPRESS=DEFLATE', 'BIGTIFF=IF_SAFER', 'SPARSE_OK=YES'])
+        options=raster_creation_options(['TILED=YES', 'COMPRESS=DEFLATE', 'BIGTIFF=IF_SAFER', 'SPARSE_OK=YES'], "GTiff"))
     if ds is None:
         raise RuntimeError(f'Could not create mask: {output_path}')
     ds.SetGeoTransform(header['transform'])

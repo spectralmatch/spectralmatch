@@ -14,6 +14,7 @@ from typing import Tuple, Literal, Callable, Optional
 
 from .utils_thread_balance import current_tile_threads
 from .utils_output import current_output_context
+from .utils_compression import current_compression
 from .utils_logging import _print_image_completed, _run_logged_image, _image_id
 from .substeps import substep
 
@@ -124,7 +125,7 @@ def _run_image_tasks(
 
         if not parallel and executor is None:
             for index, (arg, source, destination) in enumerate(zip(args, input_paths, output_paths)):
-                result, details = _run_logged_image(function, source, destination, arg, phase_row.reporter(callback, index, _image_id(source)), current_output_context())
+                result, details = _run_logged_image(function, source, destination, arg, phase_row.reporter(callback, index, _image_id(source)), current_output_context(), compression=current_compression())
                 commit(index, result, details)
             return results
         factory = executor_factory or _get_executor
@@ -154,8 +155,7 @@ def _run_image_tasks(
                         source, destination = input_paths[index], output_paths[index]
                         arg = args[index] if thread_budget is not None else _balanced_task_args(function, args[index], executor, total - completed)
                         task = (function, source, destination, arg, phase_row.reporter(reporter, index, _image_id(source)), current_output_context())
-                        if thread_budget is not None:
-                            task += (thread_budget,)
+                        task += (thread_budget, current_compression())
                         futures[executor.submit(_run_logged_image, *task)] = index
                     future = next(as_completed(futures))
                     index = futures.pop(future)

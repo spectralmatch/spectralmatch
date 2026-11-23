@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import uses_compression, raster_creation_options
 from spectralmatch.utils_thread_balance import current_tile_threads
 from ..utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor
@@ -26,6 +27,7 @@ from ..utils import _set_gdal_cache, _set_gdal_workers, _resolve_gdal_dtype, _re
 @reports_progress(worker_progress=True)
 @uses_executor
 @uses_writing_postfix
+@uses_compression
 def create_cloud_mask_with_omnicloudmask(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -41,6 +43,7 @@ def create_cloud_mask_with_omnicloudmask(
     omnicloud_kwargs: dict | None = None,
     executor=None,
     validity_writing_postfix: str | None = None,
+    compression: bool = True,
 ) -> list[str]:
     """
     Generates cloud masks from input images using OmniCloudMask, with optional downsampling and multiprocessing.
@@ -183,7 +186,7 @@ def _process_cloud_mask_image(
 
         # Write the mask using GDAL
         driver = gdal.GetDriverByName("GTiff")
-        out_ds = driver.Create(output_mask_path, new_width, new_height, 1, gdal.GDT_Byte)
+        out_ds = driver.Create(output_mask_path, new_width, new_height, 1, gdal.GDT_Byte, options=raster_creation_options(["TILED=YES"]))
         if out_ds is None:
             raise RuntimeError(f"Unable to create output: {output_mask_path}")
         out_ds.SetGeoTransform(out_gt)
@@ -200,6 +203,7 @@ def _process_cloud_mask_image(
 @reports_progress(worker_progress=True)
 @uses_executor
 @uses_writing_postfix
+@uses_compression
 def band_math(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -218,6 +222,7 @@ def band_math(
     calculation_dtype: Universal.CalculationDtype = "float32",
     executor=None,
     validity_writing_postfix: str | None = None,
+    compression: bool = True,
 ) -> List[str]:
     """
     Applies a thresholding operation to input raster images using a mathematical expression string.
@@ -468,7 +473,7 @@ def _band_math_process_image(
             vrt_path,
             options=gdal.TranslateOptions(
                 format="GTiff",
-                creationOptions=creation_options,
+                creationOptions=raster_creation_options(creation_options, "GTiff"),
                 bandList=[1],
                 noData=nodata_value if nodata_value is not None else None,
                 outputType=gdal.GetDataTypeByName(output_dtype),

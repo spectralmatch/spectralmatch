@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import uses_compression, raster_creation_options, current_compression
 from spectralmatch.utils_thread_balance import current_tile_threads
 from .utils_output import uses_writing_postfix, writing_outputs
 from spectralmatch.utils_multiprocessing import uses_executor, current_executor
@@ -118,6 +119,7 @@ def merge_vectors(
 @reports_progress(worker_progress=True)
 @uses_executor
 @uses_writing_postfix
+@uses_compression
 def align_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -136,6 +138,7 @@ def align_rasters(
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     executor=None,
     validity_writing_postfix: str | None = None,
+    compression: bool = True,
 ) -> None:
     """
     Aligns multiple rasters to a common resolution and grid using specified resampling.
@@ -340,7 +343,7 @@ def _align_process_image(
             ods = gdal.Translate(
                 out_path,
                 in_path,
-                options=gdal.TranslateOptions(format="GTiff", creationOptions=co, callback=gdal_progress("Writing raster")),
+                options=gdal.TranslateOptions(format="GTiff", creationOptions=raster_creation_options(co, "GTiff"), callback=gdal_progress("Writing raster")),
             )
         else:
             xres, yres = target_res or (
@@ -357,7 +360,7 @@ def _align_process_image(
                     dstSRS=proj_wkt or None,
                     resampleAlg=resamp,
                     targetAlignedPixels=tap,
-                    creationOptions=co,
+                    creationOptions=raster_creation_options(co, "GTiff"),
                     multithread=True,
                     warpOptions=(["SKIP_NOSOURCE=YES"]),
                     callback=gdal_progress("Warping raster"),
@@ -397,6 +400,7 @@ def compute_resolution(
 @reports_progress(worker_progress=True)
 @uses_executor
 @uses_writing_postfix
+@uses_compression
 def merge_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_image_path: str,
@@ -422,6 +426,7 @@ def merge_rasters(
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     executor=None,
     validity_writing_postfix: str | None = None,
+    compression: bool = True,
 ) -> str:
     """
     Merge rasters into one GeoTIFF or a folder of GeoTIFF tiles using gdal_retile.
@@ -582,7 +587,7 @@ def merge_rasters(
                     "-r", "near" if resampling_method == "nearest" else resampling_method,
                     "-targetDir", os.path.abspath(output_image_path),
                 ]
-                for option in creation_options:
+                for option in raster_creation_options(creation_options):
                     argv.extend(["-co", option])
                 if debug_logs:
                     argv.append("-v")
@@ -604,7 +609,7 @@ def merge_rasters(
             format="GTiff",
             outputType=output_dtype,
             noData=custom_nodata_value,
-            creationOptions=creation_options,
+            creationOptions=raster_creation_options(creation_options, "GTiff"),
             resampleAlg=resampling_method,
             callback=gdal_progress("Writing raster"),
         )
@@ -659,7 +664,7 @@ def _create_tile_vrt(output_folder, filename, mosaic, tile_size, overlap, resamp
     dataset = None
     if window_scales:
         dataset = gdal.Open(vrt_path, gdal.GA_ReadOnly)
-        options = ["COMPRESS_OVERVIEW=ZSTD", "BIGTIFF_OVERVIEW=IF_SAFER"]
+        options = ["COMPRESS=" + ("ZSTD" if current_compression() else "NONE"), "BIGTIFF=IF_SAFER"]
         if tile_workers is not None:
             options.append(f"NUM_THREADS={current_tile_threads(tile_workers)}")
         result = dataset.BuildOverviews(
@@ -825,6 +830,7 @@ def _retile_process_tile(
 @reports_progress(worker_progress=True)
 @uses_executor
 @uses_writing_postfix
+@uses_compression
 def mask_rasters(
     input_images: Universal.SearchFolderOrListFiles,
     output_images: Universal.CreateInFolderOrListFiles,
@@ -843,6 +849,7 @@ def mask_rasters(
     *,
     executor=None,
     validity_writing_postfix: str | None = None,
+    compression: bool = True,
     ) -> list:
     """
     Applies a vector-based mask to one or more rasters using GDAL Warp.
@@ -989,6 +996,7 @@ def _mask_raster_process_image(
 
         warp_options = {
             "format": "GTiff",
+            "creationOptions": raster_creation_options(["TILED=YES", "BIGTIFF=IF_SAFER"]),
             "dstNodata": custom_nodata_value if custom_nodata_value is not None else None,
             "warpOptions": [
                 "SKIP_NOSOURCE=YES",
@@ -1068,9 +1076,13 @@ def _create_masked_vrt(
     return vrt_path
 
 
-def _create_masked_vrts(image_names, image_paths, *, step_name, vector_mask=None, nodata_value=None, out_dir, debug_logs=False, create_vrt=None, tile_threads=None):
+def _create_masked_vrts(image_names, image_paths, *, step_name, vector_mask=None, nodata_value=None, out_dir, debug_logs=False, create_vrt=None, tile_threads=None, footprints=None):
     """Create temporary masked VRTs as a named image-processing substep inside the current worker."""
     _print_step_start(f"{step_name} masking")
+    if footprints is not None:
+        from .footprint_reads import sparse_footprint_vrt
+        image_paths = [sparse_footprint_vrt(path, geometry, os.path.join(out_dir, f"footprint_{i}.vrt"))
+                       for i, (path, geometry) in enumerate(zip(image_paths, footprints))]
     output_paths = [os.path.join(out_dir, f"vrt_{name}.vrt") for name in image_names]
     create = partial(create_vrt or _create_masked_vrt, vector_mask=vector_mask, nodata_value=nodata_value, out_dir=out_dir, debug_logs=debug_logs, tile_threads=tile_threads)
     return _run_image_tasks(
@@ -1261,6 +1273,7 @@ def _get_valid_count(
 @reports_progress(worker_progress=True)
 @uses_executor
 @uses_writing_postfix
+@uses_compression
 def compute_overviews(
     input_images_paths: Universal.SearchFolderOrListFiles,
     *,
@@ -1275,6 +1288,7 @@ def compute_overviews(
     debug_logs: bool = False,
     executor=None,
     validity_writing_postfix: str | None = None,
+    compression: bool = True,
 ):
     """
     Compute and attach GDAL overviews for one or more raster images.
@@ -1360,7 +1374,7 @@ def _copy_and_compute_overviews(source, target, window_scales, tile_threads_on, 
     with writing_outputs(target) as (target,):
         if os.path.abspath(source) != os.path.abspath(target):
             os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
-            dataset = gdal.Translate(target, source)
+            dataset = gdal.Translate(target, source, format="GTiff", creationOptions=raster_creation_options(["TILED=YES", "BIGTIFF=IF_SAFER"]))
             if dataset is None:
                 raise RuntimeError(f"Failed copying {source} to {target}")
             dataset = None
@@ -1374,7 +1388,7 @@ def _process_image_overview(path, window_scales, tile_threads_on, tile_workers, 
     if dataset is None:
         raise RuntimeError(f"Cannot open {path}")
     options = [f"NUM_THREADS={current_tile_threads(tile_workers)}"] if tile_threads_on else []
-    dataset.BuildOverviews("AVERAGE", window_scales, options=options, callback=gdal_progress("Building overviews"))
+    dataset.BuildOverviews("AVERAGE", window_scales, options=options + ["COMPRESS=" + ("DEFLATE" if current_compression() else "NONE")], callback=gdal_progress("Building overviews"))
     dataset = None
     if debug_logs:
         _report_image_result("Overview levels", len(window_scales))

@@ -1,3 +1,4 @@
+from spectralmatch.utils_compression import uses_compression, raster_creation_options
 from spectralmatch.utils_multiprocessing import uses_executor
 from .mask_windows import seed_mask, sample_mask
 from ..utils_progress import gdal_progress
@@ -27,9 +28,11 @@ class Pif:
     @staticmethod
     @reports_progress(worker_progress=True)
     @uses_executor
+    @uses_compression
     def flood_from_match_points(
         input_images: Universal.SearchFolderOrListFiles,
         *,
+        input_footprints: str | list[str] | None = None,
         input_image_names: list[str] | None = None,
         included_names: list[str] | None = None,
         overlapping_pairs: tuple[tuple[str, str], ...] | None = None,
@@ -70,6 +73,7 @@ class Pif:
         save_inz: str | None = None,
         debug_logs: Universal.DebugLogs = False,
         executor=None,
+        compression: bool = True,
     ) -> np.ndarray:
         """
         Generate correction parameters using PIFs flooded from matched points.
@@ -77,6 +81,7 @@ class Pif:
         Use matched points as seeds, remove vegetation-sensitive areas, identify stable pixels with an integrated normalized Z-score, grow PIF regions, and fit per-band linear radiometric corrections.
 
         Args:
+            input_footprints: Optional exact valid-data vector file(s); None keeps existing reads. Uses image IDs, including later processing suffixes.
             input_images: Folder, raster glob, or list[str] of raster paths sharing a CRS, band count, and NoData value.
             input_image_names: list[str] matching input order; None uses extension-free basenames.
             included_names: list[str] of names contributing to the model; None includes all images.
@@ -203,6 +208,9 @@ class Pif:
                 for name, path in image_path_pairs.items()
             }
             overlapping_pairs = _find_overlaps(bounds)
+        from ..footprint_reads import load_footprints, footprint_pairs
+        footprints = load_footprints(input_footprints, input_image_paths)
+        overlapping_pairs = footprint_pairs(overlapping_pairs, image_path_pairs, footprints)
         if debug_logs and load_ties:
             current_pairs = {tuple(sorted(pair)) for pair in overlapping_pairs}
             print(
@@ -257,6 +265,7 @@ class Pif:
                     estimate_stats,
                     tie_options,
                     skip_overlap_when_not_enough_matches,
+                    (footprints.get(image_path_pairs[name_i]), footprints.get(image_path_pairs[name_j])),
                 )
             )
 
@@ -463,11 +472,17 @@ def _calculate_pair_pif_stats(
     estimate_stats: bool = True,
     tie_options: dict | None = None,
     skip_overlap_when_not_enough_matches: bool = True,
+    footprints=None,
 ) -> tuple[dict, dict[str, dict[int, dict[str, float | int]]]]:
     with tempfile.TemporaryDirectory(prefix="spectralmatch_pif_") as tmpdir:
+        from ..footprint_reads import sparse_footprint_vrt
+        reference_footprint, sensed_footprint = footprints or (None, None)
+        # Internal views preserve the full pixel grid and original identifiers.
+        reference_view = sparse_footprint_vrt(reference_path, reference_footprint, os.path.join(tmpdir, "reference_source.vrt"))
+        sensed_view = sparse_footprint_vrt(sensed_path, sensed_footprint, os.path.join(tmpdir, "sensed_source.vrt"))
         overlap = _build_overlap_vrts(
-            reference_path,
-            sensed_path,
+            reference_view,
+            sensed_view,
             tmpdir,
         )
         if overlap is None:
@@ -484,8 +499,8 @@ def _calculate_pair_pif_stats(
                 cached = cached[:, [2, 3, 0, 1]]
             try:
                 _, source_ties, _ = _extract_pair_ties(
-                    _read_image_info(reference_name, reference_path),
-                    _read_image_info(sensed_name, sensed_path), feature_method,
+                    _read_image_info(reference_name, reference_path, **({"footprint": reference_footprint} if reference_footprint is not None else {})),
+                    _read_image_info(sensed_name, sensed_path, **({"footprint": sensed_footprint} if sensed_footprint is not None else {})), feature_method,
                     options.get("tie_maximum_displacement"), options.get("tie_ransac_reprojection_threshold"),
                     debug_logs, grid_spacing=options.get("tie_grid_spacing", 500.0),
                     search_radius=options.get("tie_search_radius", "128px"),
@@ -526,7 +541,7 @@ def _calculate_pair_pif_stats(
         else:
             corrected_sensed_path, point_pairs = _coregister_overlap(
                 ref_vrt, sensed_vrt, os.path.join(tmpdir, "sensed_overlap_corrected.tif"),
-                tie_pairs=point_pairs, feature_method=feature_method,
+                tie_pairs=point_pairs, feature_method=feature_method, sparse_output=True,
                 cache=cache, io_threads=io_threads, tile_threads=tile_threads, debug_logs=debug_logs,
             )
 
@@ -538,6 +553,14 @@ def _calculate_pair_pif_stats(
             gt,
             projection,
             tmpdir,
+            materialize=False,
+        )
+        # The reference is cropped without resampling, so its exact validity
+        # footprint safely rules out empty mask blocks. The other side MUST use
+        # the actual corrected raster/alpha, not its pre-warp footprint.
+        corrected_valid_mask_path = sparse_footprint_vrt(
+            corrected_valid_mask_path, reference_footprint,
+            os.path.join(tmpdir, "valid_mask_sparse.vrt"),
         )
         seed_points = _reference_seed_points_from_pairs(point_pairs, height, width)
         seed_mask_path = seed_mask_override or _build_seed_mask_raster(
@@ -652,7 +675,7 @@ def _build_matched_window_stack(
                 if left < right and top < bottom:
                     seed_mask[top:bottom, left:right] = 1
             seed_path = os.path.join(folder, "seeds.tif")
-            seed_ds = gdal.GetDriverByName("GTiff").Create(seed_path, w, h, 1, gdal.GDT_Byte)
+            seed_ds = gdal.GetDriverByName("GTiff").Create(seed_path, w, h, 1, gdal.GDT_Byte, options=raster_creation_options(["TILED=YES"]))
             seed_ds.GetRasterBand(1).WriteArray(seed_mask)
             seed_ds = None
             seed_windows.append((seed_path, None, None, w, h, offset))
@@ -813,7 +836,7 @@ def _translate_vrt_to_raster(
             format="GTiff",
             outputType=output_type,
             noData=nodata_value,
-            creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+            creationOptions=raster_creation_options(["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"], "GTiff"),
             callback=gdal_progress("Writing raster"),
         ),
     )
@@ -830,6 +853,7 @@ def _build_valid_mask_raster(
     gt,
     projection: str,
     tmpdir: str,
+    *, materialize: bool = True,
 ) -> str:
     valid_vrt = os.path.join(tmpdir, "valid_mask.vrt")
     valid_tif = os.path.join(tmpdir, "valid_mask.tif")
@@ -855,6 +879,8 @@ def _build_valid_mask_raster(
         data_type="Byte",
         nodata_value=0,
     )
+    if not materialize:
+        return valid_vrt
     _translate_vrt_to_raster(valid_vrt, valid_tif, gdal.GDT_Byte, 0)
     return valid_tif
 
@@ -933,7 +959,7 @@ def _build_inz_stable_mask_raster(
                 format="GTiff",
                 outputType=gdal.GDT_Float32,
                 noData=-999999999,
-                creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+                creationOptions=raster_creation_options(["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"], "GTiff"),
                 callback=gdal_progress("Writing raster"),
             ),
         )
@@ -1167,16 +1193,30 @@ def _seed_pif_mask(ref_path, sensed_path, valid_path, seed_path, width, height, 
     output = os.path.join(tmpdir, 'pif_mask.tif')
     driver = gdal.GetDriverByName('GTiff')
     mask_ds = driver.Create(output, width, height, 1, gdal.GDT_Byte,
-                           options=['TILED=YES', 'COMPRESS=DEFLATE', 'SPARSE_OK=YES', 'BIGTIFF=IF_SAFER'])
+                           options=raster_creation_options(['TILED=YES', 'COMPRESS=DEFLATE', 'SPARSE_OK=YES', 'BIGTIFF=IF_SAFER'], "GTiff"))
     mask_ds.SetGeoTransform(gt); mask_ds.SetProjection(projection)
     score_ds = None
     if save_inz_path:
         os.makedirs(os.path.dirname(os.path.abspath(save_inz_path)), exist_ok=True)
         score_ds = driver.Create(save_inz_path, width, height, 1, gdal.GDT_Float32,
-                                options=['TILED=YES', 'COMPRESS=DEFLATE', 'BIGTIFF=IF_SAFER'])
+                                options=raster_creation_options(['TILED=YES', 'COMPRESS=DEFLATE', 'BIGTIFF=IF_SAFER'], "GTiff"))
         score_ds.SetGeoTransform(gt); score_ds.SetProjection(projection)
         score_ds.GetRasterBand(1).SetNoDataValue(-999999999)
     count = 0
+
+    def store_score(score, vegetation, evaluate, seeds, shape, x, y):
+        if score_ds is not None:
+            saved = np.full(shape, np.float32(-999999999), dtype=np.float32)
+            saved[evaluate] = score
+            score_ds.GetRasterBand(1).WriteArray(saved, x, y)
+        selected = np.zeros(shape, dtype=bool)
+        selected[evaluate] = (score <= inz_threshold) & vegetation
+        selected &= seeds
+        n = int(np.count_nonzero(selected))
+        if n:
+            mask_ds.GetRasterBand(1).WriteArray(selected.astype(np.uint8), x, y)
+        return n
+
     # Ordinary overlap mode already stores seed rectangles. Avoid even scanning
     # empty seed-mask tiles; packed matched-window VRTs retain the bounded scan.
     seed_json = os.path.join(tmpdir, 'seed_windows.json')
@@ -1214,24 +1254,14 @@ def _seed_pif_mask(ref_path, sensed_path, valid_path, seed_path, width, height, 
             for b in range(num_bands):
                 score += np.abs(((sen[b].astype(np.float64)-ref[b])-means[b])/stds[b])
             score = (score/num_bands).astype(np.float32)
-            if score_ds is not None:
-                saved = np.full(valid.shape, np.float32(-999999999), dtype=np.float32)
-                saved[evaluate] = score
-                score_ds.GetRasterBand(1).WriteArray(saved, x, y)
-            eligible = score <= inz_threshold
+            vegetation = np.ones(len(score), dtype=bool)
             if red_band_index is not None and nir_band_index is not None:
                 for values in (ref, sen):
                     red, nir = values[red_band_index-1].astype(np.float64), values[nir_band_index-1].astype(np.float64)
                     denominator = nir+red
                     ndvi = np.divide(nir-red, denominator, out=np.zeros_like(red), where=denominator!=0)
-                    eligible &= ndvi <= vegetation_threshold
-            selected = np.zeros(valid.shape, dtype=bool)
-            selected[evaluate] = eligible
-            selected &= seeds
-            n = int(np.count_nonzero(selected))
-            if n:
-                mask_ds.GetRasterBand(1).WriteArray(selected.astype(np.uint8), x, y)
-                count += n
+                    vegetation &= ndvi <= vegetation_threshold
+            count += store_score(score, vegetation, evaluate, seeds, valid.shape, x, y)
     finally:
         mask_ds = score_ds = reference = sensed = valid_ds = seed_ds = None
     return output, count
