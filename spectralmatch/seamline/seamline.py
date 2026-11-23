@@ -469,7 +469,7 @@ class Seamline:
                 )
                 if writer.count == 0:
                     raise ValueError(
-                        "Postprocessing removed all polygons; reduce the processing distances or filter_area_size."
+                        "No coverage remains: postprocessing removed all polygons; reduce the processing distances or filter_area_size."
                     )
             return final_output
 
