@@ -203,7 +203,7 @@ def pipeline(
     weighted_seamline_output_layer: str = "seamlines",
     weighted_seamline_rank_descending: bool = True,
     mask_rasters_vector_mask: Universal.VectorMask = None,
-    mask_rasters_include_touched_pixels: bool = False,
+    mask_rasters_include_touched_pixels: bool = True,
     merge_rasters_output_tiles: bool = False,
     merge_rasters_resolution: Literal["highest", "average", "lowest"] | int | float = "highest",
     merge_rasters_overlap: int = 0,
@@ -221,7 +221,9 @@ def pipeline(
     - If the final step is merge with merge_rasters_output_tiles=True, ``shared_output_image_path`` must be a folder without ``$``; the result's output is that folder.
     - If the final step writes a single raster or vector, it must be a single file path without ``$``.
 
-    Step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.
+    Seamline masking defaults to ``mask_rasters_include_touched_pixels=True`` to retain edge pixels across differing input grids and prevent sparse NoData cracks after merging. Set False for strict pixel-center cutlines. Original raster NoData remains excluded.
+
+    Other step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.
 
     Select ``create_footprints`` followed by ``postprocess_footprints`` before either seamline step to prepare its polygons. These steps retain the current rasters for later masking and merging. Polygon paths and layer names flow between steps unless an explicit input overrides them. Postprocessing is opt-in because its distances require a suitable projected CRS and tuning for the imagery.
 

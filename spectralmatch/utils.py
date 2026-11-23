@@ -866,7 +866,7 @@ def mask_rasters(
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
         concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
         dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
-        include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask.
+        include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask. Use True before merging adjacent seamline clips on differing raster grids to avoid sparse gaps; source NoData remains excluded.
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
 
     Returns:

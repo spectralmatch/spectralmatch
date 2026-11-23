@@ -258,6 +258,7 @@ mask_rasters(
     input_images=local_folder,
     output_images=clipped_folder,
     vector_mask=("include", seamlines_path, "image"),
+    include_touched_pixels=True,  # Prevent subpixel seam gaps when input grids differ.
     debug_logs=debug_mode,
     window_size=window_size,
     image_threads=image_threads,
