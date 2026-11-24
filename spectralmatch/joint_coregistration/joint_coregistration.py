@@ -660,7 +660,12 @@ def _collect_ties(
              ((tuple(sorted(fixed_names)),) if fixed_names else ()))
         for name_i, name_j in missing
     ]
-    uses_elastix = any(arg[2] == "elastix" for arg in args)
+    # Cached spread ties still pass through valid-area/quota checks, but never
+    # invoke a feature matcher. Do not require an unused optional backend.
+    uses_elastix = any(
+        arg[2] == "elastix" and (sampling_method != "overlap_spread" or arg[16] is None)
+        for arg in args
+    )
     if uses_elastix:
         from .elastix import require_elastix
         require_elastix()

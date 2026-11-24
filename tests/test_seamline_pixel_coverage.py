@@ -9,8 +9,9 @@ from spectralmatch import pipeline
 from .utils_test import create_dummy_raster
 
 
+@pytest.mark.parametrize('seperate_multipolygons', [False, True])
 @pytest.mark.parametrize('resolution,shift,slope', [(1., .31, 1.17), (1.07, 0., .37), (1.4, .31, 1.17)])
-def test_pipeline_seamline_merge_preserves_coverage_and_source_nodata(tmp_path, resolution, shift, slope):
+def test_pipeline_seamline_merge_preserves_coverage_and_source_nodata(tmp_path, resolution, shift, slope, seperate_multipolygons):
     paths = []
     for i, (offset, pixel_size) in enumerate([(0., 1.), (shift, resolution)]):
         rows, cols = np.indices((128, 128))
@@ -32,7 +33,8 @@ def test_pipeline_seamline_merge_preserves_coverage_and_source_nodata(tmp_path, 
     pipeline(paths, output, steps=('mask', 'merge'), shared_temp_dir=str(tmp_path / 'work'),
              shared_cache=None, shared_image_threads=None, shared_io_threads=1, shared_tile_threads=1,
              shared_custom_nodata_value=-9999, shared_window_size=16,
-             mask_rasters_vector_mask=('include', vector, 'image'))
+             mask_rasters_vector_mask=('include', vector, 'image'),
+             mask_rasters_seperate_multipolygons=seperate_multipolygons)
     ds = gdal.Open(output); values = ds.ReadAsArray(); gt = ds.GetGeoTransform()
     rows, cols = np.indices(values.shape)
     x = gt[0] + (cols + .5) * gt[1]; y = gt[3] + (rows + .5) * gt[5]

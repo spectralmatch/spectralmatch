@@ -24,7 +24,7 @@ PATH_PARAMETERS = {"input_images", "output_images", "output_image_path", "output
 
 
 @pytest.mark.parametrize("step,prefix,owner,name", STEPS)
-def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step, prefix, owner, name):
+def test_pipeline_forwards_every_exposed_function_parameter(tmp_path, monkeypatch, step, prefix, owner, name):
     target = getattr(owner, name)
     signature = inspect.signature(target)
     source = tmp_path / "input.tif"
@@ -65,10 +65,24 @@ def test_pipeline_forwards_every_function_parameter(tmp_path, monkeypatch, step,
     calls = []
 
     def capture(**kwargs):
-        signature.bind(**kwargs)
+        bound = signature.bind(**kwargs)
+        bound.apply_defaults()
         calls.append(kwargs)
         # Algorithm settings are forwarded; nested functions inherit the callback.
-        assert set(kwargs) == set(signature.parameters) - {"progress_callback"}
+        exposed = {
+            key for key in signature.parameters if key != "progress_callback" and (
+                key in PATH_PARAMETERS
+                or f"{prefix}_{key}" in expected.arguments
+                or f"shared_{key}" in expected.arguments
+                or key == "resume_from_outputs"
+            )
+        }
+        assert exposed <= set(kwargs)
+        # The pipeline offers a curated API. Unexposed native settings retain
+        # their function defaults rather than silently becoming pipeline options.
+        for key, parameter in signature.parameters.items():
+            if key not in exposed and key != "progress_callback":
+                assert bound.arguments[key] == parameter.default, key
         assert current_callback() is callback
         for parameter_name, actual in kwargs.items():
             if parameter_name == "input_images":

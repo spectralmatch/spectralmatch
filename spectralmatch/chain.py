@@ -205,6 +205,7 @@ def pipeline(
     weighted_seamline_rank_descending: bool = True,
     mask_rasters_vector_mask: Universal.VectorMask = None,
     mask_rasters_include_touched_pixels: bool = True,
+    mask_rasters_seperate_multipolygons: bool = False,
     merge_rasters_output_tiles: bool = False,
     merge_rasters_resolution: Literal["highest", "average", "lowest"] | int | float = "highest",
     merge_rasters_overlap: int = 0,
@@ -791,6 +792,7 @@ def pipeline(
                     concurrent_processing_backend=shared_concurrent_processing_backend,
                     dask_scheduler=shared_dask_scheduler,
                     include_touched_pixels=mask_rasters_include_touched_pixels,
+                    seperate_multipolygons=mask_rasters_seperate_multipolygons,
                     custom_nodata_value=shared_custom_nodata_value,
                     resume_from_outputs=shared_resume_from_steps,
                 )

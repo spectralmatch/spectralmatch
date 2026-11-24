@@ -360,7 +360,7 @@ def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
     joint = importlib.import_module("spectralmatch.joint_coregistration.joint_coregistration")
     monkeypatch.setattr(joint, "_read_image_info", lambda *args: None)
     monkeypatch.setattr(joint, "_extract_pair_ties", lambda *args, **kwargs: (("A", "B"), np.zeros((3, 4)), 3))
-    monkeypatch.setattr(pif_module, "_source_ties_to_overlap_pairs", lambda *args: [(1, 1, 1, 1)] * 3)
+    monkeypatch.setattr(pif_module, "_source_ties_to_overlap_pairs", lambda *args: [(1, 1, 1, 1), (3, 3, 3, 3), (7, 7, 7, 7)])
     sampled = {"called": False}
 
     monkeypatch.setattr(
@@ -374,6 +374,11 @@ def test_pif_none_sample_limits_skip_sampling_and_minimums(monkeypatch):
     monkeypatch.setattr(pif_module, "_build_seed_mask_raster", lambda *args, **kwargs: "seed.tif")
     monkeypatch.setattr(pif_module, "_combine_masks_raster", lambda *args, **kwargs: "pif_mask.tif")
     monkeypatch.setattr(pif_module, "_count_mask_pixels", lambda *args, **kwargs: 5)
+    monkeypatch.setattr(pif_module, "_seed_pif_mask", lambda *args: ("pif_mask.tif", 5))
+    monkeypatch.setattr(pif_module, "_selected_pair_statistics", lambda *args: [
+        {"mean": 1.0, "std": 0.5, "size": 5},
+        {"mean": 1.0, "std": 0.5, "size": 5},
+    ])
 
     def _unexpected_sample(*args, **kwargs):
         sampled["called"] = True
@@ -567,6 +572,7 @@ def test_pif_loaded_json_rejects_insufficient_pair_points(tmp_path, method, mess
             overlapping_pairs=(("A", "B"),),
             load_ties=str(tie_path),
             tie_sampling_method=method,
+            skip_overlap_when_not_enough_matches=False,
         )
 
 
@@ -606,6 +612,7 @@ def test_pif_unusable_loaded_points_raise_before_feature_matching(monkeypatch):
             min_samples=None,
             feature_method="orb",
             source_ties=np.ones((3, 4)),
+            skip_overlap_when_not_enough_matches=False,
             cache=None,
             io_threads=None,
             tile_threads=None,

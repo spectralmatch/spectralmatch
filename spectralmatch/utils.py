@@ -847,6 +847,7 @@ def mask_rasters(
     custom_nodata_value: Universal.CustomNodataValue = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     *,
+    seperate_multipolygons: bool = False,
     executor=None,
     validity_writing_postfix: str | None = None,
     compression: bool = True,
@@ -868,9 +869,11 @@ def mask_rasters(
         dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
         include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask. Use True before merging adjacent seamline clips on differing raster grids to avoid sparse gaps; source NoData remains excluded.
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
+        seperate_multipolygons (bool): If True, dissolve the selected mask, clip it to each raster, and export each disconnected retained polygon separately. Output stems receive _1, _2, etc., ordered by polygon bounds, restarting for each input. Holes stay masked. Exclude masks split the remaining area; absent/missing masks export the whole raster as _1. Defaults to False.
+        resume_from_outputs: Reuse numbered files individually when splitting.
 
     Returns:
-        list: Output image paths after masking.
+        list: Output image paths after masking, flattened in input and polygon order. With splitting enabled there may be zero, one or many files per input; the unnumbered base is not written.
     """
 
     _print_step_start("mask_rasters")
@@ -891,6 +894,7 @@ def mask_rasters(
     )
     UtilsValidation._validate_mask_rasters(
         include_touched_pixels=include_touched_pixels,
+        seperate_multipolygons=seperate_multipolygons,
     )
 
     input_image_paths = _resolve_paths(
@@ -901,6 +905,11 @@ def mask_rasters(
         output_images,
         kwargs={"paths_or_bases": input_image_paths, "default_file_pattern": "$_Mask.tif"},
     )
+    jobs = _mask_raster_jobs(
+        input_image_paths, output_image_paths, vector_mask,
+        seperate_multipolygons=seperate_multipolygons,
+    )
+    output_image_paths = [job[1] for job in jobs]
     reusable_output_paths = _resolve_reusable_output_paths(
         output_image_paths,
         resume_mode=resume_from_outputs,
@@ -909,10 +918,6 @@ def mask_rasters(
     )
     if len(reusable_output_paths) == len(output_image_paths):
         return output_image_paths
-
-    input_image_names = [
-        os.path.splitext(os.path.basename(p))[0] for p in input_image_paths
-    ]
 
     _set_gdal_cache(cache, debug_logs)
     _set_gdal_workers(io_threads, debug_logs)
@@ -926,9 +931,9 @@ def mask_rasters(
 
     args = [
         (
-            input_image_paths[i],
-            output_image_paths[i],
-            input_image_names[i],
+            in_path,
+            out_path,
+            os.path.splitext(os.path.basename(in_path))[0],
             vector_mask,
             debug_logs,
             include_touched_pixels,
@@ -936,9 +941,10 @@ def mask_rasters(
             tile_thread_workers,
             tile_thread_on,
             resume_from_outputs,
+            cutline,
         )
-        for i in range(len(input_image_paths))
-        if output_image_paths[i] not in reusable_output_paths
+        for in_path, out_path, cutline in jobs
+        if out_path not in reusable_output_paths
     ]
 
     _run_image_tasks(
@@ -965,6 +971,7 @@ def _mask_raster_process_image(
     tile_threads: int | str | None,
     tile_thread_on: bool,
     resume_from_outputs: Literal["no", "yes", "validate"],
+    cutline_geometry: tuple[str, str] | None = None,
 ) -> None:
     """
     Applies a GDAL Warp mask to a single image using cutline and nodata configuration.
@@ -1008,7 +1015,11 @@ def _mask_raster_process_image(
             warp_options["multithread"] = True
             warp_options["warpOptions"].append(f"NUM_THREADS={current_tile_threads(tile_threads)}")
 
-        mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
+        if cutline_geometry is None:
+            mode, cutline_options = _resolve_cutline_options(vector_mask, image_name)
+        else:
+            wkt, crs = cutline_geometry
+            mode, cutline_options = "include", {"cutlineWKT": wkt, "cutlineSRS": crs or None}
         if cutline_options:
             invert = (mode == "exclude")
             warp_options.update({
@@ -1022,7 +1033,67 @@ def _mask_raster_process_image(
                 warp_options["warpOptions"].append("CUTLINE_ALL_TOUCHED=TRUE")
         # Else no cutline for this image
 
-        gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options, callback=gdal_progress("Warping raster")))
+        result = gdal.Warp(destNameOrDestDS=output_image_path, srcDSOrSrcDSTab=input_image_path, options=gdal.WarpOptions(**warp_options, callback=gdal_progress("Warping raster")))
+        if result is None:
+            raise RuntimeError(f"Failed to mask {input_image_path}")
+        result = None
+
+
+def _mask_raster_jobs(input_paths, output_paths, vector_mask, *, seperate_multipolygons=False):
+    """Resolve actual destinations before reuse checks and executor submission."""
+    if len(input_paths) != len(output_paths):
+        raise ValueError("mask_rasters requires one output base path per input image")
+    if not seperate_multipolygons:
+        return [(source, output, None) for source, output in zip(input_paths, output_paths)]
+    from shapely import from_wkb, to_wkt, union_all
+    from shapely.geometry import Polygon
+
+    def polygons(geometry):
+        if geometry.is_empty:
+            return []
+        if geometry.geom_type == "Polygon":
+            return [geometry]
+        return [p for child in getattr(geometry, "geoms", ()) for p in polygons(child)]
+
+    jobs = []
+    for source, output in zip(input_paths, output_paths):
+        raster = gdal.Open(source, gdal.GA_ReadOnly)
+        if raster is None:
+            raise RuntimeError(f"Could not open {source}")
+        transform, crs = raster.GetGeoTransform(), raster.GetProjectionRef()
+        width, height = raster.RasterXSize, raster.RasterYSize
+        footprint = Polygon([gdal.ApplyGeoTransform(transform, x, y)
+                             for x, y in [(0, 0), (width, 0), (width, height), (0, height)]])
+        raster = None
+        name = os.path.splitext(os.path.basename(source))[0]
+        mode, options = _resolve_cutline_options(vector_mask, name)
+        retained = footprint
+        if options:
+            vector = ogr.Open(options["cutlineDSName"])
+            layer = vector.GetLayer(0)
+            if options.get("cutlineWhere"):
+                layer.SetAttributeFilter(options["cutlineWhere"])
+            mask_crs = layer.GetSpatialRef()
+            mask_crs = mask_crs.ExportToWkt() if mask_crs else None
+            geometries = [from_wkb(bytes(feature.GetGeometryRef().ExportToWkb()))
+                          for feature in layer if feature.GetGeometryRef() is not None]
+            vector = None
+            mask = union_all(geometries)
+            if bool(mask_crs) != bool(crs):
+                raise ValueError("Splitting masks requires both raster and vector CRS, or neither")
+            if crs:
+                mask = gpd.GeoSeries([mask], crs=mask_crs).to_crs(crs).iloc[0]
+            retained = footprint.intersection(mask) if mode == "include" else footprint.difference(mask)
+        parts = sorted(polygons(retained), key=lambda p: (*p.bounds, p.wkb_hex))
+        stem, extension = os.path.splitext(output)
+        jobs.extend((source, f"{stem}_{i}{extension}", (to_wkt(polygon, rounding_precision=-1), crs))
+                    for i, polygon in enumerate(parts, 1))
+    destinations = [os.path.normcase(os.path.realpath(job[1])) for job in jobs]
+    if len(destinations) != len(set(destinations)):
+        raise ValueError("Numbered mask output paths collide")
+    if set(destinations) & {os.path.normcase(os.path.realpath(p)) for p in input_paths}:
+        raise ValueError("Numbered mask output paths must differ from inputs")
+    return jobs
 
 
 def _create_masked_vrt(

@@ -113,9 +113,10 @@ def test_entire_overlap_and_local_statistics_unchanged(tmp_path):
     np.testing.assert_array_equal(old,new)
 
 
-def test_seamlines_match_aligned_footprints_after_radiometry(tmp_path):
+@pytest.mark.parametrize('identifier', ['scene_coreg', 'folder/scene_coreg.tif', r'folder\scene_coreg.TIF'])
+def test_seamlines_match_aligned_footprints_after_radiometry(tmp_path, identifier):
     from spectralmatch.seamline.footprints import _match_footprints
-    frame=gpd.GeoDataFrame({'image':['scene_coreg']},geometry=[box(0,0,1,1)],crs='EPSG:3857')
+    frame=gpd.GeoDataFrame({'image':[identifier]},geometry=[box(0,0,1,1)],crs='EPSG:3857')
     result=_match_footprints(frame,'image',[str(tmp_path/'scene_coreg_global_local.tif')])
     assert result.image.tolist() == ['scene_coreg_global_local']
     assert result.geometry.iloc[0].equals(frame.geometry.iloc[0])

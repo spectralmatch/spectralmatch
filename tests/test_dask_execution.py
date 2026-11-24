@@ -195,8 +195,9 @@ def test_local_blocks_build_masked_vrt_inside_worker(monkeypatch, capsys):
         observed.update(path=path, **kwargs)
         return os.path.join(kwargs["out_dir"], "masked.vrt")
 
-    def calculate(*args):
+    def calculate(*args, footprint=None):
         observed["calculation_path"] = args[1]
+        observed["footprint"] = footprint
         return "image", None
 
     monkeypatch.setattr(module, "_create_masked_vrt", create_masked)
@@ -208,6 +209,7 @@ def test_local_blocks_build_masked_vrt_inside_worker(monkeypatch, capsys):
     )
     assert observed["vector_mask"] == cutline
     assert observed["path"] == "/shared/image.tif"
+    assert observed["footprint"] is None
     assert not os.path.exists(os.path.dirname(observed["calculation_path"]))
     lines = capsys.readouterr().out.splitlines()
     assert lines[0] == "START LOCAL_BLOCK_ADJUSTMENT MASKING:"

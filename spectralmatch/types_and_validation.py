@@ -640,10 +640,14 @@ class Utils:
     def _validate_mask_rasters(
         *,
         include_touched_pixels=_UNSET,
+        seperate_multipolygons=_UNSET,
     ):
         if include_touched_pixels is not _UNSET:
             if not isinstance(include_touched_pixels, bool):
                 raise ValueError("include_touched_pixels must be a boolean.")
+        if seperate_multipolygons is not _UNSET:
+            if not isinstance(seperate_multipolygons, bool):
+                raise ValueError("seperate_multipolygons must be a boolean.")
 
     @staticmethod
     def _validate_merge_rasters(

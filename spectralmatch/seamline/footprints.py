@@ -21,8 +21,16 @@ from ..utils_multiprocessing import _resolve_parallel_config, _run_image_tasks
 
 
 def _matching_image_rows(frame, field, name):
-    """Select rows whose field is literally contained in an image basename, ignoring case."""
-    return frame[frame[field].astype(str).map(lambda value: value.casefold() in name.casefold())]
+    """Match current basenames or source IDs retained across processing suffixes."""
+    name = name.casefold()
+    def matches(value):
+        value = str(value).casefold()
+        identifier = value.replace("\\", "/").rsplit("/", 1)[-1]
+        stem, extension = os.path.splitext(identifier)
+        if extension in {".tif", ".tiff", ".vrt", ".jp2", ".ntf", ".img"}:
+            identifier = stem
+        return name in value or bool(identifier) and identifier in name
+    return frame[frame[field].map(matches)]
 
 
 def _read_image_metadata(path, join_field, names, image_field_name):
