@@ -36,7 +36,7 @@ WorldView example. Postprocessing is opt-in. The default workflow still creates
 footprints automatically when Voronoi has no polygon input.
 
 Footprint paths and layer names pass automatically from creation to postprocessing
-and then to either seamline method. Explicit `*_input_polygons` and `*_input_layer`
+and then to any seamline method. Explicit `*_input_polygons` and `*_input_layer`
 options override these inputs. External polygons default to the `"footprints"`
 layer; pass `*_input_layer=None` to read their first layer. When using preceding
 footprints, the default `"footprints"` or None inherits their generated layer name.
@@ -48,6 +48,29 @@ Replace `voronoi_center_seamline` with `weighted_seamline` and supply
 expression must exist in the input polygons; postprocessing preserves them. Existing
 polygons can enter through `postprocess_footprints_input_polygons` or the chosen
 seamline step's `*_input_polygons` option.
+
+Use `markov_seamline` for triangle-MRF seamlines on registered, color-corrected
+rasters in a common projected CRS:
+
+```python
+result = pipeline(
+    shared_input_images="matched_images",
+    shared_output_image_path="mosaic.tif",
+    steps=("create_footprints", "markov_seamline", "mask", "merge"),
+    markov_seamline_mesh_max_triangle_area=10000,
+    markov_seamline_mesh_min_triangle_angle=20,
+)
+```
+
+Only one of the three seamline methods can be selected per pipeline. Markov uses
+the current pipeline rasters and inherits generated footprint paths and layers.
+Set `markov_seamline_input_images` or `markov_seamline_input_footprints` to override
+those inputs; explicit footprints default to the `"footprints"` layer, or use
+`markov_seamline_input_layer=None` for their first layer. Without footprints,
+Markov generates them from raster valid-data masks. Its `markov_seamline_*`
+options use `Seamline.markov_triangles` defaults; worker, backend, progress, resume,
+and cleanup settings use the shared pipeline options. Markov may also be the final
+step with a `.gpkg` output. The default pipeline continues to use Voronoi.
 
 Supply `create_footprints_metadata_csv` to join image-level CSV attributes in either
 an explicit footprint step or automatic footprint creation before Voronoi.

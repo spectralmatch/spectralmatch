@@ -219,7 +219,7 @@ def test_mixed_numeric_angles_survive_writing_and_ranking(tmp_path, source):
     output = str(tmp_path / "ranked.gpkg")
     create_footprints(
         images, output, footprint_source=source, epsg=3857,
-        image_rank_function="5 * log(max({stat:area_crs}, 1) / 1000000) / log(2) "
+        image_rank_function="5 * log(max({stat:polygon_area}, 1) / 1000000) / log(2) "
                             "- ({var:view_zenith} + {var:solar_zenith})",
         **options,
     )

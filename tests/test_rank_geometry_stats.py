@@ -6,25 +6,25 @@ from shapely.geometry import MultiPolygon, Polygon, box
 from spectralmatch import create_footprints
 from spectralmatch.seamline.weighted_seamline import _rank_polygons
 
-EXPRESSION = '5 * log(max({stat:area_crs}, 1) / 1000000) / log(2) - ({var:view_zenith} + {var:solar_zenith})'
+EXPRESSION = '5 * log(max({stat:polygon_area}, 1) / 1000000) / log(2) - ({var:view_zenith} + {var:solar_zenith})'
 
 
-def test_stat_area_crs_uses_each_component_and_keeps_column_namespace():
+def test_stat_polygon_area_uses_each_component_and_keeps_column_namespace():
     shape = MultiPolygon([box(0, 0, 4, 5), box(10, 0, 11, 2)])
-    frame = gpd.GeoDataFrame({'image':['a'], 'area_crs':[999]}, geometry=[shape], crs=3857)
-    result = _rank_polygons(frame, 'image', '{stat: area_crs} + {var:area_crs}', True)
+    frame = gpd.GeoDataFrame({'image':['a'], 'polygon_area':[999]}, geometry=[shape], crs=3857)
+    result = _rank_polygons(frame, 'image', '{stat: polygon_area} + {var:polygon_area}', True)
     assert result.weighted_score.tolist() == [1019, 1001]
-    assert result.area_crs.tolist() == [999, 999]
+    assert result.polygon_area.tolist() == [999, 999]
     assert all(g.geom_type == 'Polygon' for g in result.geometry)
     assert frame.geometry.iloc[0].equals(shape)
 
 
-def test_area_crs_is_in_native_units_and_subtracts_holes():
+def test_polygon_area_is_in_native_units_and_subtracts_holes():
     polygon = Polygon(box(0, 0, 10, 10).exterior.coords, [box(2, 2, 4, 4).exterior.coords])
     frame = gpd.GeoDataFrame({'image':['a']}, geometry=[polygon], crs=2263)
-    result = _rank_polygons(frame, 'image', '{stat:area_crs}', True)
+    result = _rank_polygons(frame, 'image', '{stat:polygon_area}', True)
     assert result.weighted_score.iloc[0] == 96  # Square US survey feet; no m² conversion.
-    assert 'area_crs' not in result.columns
+    assert 'polygon_area' not in result.columns
 
 
 def test_doubling_component_area_offsets_five_degrees():
@@ -54,7 +54,7 @@ def test_area_stat_is_calculated_after_outline_clip_and_before_buffer(tmp_path):
     out = str(tmp_path/'coverage.gpkg')
     create_footprints(['a.tif'],out,footprint_source='metadata',metadata_crs='EPSG:3857',
                       metadata_records=[{'geometry':box(0,0,100,100).__geo_interface__}],
-                      outline_path=goal,image_rank_function='{stat:area_crs}',extrude_distance=10,epsg=3857)
+                      outline_path=goal,image_rank_function='{stat:polygon_area}',extrude_distance=10,epsg=3857)
     result=gpd.read_file(out)
     assert result.weighted_score.iloc[0] == 6
     assert result.geometry.iloc[0].area > 6
@@ -70,4 +70,4 @@ def test_unknown_stat_is_rejected_and_var_stays_an_arbitrary_column():
 def test_image_level_quality_rejects_multipart_component_stat():
     frame=gpd.GeoDataFrame({'image':['a']},geometry=[MultiPolygon([box(0,0,1,1),box(2,0,3,1)])],crs=3857)
     with pytest.raises(ValueError,match='individual polygon components'):
-        _rank_polygons(frame,'image','{stat:area_crs}',True,split_components=False)
+        _rank_polygons(frame,'image','{stat:polygon_area}',True,split_components=False)

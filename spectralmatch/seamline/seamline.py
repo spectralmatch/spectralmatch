@@ -44,7 +44,7 @@ from .voronoi_center_seamline import (
     _save_intersection_points,
     _segment_emp,
 )
-from .weighted_seamline import weighted_seamline, _rank_polygons
+from .weighted_seamline import weighted_seamline, _rank_polygons, _parse_rank_expression
 
 gdal.UseExceptions()
 
@@ -108,7 +108,7 @@ class Seamline:
             epsg (int | None, optional): Output EPSG code. None preserves the raster/vector CRS or metadata_crs. Defaults to None.
             outline_path (str | None, optional): Goal-area polygon file, reprojected to the output CRS; None uses full image coverage. Defaults to None.
             outline_layer (str | None, optional): Outline layer; None reads the first layer. Requires outline_path. Defaults to None.
-            image_rank_function (str | None, optional): SpectralMatch expression with {var:field} and {summary:field} placeholders, e.g. "-{var:view_zenith}". Higher expression values rank on top by default; negate lower-is-better quantities. {stat:area_crs} calculates each connected polygon's area in squared CRS units after outline clipping and ranks components separately. {stat:gap_coverage_fraction} enables iterative ranking against the largest remaining connected coverage gap (0-1); it is zero for the first selection. Area statistics and image summaries remain fixed, and margins do not affect gap ranking. None preserves overlaps. Defaults to None.
+            image_rank_function (str | None, optional): SpectralMatch expression with {var:field} and {summary:field} placeholders, e.g. "-{var:view_zenith}". Higher expression values rank on top by default; negate lower-is-better quantities. {stat:polygon_area} calculates each connected polygon's area in squared CRS units after outline clipping and ranks components separately. {stat:gap_coverage_fraction} enables iterative ranking against the largest remaining connected coverage gap (0-1); it is zero for the first selection. Area statistics and image summaries remain fixed, and margins do not affect gap ranking. None preserves overlaps. Defaults to None.
             image_rank_descending (bool, optional): True ranks higher values on top (default); False reverses the order. Ties use image identifier order.
             min_polygon_area (float | None, optional): Minimum individual owned polygon area in square metres, applied before buffering when coverage controls are used. Pieces smaller than this are removed; None disables filtering. Defaults to 1.0. Raw footprints without coverage controls are unchanged.
             extrude_distance (float, optional): Nonnegative buffer around owned coverage in projected output CRS units, clipped to the original footprint. Extends beneath other images and beyond the outline; empty owners are omitted. Defaults to 0.0.
@@ -517,15 +517,15 @@ class Seamline:
 
         Args:
             input_images: Raster folder, glob or path list; basenames without extensions must be unique.
-            output_mask: Output GeoPackage path, distinct from input vectors; stores image identifiers, image_path and raw quality_score.
+            output_mask: Output GeoPackage path, distinct from input vectors; stores image identifiers, image_path and raw quality_score (null for triangle-dependent expressions).
             input_footprints: Optional current valid-data footprint file; preferred common name.
             input_polygons: Legacy alias for input_footprints. Optional valid-data footprints; None polygonizes band-1 GDAL masks, while supplied polygons must match every image and are never regenerated.
             input_layer: Input footprint layer name; None selects the first layer. Defaults to "footprints".
             output_layer: Output polygon layer name; defaults to "seamlines".
             image_field_name: Footprint field containing each input basename without extension as a substring; matching pieces are dissolved using first-match attributes; defaults to "image".
-            image_rank_function: Optional footprint expression with {var:field} and {summary:field} placeholders; None disables quality preference and saves null scores.
+            image_rank_function: Optional expression with {var:field} and {summary:field} placeholders. Adding {stat:center_distance} or {stat:triangle_area} evaluates it per triangle: center_distance is the raw projected distance to the original footprint's centroid, snapped to valid coverage if needed; triangle_area is triangle area in squared CRS units. These expressions control area weighting explicitly and have no radius or score normalization. None disables quality preference and saves null scores.
             image_rank_descending: True favors larger quality scores, False favors smaller scores; defaults to True.
-            image_quality_weight: Nonnegative multiplier of assigned area times globally min-max-normalized quality penalty; zero removes quality preference; defaults to 1.
+            image_quality_weight: Nonnegative multiplier of assigned area times globally min-max-normalized quality penalty, or raw triangle expression costs when using {stat:center_distance} or {stat:triangle_area}; zero removes quality preference; defaults to 1.
             edge_variables_weights_gsds_bands: Terms [name_or_path, nonnegative weight, GSD selection, band selection]; use [value] for one value or {"average" | "largest" | "smallest": [values]} for two or more; GSDs are positive integers in CRS units or "native", bands are one-based integers; defaults weight difference 1 at "native" and magnitude 0.25 at GSD 100, both on band 1; zero disables a term.
             foreground_path: Optional polygon mask forbidding seams through protected interiors; infeasible coverage raises ValueError.
             foreground_layer: Optional layer in foreground_path; None reads the default layer.
@@ -668,7 +668,14 @@ class Seamline:
             )
             scores = dict.fromkeys(paths)
             quality = dict.fromkeys(paths, 0.0)
+            triangle_ranking = None
             if image_rank_function is not None:
+                _, _, _, statistics = _parse_rank_expression(image_rank_function)
+                if {"center_distance", "triangle_area"}.intersection(statistics.values()):
+                    triangle_ranking = _markov._triangle_rank_context(
+                        frame, image_field_name, image_rank_function, image_rank_descending
+                    )
+            if image_rank_function is not None and triangle_ranking is None:
                 ranked = _rank_polygons(
                     frame, image_field_name, image_rank_function, image_rank_descending, split_components=False
                 )
@@ -721,6 +728,12 @@ class Seamline:
                         if key in children:
                             source = [completed.pop(child) for child in children[key]]
                         names = {name for candidate in source for name in candidate}
+                        node_ranking = None
+                        if triangle_ranking is not None:
+                            node_ranking = {
+                                **triangle_ranking,
+                                "images": {name: triangle_ranking["images"][name] for name in names},
+                            }
                         args.append(
                             (
                                 source,
@@ -734,6 +747,7 @@ class Seamline:
                                 frame.crs.to_wkt(),
                                 solver_max_iterations,
                                 debug_logs,
+                                node_ranking,
                             )
                         )
                     results = _run_image_tasks(

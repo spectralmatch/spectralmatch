@@ -843,7 +843,7 @@ def mask_rasters(
     tile_threads: Universal.Threads = None,
     concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
     dask_scheduler: Universal.DaskScheduler = None,
-    include_touched_pixels: bool = False,
+    include_touched_pixels: bool = True,
     custom_nodata_value: Universal.CustomNodataValue = None,
     resume_from_outputs: Literal["no", "yes", "validate"] = "no",
     *,
@@ -867,7 +867,7 @@ def mask_rasters(
         tile_threads (Literal["cpu"] | int | None): "cpu" to get number of cores, int to assign number, and None to disable tile level parallelism.
         concurrent_processing_backend: Use a local process pool or an existing Dask cluster.
         dask_scheduler: Existing Dask scheduler as ("file", path) or ("address", address).
-        include_touched_pixels (bool, optional): If True, uses all touched pixels for cutline mask. Use True before merging adjacent seamline clips on differing raster grids to avoid sparse gaps; source NoData remains excluded.
+        include_touched_pixels (bool, optional): Defaults to True, using all pixels touched by the cutline to help prevent sparse gaps when merging adjacent clips on differing raster grids. Set False for pixel-center masking; source NoData remains excluded.
         custom_nodata_value (float | int | None, optional): Overrides detected NoData value. Defaults to None.
         seperate_multipolygons (bool): If True, dissolve the selected mask, clip it to each raster, and export each disconnected retained polygon separately. Output stems receive _1, _2, etc., ordered by polygon bounds, restarting for each input. Holes stay masked. Exclude masks split the remaining area; absent/missing masks export the whole raster as _1. Defaults to False.
         resume_from_outputs: Reuse numbered files individually when splitting.

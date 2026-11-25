@@ -17,6 +17,7 @@ STEPS = [
     ("postprocess_footprints", "postprocess_footprints", chain.Seamline, "postprocess_footprints"),
     ("voronoi_center_seamline", "voronoi_center_seamline", chain.Seamline, "voronoi"),
     ("weighted_seamline", "weighted_seamline", chain.Seamline, "weighted"),
+    ("markov_seamline", "markov_seamline", chain.Seamline, "markov_triangles"),
     ("mask", "mask_rasters", chain, "mask_rasters"),
     ("merge", "merge_rasters", chain, "merge_rasters"),
 ]
@@ -103,12 +104,22 @@ def test_pipeline_forwards_every_exposed_function_parameter(tmp_path, monkeypatc
     assert progress_updates[-1]["n"] == progress_updates[-1]["total"] == 1
 
 
-@pytest.mark.parametrize("name", ["create_footprints", "postprocess_footprints"])
-def test_pipeline_footprint_defaults_match_function(name):
+@pytest.mark.parametrize("prefix,name", [
+    ("create_footprints", "create_footprints"),
+    ("postprocess_footprints", "postprocess_footprints"),
+    ("markov_seamline", "markov_triangles"),
+])
+def test_pipeline_step_defaults_match_function(prefix, name):
     pipeline_parameters = inspect.signature(chain.pipeline).parameters
     for parameter_name, parameter in inspect.signature(getattr(chain.Seamline, name)).parameters.items():
         if parameter.default is inspect.Parameter.empty:
             continue
-        dedicated = f"{name}_{parameter_name}"
+        dedicated = f"{prefix}_{parameter_name}"
         if dedicated in pipeline_parameters:
             assert pipeline_parameters[dedicated].default == parameter.default
+
+
+@pytest.mark.parametrize("other", ["voronoi_center_seamline", "weighted_seamline"])
+def test_markov_is_exclusive_with_other_seamline_steps(other):
+    with pytest.raises(ValueError, match="at most one seamline"):
+        chain._validate_pipeline_steps((other, "markov_seamline", "mask", "merge"))

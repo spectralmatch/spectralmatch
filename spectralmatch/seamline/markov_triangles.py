@@ -7,6 +7,7 @@ from itertools import combinations
 from time import perf_counter
 
 import numpy as np
+import shapely
 from osgeo import gdal
 from pyproj import CRS
 from scipy.sparse import coo_matrix
@@ -31,6 +32,11 @@ except ImportError:
     _triangle_triangulate = None
 
 from .footprints import _polygon_parts
+from .weighted_seamline import (
+    _evaluate_weighted_expression,
+    _parse_rank_expression,
+    _rank_context,
+)
 from ..utils_logging import _print_line
 
 _LAPLACIAN_VARIABLES = {"laplacian_difference", "laplacian_magnitude"}
@@ -754,7 +760,7 @@ def _binary_cut(unary, edges, weights):
 def _alpha_expansion(
     visible, edges, cost, upper_bound, max_iterations, unary=None, swap=False
 ):
-    """Minimize area unaries and pair costs by alpha expansion, or alpha-beta swaps for nonmetric reducers; convergence is move-local."""
+    """Minimize assignment and pair costs by alpha expansion, or alpha-beta swaps for nonmetric reducers; convergence is move-local."""
     if not visible.any(axis=1).all():
         raise ValueError("No image covers a mesh face or foreground component.")
     unary = np.zeros(visible.shape) if unary is None else unary
@@ -815,6 +821,131 @@ def _alpha_expansion(
     return labels
 
 
+def _triangle_rank_context(frame, image_field_name, expression, descending):
+    """Freeze original image attributes, summaries and snapped footprint centers.
+
+    Only serializable values travel to workers; each node compiles its expression
+    once and evaluates arrays of triangle distances, never one Python eval per face.
+    """
+    _, variables, summaries, statistics = _rank_context(frame, expression)
+    if "gap_coverage_fraction" in statistics.values():
+        raise ValueError("stat:gap_coverage_fraction requires create_footprints coverage ranking.")
+    if "polygon_area" in statistics.values() and any(
+        geometry.geom_type == "MultiPolygon" and len(geometry.geoms) > 1
+        for geometry in frame.geometry
+    ):
+        raise ValueError("stat:polygon_area ranks individual polygon components; image-level quality ranking cannot assign separate scores to a MultiPolygon.")
+    coordinates = None
+    if "center_distance" in statistics.values():
+        geometries = frame.geometry.array
+        centers = shapely.centroid(geometries)
+        outside = ~shapely.covers(geometries, centers)
+        centers[outside] = shapely.get_point(
+            shapely.shortest_line(centers[outside], geometries[outside]), -1
+        )
+        coordinates = shapely.get_coordinates(centers)
+    images = {}
+    for index, (_, row) in enumerate(frame.iterrows()):
+        images[row[image_field_name]] = {
+            "center": coordinates[index] if coordinates is not None else None,
+            "attributes": {field: row[field] for field in variables.values()},
+            "polygon_area": float(row.geometry.area) if "polygon_area" in statistics.values() else None,
+        }
+    return {"expression": expression, "descending": descending,
+            "summaries": summaries, "images": images}
+
+
+def _triangle_centroids(faces):
+    """Use vertex means for triangles, avoiding cancellation in overlay slivers."""
+    coordinates = shapely.get_coordinates(faces)
+    if len(coordinates) != 4 * len(faces):
+        return shapely.get_coordinates(shapely.centroid(faces))
+    vertices = coordinates.reshape(-1, 4, 2)[:, :3]
+    origin = vertices[:, 0]
+    return origin + ((vertices[:, 1] - origin) + (vertices[:, 2] - origin)) / 3
+
+
+def _triangle_sources(candidate, coordinates, precision=None):
+    """Resolve original mosaic sources in one spatial query, including roundoff slivers."""
+    names = sorted(candidate)
+    geometries = [candidate[name] for name in names]
+    points = shapely.points(coordinates)
+    tree = STRtree(geometries)
+    pairs = tree.query(points, predicate="intersects")
+    owners = np.full(len(points), len(names), dtype=int)
+    np.minimum.at(owners, pairs[0], pairs[1])
+    missing = np.flatnonzero(owners == len(names))
+    if len(missing):
+        # Overlay preserves coordinate-roundoff slivers. Their centroids may sit
+        # a few ulps outside source polygons; never bridge a genuine coverage gap.
+        pairs, distances = tree.query_nearest(points[missing], return_distance=True)
+        np.minimum.at(owners, missing[pairs[0]], pairs[1])
+        nearest = np.full(len(missing), np.inf)
+        np.minimum.at(nearest, pairs[0], distances)
+        precision = (max(_geometry_roundoff(geometry) for geometry in geometries)
+                     if precision is None else precision)
+        if np.any(nearest > 8 * precision):
+            raise ValueError("Cannot identify a source image at a triangle centroid.")
+    return names, owners
+
+
+def _triangle_rank_unaries(faces, visible, candidates, components, allowed, ranking, weight):
+    """Batch raw scores; expressions explicitly control triangle-area weighting."""
+    expression = ranking["expression"]
+    code, variables, _, statistics = _parse_rank_expression(expression, vectorized=True)
+    composite = any(len(candidate) > 1 for candidate in candidates)
+    coordinates = (_triangle_centroids(faces)
+                   if "center_distance" in statistics.values() or composite
+                   else None)
+    # Match the node-wide precision used by _mesh, rather than the smaller
+    # coordinate scale of an individual source within a child mosaic.
+    precision = (32 * np.spacing(max(1., *map(abs, shapely.total_bounds(faces))))
+                 if composite else None)
+    areas = shapely.area(faces) if "triangle_area" in statistics.values() else None
+    unary = np.zeros(allowed.shape)
+    multiplier = -weight if ranking["descending"] else weight
+    for label, candidate in enumerate(candidates):
+        eligible = np.flatnonzero(visible[:, label] & allowed[components, label])
+        if not len(eligible):
+            continue
+        # A child mosaic contributes the original image at the triangle centroid,
+        # just as point sampling selects a source within a composite candidate.
+        if len(candidate) > 1:
+            names, sources = _triangle_sources(candidate, coordinates[eligible], precision)
+        else:
+            names, sources = list(candidate), np.zeros(len(eligible), dtype=int)
+        for source, name in enumerate(names):
+            indices = eligible[sources == source]
+            if not len(indices):
+                continue
+            image = ranking["images"][name]
+            distance = None
+            if "center_distance" in statistics.values():
+                offset = coordinates[indices] - image["center"]
+                distance = np.hypot(offset[:, 0], offset[:, 1])
+            calculated = {
+                symbol: (distance if statistic == "center_distance" else
+                         areas[indices] if statistic == "triangle_area" else image["polygon_area"])
+                for symbol, statistic in statistics.items()
+            }
+            try:
+                scores = _evaluate_weighted_expression(
+                    image["attributes"], code, variables,
+                    {**ranking["summaries"], **calculated}, expression,
+                    array_size=len(indices),
+                )
+            except ValueError as exc:
+                raise ValueError(f"Cannot rank image {name!r} for triangles: {exc}") from exc
+            np.add.at(unary[:, label], components[indices], multiplier * scores)
+    # A constant per graph vertex leaves every labeling's relative energy unchanged and
+    # keeps graph capacities nonnegative. It does not divide or normalize scores.
+    unary -= np.where(allowed, unary, np.inf).min(axis=1, keepdims=True)
+    unary[~allowed] = 0
+    if not np.isfinite(unary).all():
+        raise ValueError("Nonfinite triangle ranking costs; reduce image_quality_weight or expression values.")
+    return unary
+
+
 def _solve_node(
     candidates,
     paths,
@@ -827,8 +958,9 @@ def _solve_node(
     crs,
     max_iterations,
     debug_logs,
+    triangle_ranking=None,
 ):
-    """Optimize triangle labels with raster edge costs, protected regions and area-weighted image quality."""
+    """Optimize triangle labels with raster edge costs, protected regions and image ranking."""
     if len(candidates) == 1:
         return candidates[0]
     started = perf_counter()
@@ -866,7 +998,11 @@ def _solve_node(
             "Foreground constraints are infeasible: no single image or child mosaic covers a connected protected region."
         )
     unary = np.zeros(allowed.shape)
-    if quality_weight and any(quality.values()):
+    if triangle_ranking is not None and quality_weight:
+        unary = _triangle_rank_unaries(
+            faces, visible, candidates, components, allowed, triangle_ranking, quality_weight
+        )
+    elif quality_weight and any(quality.values()):
         for label, candidate in enumerate(candidates):
             for face_index in np.flatnonzero(visible[:, label]):
                 penalty = sum(
@@ -910,5 +1046,9 @@ def _solve_node(
             if part.area > 0:
                 pieces.setdefault(name, []).extend(_polygon_parts(part))
     result = {name: unary_union(parts) for name, parts in pieces.items()}
+    if triangle_ranking is not None:
+        # Worker serialization drops GEOS precision metadata. Clear it in serial
+        # execution too, so parent meshes and spatial scores use the same geometry.
+        result = {name: set_precision(geometry, 0) for name, geometry in result.items()}
     progress(f"completed {len(result)} image polygons")
     return result

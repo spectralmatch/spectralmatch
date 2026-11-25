@@ -1,3 +1,9 @@
+`mask_rasters` defaults to `include_touched_pixels=True`, matching the pipeline.
+This retains pixels touched by cutline boundaries and helps prevent sparse gaps
+when adjacent clipped images use different raster grids. Set
+`include_touched_pixels=False` for strict pixel-center masking. Original source
+NoData remains excluded.
+
 Set `seperate_multipolygons=True` in `mask_rasters` to export disconnected
 retained mask polygons as independent cropped rasters. Output bases such as
 `scene_Mask.tif` become `scene_Mask_1.tif`, `scene_Mask_2.tif`, etc.; numbering

@@ -29,6 +29,7 @@ PipelineStep = Literal[
     "postprocess_footprints",
     "voronoi_center_seamline",
     "weighted_seamline",
+    "markov_seamline",
     "mask",
     "merge",
 ]
@@ -41,6 +42,7 @@ PIPELINE_STEP_ORDER: tuple[PipelineStep, ...] = (
     "postprocess_footprints",
     "voronoi_center_seamline",
     "weighted_seamline",
+    "markov_seamline",
     "mask",
     "merge",
 )
@@ -52,7 +54,7 @@ MULTI_RASTER_STEPS = {
     "align",
     "mask",
 }
-SEAMLINE_STEPS = {"voronoi_center_seamline", "weighted_seamline"}
+SEAMLINE_STEPS = {"voronoi_center_seamline", "weighted_seamline", "markov_seamline"}
 FOOTPRINT_STEPS = {"create_footprints", "postprocess_footprints"}
 DEFAULT_PIPELINE_STEPS: tuple[PipelineStep, ...] = (
     "joint_coregistration",
@@ -72,6 +74,7 @@ STEP_TEMP_OUTPUTS = {
     "postprocess_footprints": os.path.join("seamline", "ProcessedFootprints.gpkg"),
     "voronoi_center_seamline": os.path.join("seamline", "ImageMasks.gpkg"),
     "weighted_seamline": os.path.join("seamline", "ImageMasks.gpkg"),
+    "markov_seamline": os.path.join("seamline", "ImageMasks.gpkg"),
 }
 
 
@@ -203,6 +206,26 @@ def pipeline(
     weighted_seamline_input_layer: str | None = "footprints",
     weighted_seamline_output_layer: str = "seamlines",
     weighted_seamline_rank_descending: bool = True,
+    markov_seamline_input_images: Universal.SearchFolderOrListFiles | None = None,
+    markov_seamline_input_footprints: str | None = None,
+    markov_seamline_input_layer: str | None = "footprints",
+    markov_seamline_output_layer: str = "seamlines",
+    markov_seamline_image_field_name: str = "image",
+    markov_seamline_image_rank_function: str | None = None,
+    markov_seamline_image_rank_descending: bool = True,
+    markov_seamline_image_quality_weight: float = 1.0,
+    markov_seamline_edge_variables_weights_gsds_bands: list = [
+        ["laplacian_difference", 1.0, ["native"], [1]],
+        ["laplacian_magnitude", 0.25, [100], [1]],
+    ],
+    markov_seamline_foreground_path: str | None = None,
+    markov_seamline_foreground_layer: str | None = None,
+    markov_seamline_mesh_max_triangle_area: float = 10000,
+    markov_seamline_mesh_min_triangle_angle: float = 20,
+    markov_seamline_quadtree_max_images_per_leaf: int = 16,
+    markov_seamline_quadtree_overlap: float = 0.1,
+    markov_seamline_quadtree_max_depth: int = 8,
+    markov_seamline_solver_max_iterations: int = 50,
     mask_rasters_vector_mask: Universal.VectorMask = None,
     mask_rasters_include_touched_pixels: bool = True,
     mask_rasters_seperate_multipolygons: bool = False,
@@ -227,7 +250,7 @@ def pipeline(
 
     Other step-specific options use the underlying function's types and defaults. Shared cache and worker settings additionally support "auto" and default to it; shared_window_size defaults to 1024. Required inputs for optional steps are required only when selecting those steps.
 
-    Select ``create_footprints`` followed by ``postprocess_footprints`` before either seamline step to prepare its polygons. These steps retain the current rasters for later masking and merging. Polygon paths and layer names flow between steps unless an explicit input overrides them. Postprocessing is opt-in because its distances require a suitable projected CRS and tuning for the imagery.
+    Select ``create_footprints`` followed by ``postprocess_footprints`` before any seamline step to prepare its polygons. Markov seamlines require registered, color-corrected rasters in a common projected CRS. These steps retain the current rasters for later masking and merging. Polygon paths and layer names flow between steps unless an explicit input overrides them. Postprocessing is opt-in because its distances require a suitable projected CRS and tuning for the imagery.
 
     Args:
         shared_window_scales: Overview factors shared by all steps with build_overviews enabled, default (2, 4, 8, 16, 32); None or an empty tuple disables overview creation for those steps.
@@ -267,6 +290,23 @@ def pipeline(
         weighted_seamline_input_polygons: Explicit input polygon path; None uses the preceding footprint step's output. One of these sources is required for weighted_seamline.
         weighted_seamline_input_layer: Defaults to "footprints" for explicit polygons; None selects their first layer; either inherits the preceding footprint step's layer when using its polygons.
         weighted_seamline_rank_function: Ranking expression, required when steps includes weighted_seamline.
+        markov_seamline_input_images: Optional raster folder, glob or paths; None uses the current pipeline rasters.
+        markov_seamline_input_footprints: Explicit footprint path; None uses preceding footprint steps, or polygonizes current raster valid-data masks if no footprints have been generated.
+        markov_seamline_input_layer: Defaults to "footprints" for explicit footprints; None selects their first layer. When using preceding footprints, the default or None inherits their layer name.
+        markov_seamline_output_layer: Output polygon layer name; defaults to "seamlines".
+        markov_seamline_image_field_name: Footprint field containing each input basename without extension as a substring; matching pieces are dissolved using first-match attributes; defaults to "image".
+        markov_seamline_image_rank_function: Optional footprint expression with {var:field} and {summary:field} placeholders; None disables quality preference and saves null scores.
+        markov_seamline_image_rank_descending: True favors larger quality scores, False favors smaller scores; defaults to True.
+        markov_seamline_image_quality_weight: Nonnegative multiplier of assigned area times globally min-max-normalized quality penalty; zero removes quality preference; defaults to 1.
+        markov_seamline_edge_variables_weights_gsds_bands: Terms [name_or_path, nonnegative weight, GSD selection, band selection]; use [value] for one value or {"average" | "largest" | "smallest": [values]} for two or more; GSDs are positive integers in CRS units or "native", bands are one-based integers; defaults weight difference 1 at "native" and magnitude 0.25 at GSD 100, both on band 1; zero disables a term.
+        markov_seamline_foreground_path: Optional polygon mask forbidding seams through protected interiors; infeasible coverage raises ValueError.
+        markov_seamline_foreground_layer: Optional layer in foreground_path; None reads the default layer.
+        markov_seamline_mesh_max_triangle_area: Positive maximum triangle area in squared projected CRS units; defaults to 10000 (square metres in a metre-based CRS).
+        markov_seamline_mesh_min_triangle_angle: Minimum triangle angle in degrees, from 0 to 30; defaults to 20. Input boundary angles can be smaller; 0 disables the angle constraint.
+        markov_seamline_quadtree_max_images_per_leaf: Positive label-count target for quadtree leaves; defaults to 16.
+        markov_seamline_quadtree_overlap: Child-block overlap fraction in (0, 0.5); defaults to 0.1.
+        markov_seamline_quadtree_max_depth: Nonnegative quadtree subdivision limit; defaults to 8.
+        markov_seamline_solver_max_iterations: Positive graph-cut sweep limit per node; defaults to 50; reaching the limit warns.
         merge_rasters_output_tiles: Create GeoTIFF tiles with gdal_retile in shared_output_image_path instead of a single GeoTIFF, default False.
         joint_coregistration_resolution: Shared pixel size strategy (highest, average, lowest), positive int or float pixel size in CRS units, or None to preserve native resolution.
         joint_coregistration_moving_tie_method: Matcher between non-fixed inputs: 'orb' (default) or 'elastix'.
@@ -760,6 +800,57 @@ def pipeline(
                     step_name, seamline_mask_path, temp_dir
                 )
 
+            elif step_name == "markov_seamline":
+                seamline_mask_path = (
+                    shared_output_image_path
+                    if is_last_step
+                    else _step_temp_output(step_name, temp_dir)
+                )
+                if not isinstance(seamline_mask_path, str):
+                    raise ValueError(
+                        "shared_output_image_path must be a single file path when the final step is a seamline."
+                    )
+                seamline_mask_image_field_name = markov_seamline_image_field_name
+                input_footprints = markov_seamline_input_footprints
+                input_layer = markov_seamline_input_layer
+                if input_footprints is None and current_polygons is not None:
+                    input_footprints = current_polygons
+                    if input_layer in (None, "footprints"):
+                        input_layer = current_polygon_layer
+                Seamline.markov_triangles(
+                    input_images=(
+                        current_images
+                        if markov_seamline_input_images is None
+                        else markov_seamline_input_images
+                    ),
+                    output_mask=seamline_mask_path,
+                    input_footprints=input_footprints,
+                    input_layer=input_layer,
+                    output_layer=markov_seamline_output_layer,
+                    image_field_name=markov_seamline_image_field_name,
+                    image_rank_function=markov_seamline_image_rank_function,
+                    image_rank_descending=markov_seamline_image_rank_descending,
+                    image_quality_weight=markov_seamline_image_quality_weight,
+                    edge_variables_weights_gsds_bands=markov_seamline_edge_variables_weights_gsds_bands,
+                    foreground_path=markov_seamline_foreground_path,
+                    foreground_layer=markov_seamline_foreground_layer,
+                    mesh_max_triangle_area=markov_seamline_mesh_max_triangle_area,
+                    mesh_min_triangle_angle=markov_seamline_mesh_min_triangle_angle,
+                    quadtree_max_images_per_leaf=markov_seamline_quadtree_max_images_per_leaf,
+                    quadtree_overlap=markov_seamline_quadtree_overlap,
+                    quadtree_max_depth=markov_seamline_quadtree_max_depth,
+                    solver_max_iterations=markov_seamline_solver_max_iterations,
+                    image_threads=shared_image_threads,
+                    concurrent_processing_backend=shared_concurrent_processing_backend,
+                    dask_scheduler=shared_dask_scheduler,
+                    debug_logs=shared_debug_logs,
+                    resume_from_outputs=shared_resume_from_steps,
+                )
+                results[step_name] = seamline_mask_path
+                step_cleanup_paths = _collect_step_cleanup_paths(
+                    step_name, seamline_mask_path, temp_dir
+                )
+
             elif step_name == "mask":
                 output_images = (
                     shared_output_image_path
@@ -908,7 +999,7 @@ def _validate_pipeline_steps(
     if len(SEAMLINE_STEPS.intersection(resolved_steps)) > 1:
         raise ValueError(
             "steps can include at most one seamline step: "
-            "'voronoi_center_seamline' or 'weighted_seamline'."
+            "'voronoi_center_seamline', 'weighted_seamline' or 'markov_seamline'."
         )
     return resolved_steps
 

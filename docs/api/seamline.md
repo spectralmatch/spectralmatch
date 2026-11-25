@@ -85,34 +85,34 @@ intersecting the outline, before ranked ownership removes hidden images.
 The same expression parser is used by weighted seamlines and Markov image quality.
 Legacy `{field}` attribute references remain supported.
 
-`{stat:area_crs}` is a calculated geometry statistic, independent of all table
+`{stat:polygon_area}` is a calculated geometry statistic, independent of all table
 columns. For coverage and weighted seamlines it ranks each connected Polygon
 separately, exploding MultiPolygons while retaining their original image IDs and
 metadata. Its value is the component's area, minus holes, in squared native CRS
 units. For initial coverage this is measured after outline clipping and before
 ownership subtraction and buffering. No statistic column is required or injected;
-`{var:area_crs}` can still reference an arbitrary user-provided column. Existing
+`{var:polygon_area}` can still reference an arbitrary user-provided column. Existing
 summary placeholders remain image-weighted and are computed before exploding.
 Expressions without the area statistic retain image-level ranking.
 
 For metre-based projected output, an area/angle tradeoff can be expressed as:
 
 ```text
-5 * log(max({stat:area_crs}, 1) / 1000000) / log(2)
+5 * log(max({stat:polygon_area}, 1) / 1000000) / log(2)
 - ({var:view_zenith} + {var:solar_zenith})
 ```
 
 Doubling a connected component's area offsets five degrees of worse combined
 angles. This scores pre-cut components; it does not reevaluate fragments after
 subtracting earlier winners. Markov quality is one scalar per image, so it rejects
-`stat:area_crs` for multipart image footprints rather than silently selecting one
+`stat:polygon_area` for multipart image footprints rather than silently selecting one
 component's score. Attribute-only Markov expressions are unchanged.
 
 For iterative gap filling, add `{stat:gap_coverage_fraction}` to
 `create_footprints`'s `image_rank_function`:
 
 ```text
-5 * log(max({stat:area_crs}, 1) / 1000000) / log(2)
+5 * log(max({stat:polygon_area}, 1) / 1000000) / log(2)
 + 200 * {stat:gap_coverage_fraction}
 - ({var:view_zenith} + {var:solar_zenith})
 ```
@@ -127,7 +127,7 @@ gaps. Equal-area gaps use bounds order, and equal scores use image identifier
 order. `image_rank_descending` still determines the preferred score direction.
 
 With weight 200, 100% rather than 80% coverage adds 40 points, offsetting 40 degrees
-of worse combined angles when the other terms are equal. `stat:area_crs` stays
+of worse combined angles when the other terms are equal. `stat:polygon_area` stays
 attached to the original clipped component, and summaries stay image-weighted
 over the initial candidates. Ownership uses unbuffered geometry; margins never
 affect the fractions. Scores saved as `weighted_score` reflect the selection's
@@ -219,6 +219,51 @@ GDAL average-resampled VRTs provide a common map-aligned grid for each requested
 Parameters use `image_*` for image quality, `edge_*` for seam costs, `foreground_*` for protected polygons, `mesh_*` for triangles, `quadtree_*` for subdivision, and `solver_*` for optimization. Shared input/output, worker, logging and resume parameters retain their library names.
 
 `image_rank_function` uses the same field-expression evaluator as `weighted()`. Raw scores are saved as `quality_score` (null without a ranking expression). Scores are min-max normalized across all inputs into penalties from 0 for best to 1 for worst; equal scores incur zero penalty. `image_rank_descending=True` favors larger scores, and False favors smaller ones. Assigning a triangle to an image adds `image_quality_weight * triangle_area * quality_penalty` to the objective, so better images are encouraged to occupy more area. Composite child mosaics retain the original images' area-weighted penalties. A zero `image_quality_weight` removes this preference while retaining saved scores. Quality affects area ownership, independently of seam texture costs. Ownership is limited to whole eligible triangles, so even the best image may not receive its entire overlap footprint.
+
+For a spatial preference, explicitly add `{stat:center_distance}` to the Markov
+expression. The default remains `image_rank_function=None`; existing expressions
+without triangle statistics retain the image-level normalization described above.
+
+```python
+image_rank_function = "{var:quality} - 0.01 * {stat:center_distance}"
+
+# Optional: weight the complete score by the triangle's area.
+image_rank_function = (
+    "{stat:triangle_area} * ({var:quality} - 0.01 * {stat:center_distance})"
+)
+```
+
+`{var:quality}` reads the source image's attribute. `{stat:center_distance}` is
+calculated for each eligible triangle–image pair, from the triangle's centroid
+to the original source footprint's centroid. If the footprint centroid is outside
+valid coverage or in a hole, it is snapped to the nearest point on the valid
+footprint, including its boundary. Distances use the projected CRS's linear
+units (metres in a metre-based CRS), without image-radius normalization. With
+`image_rank_descending=True`, subtracting distance favors central portions of
+each image; `0.01` deducts one quality point per 100 CRS units.
+
+`{stat:triangle_area}` is the current mesh triangle's area in squared projected
+CRS units. `{stat:polygon_area}` is the source polygon component's area, as used
+by coverage and weighted ranking; it does not change from triangle to triangle.
+The old `{stat:area_crs}` name is no longer supported.
+
+Expressions containing `center_distance` or `triangle_area` use their raw scores
+without min-max normalization or automatic area weighting. Multiply the entire
+expression by `{stat:triangle_area}` to give triangles influence proportional to
+the ground they cover. Omitting it gives each triangle one contribution, so
+regions with more triangles can have more influence. The coefficient inside
+the expression balances quality against distance, while `image_quality_weight`
+multiplies the complete assignment cost relative to seam-edge costs. Zero weight
+skips triangle-statistic evaluation.
+
+Source centers, attributes and image-level summaries are fixed before quadtree
+clipping. At parent nodes, each child mosaic uses the original source image at
+the triangle centroid. Triangle centroids and distances are calculated in
+batches, and the expression is evaluated on arrays instead of once per triangle
+in Python. No statistic column is added to the input table. The output
+`quality_score` is null for these spatial expressions because their score varies
+across triangles. Coverage and weighted seamlines reject `center_distance` and
+`triangle_area` because they lack triangle context.
 
 `mesh_max_triangle_area=10000` limits triangle area in squared projected CRS units (10000 m² in a metre-based CRS); no unit conversion is applied. `mesh_min_triangle_angle=20` controls minimum angles in degrees (0–30; 0 disables angle refinement). Angles forced by input boundaries can be smaller; numerical overlay slivers are retained without quality refinement. Overlay coordinates are stabilized at floating-point precision, not simplified at pixel scale. Libigl’s Triangle interface refines the combined valid-data footprint, retaining exterior boundaries, holes and islands without a regular grid. Each triangle must be fully covered by at least one candidate image or child mosaic; partially covering candidates cannot own it. Only triangles without a complete source are split along internal footprint boundaries and retriangulated. This preserves full coverage without imposing every internal boundary on the mesh. Detailed boundaries can still require small triangles. The previous `mesh_spacing` parameter has been removed; area is not an edge-length limit. Graph cuts optimize these discrete boundaries; they do not search every original pixel boundary. Alpha expansion finds a move-local minimum, not necessarily a global minimum. `smallest`-reduced differences can violate metric assumptions, so they use alpha-beta swaps. `foreground_path` and optional `foreground_layer` forbid seams through protected interiors by contracting intersecting triangle edges; infeasible protection raises an error.
 

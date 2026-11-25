@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 import geopandas as gpd
@@ -413,7 +414,7 @@ def test_pipeline_delete_previous_step_removes_replaced_intermediate(tmp_path):
     assert not (temp_dir / "global").exists()
 
 
-@pytest.mark.parametrize("seamline_step", ["voronoi_center_seamline", "weighted_seamline"])
+@pytest.mark.parametrize("seamline_step", ["voronoi_center_seamline", "weighted_seamline", "markov_seamline"])
 @pytest.mark.parametrize("delete_previous_step", [False, True])
 def test_pipeline_footprints_through_seamlines_mask_and_merge(tmp_path, seamline_step, delete_previous_step):
     input_paths = []
@@ -627,3 +628,65 @@ def test_pipeline_missing_polygon_source(tmp_path, step):
             shared_output_image_path=str(tmp_path / "result.gpkg"),
             steps=(step,),
         )
+
+
+@pytest.mark.parametrize("input_layer", [None, "external"])
+def test_pipeline_markov_explicit_footprints_override_generated(tmp_path, input_layer):
+    source = tmp_path / "A.tif"
+    create_dummy_raster(source, crs="EPSG:32604", count=1)
+    footprints = tmp_path / "external.gpkg"
+    external = gpd.GeoDataFrame(
+        {"image": ["A"], "geometry": [box(2, 2, 8, 8)]}, crs="EPSG:32604"
+    )
+    external.to_file(footprints, layer="external", driver="GPKG")
+    result = pipeline(
+        shared_input_images=[str(source)],
+        shared_output_image_path=str(tmp_path / "result.gpkg"),
+        steps=("create_footprints", "markov_seamline"),
+        shared_image_threads=None,
+        create_footprints_output_layer="generated",
+        markov_seamline_input_footprints=str(footprints),
+        markov_seamline_input_layer=input_layer,
+    )
+    actual = gpd.read_file(result["output"])
+    assert result["output"] == result["markov_seamline"]
+    assert list(actual["image"]) == ["A"]
+    assert actual.geometry.iloc[0].equals(external.geometry.iloc[0])
+    assert footprints.is_file()
+
+
+def test_pipeline_markov_final_output_auto_footprints_and_resume(tmp_path, monkeypatch):
+    paths = []
+    for index, offset in enumerate((0, 8)):
+        path = tmp_path / f"image{index}.tif"
+        create_dummy_raster(path, width=16, height=16, count=1, crs="EPSG:32604",
+                            transform=(offset, 1, 0, 16, 0, -1), fill_value=100 + index * 20)
+        paths.append(str(path))
+    output = tmp_path / "seamlines.gpkg"
+    options = dict(
+        shared_input_images=paths,
+        shared_output_image_path=str(output),
+        shared_temp_dir=str(tmp_path / "work"),
+        steps=("markov_seamline",),
+        shared_image_threads=None,
+        markov_seamline_output_layer="cuts",
+        markov_seamline_mesh_max_triangle_area=8,
+        markov_seamline_mesh_min_triangle_angle=0,
+    )
+    result = pipeline(**options)
+    assert result["output"] == result["markov_seamline"] == str(output)
+    assert not (tmp_path / "work").exists()
+    seams = gpd.read_file(output, layer="cuts")
+    assert set(seams["image"]) == {"image0", "image1"}
+    assert sum(seams.area) == pytest.approx(24 * 16)
+    assert seams.geometry.union_all().area == pytest.approx(sum(seams.area))
+    modified = output.stat().st_mtime_ns
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("Existing final Markov seamlines should be reused")
+
+    module = importlib.import_module("spectralmatch.seamline.markov_triangles")
+    monkeypatch.setattr(module, "_sources", fail_if_called)
+    resumed = pipeline(**options, shared_resume_from_steps="validate")
+    assert resumed["output"] == str(output)
+    assert output.stat().st_mtime_ns == modified

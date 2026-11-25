@@ -4,8 +4,11 @@ import math
 import os
 import re
 import statistics
+from contextlib import nullcontext
+from functools import reduce
 
 import geopandas as gpd
+import numpy as np
 import shapely
 
 from .footprints import _prepare_footprints, _polygon_parts
@@ -43,6 +46,72 @@ _EXPRESSION_NODES = (
     ast.Compare, ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.keyword,
 )
 
+def _array_number(value):
+    """Preserve Python's numeric bool arithmetic (NumPy bool addition is logical)."""
+    array = np.asarray(value)
+    return array.astype(np.int64) if array.dtype.kind == "b" else value
+
+
+_ARRAY_FUNCTIONS = {
+    **{name: getattr(np, name) for name in
+       ("abs", "sqrt", "log", "log10", "exp", "sin", "cos", "tan")},
+    "min": lambda *values: reduce(np.minimum, values),
+    "max": lambda *values: reduce(np.maximum, values),
+    "round": lambda value, ndigits=0: np.round(value, decimals=ndigits),
+    "log": lambda value, base=math.e: np.log(value) / np.log(base),
+    "_rank_where": lambda *values: _array_number(np.where(*values)),
+    "_rank_not": lambda value: _array_number(np.logical_not(value)),
+    "_rank_and": lambda left, right: _array_number(np.logical_and(left, right)),
+    "_rank_number": _array_number,
+    "_rank_divide": np.divide,
+    "_rank_floor_divide": np.floor_divide,
+    "_rank_mod": np.mod,
+    "_rank_power": np.float_power,
+}
+
+
+class _ArrayRankExpression(ast.NodeTransformer):
+    """Apply the same expression to batches, including conditional expressions."""
+
+    @staticmethod
+    def call(name, *arguments):
+        return ast.Call(func=ast.Name(id=name, ctx=ast.Load()), args=list(arguments), keywords=[])
+
+    def visit_IfExp(self, node):
+        self.generic_visit(node)
+        return self.call("_rank_where", node.test, node.body, node.orelse)
+
+    def visit_BoolOp(self, node):
+        self.generic_visit(node)
+        # Python's and/or return operands, rather than converting them to bool.
+        result = node.values[-1]
+        for value in reversed(node.values[:-1]):
+            result = self.call("_rank_where", value,
+                               result if isinstance(node.op, ast.And) else value,
+                               value if isinstance(node.op, ast.And) else result)
+        return result
+
+    def visit_UnaryOp(self, node):
+        self.generic_visit(node)
+        return self.call("_rank_not", node.operand) if isinstance(node.op, ast.Not) else node
+
+    def visit_BinOp(self, node):
+        self.generic_visit(node)
+        functions = {ast.Div: "_rank_divide", ast.FloorDiv: "_rank_floor_divide",
+                     ast.Mod: "_rank_mod", ast.Pow: "_rank_power"}
+        function = functions.get(type(node.op))
+        return self.call(function, node.left, node.right) if function else node
+
+    def visit_Compare(self, node):
+        self.generic_visit(node)
+        if len(node.ops) == 1:
+            return self.call("_rank_number", node)
+        values = [node.left, *node.comparators]
+        comparisons = [ast.Compare(left=values[index], ops=[operator],
+                                   comparators=[values[index + 1]])
+                       for index, operator in enumerate(node.ops)]
+        return reduce(lambda left, right: self.call("_rank_and", left, right), comparisons)
+
 
 @reports_progress
 def weighted_seamline(
@@ -63,7 +132,7 @@ def weighted_seamline(
     Negate lower-is-better quantities in the expression.
 
     Use ``{var:field}`` for image attributes and ``{mean:field}`` or
-    ``{std:field}`` for summaries across the candidate images. ``{stat:area_crs}``
+    ``{std:field}`` for summaries across the candidate images. ``{stat:polygon_area}``
     calculates each connected polygon's area in squared CRS units and ranks
     components separately without adding a table field.
 
@@ -125,6 +194,9 @@ def weighted_seamline(
 def _rank_polygons(frame, image_field_name, rank_function, rank_descending, *, split_components=True):
     """Rank table attributes and calculated geometry statistics without adding stat columns."""
     code, variables, summary_values, geometry_stats = _rank_context(frame, rank_function)
+    triangle_stats = {"center_distance", "triangle_area"}.intersection(geometry_stats.values())
+    if triangle_stats:
+        raise ValueError(f"stat:{sorted(triangle_stats)[0]} requires Markov triangle ranking.")
     if "gap_coverage_fraction" in geometry_stats.values():
         raise ValueError("stat:gap_coverage_fraction requires create_footprints coverage ranking.")
     # Existing summaries remain image-level, even when components are ranked separately.
@@ -134,7 +206,7 @@ def _rank_polygons(frame, image_field_name, rank_function, rank_descending, *, s
             ranked = ranked.explode(index_parts=False, ignore_index=True)
         elif any(geometry.geom_type == "MultiPolygon" and len(geometry.geoms) > 1
                  for geometry in ranked.geometry):
-            raise ValueError("stat:area_crs ranks individual polygon components; image-level quality ranking cannot assign separate scores to a MultiPolygon.")
+            raise ValueError("stat:polygon_area ranks individual polygon components; image-level quality ranking cannot assign separate scores to a MultiPolygon.")
     scores = []
     for _, row in ranked.iterrows():
         calculated = {symbol: float(row.geometry.area) for symbol in geometry_stats}
@@ -161,8 +233,11 @@ def _rank_gap_polygons(frame, image_field_name, rank_function, rank_descending):
     components; summaries stay attached to the original candidate images.
     """
     code, variables, summary_values, geometry_stats = _rank_context(frame, rank_function)
+    triangle_stats = {"center_distance", "triangle_area"}.intersection(geometry_stats.values())
+    if triangle_stats:
+        raise ValueError(f"stat:{sorted(triangle_stats)[0]} requires Markov triangle ranking.")
     candidates = (frame.explode(index_parts=False, ignore_index=True)
-                  if "area_crs" in geometry_stats.values() else frame.reset_index(drop=True))
+                  if "polygon_area" in geometry_stats.values() else frame.reset_index(drop=True))
     rows = [row for _, row in candidates.iterrows()]
     available = set(range(len(rows)))
     spatial_index = candidates.sindex
@@ -189,7 +264,7 @@ def _rank_gap_polygons(frame, image_field_name, rank_function, rank_descending):
         best = None
         for index, fraction in fractions.items():
             row = rows[index]
-            calculated = {symbol: (float(row.geometry.area) if statistic == "area_crs" else fraction)
+            calculated = {symbol: (float(row.geometry.area) if statistic == "polygon_area" else fraction)
                           for symbol, statistic in geometry_stats.items()}
             try:
                 score = _evaluate_weighted_expression(
@@ -229,7 +304,7 @@ def _rank_context(frame, expression):
     return code, variables, _rank_summary_values(frame, summaries), geometry_stats
 
 
-def _parse_rank_expression(expression):
+def _parse_rank_expression(expression, *, vectorized=False):
     """Compile placeholders once, using generated names rather than metadata as code."""
     if not isinstance(expression, str) or not expression.strip():
         raise ValueError("rank_function must be a non-empty string.")
@@ -249,15 +324,15 @@ def _parse_rank_expression(expression):
             if parts[0] == "var":
                 variables[symbol] = parts[1]
             elif parts[0] == "stat":
-                if parts[1] not in {"area_crs", "gap_coverage_fraction"}:
-                    raise ValueError(f"Unknown geometry statistic {parts[1]!r}; choose area_crs or gap_coverage_fraction.")
+                if parts[1] not in {"polygon_area", "gap_coverage_fraction", "center_distance", "triangle_area"}:
+                    raise ValueError(f"Unknown geometry statistic {parts[1]!r}; choose polygon_area, gap_coverage_fraction, center_distance or triangle_area.")
                 geometry_stats[symbol] = parts[1]
             elif parts[0] in _SUMMARY_FUNCTIONS:
                 summaries[symbol] = (parts[0], parts[1])
             else:
                 raise ValueError(f"Unknown summary statistic {parts[0]!r}; choose {', '.join(_SUMMARY_FUNCTIONS)}.")
         else:
-            raise ValueError(f"Invalid ranking placeholder {{{placeholder}}}; use {{var:field}}, {{summary:field}}, or {{stat:area_crs}}.")
+            raise ValueError(f"Invalid ranking placeholder {{{placeholder}}}; use {{var:field}}, {{summary:field}}, or {{stat:polygon_area}}.")
         rewritten = rewritten.replace("{" + placeholder + "}", symbol)
     try:
         tree = ast.parse(rewritten, mode="eval")
@@ -271,6 +346,8 @@ def _parse_rank_expression(expression):
             raise ValueError(f"Unknown name {node.id!r} in rank_function; use a field placeholder.")
         if isinstance(node, ast.Call) and (not isinstance(node.func, ast.Name) or node.func.id not in _SAFE_FUNCTIONS):
             raise ValueError("rank_function may only call the documented math functions.")
+    if vectorized:
+        tree = ast.fix_missing_locations(_ArrayRankExpression().visit(tree))
     return compile(tree, "<rank_function>", "eval"), variables, summaries, geometry_stats
 
 
@@ -299,21 +376,28 @@ def _rank_summary_values(frame, summaries):
     return values
 
 
-def _evaluate_weighted_expression(row, code, variables, summaries, expression) -> float:
+def _evaluate_weighted_expression(row, code, variables, summaries, expression, *, array_size=None):
     local_values = {name: row[field] for name, field in variables.items()}
 
     try:
-        result = eval(
-            code,
-            {"__builtins__": {}},
-            {**_SAFE_FUNCTIONS, **summaries, **local_values},
-        )
+        with np.errstate(all="ignore") if array_size is not None else nullcontext():
+            result = eval(
+                code,
+                {"__builtins__": {}},
+                {**(_SAFE_FUNCTIONS if array_size is None else _ARRAY_FUNCTIONS),
+                 **summaries, **local_values},
+            )
     except Exception as exc:
         raise ValueError(
             f"Could not evaluate rank_function '{expression}': {exc}"
         ) from exc
 
     try:
+        if array_size is not None:
+            result = np.broadcast_to(np.asarray(result, dtype=float), (array_size,))
+            if not np.isfinite(result).all():
+                raise ValueError("Scores must be finite.")
+            return result
         result = float(result)
         if not math.isfinite(result):
             raise ValueError("Score must be finite.")

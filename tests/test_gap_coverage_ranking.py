@@ -10,7 +10,7 @@ from spectralmatch import create_footprints
 from spectralmatch.seamline.footprints import _coverage_polygons
 from spectralmatch.seamline.weighted_seamline import _rank_polygons, _gap_intersection_areas
 
-AREA = "5 * log(max({stat:area_crs}, 1) / 1000000) / log(2)"
+AREA = "5 * log(max({stat:polygon_area}, 1) / 1000000) / log(2)"
 ANGLES = "({var:view_zenith} + {var:solar_zenith})"
 
 
