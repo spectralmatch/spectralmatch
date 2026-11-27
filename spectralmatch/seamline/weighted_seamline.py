@@ -243,23 +243,36 @@ def _rank_gap_polygons(frame, image_field_name, rank_function, rank_descending):
     spatial_index = candidates.sindex
     remaining = candidates.geometry.union_all()
     selection = 0
+    cached_fractions = None
+    gap_parts = None
+    dropped_gaps = False
     while available and not remaining.is_empty:
         if selection == 0:
             fractions = {index: 0.0 for index in available}
         else:
-            parts = _polygon_parts(remaining)
-            if not parts:
-                break
-            # Bounds break equal-area ties independently of GEOS component order.
-            gap = min(parts, key=lambda polygon: (-polygon.area, polygon.bounds))
-            indexes = [int(index) for index in spatial_index.query(gap, predicate="intersects")
-                       if index in available]
-            areas = _gap_intersection_areas(candidates.geometry.iloc[indexes].array, gap)
-            fractions = {index: min(1.0, max(0.0, float(area / gap.area)))
-                         for index, area in zip(indexes, areas) if area > 0}
+            if cached_fractions is None:
+                if gap_parts is None:
+                    # Pop largest first; bounds resolve ties independently of GEOS.
+                    gap_parts = list(reversed(sorted(
+                        _polygon_parts(remaining),
+                        key=lambda polygon: (-polygon.area, polygon.bounds))))
+                if not gap_parts:
+                    break
+                gap = gap_parts[-1]
+                indexes = [int(index) for index in spatial_index.query(gap, predicate="intersects")
+                           if index in available]
+                areas = _gap_intersection_areas(candidates.geometry.iloc[indexes].array, gap)
+                cached_fractions = {index: min(1.0, max(0.0, float(area / gap.area)))
+                                    for index, area in zip(indexes, areas) if area > 0}
+            fractions = {index: fraction for index, fraction in cached_fractions.items() if index in available}
             if not fractions:
-                # Ignore numerical remnants with no contributing candidate.
-                remaining = remaining.difference(gap)
+                # No remaining candidate can claim this gap, including a gap
+                # whose previous candidates were eliminated by postprocessing.
+                # Discard whole disconnected components lazily. Rebuild only if
+                # a later candidate actually claims area, not once per remnant.
+                gap_parts.pop()
+                dropped_gaps = True
+                cached_fractions = None
                 continue
         best = None
         for index, fraction in fractions.items():
@@ -279,10 +292,18 @@ def _rank_gap_polygons(frame, image_field_name, rank_function, rank_descending):
         row = rows[index].copy()
         row["weighted_score"] = score
         row["weighted_rank"] = selection
-        yield row
+        claimed = yield row
         available.remove(index)
-        # Only unbuffered source geometry affects subsequent gaps.
-        remaining = remaining.difference(row.geometry)
+        # Callers may send cleaned unbuffered ownership back. Ordinary iteration
+        # retains the original source-geometry behavior. Margins never affect gaps.
+        claimed = row.geometry if claimed is None else claimed
+        if not claimed.is_empty:
+            if dropped_gaps:
+                remaining = shapely.MultiPolygon(gap_parts)
+            remaining = remaining.difference(claimed)
+            cached_fractions = None
+            gap_parts = None
+            dropped_gaps = False
 
 
 def _gap_intersection_areas(geometries, gap):

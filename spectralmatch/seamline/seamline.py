@@ -76,6 +76,8 @@ class Seamline:
         image_rank_descending: bool = True,
         extrude_distance: float = 0.0,
         min_polygon_area: float | None = 1.0,
+        do_postprocess_footprints: bool = False,
+        postprocess_footprints_params: dict | None = None,
         image_threads: Universal.Threads = None,
         concurrent_processing_backend: Universal.ConcurrentProcessingBackend = "process_pool",
         dask_scheduler: Universal.DaskScheduler = None,
@@ -111,7 +113,9 @@ class Seamline:
             image_rank_function (str | None, optional): SpectralMatch expression with {var:field} and {summary:field} placeholders, e.g. "-{var:view_zenith}". Higher expression values rank on top by default; negate lower-is-better quantities. {stat:polygon_area} calculates each connected polygon's area in squared CRS units after outline clipping and ranks components separately. {stat:gap_coverage_fraction} enables iterative ranking against the largest remaining connected coverage gap (0-1); it is zero for the first selection. Area statistics and image summaries remain fixed, and margins do not affect gap ranking. None preserves overlaps. Defaults to None.
             image_rank_descending (bool, optional): True ranks higher values on top (default); False reverses the order. Ties use image identifier order.
             min_polygon_area (float | None, optional): Minimum individual owned polygon area in square metres, applied before buffering when coverage controls are used. Pieces smaller than this are removed; None disables filtering. Defaults to 1.0. Raw footprints without coverage controls are unchanged.
-            extrude_distance (float, optional): Nonnegative buffer around owned coverage in projected output CRS units, clipped to the original footprint. Extends beneath other images and beyond the outline; empty owners are omitted. Defaults to 0.0.
+            do_postprocess_footprints (bool, optional): Clean each unbuffered owned piece with postprocess_footprints before assigning it and updating gap ranking. Removed areas remain available to later candidates. Defaults to False.
+            postprocess_footprints_params (dict | None, optional): Keyword arguments forwarded to postprocess_footprints without overriding its defaults. Input/output paths are managed internally. None or {} uses all of that function's defaults. Cleanup runs before the overlap margin, not after final source clipping.
+            extrude_distance (float, optional): Nonnegative buffer around owned coverage in projected output CRS units, clipped to the original footprint. Only connected components containing original owned area are retained, so growth cannot add detached islands. Extends beneath other images and beyond the outline; empty owners are omitted. Defaults to 0.0.
             image_threads (Literal["cpu"] | int | None, optional): Parallelism for per-image operations; "cpu" uses all CPU cores, an integer sets the worker count, and None disables local parallelism. Local GDAL workers use threads. Defaults to None.
             concurrent_processing_backend (Literal["process_pool", "dask"], optional): Use the local execution backend or an existing Dask cluster; local raster polygonization uses threads under the "process_pool" setting. Defaults to "process_pool".
             dask_scheduler (tuple[str, str] | None, optional): Existing Dask scheduler as ("file", path) or ("address", address); required for Dask execution, which requires image_threads=None. Defaults to None.
@@ -176,7 +180,13 @@ class Seamline:
             raise ValueError("output_polygons must differ from outline_path.")
         if resume_from_outputs not in {"no", "yes", "validate"}:
             raise ValueError("resume_from_outputs must be 'no', 'yes' or 'validate'.")
-        coverage_requested = outline_path is not None or image_rank_function is not None or extrude_distance > 0
+        if not isinstance(do_postprocess_footprints, bool):
+            raise ValueError("do_postprocess_footprints must be a bool.")
+        if postprocess_footprints_params is not None and not isinstance(postprocess_footprints_params, dict):
+            raise ValueError("postprocess_footprints_params must be a dict or None.")
+        if do_postprocess_footprints:
+            _footprints._postprocess_coverage_arguments(postprocess_footprints_params)
+        coverage_requested = outline_path is not None or image_rank_function is not None or extrude_distance > 0 or do_postprocess_footprints
         if (
             not isinstance(image_field_name, str)
             or not image_field_name.strip()
@@ -284,6 +294,8 @@ class Seamline:
                         image_rank_function=image_rank_function,
                         image_rank_descending=image_rank_descending, extrude_distance=extrude_distance,
                         min_polygon_area=min_polygon_area,
+                        do_postprocess_footprints=do_postprocess_footprints,
+                        postprocess_footprints_params=postprocess_footprints_params,
                     )
                     destination = os.path.join(workdir, "coverage.gpkg")
                     coverage.to_file(destination, layer=output_layer, driver="GPKG", index=False)
@@ -468,7 +480,7 @@ class Seamline:
                     collect_results=False,
                 )
                 if writer.count == 0:
-                    raise ValueError(
+                    raise _footprints.NoPostprocessedCoverage(
                         "No coverage remains: postprocessing removed all polygons; reduce the processing distances or filter_area_size."
                     )
             return final_output

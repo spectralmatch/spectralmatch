@@ -116,9 +116,68 @@ def _read_metadata_records(records, names, image_field_name):
     return schema, attributes
 
 
+class NoPostprocessedCoverage(ValueError):
+    """Postprocessing legitimately eliminated every feature in its input."""
+
+
+def _postprocess_coverage_arguments(params):
+    """Validate forwarding against the public API, inheriting its live defaults."""
+    from inspect import signature
+    from .seamline import Seamline
+
+    params = {} if params is None else dict(params)
+    parameters = signature(Seamline.postprocess_footprints)
+    # Binding positional paths also rejects attempts to override managed paths.
+    parameters.bind("input.gpkg", "output.gpkg", **params)
+    return params, parameters
+
+
+def _postprocess_owned_footprint(row, geometry, crs, params):
+    """Use the actual public processor, including its validation and future options."""
+    from tempfile import TemporaryDirectory
+    from .seamline import Seamline
+    from ..utils_output import output_finalizer
+
+    params, parameters = _postprocess_coverage_arguments(params)
+    input_layer = params.get("input_layer", parameters.parameters["input_layer"].default) or "footprints"
+    output_layer = params.get("output_layer", parameters.parameters["output_layer"].default)
+    with TemporaryDirectory(prefix="spectralmatch-owned-footprint-") as directory:
+        source = os.path.join(directory, "input.gpkg")
+        destination = os.path.join(directory, "output.gpkg")
+        record = row.copy()
+        record.geometry = geometry
+        gpd.GeoDataFrame([record], geometry="geometry", crs=crs).to_file(
+            source, layer=input_layer, driver="GPKG", index=False)
+        try:
+            # Temporary vectors are not workflow deliverables; do not invoke the
+            # outer create_footprints publication callback for these files.
+            with output_finalizer(None):
+                Seamline.postprocess_footprints(source, destination, **params)
+        except NoPostprocessedCoverage:
+            return MultiPolygon()
+        result = _read_polygons(destination, output_layer).geometry.union_all()
+        # Ownership must never expand into already assigned or unavailable areas.
+        return unary_union(_polygon_parts(result.intersection(geometry)))
+
+
+def _grow_owned_coverage(owned, source, distance):
+    """Grow owned pieces within their source without collecting detached islands."""
+    if not distance:
+        return owned
+    expanded = owned.buffer(distance).intersection(source)
+    # Clipping a buffer can pick up disconnected parts of the source, even when
+    # the source itself is connected beyond the buffer. Retain only components
+    # containing original owned area; boundary-only contact is not ownership.
+    return unary_union([
+        polygon for polygon in _polygon_parts(expanded)
+        if polygon.relate_pattern(owned, "T********")
+    ])
+
+
 def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
                        image_rank_function, image_rank_descending, extrude_distance,
-                       min_polygon_area=1.0):
+                       min_polygon_area=1.0, do_postprocess_footprints=False,
+                       postprocess_footprints_params=None):
     """Assign unbuffered ownership, then retain margins inside original footprints."""
     bounds = dict(zip(frame[image_field_name], frame.geometry))
     if outline_path is not None:
@@ -130,11 +189,17 @@ def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
     if frame.empty:
         raise ValueError("No image coverage remains inside the requested outline.")
     rows = None
+    gap_ranking = False
+    if do_postprocess_footprints:
+        _postprocess_coverage_arguments(postprocess_footprints_params)
+        if not CRS(frame.crs).is_projected:
+            raise ValueError("Postprocessing requires a projected CRS; reproject the input first.")
     if image_rank_function is not None:
         from .weighted_seamline import _rank_polygons, _rank_gap_polygons, _parse_rank_expression
 
         _, _, _, geometry_stats = _parse_rank_expression(image_rank_function)
         if "gap_coverage_fraction" in geometry_stats.values():
+            gap_ranking = True
             rows = _rank_gap_polygons(frame, image_field_name, image_rank_function, image_rank_descending)
         else:
             frame = _rank_polygons(frame, image_field_name, image_rank_function, image_rank_descending)
@@ -153,22 +218,32 @@ def _coverage_polygons(frame, image_field_name, *, outline_path, outline_layer,
     painted = MultiPolygon()
     if rows is None:
         rows = (row for _, row in frame.iterrows())
-    for row in rows:
+    row = next(rows, None)
+    while row is not None:
         owned = row.geometry.difference(painted) if image_rank_function is not None else row.geometry
-        if image_rank_function is not None:
+        if image_rank_function is not None and not do_postprocess_footprints:
             painted = painted.union(row.geometry)
         if min_polygon_area is not None and min_polygon_area > 0:
             owned = unary_union([
                 polygon for polygon in _polygon_parts(owned)
                 if polygon_area(polygon) >= min_polygon_area
             ])
-        if owned.is_empty or owned.area == 0:
-            continue
-        if extrude_distance:
-            owned = owned.buffer(extrude_distance).intersection(bounds[row[image_field_name]])
-        row = row.copy()
-        row.geometry = unary_union(_polygon_parts(owned))
-        output.append(row)
+        if do_postprocess_footprints and not owned.is_empty and owned.area > 0:
+            owned = _postprocess_owned_footprint(row, owned, frame.crs, postprocess_footprints_params)
+        if do_postprocess_footprints and image_rank_function is not None and not owned.is_empty:
+            painted = painted.union(owned)
+        if not owned.is_empty and owned.area > 0:
+            expanded = _grow_owned_coverage(owned, bounds[row[image_field_name]], extrude_distance)
+            result = row.copy()
+            result.geometry = unary_union(_polygon_parts(expanded))
+            output.append(result)
+        if gap_ranking and do_postprocess_footprints:
+            try:
+                row = rows.send(owned)
+            except StopIteration:
+                row = None
+        else:
+            row = next(rows, None)
     if not output:
         raise ValueError("No image coverage remains inside the requested outline.")
     return gpd.GeoDataFrame(output, geometry="geometry", crs=frame.crs)
